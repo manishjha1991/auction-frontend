@@ -1,0 +1,315 @@
+/* General Styles */
+.profile-container {
+    width: 90%;
+    margin: 20px auto;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+  }
+  
+  .profile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .user-info {
+    display: flex;
+    align-items: center;
+  }
+  
+  .profile-image {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-right: 20px;
+    border: 2px solid #007bff;
+  }
+  
+  .purse-amount {
+    font-weight: bold;
+    color: #28a745;
+  }
+  
+  /* Search Bar */
+  .search-bar {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .search-bar input {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .search-bar input:focus {
+    outline: none;
+    border: 1px solid #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  }
+  
+  /* Section Styling */
+  .section {
+    margin-bottom: 30px;
+  }
+  
+  .section h3 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    color: #007bff;
+  }
+  
+  .bought-players,
+  .past-bids {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+  
+  /* Player Card Styling */
+  .player-card {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-align: left;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .player-card p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #555;
+  }
+  
+  /* Specific Colors for Player Types */
+  .player-card.silver {
+    background-color: #e0e0e0; /* Light Silver */
+  }
+  
+  .player-card.gold {
+    background-color: #ffd700; /* Light Gold */
+  }
+  
+  .player-card.emerald {
+    background-color: #98fb98; /* Light Green */
+  }
+  
+  .player-card.sapphire {
+    background-color: #add8e6; /* Light Blue */
+  }
+  
+  /* Current Bid Styling */
+  .current-bid {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    background-color: #f9f9f9;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* Past Bids Styling */
+  .past-bid-card {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    background-color: #ffcccc; /* Light Red */
+    padding: 15px;
+    border: 1px solid #d9534f;
+    border-radius: 8px;
+    text-align: left;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .past-bid-card {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-align: left;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .past-bid-card.won {
+    background-color: #d4edda; /* Light Green for Winning Bids */
+    border-color: #c3e6cb;
+  }
+  
+  .past-bid-card.won p {
+    color: #155724;
+  }
+  
+  .past-bid-card.lost {
+    background-color: #f8d7da; /* Light Red for Losing Bids */
+    border-color: #f5c6cb;
+  }
+  
+  .past-bid-card.lost p {
+    color: #721c24;
+  }
+  
+  /* Responsive Design: Media Queries */
+  @media (max-width: 768px) {
+    .profile-header {
+      flex-direction: column;
+      text-align: center;
+    }
+  
+    .user-info {
+      flex-direction: column;
+      align-items: center;
+    }
+  
+    .profile-image {
+      margin-right: 0;
+      margin-bottom: 10px;
+    }
+  
+    .search-bar input {
+      width: 90%;
+    }
+  
+    .bought-players,
+    .past-bids {
+      grid-template-columns: 1fr;
+    }
+  
+    .past-bid-card {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .section h3 {
+      font-size: 18px;
+    }
+  
+    .player-card p,
+    .past-bid-card p {
+      font-size: 12px;
+    }
+  
+    .purse-amount {
+      font-size: 16px;
+    }
+    /* Styling for Team Name and PSN ID */
+.additional-info {
+  text-align: right;
+  font-size: 16px;
+  color: #555;
+  margin-top: -10px;
+}
+
+.additional-info p {
+  margin: 0;
+  padding: 5px 10px;
+  display: inline-block;
+  background-color: #f0f8ff; /* Light blue background */
+  border-radius: 20px;
+  border: 1px solid #007bff;
+  font-weight: bold;
+  color: #007bff;
+  margin-right: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.additional-info p:hover {
+  background-color: #007bff; /* Blue hover effect */
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+/* Edit Profile Button */
+.edit-profile-button {
+  padding: 8px 15px;
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.edit-profile-button:hover {
+  background-color: #0056b3;
+}
+
+/* Edit Popup */
+.edit-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.edit-popup-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.edit-popup-content h3 {
+  margin-bottom: 15px;
+  text-align: center;
+  color: #007bff;
+}
+
+.edit-popup-content input {
+  width: 100%;
+  margin-bottom: 15px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.popup-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+.popup-buttons button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.popup-buttons button:first-child {
+  background-color: #28a745;
+  color: white;
+}
+
+.popup-buttons button:last-child {
+  background-color: #dc3545;
+  color: white;
+}
+
+  }
+  

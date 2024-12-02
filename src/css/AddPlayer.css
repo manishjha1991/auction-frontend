@@ -1,0 +1,101 @@
+/* Container Styles */
+.add-player-container {
+    width: 90%;
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Title */
+  .title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    color: #007bff;
+    margin-bottom: 20px;
+  }
+  
+  /* Form Styles */
+  .add-player-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .add-player-form input,
+  .add-player-form select,
+  .add-player-form button {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .add-player-form input:focus,
+  .add-player-form select:focus {
+    outline: none;
+    border: 1px solid #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  }
+  
+  /* File Input */
+  .file-input label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  .file-input input {
+    padding: 5px;
+  }
+  
+  /* Button */
+  .add-player-form button {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .add-player-form button:hover {
+    background-color: #0056b3;
+  }
+  
+  /* Message */
+  .message {
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: green;
+  }
+  
+  .message.error {
+    color: red;
+  }
+  
+  /* Mobile Responsiveness */
+  @media (max-width: 768px) {
+    .add-player-container {
+      padding: 15px;
+    }
+  
+    .title {
+      font-size: 20px;
+    }
+  
+    .add-player-form input,
+    .add-player-form select,
+    .add-player-form button {
+      font-size: 14px;
+      padding: 8px;
+    }
+  }
+  
