@@ -17,7 +17,7 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
 
     try {
-      const response = await axios.post('http://localhost:3000/api/users/login', credentials);
+      const response = await axios.post('http://3.108.59.162:3000/api/users/login', credentials);
       const userData = response.data;
 
       // Set logged-in state in cache

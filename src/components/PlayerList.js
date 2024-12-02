@@ -14,7 +14,7 @@ const PlayerList = () => {
 
   useEffect(() => {
     // Fetch players from the backend
-    axios.get('http://localhost:3000/players') // Adjust this URL as per your backend route
+    axios.get('http://3.108.59.162:3000/players') // Adjust this URL as per your backend route
       .then((response) => {
         setPlayers(response.data);
         setLoading(false);
@@ -72,7 +72,7 @@ const PlayerList = () => {
         form.append('image', formData.image);
       }
 
-      const response = await axios.put(`http://localhost:3000/players/${editingPlayer._id}`, form, {
+      const response = await axios.put(`http://3.108.59.162:3000/players/${editingPlayer._id}`, form, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -128,7 +128,7 @@ const PlayerList = () => {
             key={player._id}
             style={{ backgroundColor: getCardColor(player.type) }} // Apply color coding
           >
-            <img src={`http://localhost:3000/${player.image}`} alt={player.name} className="player-image" />
+            <img src={`http://3.108.59.162:3000/${player.image}`} alt={player.name} className="player-image" />
             <div className="player-info">
               <button className="player-button">{player.name}</button>
               <button className="player-button">{player.role}</button>
