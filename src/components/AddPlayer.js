@@ -35,7 +35,7 @@ const AddPlayer = () => {
     form.append('image', image);
 
     try {
-      const response = await axios.post('http://3.108.59.162:3000/api/players', form, {
+      const response = await axios.post('https://backend.cpl.in.net/api/players', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setMessage(`Player added successfully: ${response.data.name}`);
