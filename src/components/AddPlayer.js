@@ -35,12 +35,12 @@ const AddPlayer = () => {
     form.append('image', image);
 
     try {
-      // const response = await axios.post('https://backend.cpl.in.net/api/players', form, {
-      //   headers: { 'Content-Type': 'multipart/form-data' },
-      // });
-      const response = await axios.post('http://localhost:3000/api/players', form, {
+      const response = await axios.post('https://cpl.in.net/api/players', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      // const response = await axios.post('http://localhost:3000/api/players', form, {
+      //   headers: { 'Content-Type': 'multipart/form-data' },
+      // });
       setMessage(`Player added successfully: ${response.data.name}`);
       setFormData({
         firstName: '',

@@ -22,7 +22,7 @@ const PlayerList = () => {
   useEffect(() => {
     // Fetch players from the backend
     axios
-      .get("http://localhost:3000/players") // Update as per your backend URL
+      .get("https://cpl.in.net/players") // Update as per your backend URL
       .then((response) => {
         setPlayers(response.data);
         setLoading(false);
@@ -78,7 +78,7 @@ const PlayerList = () => {
       }
 
       const response = await axios.put(
-        `http://localhost:3000/players/${editingPlayer._id}`,
+        `https://cpl.in.net/players/${editingPlayer._id}`,
         form,
         {
           headers: {
@@ -97,7 +97,7 @@ const PlayerList = () => {
 
   const markAsSold = async (playerId) => {
     try {
-      const response = await axios.put(`http://localhost:3000/players/${playerId}/sold`);
+      const response = await axios.put(`https://cpl.in.net/players/${playerId}/sold`);
       setPlayers(players.map((p) =>
         p._id === playerId ? { ...p, sold: true } : p
       ));
@@ -117,7 +117,7 @@ const PlayerList = () => {
 
     // Fetch bid history for the player
     try {
-      const response = await axios.get(`http://localhost:3000/api/bids/${player._id}`);
+      const response = await axios.get(`https://cpl.in.net/api/bids/${player._id}`);
       setBidHistory(response.data); // Set bid history
     } catch (error) {
       console.error("Error fetching bid history:", error);
@@ -131,7 +131,7 @@ const PlayerList = () => {
   };
   const handleOutFromBidding = async () => {
     try {
-      await axios.put(`http://localhost:3000/api/players/${activeBidPlayerId}/out`, {
+      await axios.put(`https://cpl.in.net/api/players/${activeBidPlayerId}/out`, {
         userId: loggedUser.id,
       });
       setActiveBidPlayerId(null); // Clear active bid player ID
@@ -160,7 +160,7 @@ const PlayerList = () => {
     try {
       setBidMessage("Submitting your bid...");
       // Send bid to the backend
-      const response = await axios.put(`http://localhost:3000/players/${currentBidPlayer._id}/bid`, {
+      const response = await axios.put(`https://cpl.in.net/players/${currentBidPlayer._id}/bid`, {
         playerId: currentBidPlayer._id, // Include the player ID
         bidAmount: newBid,
         bidder: { id: loggedUser.id, name: loggedUser.name }, // Use actual logged-in user data
@@ -176,7 +176,7 @@ const PlayerList = () => {
       setBidMessage("Your bid has been submitted successfully!");
 
       // Refresh bid history
-      const updatedHistory = await axios.get(`http://localhost:3000/api/bids/${currentBidPlayer._id}`);
+      const updatedHistory = await axios.get(`https://cpl.in.net/api/bids/${currentBidPlayer._id}`);
       setBidHistory(updatedHistory.data);
 
       setTimeout(() => {
