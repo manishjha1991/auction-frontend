@@ -10,6 +10,7 @@ import './App.css'; // Import CSS for styling
 function App() {
   const [user, setUser] = useState(null); // State to hold user info
   const [isAuthenticated, setIsAuthenticated] = useState(false); // User authentication state
+  const [loading, setLoading] = useState(true); // Loading state to prevent flicker
 
   useEffect(() => {
     // Check cached authentication status
@@ -22,6 +23,8 @@ function App() {
     } else {
       setIsAuthenticated(false);
     }
+
+    setLoading(false); // End loading state
   }, []);
 
   const handleLogin = (userData) => {
@@ -43,13 +46,18 @@ function App() {
     return isAuthenticated ? children : <Navigate to="/login" />;
   };
 
+  if (loading) {
+    // Display a loading spinner or message while checking authentication
+    return <div className="loading">Loading...</div>;
+  }
+
   return (
     <Router>
       <div className="dashboard-container">
         {isAuthenticated && (
           <nav className="sidebar">
             <h1>Dashboard</h1>
-            <p>Welcome, {user?.name}!</p>
+            <p>Welcome, {user?.name || 'User'}!</p>
             <ul className="menu">
               <li><Link to="/players">Players</Link></li>
               <li><Link to="/profile">Profile</Link></li>

@@ -31,7 +31,8 @@ const Signup = () => {
     }
 
     try {
-      const response = await axios.post('https://backend.cpl.in.net/api/users/signup', formData);
+      //const response = await axios.post('https://backend.cpl.in.net/api/users/signup', formData);
+      const response = await axios.post('http://localhost:3000/api/users/signup', formData);
       setMessage('Signup successful! Redirecting to login...');
       setError('');
       setTimeout(() => {
