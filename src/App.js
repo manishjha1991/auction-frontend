@@ -11,6 +11,7 @@ function App() {
   const [user, setUser] = useState(null); // State to hold user info
   const [isAuthenticated, setIsAuthenticated] = useState(false); // User authentication state
   const [loading, setLoading] = useState(true); // Loading state to prevent flicker
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // State to manage sidebar visibility
 
   useEffect(() => {
     // Check cached authentication status
@@ -41,6 +42,10 @@ function App() {
     localStorage.removeItem('user');
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen); // Toggle sidebar visibility
+  };
+
   // Protects private routes from unauthenticated access
   const PrivateRoute = ({ children }) => {
     return isAuthenticated ? children : <Navigate to="/login" />;
@@ -55,18 +60,23 @@ function App() {
     <Router>
       <div className="dashboard-container">
         {isAuthenticated && (
-          <nav className="sidebar">
-            <h1>Dashboard</h1>
-            <p>Welcome, {user?.name || 'User'}!</p>
-            <ul className="menu">
-              <li><Link to="/players">Players</Link></li>
-              <li><Link to="/profile">Profile</Link></li>
-              {user?.isAdmin && <li><Link to="/add-player">Add Player</Link></li>}
-              <li>
-                <button onClick={handleLogout}>Logout</button>
-              </li>
-            </ul>
-          </nav>
+          <>
+            <button className="hamburger" onClick={toggleSidebar}>
+              ☰
+            </button>
+            <nav className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
+              <h1>Dashboard</h1>
+              <p>Welcome, {user?.name || 'User'}!</p>
+              <ul className="menu">
+                <li><Link to="/players">Players</Link></li>
+                <li><Link to="/profile">Profile</Link></li>
+                {user?.isAdmin && <li><Link to="/add-player">Add Player</Link></li>}
+                <li>
+                  <button onClick={handleLogout}>Logout</button>
+                </li>
+              </ul>
+            </nav>
+          </>
         )}
 
         <main className="content">

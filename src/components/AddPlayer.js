@@ -10,6 +10,7 @@ const AddPlayer = () => {
     style: '',
     basePrice: '',
     playerType: '',
+    score: '',
   });
   const [image, setImage] = useState(null);
   const [message, setMessage] = useState('');
@@ -25,22 +26,38 @@ const AddPlayer = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+  
+    const calculateBasePriceUnit = (basePrice) => {
+      if (basePrice < 100000) return 'K'; // Use the unit "K" for Thousands
+      if (basePrice < 10000000) return 'Lakh'; // Use the unit "Lakh" for Lakhs
+      return 'CR'; // Use the unit "CR" for Crores
+    };
+  
+    const basePriceUnit = calculateBasePriceUnit(Number(formData.basePrice));
+  
+    // Ensure role formatting matches backend expectations
+    const roleMapping = {
+      'All-Rounder': 'Allrounder',
+      'Bowling-All-Rounder': 'BowlingAllrounder',
+      'Batting-All-Rounder': 'BattingAllrounder',
+    };
+  
+    const role = roleMapping[formData.role] || formData.role;
+  
     const form = new FormData();
-    form.append('firstName', formData.firstName);
-    form.append('lastName', formData.lastName);
-    form.append('role', formData.role);
-    form.append('style', formData.style); // Add style value
+    form.append('name', `${formData.firstName} ${formData.lastName}`);
+    form.append('type', formData.playerType);
+    form.append('role', role); // Ensure the role matches backend
     form.append('basePrice', formData.basePrice);
-    form.append('playerType', formData.playerType);
-    form.append('image', image);
-
+    form.append('basePriceUnit', basePriceUnit); // Ensure the unit matches backend
+    form.append('overallScore', formData.score);
+    form.append('style', formData.style); // Include batting style
+    form.append('profilePicture', image); // Match Postman field name
+  
     try {
-      const response = await axios.post('https://cpl.in.net/api/players', form, {
+      const response = await axios.post('http://localhost:3000/api/player', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      // const response = await axios.post('http://localhost:3000/api/players', form, {
-      //   headers: { 'Content-Type': 'multipart/form-data' },
-      // });
       setMessage(`Player added successfully: ${response.data.name}`);
       setFormData({
         firstName: '',
@@ -49,18 +66,22 @@ const AddPlayer = () => {
         style: '',
         basePrice: '',
         playerType: '',
+        score: '',
       });
       setImage(null);
     } catch (error) {
       console.error('Error adding player:', error);
-      setMessage('Failed to add player. Please try again.');
+      setMessage(`Failed to add player. Please try again.${error}`);
     }
   };
+  
+  
+  
 
   return (
-    <div className="add-player-container">
+    <div className="add-player-container enhanced-ui">
       <h2 className="title">Add Player</h2>
-      {message && <p className="message">{message}</p>}
+      {message && <p className={`message ${message.includes('Failed') ? 'error' : ''}`}>{message}</p>}
       <form className="add-player-form" onSubmit={handleSubmit}>
         <input
           type="text"
@@ -87,7 +108,6 @@ const AddPlayer = () => {
           <option value="Batting-All-Rounder">Batting-All-Rounder</option>
           <option value="Wicket-Keeper">Wicket Keeper</option>
         </select>
-        {/* New Style Dropdown */}
         <select name="style" value={formData.style} onChange={handleInputChange} required>
           <option value="">Select Style</option>
           <option value="LHB">Left-Handed Bat (LHB)</option>
@@ -105,6 +125,14 @@ const AddPlayer = () => {
           name="basePrice"
           placeholder="Base Price"
           value={formData.basePrice}
+          onChange={handleInputChange}
+          required
+        />
+        <input
+          type="number"
+          name="score"
+          placeholder="Player Overall Score"
+          value={formData.score}
           onChange={handleInputChange}
           required
         />

@@ -98,4 +98,42 @@
       padding: 8px;
     }
   }
+  .enhanced-ui {
+    background: linear-gradient(135deg, #007bff, #00d4ff);
+    color: #fff;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 1s ease-in-out;
+  }
+  
+  .add-player-form input,
+  .add-player-form select,
+  .add-player-form button {
+    background: #fff;
+    color: #333;
+  }
+  
+  .add-player-form button {
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .add-player-form button:hover {
+    transform: scale(1.05);
+  }
+  
+  .file-input label {
+    color: #fff;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
   

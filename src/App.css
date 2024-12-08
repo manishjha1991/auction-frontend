@@ -79,3 +79,50 @@ body {
   font-weight: bold;
   color: #007bff;
 }
+/* General Sidebar Styling */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100%;
+  background-color: #007bff;
+  color: white;
+  transform: translateX(-100%); /* Hide sidebar by default */
+  transition: transform 0.3s ease-in-out;
+}
+
+.sidebar.open {
+  transform: translateX(0); /* Slide in when open */
+}
+
+.sidebar.closed {
+  transform: translateX(-100%); /* Slide out when closed */
+}
+
+.hamburger {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 1000; /* Ensure it stays above other elements */
+}
+
+.menu {
+  list-style-type: none;
+  padding: 0;
+}
+
+.menu li {
+  margin: 10px 0;
+}
+
+.menu a {
+  color: white;
+  text-decoration: none;
+}
