@@ -214,6 +214,43 @@
     max-height: calc(85% - 80px); /* Adjust based on padding and header/footer height */
     padding-right: 10px; /* Prevent content from being clipped */
   }
+  .unique-exit-btn {
+    background: linear-gradient(135deg, #ff7e5f, #feb47b);
+    border: none;
+    color: white;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .unique-exit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .exit-message {
+    background-color: #f0f4f8;
+    color: #333;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 15px;
+    text-align: center;
+    font-size: 14px;
+  }
+  .bid-out-text {
+    background-color: #ff4d4d;
+    color: white;
+    padding: 2px 8px;
+    margin-right: 5px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+  }
   
   /* Animations */
   @keyframes fadeIn {

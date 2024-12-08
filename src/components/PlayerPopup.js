@@ -39,7 +39,7 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
 
     fetchPlayerData();
   }, [player.id]);
-
+  const [exitMessage, setExitMessage] = useState(null); // For the exit message tog
   useEffect(() => {
     if (playerDetails && allBids.length > 0 && !playerDetails.status === "Sold") {
       const endTime = new Date();
@@ -137,6 +137,42 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
     }
   };
   
+  const handleExitAuction = async () => {
+    try {
+      setExitMessage(null); // Reset the message toggle
+
+      const user = JSON.parse(localStorage.getItem("user"));
+      const userId = user?.id;
+
+      if (!userId) {
+        throw new Error("User ID not found in local storage.");
+      }
+
+      const response = await fetch(`http://localhost:3000/api/bids/${player.id}/exit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to exit auction.");
+      }
+
+      setExitMessage(result.message || "Successfully exited the auction.");
+    } catch (err) {
+      console.error("Exit Auction Error:", err);
+      setExitMessage("Failed to exit the auction. Please try again.");
+    }
+  };
+
+  if (loading) {
+    return <div className="loading">Loading player details...</div>;
+  }
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
   
   
 
@@ -189,29 +225,35 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
           </div>
 
           {topTwoBids.length > 0 && !isSold && (
-            <div className="bids-section">
-              <h3>Last Two Bids</h3>
-              {topTwoBids.map((bid, index) => (
-                <div key={bid.id} className="bid-row">
-                  <p>
-                    <b>Bidder:</b> {bid.bidder.name} <span className="bid-amount">{bid.bidAmount}</span>
-                  </p>
-                  <p className="bid-time">
-                    <FaClock className="timer-icon" /> Last Bid Time:{" "}
-                    {new Date(bid.createdAt).toLocaleString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                      hour12: true,
-                    })}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
+  <div className="bids-section">
+    <h3>Last Two Bids</h3>
+    {topTwoBids.map((bid, index) => (
+      <div key={bid.id} className="bid-row">
+        <p>
+          <b>Bidder:</b>{" "}
+          <span className="bidder-name">
+            {bid.isBidOn === false && <span className="bid-out-text">Out</span>}{" "}
+            {bid.bidder.name}
+          </span>
+          <span className="bid-amount">{bid.bidAmount}</span>
+        </p>
+        <p className="bid-time">
+          <FaClock className="timer-icon" /> Last Bid Time:{" "}
+          {new Date(bid.createdAt).toLocaleString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          })}
+        </p>
+      </div>
+    ))}
+  </div>
+)}
+
 
           {allBids.length > 0 && !isSold && (
             <div className="timer-section">
@@ -230,6 +272,19 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
                 {placingBid ? "Placing..." : "Place Bid (₹10,00,000)"}
               </button>
               {bidError && <p className="error">{bidError}</p>}
+            </div>
+          )}
+          {exitMessage && (
+            <div className="exit-message">
+              <p>{exitMessage}</p>
+            </div>
+          )}
+
+          {!isSold && (
+            <div className="exit-auction-section">
+              <button className="unique-exit-btn" onClick={handleExitAuction}>
+                Exit Auction 🚪
+              </button>
             </div>
           )}
         </div>
