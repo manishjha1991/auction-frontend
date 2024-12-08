@@ -55,7 +55,7 @@ const AddPlayer = () => {
     form.append('profilePicture', image); // Match Postman field name
   
     try {
-      const response = await axios.post('http://localhost:3000/api/player', form, {
+      const response = await axios.post('https://cpl.in.net/api/player', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setMessage(`Player added successfully: ${response.data.name}`);

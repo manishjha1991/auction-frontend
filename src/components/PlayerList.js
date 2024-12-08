@@ -16,7 +16,7 @@ const PlayerList = () => {
     const fetchPlayers = async () => {
       try {
         setLoading(true);
-        const response = await fetch("http://localhost:3000/api/players/data", {
+        const response = await fetch("https://cpl.in.net/api/players/data", {
           headers: {
             "Content-Type": "application/json",
           },

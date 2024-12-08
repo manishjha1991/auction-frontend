@@ -17,7 +17,7 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
     const fetchPlayerData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:3000/api/player/${player.id}/bids`, {
+        const response = await fetch(`https://cpl.in.net/api/player/${player.id}/bids`, {
           headers: { "Content-Type": "application/json" },
         });
 
@@ -115,7 +115,7 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
       };
       console.log("Payload:", payload);
   
-      const response = await fetch(`http://localhost:3000/api/bids/${playerDetails.id}/bid`, {
+      const response = await fetch(`https://cpl.in.net/api/bids/${playerDetails.id}/bid`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -148,7 +148,7 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
         throw new Error("User ID not found in local storage.");
       }
 
-      const response = await fetch(`http://localhost:3000/api/bids/${player.id}/exit`, {
+      const response = await fetch(`https://cpl.in.net/api/bids/${player.id}/exit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
