@@ -101,7 +101,16 @@
 .sidebar.closed + .content {
   margin-left: 0;
 }
-
+/* New styles for pages without sidebar */
+.content.no-sidebar {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f0f2f5; /* Subtle background for login/signup */
+}
 .welcome-message {
   text-align: center;
   margin: 20px 0;
@@ -127,7 +136,9 @@
   color: #ffd700; /* Golden color for the name */
   text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3);
 }
-
+.sidebar.open + .content {
+  margin-left: 250px;
+}
 @keyframes wave {
   0% { transform: rotate(0deg); }
   10% { transform: rotate(14deg); }

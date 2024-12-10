@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import PlayerList from './components/PlayerList';
 import Profile from './components/Profile';
 import Login from './components/Login';
@@ -50,6 +50,14 @@ function App() {
     return isAuthenticated ? children : <Navigate to="/login" />;
   };
 
+  const getContentClass = () => {
+    const location = window.location.pathname;
+    if (location === '/login' || location === '/signup') {
+      return 'content no-sidebar'; // New class for login/signup pages
+    }
+    return `content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`;
+  };
+
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
@@ -90,7 +98,7 @@ function App() {
           </>
         )}
 
-        <main className="content">
+        <main className={getContentClass()}>
           <Routes>
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
             <Route path="/signup" element={<Signup />} />
