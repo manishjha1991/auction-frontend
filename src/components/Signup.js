@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom'; // Import navigation hooks
 import axios from 'axios';
 import '../css/Signup.css'; // Import CSS for styling
-
+import { API_ENDPOINTS } from "../const";
 const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -32,7 +32,7 @@ const Signup = () => {
 
     try {
       //const response = await axios.post('https://backend.localhost:3000/api/users/signup', formData);
-      const response = await axios.post('https://cpl.in.net/api/users/signup', formData);
+      const response = await axios.post(`${API_ENDPOINTS}/api/users/signup`, formData);
       setMessage('Signup successful! Redirecting to login...');
       setError('');
       setTimeout(() => {

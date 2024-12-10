@@ -1,32 +1,44 @@
-/* General Styles */
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background-color: #f5f5f5;
-}
-
-/* Dashboard Container */
-.dashboard-container {
-  display: flex;
-  height: 100vh;
-}
-
-/* Sidebar */
 .sidebar {
   width: 250px;
-  background-color: #007bff;
-  color: #fff;
-  padding: 20px;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  background: #2c3e50;
+  color: #ecf0f1;
+  position: fixed;
+  top: 0;
+  left: 0;
+  transition: transform 0.3s ease;
+  transform: translateX(-100%);
+  z-index: 1000;
 }
 
-.sidebar h1 {
-  margin: 0;
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: #34495e;
+}
+
+.sidebar-header h1 {
   font-size: 1.5rem;
-  color: #fff;
+  margin: 0;
+}
+
+.close-btn {
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  color: #ecf0f1;
+  cursor: pointer;
+}
+
+.sidebar p {
   text-align: center;
-  margin-bottom: 20px;
+  margin: 20px 0;
 }
 
 .menu {
@@ -35,94 +47,99 @@ body {
 }
 
 .menu li {
-  margin: 15px 0;
+  padding: 15px 20px;
 }
 
 .menu li a {
-  color: #fff;
+  color: #ecf0f1;
   text-decoration: none;
-  font-size: 1rem;
-  padding: 10px;
-  display: block;
-  border-radius: 5px;
+  font-size: 1.2rem;
 }
 
 .menu li a:hover {
-  background-color: #0056b3;
-}
-
-/* Content Area */
-.content {
-  flex-grow: 1;
-  padding: 20px;
-  overflow-y: auto;
-  background-color: #ffffff;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
-}
-
-/* Responsive Design */
-@media screen and (max-width: 768px) {
-  .sidebar {
-    width: 200px;
-  }
-
-  .menu li a {
-    font-size: 0.9rem;
-  }
-}
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  font-size: 24px;
-  font-weight: bold;
-  color: #007bff;
-}
-/* General Sidebar Styling */
-.sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 250px;
-  height: 100%;
-  background-color: #007bff;
-  color: white;
-  transform: translateX(-100%); /* Hide sidebar by default */
-  transition: transform 0.3s ease-in-out;
-}
-
-.sidebar.open {
-  transform: translateX(0); /* Slide in when open */
-}
-
-.sidebar.closed {
-  transform: translateX(-100%); /* Slide out when closed */
+  background: #16a085;
+  border-radius: 5px;
 }
 
 .hamburger {
+  font-size: 1.5rem;
   position: fixed;
-  top: 10px;
-  left: 10px;
-  background-color: #007bff;
-  color: white;
+  top: 20px;
+  left: 20px;
+  background: none;
   border: none;
-  padding: 10px 15px;
-  font-size: 20px;
+  color: #2c3e50;
   cursor: pointer;
-  z-index: 1000; /* Ensure it stays above other elements */
+  z-index: 1100;
 }
 
-.menu {
-  list-style-type: none;
-  padding: 0;
+.logout-btn {
+  width: 90%;
+  padding: 10px;
+  margin: 10px auto;
+  font-size: 1.2rem;
+  color: #fff;
+  background: linear-gradient(to right, #f12711, #f5af19);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  display: block;
+  transition: transform 0.3s ease, background 0.3s ease;
 }
 
-.menu li {
-  margin: 10px 0;
+.logout-btn:hover {
+  background: linear-gradient(to right, #f5af19, #f12711);
+  transform: scale(1.05);
 }
 
-.menu a {
-  color: white;
-  text-decoration: none;
+.content {
+  margin-left: 250px;
+  padding: 20px;
+}
+
+.sidebar.closed + .content {
+  margin-left: 0;
+}
+
+.welcome-message {
+  text-align: center;
+  margin: 20px 0;
+  padding: 10px;
+  background: linear-gradient(to right, #6a11cb, #2575fc);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: bold;
+  border-radius: 10px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  animation: pop-in 0.5s ease-out;
+  position: relative;
+}
+
+.welcome-message .wave {
+  display: inline-block;
+  animation: wave 1.5s infinite;
+  font-size: 1.8rem;
+}
+
+.welcome-message .user-name {
+  font-weight: 900;
+  color: #ffd700; /* Golden color for the name */
+  text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes wave {
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(14deg); }
+  20% { transform: rotate(-8deg); }
+  30% { transform: rotate(14deg); }
+  40% { transform: rotate(-4deg); }
+  50% { transform: rotate(10deg); }
+  60% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }

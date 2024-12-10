@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import '../css/AddPlayer.css'; // Import CSS for styling
-
+import { API_ENDPOINTS } from "../const";
 const AddPlayer = () => {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -54,7 +54,7 @@ const AddPlayer = () => {
     form.append('profilePicture', image); // Match Postman field name
   
     try {
-      const response = await axios.post('https://cpl.in.net/api/player', form, {
+      const response = await axios.post(`${API_ENDPOINTS}/api/player`, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setMessage(`Player added successfully: ${response.data.name}`);

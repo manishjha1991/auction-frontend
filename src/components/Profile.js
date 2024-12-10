@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import '../css/Profile.css';
 
+import '../css/Profile.css';
+import { API_ENDPOINTS } from "../const";
 const Profile = () => {
-  const navigate = useNavigate();
+ 
   const [userData, setUserData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -23,7 +23,7 @@ const Profile = () => {
           throw new Error('User ID not found in local storage.');
         }
 
-        const response = await fetch(`https://cpl.in.net/api/users/${userId}/details`, {
+        const response = await fetch(`${API_ENDPOINTS}/api/users/${userId}/details`, {
           headers: { 'Content-Type': 'application/json' },
         });
 

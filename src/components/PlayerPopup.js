@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from "react";
 import "../css/PlayerPopup.css";
 import { FaClock } from "react-icons/fa";
-
+import { API_ENDPOINTS } from "../const";
 const PlayerPopup = ({ player, onClose }) => {
   const [playerDetails, setPlayerDetails] = useState(null);
   const [topTwoBids, setTopTwoBids] = useState([]);
   const [allBids, setAllBids] = useState([]);
   const [timer, setTimer] = useState("");
-  const [lastBidTimer, setLastBidTimer] = useState("");
+  const [setLastBidTimer] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [bidMessage, setBidMessage] = useState(null);
   const [exitMessage, setExitMessage] = useState(null);
   const [placingBid, setPlacingBid] = useState(false);
   const [bidError, setBidError] = useState(null);
   const [soldMessage, setSoldMessage] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [releaseMessage, setReleaseMessage] = useState(null);
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     setIsAdmin(user?.isAdmin === true);
@@ -24,7 +24,7 @@ const PlayerPopup = ({ player, onClose }) => {
     const fetchPlayerData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`https://cpl.in.net/api/player/${player.id}/bids`, {
+        const response = await fetch(`${API_ENDPOINTS}/api/player/${player.id}/bids`, {
           headers: { "Content-Type": "application/json" },
         });
 
@@ -92,12 +92,34 @@ const PlayerPopup = ({ player, onClose }) => {
     }
     return amount.toString();
   };
+  const handleReleasePlayer = async () => {
+    try {
+      setReleaseMessage(null);
 
+      const response = await fetch(`${API_ENDPOINTS}/api/bids/release-player`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ playerId: player.id }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to release player.");
+      }
+
+      setReleaseMessage(result.message || "Player released successfully.");
+    } catch (err) {
+      setReleaseMessage(err.message || "Failed to release player. Please try again.");
+    }
+  };
   const handleMarkAsSold = async () => {
     try {
       setSoldMessage(null);
 
-      const response = await fetch('https://cpl.in.net/api/bids/bid/sold', {
+      const response = await fetch(`${API_ENDPOINTS}/api/bids/bid/sold`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerID: player.id }),
@@ -114,6 +136,16 @@ const PlayerPopup = ({ player, onClose }) => {
       setSoldMessage(err.message || "Failed to mark player as sold. Please try again.");
     }
   };
+  const determineBidIncrement = (playerType, lastBidAmount) => {
+    if (playerType === "Sapphire" || playerType === "Gold" || playerType === "Emerald") {
+      return 5000000; // ₹50,00,000
+    } else if (playerType === "Silver" && lastBidAmount >= 10000000) {
+      return 5000000; // ₹50,00,000 if last bid amount is ₹1 Cr or more
+    } else if (playerType === "Silver") {
+      return 1000000; // ₹10,00,000 for Silver otherwise
+    }
+    return 1000000; // Default increment
+  };
   const handlePlaceBid = async () => {
     try {
       setPlacingBid(true);
@@ -125,12 +157,14 @@ const PlayerPopup = ({ player, onClose }) => {
       if (!bidderId) {
         throw new Error("Bidder ID not found in local storage.");
       }
+      const lastBidAmount =
+        topTwoBids.length > 0 ? topTwoBids[0]?.bidAmount || 0 : playerDetails?.basePrice || 0;
+
+      // Determine the bid increment based on player type and last bid amount
+      const bidIncrement = determineBidIncrement(playerDetails?.type, lastBidAmount);
 
       // Calculate the bid amount
-      const lastBidAmount = topTwoBids.length > 0
-        ? topTwoBids[0]?.bidAmount || 0
-        : playerDetails?.basePrice || 0;
-      const bidAmount = lastBidAmount + 1000000; // Add ₹10,00,000
+      const bidAmount = lastBidAmount + bidIncrement;
       console.log("Calculated Bid Amount:", bidAmount);
 
       const payload = {
@@ -139,7 +173,7 @@ const PlayerPopup = ({ player, onClose }) => {
       };
       console.log("Payload:", payload);
 
-      const response = await fetch(`https://cpl.in.net/api/bids/${playerDetails.id}/bid`, {
+      const response = await fetch(`${API_ENDPOINTS}/api/bids/${playerDetails.id}/bid`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -175,7 +209,7 @@ const PlayerPopup = ({ player, onClose }) => {
         throw new Error("User ID not found in local storage.");
       }
 
-      const response = await fetch(`https://cpl.in.net/api/bids/${player.id}/exit`, {
+      const response = await fetch(`${API_ENDPOINTS}/api/bids/${player.id}/exit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
@@ -251,7 +285,7 @@ const PlayerPopup = ({ player, onClose }) => {
             </p>
           </div>
 
-          {topTwoBids.length > 0 && !isSold && (
+          {topTwoBids.length > 0 && (
             <div className="bids-section">
               <h3>Last Two Bids</h3>
               {topTwoBids.map((bid, index) => (
@@ -296,7 +330,14 @@ const PlayerPopup = ({ player, onClose }) => {
                 onClick={handlePlaceBid}
                 disabled={placingBid}
               >
-                {placingBid ? "Placing..." : "Place Bid (₹10,00,000)"}
+                {placingBid
+                  ? "Placing..."
+                  : `Place Bid (₹${formatHumanReadableAmount(
+                    determineBidIncrement(playerDetails?.type,
+                      topTwoBids.length > 0
+                        ? topTwoBids[0]?.bidAmount || 0
+                        : playerDetails?.basePrice || 0)
+                  )})`}
               </button>
               {bidError && <p className="error">{bidError}</p>}
             </div>
@@ -321,6 +362,37 @@ const PlayerPopup = ({ player, onClose }) => {
                 SOLD
               </button>
               {soldMessage && <p className="sold-message">{soldMessage}</p>}
+            </div>
+          )}
+          {isAdmin && isSold && (
+            <div className="release-button-section">
+              <button
+                className="release-btn"
+                onClick={handleReleasePlayer}
+                style={{
+                  padding: "12px 25px",
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                  color: "#fff",
+                  background: "linear-gradient(to right, #4CAF50, #8BC34A)",
+                  border: "none",
+                  borderRadius: "12px",
+                  boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)",
+                  cursor: "pointer",
+                  transition: "transform 0.2s, background 0.3s",
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = "linear-gradient(to right, #8BC34A, #4CAF50)";
+                  e.target.style.transform = "scale(1.05)";
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = "linear-gradient(to right, #4CAF50, #8BC34A)";
+                  e.target.style.transform = "scale(1)";
+                }}
+              >
+                RELEASE PLAYER
+              </button>
+              {releaseMessage && <p className="release-message">{releaseMessage}</p>}
             </div>
           )}
           {exitMessage && (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../css/PlayerList.css";
 import PlayerPopup from "./PlayerPopup";
+import { API_ENDPOINTS } from "../const";
 
 const PlayerList = () => {
   const [players, setPlayers] = useState([]);
@@ -8,15 +9,15 @@ const PlayerList = () => {
   const [sortOption, setSortOption] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false); // Toggle this to test admin mode
-  const [loading, setLoading] = useState(true); // Loading state
-  const [error, setError] = useState(null); // Error state
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchPlayers = async () => {
       try {
         setLoading(true);
-        const response = await fetch("https://cpl.in.net/api/players/data", {
+        const response = await fetch(`${API_ENDPOINTS}/api/players/data`, {
           headers: {
             "Content-Type": "application/json",
           },
@@ -57,22 +58,21 @@ const PlayerList = () => {
       player.name.toLowerCase().includes(search.toLowerCase())
     )
     .sort((a, b) => {
-      if (sortOption === "Sold") return a.status === "Sold" ? -1 : 1;
-      if (sortOption === "Unsold") return a.status === "Unsold" ? -1 : 1;
-      if (sortOption === "Type") return a.type.localeCompare(b.type);
-      return 0;
+      const maxA = Math.max(a.biddingPrice || 0, a.basePrice || 0);
+      const maxB = Math.max(b.biddingPrice || 0, b.basePrice || 0);
+      return maxB - maxA; // Sort in descending order
     });
 
   const getRoleIcon = (role) => {
     switch (role.toLowerCase()) {
       case "batsman":
-        return "🏌️"; // Bat icon
+        return "🏌️";
       case "bowler":
-        return "🏐"; // Cricket ball icon
+        return "🏐";
       case "wicketkeeper":
-        return "🧤"; // Glove icon
+        return "🧤";
       case "allrounder":
-        return "🏏"; // Bat and ball icon
+        return "🏏";
       default:
         return "🏏";
     }
@@ -87,8 +87,8 @@ const PlayerList = () => {
       );
     } else if (player.currentBidder !== "N/A" && player.currentBidder) {
       return (
-        <span>
-          💰 <b>Bidding is On</b>
+        <span style={{ color: "#f39c12", fontWeight: "bold" }}>
+          💰 Bidding is On
         </span>
       );
     } else {
@@ -98,6 +98,15 @@ const PlayerList = () => {
         </span>
       );
     }
+  };
+
+  const shouldBlink = (player) => {
+    const biddingPrice = player.biddingPrice || player.basePrice || 0; // Use biddingPrice, fallback to basePrice
+    return (
+      player.currentBidder && // Ensure there's a current bidder
+      biddingPrice > 100000000 && // Price must exceed 10 cr
+      player.status !== "Sold" // Player should not be sold
+    );
   };
 
   if (loading) {
@@ -150,13 +159,15 @@ const PlayerList = () => {
         {sortedPlayers.map((player) => (
           <div
             key={player.id}
-            className={`player-row ${player.type.toLowerCase()}`}
+            className={`player-row ${player.type.toLowerCase()} ${
+              shouldBlink(player) ? "blinking" : "" // Apply blinking class conditionally
+            }`}
             onClick={() => handlePlayerClick(player)}
           >
             <div className="player-cell player-icon">{getRoleIcon(player.role)}</div>
             <div className="player-cell">{player.name}</div>
             <div className="player-cell player-price">
-              {formatBasePrice(player.basePrice)}
+              {formatBasePrice(Math.max(player.biddingPrice || 0, player.basePrice || 0))}
             </div>
             <div className="player-cell team-sold">{getStatusIcon(player)}</div>
           </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import '../css/Login.css'; // Import CSS for styling
-
+import { API_ENDPOINTS } from "../const";
 const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -17,7 +17,7 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
 
     try {
-      const response = await axios.post('https://cpl.in.net/api/users/login', credentials);
+      const response = await axios.post(`${API_ENDPOINTS}/api/users/login`, credentials);
       //const response = await axios.post('https://cpl.in.net//api/users/login', credentials);
       const userData = response.data;
 

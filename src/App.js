@@ -3,29 +3,29 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-ro
 import PlayerList from './components/PlayerList';
 import Profile from './components/Profile';
 import Login from './components/Login';
-import Signup from './components/Signup'; // Import Signup component
-import AddPlayer from './components/AddPlayer'; // Import AddPlayer component
-import './App.css'; // Import CSS for styling
+import Signup from './components/Signup';
+import AddPlayer from './components/AddPlayer';
+import UserPursePage from './components/UserPurse';
+import './App.css';
 
 function App() {
-  const [user, setUser] = useState(null); // State to hold user info
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // User authentication state
-  const [loading, setLoading] = useState(true); // Loading state to prevent flicker
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // State to manage sidebar visibility
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Check cached authentication status
     const cachedAuth = localStorage.getItem('isLoggedIn') === 'true';
     const cachedUser = localStorage.getItem('user');
 
     if (cachedAuth && cachedUser) {
       setIsAuthenticated(true);
-      setUser(JSON.parse(cachedUser)); // Parse and set the cached user
+      setUser(JSON.parse(cachedUser));
     } else {
       setIsAuthenticated(false);
     }
 
-    setLoading(false); // End loading state
+    setLoading(false);
   }, []);
 
   const handleLogin = (userData) => {
@@ -43,16 +43,14 @@ function App() {
   };
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen); // Toggle sidebar visibility
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
-  // Protects private routes from unauthenticated access
   const PrivateRoute = ({ children }) => {
     return isAuthenticated ? children : <Navigate to="/login" />;
   };
 
   if (loading) {
-    // Display a loading spinner or message while checking authentication
     return <div className="loading">Loading...</div>;
   }
 
@@ -65,14 +63,27 @@ function App() {
               ☰
             </button>
             <nav className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
-              <h1>Dashboard</h1>
-              <p>Welcome, {user?.name || 'User'}!</p>
+              <div className="sidebar-header">
+                <h1>Dashboard</h1>
+                <button className="close-btn" onClick={toggleSidebar}>
+                  ✖
+                </button>
+              </div>
+              <div className="welcome-message">
+                <p>
+                  <span className="wave">👋</span> Welcome,
+                  <span className="user-name"> {user?.name || 'User'}!</span>
+                </p>
+              </div>
               <ul className="menu">
-                <li><Link to="/players">Players</Link></li>
-                <li><Link to="/profile">Profile</Link></li>
-                {user?.isAdmin && <li><Link to="/add-player">Add Player</Link></li>}
+                <li><Link to="/players" onClick={toggleSidebar}>Players</Link></li>
+                <li><Link to="/profile" onClick={toggleSidebar}>Profile</Link></li>
+                {user?.isAdmin && <li><Link to="/add-player" onClick={toggleSidebar}>Add Player</Link></li>}
+                <li><Link to="/user-purses" onClick={toggleSidebar}>User Purses</Link></li>
                 <li>
-                  <button onClick={handleLogout}>Logout</button>
+                  <button className="logout-btn" onClick={handleLogout}>
+                    Logout
+                  </button>
                 </li>
               </ul>
             </nav>
@@ -82,23 +93,12 @@ function App() {
         <main className="content">
           <Routes>
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
-            <Route path="/signup" element={<Signup />} /> {/* Signup Route */}
-            <Route
-              path="/"
-              element={<PrivateRoute><Navigate to="/profile" /></PrivateRoute>}
-            />
-            <Route
-              path="/players"
-              element={<PrivateRoute><PlayerList /></PrivateRoute>}
-            />
-            <Route
-              path="/profile"
-              element={<PrivateRoute><Profile /></PrivateRoute>}
-            />
-            <Route
-              path="/add-player"
-              element={<PrivateRoute><AddPlayer /></PrivateRoute>}
-            />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/" element={<PrivateRoute><Navigate to="/profile" /></PrivateRoute>} />
+            <Route path="/players" element={<PrivateRoute><PlayerList /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/add-player" element={<PrivateRoute><AddPlayer /></PrivateRoute>} />
+            <Route path="/user-purses" element={<PrivateRoute><UserPursePage /></PrivateRoute>} />
           </Routes>
         </main>
       </div>

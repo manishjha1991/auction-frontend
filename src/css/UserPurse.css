@@ -1,0 +1,83 @@
+.user-purse-page {
+    padding: 20px;
+    font-family: "Arial", sans-serif;
+    background: #f4f4f9;
+    color: #333;
+  }
+  
+  .page-title {
+    text-align: center;
+    font-size: 2rem;
+    color: #444;
+    margin-bottom: 20px;
+  }
+  
+  .user-cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+  }
+  
+  .user-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    width: 300px;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .user-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+  }
+  
+  .user-name {
+    font-size: 1.2rem;
+    color: #444;
+    margin-bottom: 10px;
+  }
+  
+  .purse-value {
+    font-size: 1rem;
+    color: #666;
+  }
+  
+  .players-container {
+    margin-top: 15px;
+  }
+  
+  .player-card {
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .player-card.sold {
+    animation: none; /* No animation for sold cards */
+  }
+  
+  .player-card.bidding {
+    background: linear-gradient(135deg, #56ab2f, #a8e063);
+    animation: blink 1s infinite;
+  }
+  
+  .divider {
+    border: none;
+    height: 1px;
+    background: #ccc;
+    margin: 15px 0;
+  }
+  
+  @keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+  
