@@ -1,49 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../css/Profile.css'; // Import the CSS for styling
+import '../css/Profile.css';
 
 const Profile = () => {
-  const navigate = useNavigate(); // For navigation
-  const [user, setUser] = useState({
-    name: 'John Doe',
-    teamName: 'Team Alpha',
-    playStationId: 'PSN12345',
-    purse: 100,
-    image: 'https://via.placeholder.com/100', // Replace with user image URL
-    boughtPlayers: [
-      { name: 'Player A', price: 50, type: 'Silver' },
-      { name: 'Player B', price: 30, type: 'Gold' },
-      { name: 'Player C', price: 20, type: 'Emerald' },
-    ],
-    currentBid: { name: 'Player D', bid: 25, type: 'Sapphire' },
-    pastBids: [
-      { name: 'Player E', yourBid: 40, soldPrice: 45, goesTo: 'Jane Smith' },
-      { name: 'Player F', yourBid: 35, soldPrice: 35, goesTo: 'John Doe' },
-      { name: 'Player G', yourBid: 50, soldPrice: 55, goesTo: 'John Doe' },
-    ],
-  });
-
+  const navigate = useNavigate();
+  const [userData, setUserData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({
-    name: user.name,
-    teamName: user.teamName,
-    playStationId: user.playStationId,
-    image: null,
-  });
+  const [editData, setEditData] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+
+        const user = JSON.parse(localStorage.getItem('user'));
+        const userId = user?.id;
+
+        if (!userId) {
+          throw new Error('User ID not found in local storage.');
+        }
+
+        const response = await fetch(`https://cpl.in.net/api/users/${userId}/details`, {
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setUserData(data);
+        setEditData({
+          name: data.user.name,
+          teamName: data.user.teamName,
+        });
+      } catch (err) {
+        console.error('Failed to fetch user data:', err);
+        setError('Failed to load profile. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const formatAmount = (amount) => {
+    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Crore`;
+    if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)} Lakh`;
+    if (amount >= 1000) return `₹${(amount / 1000).toFixed(2)} Thousand`;
+    return `₹${amount}`;
+  };
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value.toLowerCase());
   };
-
-  const filteredBoughtPlayers = user.boughtPlayers.filter((player) =>
-    player.name.toLowerCase().includes(searchTerm)
-  );
-
-  const filteredCurrentBid =
-    user.currentBid.name.toLowerCase().includes(searchTerm) ? user.currentBid : null;
-
-  const isBidWonByUser = (bid) => bid.goesTo === user.name;
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;
@@ -56,39 +70,47 @@ const Profile = () => {
 
   const handleSave = () => {
     const updatedUser = {
-      ...user,
+      ...userData.user,
       name: editData.name,
       teamName: editData.teamName,
-      playStationId: editData.playStationId,
-      image: editData.image ? URL.createObjectURL(editData.image) : user.image,
+      image: editData.image ? URL.createObjectURL(editData.image) : userData.user.image,
     };
-    setUser(updatedUser);
+    setUserData({ ...userData, user: updatedUser });
     setIsEditing(false);
   };
 
-  // const handleLogout = () => {
-  //   navigate('/login'); // Redirect to login page
-  // };
+  const filteredSoldPlayers = userData?.soldPlayers.filter(({ player }) =>
+    player.name.toLowerCase().includes(searchTerm)
+  );
+
+  const filteredActiveBids = userData?.activeBids.filter(({ player }) =>
+    player.name.toLowerCase().includes(searchTerm)
+  );
+
+  if (loading) {
+    return <div className="loading">Loading profile...</div>;
+  }
+
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
 
   return (
     <div className="profile-container">
       <header className="profile-header">
         <div className="user-info">
-          <img src={user.image} alt="User" className="profile-image" />
+          <img src={userData.user.image || 'https://via.placeholder.com/100'} alt="User" className="profile-image" />
           <div>
-            <h2>{user.name}</h2>
-            <p>Total Purse Remaining: <span className="purse-amount">₹{user.purse}</span></p>
+            <h2>{userData.user.name}</h2>
+            <p>
+              Total Purse Remaining: <span className="purse-amount">{formatAmount(parseFloat(userData.user.purse["$numberDecimal"]))}</span>
+            </p>
           </div>
         </div>
         <div className="additional-info">
-          <p><strong>Team Name:</strong> {user.teamName}</p>
-          <p><strong>PSN ID:</strong> {user.playStationId}</p>
-          <button
-            className="edit-profile-button"
-            onClick={() => setIsEditing(true)}
-          >
-            Edit Profile
-          </button>
+          <p><strong>Team Name:</strong> {userData.user.teamName}</p>
+          <p><strong>Email:</strong> {userData.user.email}</p>
+          <button className="edit-profile-button" onClick={() => setIsEditing(true)}>Edit Profile</button>
         </div>
       </header>
 
@@ -111,35 +133,19 @@ const Profile = () => {
                 onChange={handleEditChange}
                 placeholder="Team Name"
               />
-              <input
-                type="text"
-                name="playStationId"
-                value={editData.playStationId}
-                onChange={handleEditChange}
-                placeholder="PSN ID"
-              />
               <div className="file-input">
                 <label htmlFor="image">Upload New Image</label>
-                <input
-                  type="file"
-                  id="image"
-                  onChange={handleImageChange}
-                />
+                <input type="file" id="image" onChange={handleImageChange} />
               </div>
               <div className="popup-buttons">
-                <button type="button" onClick={handleSave}>
-                  Save
-                </button>
-                <button type="button" onClick={() => setIsEditing(false)}>
-                  Cancel
-                </button>
+                <button type="button" onClick={handleSave}>Save</button>
+                <button type="button" onClick={() => setIsEditing(false)}>Cancel</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Search Bar */}
       <div className="search-bar">
         <input
           type="text"
@@ -151,13 +157,16 @@ const Profile = () => {
 
       <div className="profile-content">
         <div className="section">
-          <h3>Player Bought</h3>
+          <h3>Sold Players</h3>
           <div className="bought-players">
-            {filteredBoughtPlayers.length > 0 ? (
-              filteredBoughtPlayers.map((player, index) => (
+            {filteredSoldPlayers?.length > 0 ? (
+              filteredSoldPlayers.map(({ player, bidValue }, index) => (
                 <div className={`player-card ${player.type.toLowerCase()}`} key={index}>
                   <p><strong>Name:</strong> {player.name}</p>
-                  <p><strong>Price:</strong> ₹{player.price}</p>
+                  <p><strong>Type:</strong> {player.type}</p>
+                  <p><strong>Role:</strong> {player.role}</p>
+                  <p><strong>Base Price:</strong> {formatAmount(player.basePrice)}</p>
+                  <p><strong>Sold For:</strong> {formatAmount(bidValue)}</p>
                 </div>
               ))
             ) : (
@@ -167,31 +176,40 @@ const Profile = () => {
         </div>
 
         <div className="section">
-          <h3>Running Bid on Player</h3>
-          {filteredCurrentBid ? (
-            <div className={`player-card ${filteredCurrentBid.type.toLowerCase()}`}>
-              <p><strong>Name:</strong> {filteredCurrentBid.name}</p>
-              <p><strong>Current Bid:</strong> ₹{filteredCurrentBid.bid}</p>
-            </div>
-          ) : (
-            <p>No players found.</p>
-          )}
+          <h3>Active Bids</h3>
+          <div className="bids-section">
+            {filteredActiveBids?.length > 0 ? (
+              filteredActiveBids.map(({ player, bidAmount }, index) => (
+                <div className={`player-card ${player.type.toLowerCase()}`} key={index}>
+                  <p><strong>Name:</strong> {player.name}</p>
+                  <p><strong>Role:</strong> {player.role}</p>
+                  <p><strong>Bid Amount:</strong> {formatAmount(bidAmount)}</p>
+                </div>
+              ))
+            ) : (
+              <p>No active bids found.</p>
+            )}
+          </div>
         </div>
 
         <div className="section">
           <h3>Past Bids</h3>
           <div className="past-bids">
-            {user.pastBids.map((bid, index) => (
+            {userData.pastBids.map(({ player, bidAmount, status }, index) => (
               <div
-                className={`past-bid-card ${
-                  isBidWonByUser(bid) ? 'won' : 'lost'
-                }`}
+                className={`past-bid-card ${status.toLowerCase()}`}
+                style={{
+                  border: status === "Won" ? "2px solid gold" : "1px solid #ccc",
+                  backgroundColor: status === "Won" ? "#fffbea" : "transparent",
+                  boxShadow: status === "Won" ? "0px 4px 8px rgba(255, 215, 0, 0.4)" : "none",
+                  transition: "all 0.3s ease-in-out",
+                }}
                 key={index}
               >
-                <p><strong>Name:</strong> {bid.name}</p>
-                <p><strong>Your Bid:</strong> ₹{bid.yourBid}</p>
-                <p><strong>Sold Price:</strong> ₹{bid.soldPrice}</p>
-                <p><strong>Goes To:</strong> {bid.goesTo}</p>
+                <p><strong>Name:</strong> {player.name}</p>
+                <p><strong>Your Bid:</strong> {formatAmount(bidAmount)}</p>
+                <p><strong>Base Price:</strong> {formatAmount(player.basePrice)}</p>
+                <p><strong>Status:</strong> {status}</p>
               </div>
             ))}
           </div>

@@ -41,21 +41,20 @@
 
 /* Colors for player type */
 .sapphire {
-  background-color: #bbdefb; /* Darker blue shade */
+  background-color: #e3f2fd;
 }
 
 .gold {
-  background-color: #fff59d; /* Darker yellow shade */
+  background-color: #fffde7;
 }
 
 .silver {
-  background-color: #cfd8dc; /* Darker grey shade */
+  background-color: #eceff1;
 }
 
 .emerald {
-  background-color: #c8e6c9; /* Darker green shade */
+  background-color: #e8f5e9;
 }
-
 
 /* Search and Sort */
 .search-wrapper {

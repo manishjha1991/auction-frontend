@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import "../css/PlayerPopup.css";
 import { FaClock } from "react-icons/fa";
 
-const PlayerPopup = ({ player, onClose, isAdmin }) => {
+const PlayerPopup = ({ player, onClose }) => {
   const [playerDetails, setPlayerDetails] = useState(null);
   const [topTwoBids, setTopTwoBids] = useState([]);
   const [allBids, setAllBids] = useState([]);
@@ -10,9 +10,16 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
   const [lastBidTimer, setLastBidTimer] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [bidMessage, setBidMessage] = useState(null);
+  const [exitMessage, setExitMessage] = useState(null);
   const [placingBid, setPlacingBid] = useState(false);
   const [bidError, setBidError] = useState(null);
-
+  const [soldMessage, setSoldMessage] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    setIsAdmin(user?.isAdmin === true);
+  }, []);
   useEffect(() => {
     const fetchPlayerData = async () => {
       try {
@@ -39,7 +46,7 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
 
     fetchPlayerData();
   }, [player.id]);
-  const [exitMessage, setExitMessage] = useState(null); // For the exit message tog
+
   useEffect(() => {
     if (playerDetails && allBids.length > 0 && !playerDetails.status === "Sold") {
       const endTime = new Date();
@@ -75,68 +82,88 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
       return () => clearInterval(lastBidInterval);
     }
   }, [topTwoBids, playerDetails]);
-  const parseHumanReadableAmount = (amount) => {
-    if (typeof amount === "string") {
-      if (amount.toLowerCase().includes("lakh")) {
-        return parseFloat(amount) * 100000; // Convert "lakh" to numerical value
-      } else if (amount.toLowerCase().includes("crore")) {
-        return parseFloat(amount) * 10000000; // Convert "crore" to numerical value
-      } else if (amount.toLowerCase().includes("thousand")) {
-        return parseFloat(amount) * 1000; // Convert "thousand" to numerical value
-      }
+  const formatHumanReadableAmount = (amount) => {
+    if (amount >= 10000000) {
+      return `${(amount / 10000000).toFixed(2)} Cr`;
+    } else if (amount >= 100000) {
+      return `${(amount / 100000).toFixed(2)} Lakh`;
+    } else if (amount >= 1000) {
+      return `${(amount / 1000).toFixed(2)} Thousand`;
     }
-    return parseFloat(amount); // Return as-is if already numeric
+    return amount.toString();
   };
-  
-  
+
+  const handleMarkAsSold = async () => {
+    try {
+      setSoldMessage(null);
+
+      const response = await fetch('https://cpl.in.net/api/bids/bid/sold', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerID: player.id }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to mark player as sold.");
+      }
+
+      setSoldMessage(result.message || "Player marked as sold successfully.");
+    } catch (err) {
+      setSoldMessage(err.message || "Failed to mark player as sold. Please try again.");
+    }
+  };
   const handlePlaceBid = async () => {
     try {
       setPlacingBid(true);
       setBidError(null);
-  
+
       const user = JSON.parse(localStorage.getItem("user"));
       const bidderId = user?.id;
-  
+
       if (!bidderId) {
         throw new Error("Bidder ID not found in local storage.");
       }
-  
-      // Convert last bid amount and base price if in human-readable format
+
+      // Calculate the bid amount
       const lastBidAmount = topTwoBids.length > 0
-        ? parseHumanReadableAmount(topTwoBids[0]?.bidAmount || 0) // Convert last bid
-        : parseHumanReadableAmount(playerDetails?.basePrice || 0); // Convert base price
-  
+        ? topTwoBids[0]?.bidAmount || 0
+        : playerDetails?.basePrice || 0;
       const bidAmount = lastBidAmount + 1000000; // Add ₹10,00,000
       console.log("Calculated Bid Amount:", bidAmount);
-  
+
       const payload = {
         bidAmount,
         bidder: bidderId,
       };
       console.log("Payload:", payload);
-  
+
       const response = await fetch(`https://cpl.in.net/api/bids/${playerDetails.id}/bid`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-  
-      if (!response.ok) {
-        throw new Error(`Failed to place bid: ${response.status}`);
-      }
-  
+
       const result = await response.json();
-      console.log("Bid placed successfully:", result);
-  
+
+      // Check if the API responded with a success or failure
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to place bid.");
+      }
+
+      // On success, update the message and state
+      setExitMessage(result.message || "Bid placed successfully.");
       setAllBids([...allBids, result.newBid]);
     } catch (err) {
-      console.error("Failed to place bid:", err);
-      setBidError("Failed to place bid. Please try again.");
+      // Display the error message from the server or a default error
+      setExitMessage(err.message || "Failed to place bid.");
     } finally {
       setPlacingBid(false);
     }
   };
-  
+
+
   const handleExitAuction = async () => {
     try {
       setExitMessage(null); // Reset the message toggle
@@ -162,8 +189,8 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
 
       setExitMessage(result.message || "Successfully exited the auction.");
     } catch (err) {
-      console.error("Exit Auction Error:", err);
-      setExitMessage("Failed to exit the auction. Please try again.");
+
+      setExitMessage(err.message || "Failed to exit the auction. Please try again.");
     }
   };
 
@@ -173,8 +200,8 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
   if (error) {
     return <div className="error">{error}</div>;
   }
-  
-  
+
+
 
   if (loading) {
     return <div className="loading">Loading player details...</div>;
@@ -216,7 +243,7 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
             </p>
             <p>
               <span className="player-detail-icon">💰</span>
-              <b>Base Price:</b> <span>{playerDetails.basePrice}</span>
+              <b>Base Price:</b> <span>{formatHumanReadableAmount(playerDetails.basePrice)}</span>
             </p>
             <p>
               <span className="player-detail-icon">💎</span>
@@ -225,34 +252,34 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
           </div>
 
           {topTwoBids.length > 0 && !isSold && (
-  <div className="bids-section">
-    <h3>Last Two Bids</h3>
-    {topTwoBids.map((bid, index) => (
-      <div key={bid.id} className="bid-row">
-        <p>
-          <b>Bidder:</b>{" "}
-          <span className="bidder-name">
-            {bid.isBidOn === false && <span className="bid-out-text">Out</span>}{" "}
-            {bid.bidder.name}
-          </span>
-          <span className="bid-amount">{bid.bidAmount}</span>
-        </p>
-        <p className="bid-time">
-          <FaClock className="timer-icon" /> Last Bid Time:{" "}
-          {new Date(bid.createdAt).toLocaleString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true,
-          })}
-        </p>
-      </div>
-    ))}
-  </div>
-)}
+            <div className="bids-section">
+              <h3>Last Two Bids</h3>
+              {topTwoBids.map((bid, index) => (
+                <div key={bid.id} className="bid-row">
+                  <p>
+                    <b>Bidder:</b>{" "}
+                    <span className="bidder-name">
+                      {bid.isBidOn === false && <span className="bid-out-text">Out</span>}{" "}
+                      {bid.bidder.name}
+                    </span>
+                    <span className="bid-amount">{formatHumanReadableAmount(bid.bidAmount)}</span>
+                  </p>
+                  <p className="bid-time">
+                    <FaClock className="timer-icon" /> Last Bid Time:{" "}
+                    {new Date(bid.createdAt).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                      hour12: true,
+                    })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
 
 
           {allBids.length > 0 && !isSold && (
@@ -261,7 +288,7 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
             </div>
           )}
 
-          {!isSold && (
+          {!isAdmin && !isSold && (
             <div className="place-bid-section">
               <h3>Place a Bid</h3>
               <button
@@ -274,13 +301,35 @@ const PlayerPopup = ({ player, onClose, isAdmin }) => {
               {bidError && <p className="error">{bidError}</p>}
             </div>
           )}
+          {isAdmin && !isSold && (
+            <div className="sold-button-section">
+              <button
+                className="sold-btn"
+                onClick={handleMarkAsSold}
+                style={{
+                  padding: "10px 20px",
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  color: "#fff",
+                  backgroundColor: "linear-gradient(to right, #ff416c, #ff4b2b)",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                }}
+              >
+                SOLD
+              </button>
+              {soldMessage && <p className="sold-message">{soldMessage}</p>}
+            </div>
+          )}
           {exitMessage && (
             <div className="exit-message">
               <p>{exitMessage}</p>
             </div>
           )}
 
-          {!isSold && (
+          {!isAdmin && !isSold && (
             <div className="exit-auction-section">
               <button className="unique-exit-btn" onClick={handleExitAuction}>
                 Exit Auction 🚪

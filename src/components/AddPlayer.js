@@ -49,7 +49,6 @@ const AddPlayer = () => {
     form.append('type', formData.playerType);
     form.append('role', role); // Ensure the role matches backend
     form.append('basePrice', formData.basePrice);
-    form.append('basePriceUnit', basePriceUnit); // Ensure the unit matches backend
     form.append('overallScore', formData.score);
     form.append('style', formData.style); // Include batting style
     form.append('profilePicture', image); // Match Postman field name
