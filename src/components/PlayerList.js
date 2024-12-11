@@ -54,14 +54,34 @@ const PlayerList = () => {
   };
 
   const sortedPlayers = [...players]
-    .filter((player) =>
-      player.name.toLowerCase().includes(search.toLowerCase())
-    )
-    .sort((a, b) => {
-      const maxA = Math.max(a.biddingPrice || 0, a.basePrice || 0);
-      const maxB = Math.max(b.biddingPrice || 0, b.basePrice || 0);
-      return maxB - maxA; // Sort in descending order
-    });
+  .filter((player) =>
+    player.name.toLowerCase().includes(search.toLowerCase())
+  )
+  .sort((a, b) => {
+    switch (sortOption) {
+      case "Sold":
+        return a.status === "Sold" && b.status !== "Sold" ? -1 : b.status === "Sold" && a.status !== "Sold" ? 1 : 0;
+
+      case "Unsold":
+        return a.status !== "Sold" && b.status === "Sold" ? -1 : b.status !== "Sold" && a.status === "Sold" ? 1 : 0;
+
+      case "Type":
+        return a.type.localeCompare(b.type);
+
+      case "Bidding":
+        // Prioritize players with a non-empty currentBidder
+        if (a.currentBidder && !b.currentBidder) return -1;
+        if (!a.currentBidder && b.currentBidder) return 1;
+        return 0; // If both have or don't have currentBidder, keep order unchanged
+
+      default:
+        const maxA = Math.max(a.biddingPrice || 0, a.basePrice || 0);
+        const maxB = Math.max(b.biddingPrice || 0, b.basePrice || 0);
+        return maxB - maxA;
+    }
+  });
+
+
 
   const getRoleIcon = (role) => {
     switch (role.toLowerCase()) {
@@ -87,7 +107,7 @@ const PlayerList = () => {
       );
     } else if (player.currentBidder !== "N/A" && player.currentBidder) {
       return (
-        <span style={{ color: "#f39c12", fontWeight: "bold" }}>
+        <span style={{ color: "#000000", fontWeight: "bold" }}>
           💰 Bidding is On
         </span>
       );
@@ -101,11 +121,11 @@ const PlayerList = () => {
   };
 
   const shouldBlink = (player) => {
-    const biddingPrice = player.biddingPrice || player.basePrice || 0; // Use biddingPrice, fallback to basePrice
+    const biddingPrice = player.biddingPrice || player.basePrice || 0;
     return (
-      player.currentBidder && // Ensure there's a current bidder
-      biddingPrice > 100000000 && // Price must exceed 10 cr
-      player.status !== "Sold" // Player should not be sold
+      player.currentBidder &&
+      biddingPrice > 100000000 &&
+      player.status !== "Sold"
     );
   };
 
@@ -151,6 +171,7 @@ const PlayerList = () => {
             <option value="Sold">Sold</option>
             <option value="Unsold">Unsold</option>
             <option value="Type">Type</option>
+            <option value="Bidding">Bidding is On</option>
           </select>
         </div>
       </div>
@@ -160,19 +181,20 @@ const PlayerList = () => {
           <div
             key={player.id}
             className={`player-row ${player.type.toLowerCase()} ${
-              shouldBlink(player) ? "blinking" : "" // Apply blinking class conditionally
+              shouldBlink(player) ? "blinking" : ""
             }`}
             onClick={() => handlePlayerClick(player)}
           >
             <div className="player-cell player-icon">{getRoleIcon(player.role)}</div>
             <div className="player-cell">{player.name}</div>
             <div className="player-cell player-price">
-              {formatBasePrice(Math.max(player.biddingPrice || 0, player.basePrice || 0))}
+              {formatBasePrice(player.biddingPrice || player.basePrice || 0)}
             </div>
             <div className="player-cell team-sold">{getStatusIcon(player)}</div>
           </div>
         ))}
       </div>
+
       {selectedPlayer && (
         <PlayerPopup
           player={selectedPlayer}
