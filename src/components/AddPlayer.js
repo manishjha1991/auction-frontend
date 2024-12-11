@@ -105,7 +105,7 @@ const AddPlayer = () => {
           <option value="All-Rounder">All-Rounder</option>
           <option value="Bowling-All-Rounder">Bowling-All-Rounder</option>
           <option value="Batting-All-Rounder">Batting-All-Rounder</option>
-          <option value="Wicket-Keeper">Wicket Keeper</option>
+          <option value="WicketKeeper">Wicket Keeper</option>
         </select>
         <select name="style" value={formData.style} onChange={handleInputChange} required>
           <option value="">Select Style</option>
