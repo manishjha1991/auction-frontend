@@ -101,11 +101,93 @@
   font-size: 16px; /* Slightly larger for better emphasis */
 }
 
+.super-cool-filter {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 2px solid #007bff;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #007bff;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.super-cool-filter:hover {
+  background: linear-gradient(135deg, #e7f3ff, #d4e8ff);
+  border-color: #0056b3;
+  color: #0056b3;
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+.super-cool-filter:focus {
+  outline: none;
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+}
+
+.super-cool-filter option {
+  font-size: 14px;
+  padding: 10px;
+  background: #ffffff;
+  color: #333;
+  font-weight: normal;
+}
+
+.super-cool-filter option:hover {
+  background: #007bff;
+  color: #fff;
+}
+.sold-player {
+  position: relative;
+  background: linear-gradient(90deg, rgba(255, 69, 0, 0.3), rgba(255, 99, 71, 0.3));
+  animation: glow 1.5s infinite alternate;
+}
+
+.sold-banner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: white;
+  background: rgba(255, 0, 0, 0.6); /* Transparent red */
+  padding: 5px 0;
+  border-radius: 5px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  transform: rotate(-5deg);
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.6);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+  }
+}
 
 @keyframes blink {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
+}
+@keyframes flash {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.flash-available {
+  animation: flash 3s infinite;
 }
 
 .player-row.blinking {

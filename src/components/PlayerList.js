@@ -7,6 +7,7 @@ const PlayerList = () => {
   const [players, setPlayers] = useState([]);
   const [search, setSearch] = useState("");
   const [sortOption, setSortOption] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -54,34 +55,32 @@ const PlayerList = () => {
   };
 
   const sortedPlayers = [...players]
-  .filter((player) =>
-    player.name.toLowerCase().includes(search.toLowerCase())
-  )
-  .sort((a, b) => {
-    switch (sortOption) {
-      case "Sold":
-        return a.status === "Sold" && b.status !== "Sold" ? -1 : b.status === "Sold" && a.status !== "Sold" ? 1 : 0;
+    .filter((player) =>
+      player.name.toLowerCase().includes(search.toLowerCase())
+    )
+    .filter((player) => (roleFilter ? player.role.toLowerCase() === roleFilter.toLowerCase() : true))
+    .sort((a, b) => {
+      switch (sortOption) {
+        case "Sold":
+          return a.status === "Sold" && b.status !== "Sold" ? -1 : b.status === "Sold" && a.status !== "Sold" ? 1 : 0;
 
-      case "Unsold":
-        return a.status !== "Sold" && b.status === "Sold" ? -1 : b.status !== "Sold" && a.status === "Sold" ? 1 : 0;
+        case "Unsold":
+          return a.status !== "Sold" && b.status === "Sold" ? -1 : b.status !== "Sold" && a.status === "Sold" ? 1 : 0;
 
-      case "Type":
-        return a.type.localeCompare(b.type);
+        case "Type":
+          return a.type.localeCompare(b.type);
 
-      case "Bidding":
-        // Prioritize players with a non-empty currentBidder
-        if (a.currentBidder && !b.currentBidder) return -1;
-        if (!a.currentBidder && b.currentBidder) return 1;
-        return 0; // If both have or don't have currentBidder, keep order unchanged
+        case "Bidding":
+          if (a.currentBidder && !b.currentBidder) return -1;
+          if (!a.currentBidder && b.currentBidder) return 1;
+          return 0;
 
-      default:
-        const maxA = Math.max(a.biddingPrice || 0, a.basePrice || 0);
-        const maxB = Math.max(b.biddingPrice || 0, b.basePrice || 0);
-        return maxB - maxA;
-    }
-  });
-
-
+        default:
+          const maxA = Math.max(a.biddingPrice || 0, a.basePrice || 0);
+          const maxB = Math.max(b.biddingPrice || 0, b.basePrice || 0);
+          return maxB - maxA;
+      }
+    });
 
   const getRoleIcon = (role) => {
     switch (role.toLowerCase()) {
@@ -102,23 +101,25 @@ const PlayerList = () => {
     if (player.status === "Sold") {
       return (
         <span>
-          🏆 <b style={{ color: "red" }}>Sold to {player.teamName}</b>
+          
         </span>
       );
-    } else if (player.currentBidder !== "N/A" && player.currentBidder) {
+    } else 
+    if (player.currentBidder !== "N/A" && player.currentBidder) {
       return (
         <span style={{ color: "#000000", fontWeight: "bold" }}>
-          💰 Bidding is On
+          🎯 Bidding is On
         </span>
       );
     } else {
       return (
-        <span>
-          ✅ <b>Available</b>
+        <span className="flash-available">
+          💎 <b>Available</b>
         </span>
       );
     }
   };
+
 
   const shouldBlink = (player) => {
     const biddingPrice = player.biddingPrice || player.basePrice || 0;
@@ -140,51 +141,110 @@ const PlayerList = () => {
   return (
     <div className="player-list">
       <div className="list-header">
-        <div className="right-actions">
-          <div className="search-wrapper">
-            {!showSearch && (
-              <button
-                className="search-icon"
-                onClick={() => setShowSearch(true)}
-              >
-                🔍
-              </button>
-            )}
-            {showSearch && (
-              <input
-                type="text"
-                placeholder="Search players..."
-                className="search-bar-small"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onBlur={() => setShowSearch(false)}
-                autoFocus
-              />
-            )}
-          </div>
+        <div
+          className="search-wrapper"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: "20px",
+            marginLeft: "50px"
+          }}
+        >
+          {!showSearch && (
+            <button
+              className="search-icon"
+              onClick={() => setShowSearch(true)}
+              style={{
+                padding: "6px 10px",
+                fontSize: "14px",
+                borderRadius: "8px",
+                backgroundColor: "#007bff",
+                color: "#fff",
+                cursor: "pointer",
+                border: "none",
+              }}
+            >
+              🔍 Search
+            </button>
+          )}
+          {showSearch && (
+            <input
+              type="text"
+              placeholder="Search players..."
+              className="search-bar-small"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onBlur={() => setShowSearch(false)}
+              autoFocus
+              style={{
+                padding: "6px 10px",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+                fontSize: "14px",
+
+              }}
+            />
+          )}
+        </div>
+
+        <div
+          className="filter-sort-wrapper"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "10px",
+          }}
+        >
+          <select
+            className="filter-dropdown-small super-cool-filter"
+            onChange={(e) => setRoleFilter(e.target.value)}
+            style={{
+              padding: "6px 10px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              fontSize: "14px",
+              backgroundColor: "#f8f9fa",
+            }}
+          >
+            <option value="">Filter by Role</option>
+            <option value="Batsman">🏌️ Batsman</option>
+            <option value="Bowler">🏐 Bowler</option>
+            <option value="Allrounder">🏏 Allrounder</option>
+            <option value="WicketKeeper">🧤 WicketKeeper</option>
+          </select>
 
           <select
             className="sort-dropdown-small"
             onChange={(e) => setSortOption(e.target.value)}
+            style={{
+              padding: "6px 10px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              fontSize: "14px",
+              background: "linear-gradient(90deg, #ff9a9e, #fad0c4)",
+              color: "#fff",
+              width: "25px"
+            }}
           >
-            <option value="">Sort</option>
-            <option value="Sold">Sold</option>
-            <option value="Unsold">Unsold</option>
-            <option value="Type">Type</option>
-            <option value="Bidding">Bidding is On</option>
+            <option value="">🎲 Sort</option>
+            <option value="Sold">✨ Sold</option>
+            <option value="Unsold">🛒 Unsold</option>
+            <option value="Type">📋 Type</option>
+            <option value="Bidding">🎯 Bidding is On</option>
           </select>
         </div>
       </div>
-
       <div className="player-grid">
         {sortedPlayers.map((player) => (
           <div
             key={player.id}
-            className={`player-row ${player.type.toLowerCase()} ${
-              shouldBlink(player) ? "blinking" : ""
-            }`}
+            className={`player-row ${player.type.toLowerCase()} ${shouldBlink(player) ? "blinking" : ""
+              } ${player.status === "Sold" ? "sold-player" : ""}`}
             onClick={() => handlePlayerClick(player)}
           >
+            {player.status === "Sold" && player.teamName && (
+              <div className="sold-banner">🎉 SOLD to {player.teamName} 🎉</div>
+            )}
             <div className="player-cell player-icon">{getRoleIcon(player.role)}</div>
             <div className="player-cell">{player.name}</div>
             <div className="player-cell player-price">
@@ -194,6 +254,8 @@ const PlayerList = () => {
           </div>
         ))}
       </div>
+
+
 
       {selectedPlayer && (
         <PlayerPopup
