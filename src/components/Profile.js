@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import '../css/Profile.css';
 import { API_ENDPOINTS } from "../const";
 const Profile = () => {
- 
+
   const [userData, setUserData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -68,16 +68,40 @@ const Profile = () => {
     setEditData({ ...editData, image: e.target.files[0] });
   };
 
-  const handleSave = () => {
-    const updatedUser = {
-      ...userData.user,
-      name: editData.name,
-      teamName: editData.teamName,
-      image: editData.image ? URL.createObjectURL(editData.image) : userData.user.image,
-    };
-    setUserData({ ...userData, user: updatedUser });
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('name', editData.name);
+      formData.append('teamName', editData.teamName);
+      if (editData.image) {
+        formData.append('teamImage', editData.image);
+      }
+
+      const user = JSON.parse(localStorage.getItem('user'));
+      const userId = user?.id;
+
+      const response = await fetch(`${API_ENDPOINTS}/api/users/${userId}`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const updatedUser = await response.json();
+      setUserData((prevUserData) => ({
+        ...prevUserData,
+        user: updatedUser.user,
+      }));
+
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+      setError('Failed to update profile. Please try again later.');
+    }
   };
+
 
   const filteredSoldPlayers = userData?.soldPlayers.filter(({ player }) =>
     player.name.toLowerCase().includes(searchTerm)
@@ -99,7 +123,15 @@ const Profile = () => {
     <div className="profile-container">
       <header className="profile-header">
         <div className="user-info">
-          <img src={userData.user.image || 'https://via.placeholder.com/100'} alt="User" className="profile-image" />
+          <img
+            src={
+              userData.user.image
+                ? `${API_ENDPOINTS}${userData.user.image}`
+                : 'https://via.placeholder.com/100'
+            }
+            alt="User"
+            className="profile-image"
+          />
           <div>
             <h2>{userData.user.name}</h2>
             <p>

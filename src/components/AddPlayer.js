@@ -103,8 +103,6 @@ const AddPlayer = () => {
           <option value="Batsman">Batsman</option>
           <option value="Bowler">Bowler</option>
           <option value="All-Rounder">All-Rounder</option>
-          <option value="Bowling-All-Rounder">Bowling-All-Rounder</option>
-          <option value="Batting-All-Rounder">Batting-All-Rounder</option>
           <option value="WicketKeeper">Wicket Keeper</option>
         </select>
         <select name="style" value={formData.style} onChange={handleInputChange} required>
@@ -137,7 +135,7 @@ const AddPlayer = () => {
         />
         <div className="file-input">
           <label htmlFor="image">Upload Image</label>
-          <input type="file" id="image" onChange={handleImageChange} required />
+          <input type="file" id="image" onChange={handleImageChange} />
         </div>
         <button type="submit">Submit</button>
       </form>
