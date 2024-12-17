@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../css/UserPurse.css"; // Custom CSS file
 import { API_ENDPOINTS } from "../const";
-
+import { FaWallet } from "react-icons/fa"; // Import Wallet Icon
 const UserPursePage = () => {
   const [usersData, setUsersData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +52,16 @@ const UserPursePage = () => {
 
   return (
     <div className="user-purse-page">
-      <h1 className="page-title">User Purse Overview</h1>
+      <div className="page-header" style={{ textAlign: "center", marginTop: "20px" }}>
+        <FaWallet
+          style={{
+            fontSize: "50px", // Make it bigger
+            color: "#16a085", // Cool greenish color
+            textShadow: "0px 4px 6px rgba(0, 0, 0, 0.3)", // Subtle shadow
+            animation: "pop-in 0.5s ease-out", // Animation
+          }}
+        />
+      </div>
       <div className="user-cards-container">
         {usersData.map((user, index) => (
           <div key={index} className="user-card">

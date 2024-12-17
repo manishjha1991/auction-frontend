@@ -101,23 +101,23 @@ const PlayerList = () => {
     if (player.status === "Sold") {
       return (
         <span>
-          
+
         </span>
       );
-    } else 
-    if (player.currentBidder !== "N/A" && player.currentBidder) {
-      return (
-        <span style={{ color: "#000000", fontWeight: "bold" }}>
-          🎯 Bidding is On
-        </span>
-      );
-    } else {
-      return (
-        <span className="flash-available">
-          💎 <b>Available</b>
-        </span>
-      );
-    }
+    } else
+      if (player.currentBidder !== "N/A" && player.currentBidder) {
+        return (
+          <span style={{ color: "#000000", fontWeight: "bold" }}>
+            🎯 Bidding is On
+          </span>
+        );
+      } else {
+        return (
+          <span className="flash-available">
+            💎 <b>Available</b>
+          </span>
+        );
+      }
   };
 
 
@@ -235,24 +235,26 @@ const PlayerList = () => {
         </div>
       </div>
       <div className="player-grid">
-        {sortedPlayers.map((player) => (
-          <div
-            key={player.id}
-            className={`player-row ${player.type.toLowerCase()} ${shouldBlink(player) ? "blinking" : ""
-              } ${player.status === "Sold" ? "sold-player" : ""}`}
-            onClick={() => handlePlayerClick(player)}
-          >
-            {player.status === "Sold" && player.teamName && (
-              <div className="sold-banner">🎉 SOLD to {player.teamName} 🎉</div>
-            )}
-            <div className="player-cell player-icon">{getRoleIcon(player.role)}</div>
-            <div className="player-cell">{player.name}</div>
-            <div className="player-cell player-price">
-              {formatBasePrice(player.biddingPrice || player.basePrice || 0)}
+        {sortedPlayers.map((player) => {
+          if (player.status === "Sold") return null; // Don't render if the player is sold
+
+          return (
+            <div
+              key={player.id}
+              className={`player-row ${player.type.toLowerCase()} ${shouldBlink(player) ? "blinking" : ""
+                }`}
+              onClick={() => handlePlayerClick(player)}
+            >
+              <div className="player-cell player-icon">{getRoleIcon(player.role)}</div>
+              <div className="player-cell">{player.name}</div>
+              <div className="player-cell player-price">
+                {formatBasePrice(player.biddingPrice || player.basePrice || 0)}
+              </div>
+              <div className="player-cell team-sold">{getStatusIcon(player)}</div>
             </div>
-            <div className="player-cell team-sold">{getStatusIcon(player)}</div>
-          </div>
-        ))}
+          );
+        })}
+
       </div>
 
 

@@ -142,6 +142,7 @@
   position: relative;
   background: linear-gradient(90deg, rgba(255, 69, 0, 0.3), rgba(255, 99, 71, 0.3));
   animation: glow 1.5s infinite alternate;
+  justify-content: center;
 }
 
 .sold-banner {
@@ -159,6 +160,32 @@
   z-index: 10;
   transform: rotate(-5deg);
 }
+.sold-players-list {
+  background-color: #f9f9f9;
+  padding: 20px;
+  justify-content: center;
+}
+
+.player-card {
+  transition: transform 0.3s ease-in-out;
+}
+
+.player-card:hover {
+  transform: scale(1.05);
+}
+
+.sold-players-container {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.loading, .error {
+  text-align: center;
+  font-size: 16px;
+  color: #ff7eb3;
+}
+
 
 @keyframes glow {
   from {
