@@ -125,7 +125,7 @@ const PlayerList = () => {
     const biddingPrice = player.biddingPrice || player.basePrice || 0;
     return (
       player.currentBidder &&
-      biddingPrice > 100000000 &&
+      biddingPrice > 200000000 &&
       player.status !== "Sold"
     );
   };
@@ -187,7 +187,7 @@ const PlayerList = () => {
           )}
         </div>
 
-        <div
+        {/* <div
           className="filter-sort-wrapper"
           style={{
             display: "flex",
@@ -232,7 +232,7 @@ const PlayerList = () => {
             <option value="Type">📋 Type</option>
             <option value="Bidding">🎯 Bidding is On</option>
           </select>
-        </div>
+        </div> */}
       </div>
       <div className="player-grid">
         {sortedPlayers.map((player) => {

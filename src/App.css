@@ -1,3 +1,4 @@
+/* Sidebar */
 .sidebar {
   width: 250px;
   height: 100%;
@@ -9,23 +10,21 @@
   transition: transform 0.3s ease;
   transform: translateX(-100%);
   z-index: 1000;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar.open {
   transform: translateX(0);
 }
 
+/* Sidebar Header with Close and Logout */
 .sidebar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  background: #34495e;
-}
-
-.sidebar-header h1 {
-  font-size: 1.5rem;
-  margin: 0;
+  padding: 15px;
+  background: linear-gradient(to right, #34495e, #2c3e50);
 }
 
 .close-btn {
@@ -34,134 +33,73 @@
   border: none;
   color: #ecf0f1;
   cursor: pointer;
+  transition: color 0.3s ease;
 }
 
-.sidebar p {
-  text-align: center;
-  margin: 20px 0;
+.close-btn:hover {
+  color: #f39c12; /* Highlight close button on hover */
 }
 
+.sidebar-header h1 {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Scrollable Sidebar Menu */
 .menu {
   list-style: none;
   padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex-grow: 1;
+  max-height: calc(100vh - 120px); /* Dynamic height */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #34495e #2c3e50; /* Custom scrollbar color */
 }
 
-.menu li {
-  padding: 15px 20px;
+.menu::-webkit-scrollbar {
+  width: 8px;
 }
 
-.menu li a {
-  color: #ecf0f1;
-  text-decoration: none;
-  font-size: 1.2rem;
-}
-
-.menu li a:hover {
+.menu::-webkit-scrollbar-thumb {
   background: #16a085;
   border-radius: 5px;
 }
 
-.hamburger {
-  font-size: 1.5rem;
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  background: none;
-  border: none;
-  color: #2c3e50;
-  cursor: pointer;
-  z-index: 1100;
+.menu::-webkit-scrollbar-track {
+  background: #2c3e50;
 }
 
-.logout-btn {
-  width: 90%;
-  padding: 10px;
-  margin: 10px auto;
-  font-size: 1.2rem;
-  color: #fff;
-  background: linear-gradient(to right, #f12711, #f5af19);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: center;
-  display: block;
-  transition: transform 0.3s ease, background 0.3s ease;
+/* Sidebar Menu Links */
+.menu li {
+  padding: 10px 20px;
 }
 
-.logout-btn:hover {
-  background: linear-gradient(to right, #f5af19, #f12711);
-  transform: scale(1.05);
-}
-
-.content {
-  /* margin-left: 250px; */
-  padding: 20px;
-}
-
-.sidebar.closed + .content {
-  margin-left: 0;
-}
-/* New styles for pages without sidebar */
-.content.no-sidebar {
-  margin: 0;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-color: #f0f2f5; /* Subtle background for login/signup */
-}
-.welcome-message {
-  text-align: center;
-  margin: 20px 0;
-  padding: 10px;
-  background: linear-gradient(to right, #6a11cb, #2575fc);
-  color: #fff;
-  font-size: 1.5rem;
-  font-weight: bold;
-  border-radius: 10px;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-  animation: pop-in 0.5s ease-out;
-  position: relative;
-}
-
-.welcome-message .wave {
-  display: inline-block;
-  animation: wave 1.5s infinite;
-  font-size: 1.8rem;
-}
-
-.welcome-message .user-name {
-  font-weight: 900;
-  color: #ffd700; /* Golden color for the name */
-  text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3);
-}
-.sidebar.open + .content {
-  margin-left: 250px;
-}
-
-
-/* Sidebar Menu Links - Super Cool Look */
 .menu li a {
   color: #ecf0f1;
   text-decoration: none;
   font-size: 1.2rem;
-  padding: 10px 20px;
   display: flex;
   align-items: center;
   gap: 10px;
-  transition: background 0.3s ease, color 0.3s ease, transform 0.2s ease;
+  transition: all 0.3s ease-in-out;
   border-radius: 8px;
 }
 
 .menu li a:hover {
-  background: linear-gradient(to right, #6a11cb, #2575fc);
-  color: #ffd700; /* Golden on hover */
-  transform: translateX(5px); /* Slight movement */
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(to right, #16a085, #1abc9c);
+  color: #ffd700;
+  transform: translateX(5px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* Unique Icons for Menu Links */
+.menu li:nth-child(odd) a {
+  background: rgba(255, 255, 255, 0.05); /* Subtle alternate background */
+}
+
+/* Menu Item Icons */
 .menu li:nth-child(1) a::before { content: "👥"; }
 .menu li:nth-child(2) a::before { content: "👤"; }
 .menu li:nth-child(3) a::before { content: "➕"; }
@@ -171,80 +109,76 @@
 .menu li:nth-child(7) a::before { content: "📈"; }
 .menu li:nth-child(8) a::before { content: "🎯"; }
 
-/* Sidebar Menu - Beautiful Underline on Hover */
-.menu li a {
-  position: relative;
-  overflow: hidden;
-}
-
-.menu li a::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 3px;
-  background: linear-gradient(to right, #ff7eb3, #ff758c);
-  transition: width 0.3s ease-in-out;
-}
-
-.menu li a:hover::after {
-  width: 100%;
-}
-
-/* Super Sexy Logout Button */
+/* Logout Button at Top */
 .logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px auto;
   width: 90%;
-  padding: 12px;
-  margin: 20px auto;
-  font-size: 1.2rem;
-  color: #fff;
-  background: linear-gradient(135deg, #ff416c, #ff4b2b);
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  text-align: center;
-  display: block;
+  font-size: 1rem;
   font-weight: bold;
-  letter-spacing: 1px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+  color: #fff;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
 }
 
 .logout-btn:hover {
-  background: linear-gradient(135deg, #ff4b2b, #ff416c);
+  background: linear-gradient(135deg, #c0392b, #e74c3c);
   transform: scale(1.05);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
 }
 
 .logout-btn:active {
   transform: scale(0.95);
 }
 
-/* Animate Sidebar Header */
-.sidebar-header h1 {
-  font-size: 1.8rem;
-  font-weight: bold;
-  background: linear-gradient(to right, #ff9a9e, #fad0c4);
-  color: #fff;
-  padding: 5px;
-  border-radius: 5px;
+/* Welcome Message */
+.welcome-message {
   text-align: center;
-  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.3);
+  margin: 15px 0;
+  padding: 10px;
+  background: linear-gradient(to right, #6a11cb, #2575fc);
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  animation: fade-in 1s ease-out;
 }
 
+.welcome-message .wave {
+  display: inline-block;
+  animation: wave 1.5s infinite;
+}
+
+.welcome-message .user-name {
+  font-weight: bold;
+  color: #ffd700;
+}
+
+/* Smooth Animations */
 @keyframes wave {
-  0% { transform: rotate(0deg); }
-  10% { transform: rotate(14deg); }
-  20% { transform: rotate(-8deg); }
-  30% { transform: rotate(14deg); }
-  40% { transform: rotate(-4deg); }
-  50% { transform: rotate(10deg); }
-  60% { transform: rotate(0deg); }
-  100% { transform: rotate(0deg); }
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: rotate(-8deg); }
+  20%, 40%, 60%, 80% { transform: rotate(8deg); }
 }
 
-@keyframes pop-in {
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Content */
+.content {
+  padding: 20px;
+}
+
+.sidebar.open + .content {
+  margin-left: 250px;
 }

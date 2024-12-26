@@ -342,28 +342,56 @@ const PlayerPopup = ({ player, onClose }) => {
               {bidError && <p className="error">{bidError}</p>}
             </div>
           )}
-          {isAdmin && !isSold && (
-            <div className="sold-button-section">
-              <button
-                className="sold-btn"
-                onClick={handleMarkAsSold}
-                style={{
-                  padding: "10px 20px",
-                  fontSize: "18px",
-                  fontWeight: "bold",
-                  color: "#fff",
-                  backgroundColor: "linear-gradient(to right, #ff416c, #ff4b2b)",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                }}
-              >
-                SOLD
-              </button>
-              {soldMessage && <p className="sold-message">{soldMessage}</p>}
-            </div>
-          )}
+{isAdmin && !isSold && (
+  <div className="admin-action-buttons">
+    <button
+      className="sold-btn"
+      onClick={handleMarkAsSold}
+      style={{
+        padding: "10px 20px",
+        fontSize: "18px",
+        fontWeight: "bold",
+        color: "#fff",
+        backgroundColor: "linear-gradient(to right, #ff416c, #ff4b2b)",
+        borderRadius: "8px",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+        cursor: "pointer",
+        transition: "all 0.3s ease",
+      }}
+    >
+      SOLD
+    </button>
+    <button
+      className="exit-btn"
+      onClick={handleExitAuction}
+      style={{
+        padding: "10px 20px",
+        fontSize: "18px",
+        fontWeight: "bold",
+        color: "#fff",
+        background: "linear-gradient(to right, #ff7e5f, #feb47b)",
+        borderRadius: "8px",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+        cursor: "pointer",
+        transition: "all 0.3s ease",
+        marginLeft: "10px",
+      }}
+      onMouseOver={(e) => {
+        e.target.style.background = "linear-gradient(to right, #feb47b, #ff7e5f)";
+        e.target.style.transform = "scale(1.05)";
+      }}
+      onMouseOut={(e) => {
+        e.target.style.background = "linear-gradient(to right, #ff7e5f, #feb47b)";
+        e.target.style.transform = "scale(1)";
+      }}
+    >
+      EXIT
+    </button>
+    {soldMessage && <p className="sold-message">{soldMessage}</p>}
+    {exitMessage && <p className="exit-message">{exitMessage}</p>}
+  </div>
+)}
+
           {isAdmin && isSold && (
             <div className="release-button-section">
               <button

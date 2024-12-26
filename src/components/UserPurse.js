@@ -97,6 +97,7 @@ const UserPursePage = () => {
                     className="player-card bidding"
                     style={{
                       animation: "blink 1s infinite",
+                      background: getPlayerColor(player.type), // Ensure the player type matches the expected type
                     }}
                   >
                     <h3 className="player-name">{player.name}</h3>
@@ -105,6 +106,7 @@ const UserPursePage = () => {
                     </p>
                   </div>
                 ))}
+
             </div>
           </div>
         ))}
