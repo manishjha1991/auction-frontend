@@ -36,7 +36,7 @@ const UserPursePage = () => {
       case "Emerald":
         return "linear-gradient(135deg, #56ab2f, #a8e063)";
       case "Silver":
-        return "linear-gradient(135deg, #bdc3c7, #2c3e50)";
+        return "linear-gradient(135deg, #ffffff, #e0e0e0)";
       default:
         return "linear-gradient(135deg, #d3d3d3, #8c8c8c)";
     }
