@@ -1,8 +1,10 @@
 // Import required dependencies
-import React from 'react';
-import styled from 'styled-components';
+import React, { useEffect, useState } from "react";
+import styled from "styled-components";
+import axios from "axios";
+import { API_ENDPOINTS } from "../const";
 
-// Styled components
+// Styled components (same as before)
 const TableWrapper = styled.div`
   margin: 2rem auto;
   width: 90%;
@@ -61,52 +63,196 @@ const HighlightCell = styled(TableCell)`
   border-radius: 5px;
 `;
 
-// Define team data
-const teams = [
-  { name: "Team A", points: 50, fairness: "Excellent" },
-  { name: "Team B", points: 48, fairness: "Good" },
-  { name: "Team C", points: 46, fairness: "Excellent" },
-  { name: "Team D", points: 45, fairness: "Fair" },
-  { name: "Team E", points: 44, fairness: "Good" },
-  { name: "Team F", points: 40, fairness: "Fair" },
-  { name: "Team G", points: 38, fairness: "Fair" },
-  { name: "Team H", points: 35, fairness: "Good" },
-];
+const Button = styled.button`
+  background: #007bff;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
 
-const seaColor = "#4682B4"; // Sea color for the top 5 teams
-const defaultColor = "#6c757d"; // Default color for all other teams
+  &:hover {
+    background: #0056b3;
+  }
+`;
 
+const ModalWrapper = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background: #fff;
+  padding: 2rem;
+  border-radius: 10px;
+  width: 400px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  text-align: center;
+`;
+
+const ModalInput = styled.input`
+  width: 90%;
+  margin: 1rem 0;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+`;
+
+const ModalButton = styled(Button)`
+  width: 90%;
+`;
+
+// Component definition
 const PointTable = () => {
+  const [teams, setTeams] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false); // Admin flag
+  const [showModal, setShowModal] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [points, setPoints] = useState("");
+  const [matchesPlayed, setMatchesPlayed] = useState("");
+
+  // Check admin status from localStorage
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    setIsAdmin(user?.isAdmin === true);
+  }, []);
+
+  // Fetch teams data from the API
+  const fetchTeams = async () => {
+    try {
+      const response = await axios.get(`${API_ENDPOINTS}/api/users/points-table`);
+      setTeams(response.data);
+    } catch (error) {
+      console.error("Error fetching teams data:", error);
+    }
+  };
+
+  // Open the modal for adding points and matches
+  const handleAddMatchPlayed = (team) => {
+    if (!team._id) {
+      console.error("Team ID is missing:", team);
+      alert("Team ID is missing. Cannot proceed.");
+      return;
+    }
+    setSelectedTeam(team);
+    setPoints("");
+    setMatchesPlayed("");
+    setShowModal(true);
+  };
+
+  // Submit the updated points and matches
+  const handleSubmit = async () => {
+    if (!points || !matchesPlayed) return alert("Both fields are required!");
+    if (!selectedTeam?._id) return alert("Team ID is missing!");
+
+    try {
+      await axios.put(`${API_ENDPOINTS}/api/users/update-points/${selectedTeam._id}`, {
+        points: Number(points),
+        matchesPlayed: Number(matchesPlayed),
+      });
+
+      alert("Points and matches updated successfully!");
+      setShowModal(false);
+      fetchTeams();
+    } catch (error) {
+      console.error("Error updating points:", error);
+      alert("Failed to update points and matches played.");
+    }
+  };
+
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchTeams();
+  }, []);
+
+  const seaColor = "#4682B4"; // Sea color for the top 5 teams
+  const defaultColor = "#6c757d"; // Default color for all other teams
+
   return (
-    <TableWrapper>
-      <h2 style={{ textAlign: "center", color: "#343a40", fontWeight: "bold" }}>
-        Points Table
-      </h2>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Rank</TableCell>
-            <TableCell>Team Name</TableCell>
-            <TableCell>Points</TableCell>
-            <TableCell>Fairness</TableCell>
-          </TableRow>
-        </TableHead>
-        <tbody>
-          {teams
-            .sort((a, b) => b.points - a.points)
-            .map((team, index) => (
-              <TableRow key={team.name}>
-                <TableCell>{index + 1}</TableCell>
-                <HighlightCell bgColor={index < 5 ? seaColor : defaultColor}>
-                  {team.name}
-                </HighlightCell>
-                <TableCell>{team.points}</TableCell>
-                <TableCell>{team.fairness}</TableCell>
-              </TableRow>
-            ))}
-        </tbody>
-      </Table>
-    </TableWrapper>
+    <>
+      {showModal && (
+        <ModalWrapper>
+          <ModalContent>
+            <h3>Update Points and Matches</h3>
+            <ModalInput
+              type="number"
+              placeholder="Enter Points"
+              value={points}
+              onChange={(e) => setPoints(e.target.value)}
+            />
+            <ModalInput
+              type="number"
+              placeholder="Enter Matches Played"
+              value={matchesPlayed}
+              onChange={(e) => setMatchesPlayed(e.target.value)}
+            />
+            <ModalButton onClick={handleSubmit}>Submit</ModalButton>
+            <Button onClick={() => setShowModal(false)}>Close</Button>
+          </ModalContent>
+        </ModalWrapper>
+      )}
+
+      <TableWrapper>
+        <h2 style={{ textAlign: "center", color: "#343a40", fontWeight: "bold" }}>
+          Points Table
+        </h2>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Rank</TableCell>
+              <TableCell>Team Name</TableCell>
+              <TableCell>Points</TableCell>
+              <TableCell>Matches Played</TableCell>
+              <TableCell>Fairness</TableCell>
+              {isAdmin && <TableCell>Action</TableCell>}
+            </TableRow>
+          </TableHead>
+          <tbody>
+            {teams
+              .filter((team) => team.teamName !== "NA") // Exclude teams with teamName "NA"
+              .sort((a, b) => {
+                // Move teams with 0 points to the bottom
+                if (b.points > 0 && a.points === 0) return 1;
+                if (a.points > 0 && b.points === 0) return -1;
+
+                // If both teams have points > 0 or both have 0, sort by points descending
+                return b.points - a.points;
+              })
+              .map((team, index) => (
+                <TableRow key={team._id}>
+                  <TableCell>{index + 1}</TableCell>
+                  <HighlightCell bgColor={index < 5 ? seaColor : defaultColor}>
+                    {team.teamName}
+                  </HighlightCell>
+                  <TableCell>{team.points}</TableCell>
+                  <TableCell>{team.matchesPlayed}</TableCell>
+                  <TableCell>{team.fairness}</TableCell>
+                  {isAdmin && (
+                    <TableCell>
+                      <Button onClick={() => handleAddMatchPlayed(team)}>
+                        Add Match Played
+                      </Button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+          </tbody>
+
+
+        </Table>
+      </TableWrapper>
+    </>
   );
 };
 

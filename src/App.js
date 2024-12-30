@@ -7,6 +7,7 @@ import Signup from './components/Signup';
 import AddPlayer from './components/AddPlayer';
 import UserPursePage from './components/UserPurse';
 import SoldPlayersList from "./components/SoldPlayersList"; // Import the new component
+import Fixtures from './components/Fixtures'; // Import the new component
 
 import PointTable from './components/PointTable';
 import PlayerStatsList from './components/PlayerStatsList';
@@ -96,6 +97,7 @@ function App() {
                 <li><Link to="/user-purses" onClick={toggleSidebar}>User Purses</Link></li>
                 <li><Link to="/points-table" onClick={toggleSidebar}>Points Table</Link></li>
                 <li><Link to="/player-stats" onClick={toggleSidebar}>Player Stats</Link></li>
+                <li><Link to="/fixtures" onClick={toggleSidebar}>Fixtures</Link></li>
                 <li><Link to="/sold-playerslist" onClick={toggleSidebar}>Sold Player List</Link></li>
                 
                 <li>
@@ -119,6 +121,8 @@ function App() {
             <Route path="/user-purses" element={<PrivateRoute><UserPursePage /></PrivateRoute>} />
             <Route path="/points-table" element={<PrivateRoute><PointTable /></PrivateRoute>} />
            <Route path="/sold-playerslist" element={<PrivateRoute><SoldPlayersList /></PrivateRoute>} />
+           
+           <Route path="/fixtures" element={<PrivateRoute><Fixtures user={user} /></PrivateRoute>} />
            <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
             {user?.isAdmin && <Route path="/sold-players" element={<PrivateRoute><SoldPlayers /></PrivateRoute>} />}
           </Routes>
