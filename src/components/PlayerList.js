@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
+import styled, { keyframes } from "styled-components";
 import "../css/PlayerList.css";
 import PlayerPopup from "./PlayerPopup";
 import { API_ENDPOINTS } from "../const";
+import LoadingCube from "./CricketAnimation"; // Import the reusable component
+
+
+
+
 
 const PlayerList = () => {
   const [players, setPlayers] = useState([]);
@@ -131,7 +137,7 @@ const PlayerList = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading players...</div>;
+    return <LoadingCube animationFile="HittingSix.json" />;
   }
 
   if (error) {

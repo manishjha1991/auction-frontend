@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "../css/UserPurse.css"; // Custom CSS file
 import { API_ENDPOINTS } from "../const";
 import { FaWallet } from "react-icons/fa"; // Import Wallet Icon
+import LoadingCube from "./CricketAnimation"; // Import the reusable component
 const UserPursePage = () => {
   const [usersData, setUsersData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +44,7 @@ const UserPursePage = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading user data...</div>;
+    return <LoadingCube animationFile="Purse.json" />;
   }
 
   if (error) {

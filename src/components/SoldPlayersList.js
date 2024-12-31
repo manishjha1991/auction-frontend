@@ -3,7 +3,7 @@ import "../css/PlayerList.css";
 import PlayerPopup from "./PlayerPopup";
 import { API_ENDPOINTS } from "../const";
 import { FaWallet } from "react-icons/fa"; // Wallet Icon
-
+import LoadingCube from "./CricketAnimation"; // Import the reusable component
 const SoldPlayers = () => {
   const [players, setPlayers] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -57,7 +57,7 @@ const SoldPlayers = () => {
     }
   };
 
-  if (loading) return <div className="loading">Loading sold players...</div>;
+  if (loading) return <LoadingCube animationFile="HandToHand.json" />;;
   if (error) return <div className="error">{error}</div>;
 
   return (

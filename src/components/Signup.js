@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Import navigation hooks
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import '../css/Signup.css'; // Import CSS for styling
+import '../css/Signup.css'; // Updated CSS
 import { API_ENDPOINTS } from "../const";
+
 const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -15,7 +16,7 @@ const Signup = () => {
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -31,13 +32,12 @@ const Signup = () => {
     }
 
     try {
-      //const response = await axios.post('https://backend.localhost:3000/api/users/signup', formData);
       const response = await axios.post(`${API_ENDPOINTS}/api/users/signup`, formData);
       setMessage('Signup successful! Redirecting to login...');
       setError('');
       setTimeout(() => {
-        navigate('/login'); // Redirect to login page after 2 seconds
-      }, 2000); // Delay for user to see the success message
+        navigate('/login');
+      }, 2000);
     } catch (err) {
       setError(err.response?.data?.message || 'Error signing up');
     }

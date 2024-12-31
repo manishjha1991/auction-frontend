@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import '../css/Login.css'; // Import CSS for styling
 import { API_ENDPOINTS } from "../const";
+
 const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); // State for loading spinner
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -15,10 +17,10 @@ const Login = ({ onLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true); // Start loading spinner
 
     try {
       const response = await axios.post(`${API_ENDPOINTS}/api/users/login`, credentials);
-      //const response = await axios.post('https://cpl.in.net//api/users/login', credentials);
       const userData = response.data;
 
       // Set logged-in state in cache
@@ -32,12 +34,19 @@ const Login = ({ onLogin }) => {
       navigate('/profile');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid credentials!');
+    } finally {
+      setLoading(false); // Stop loading spinner
     }
   };
 
   return (
     <div className="login-container">
-      <h2>Login</h2>
+      <img 
+        src="images/cricket_trophy_CPL.jpg" 
+        alt="Cricket Trophy" 
+        className="trophy-image" 
+      />
+      <h2>Welcome Back!</h2>
       {error && <p className="error-message">{error}</p>}
       <form onSubmit={handleSubmit}>
         <input
@@ -56,8 +65,11 @@ const Login = ({ onLogin }) => {
           onChange={handleChange}
           required
         />
-        <button type="submit">Login</button>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Loading...' : 'Login'}
+        </button>
       </form>
+      {loading && <div className="loading-spinner"></div>}
       <p className="signup-redirect">
         Don't have an account? <Link to="/signup">Sign up here</Link>
       </p>

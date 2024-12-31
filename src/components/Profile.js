@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import '../css/Profile.css';
 import { API_ENDPOINTS } from "../const";
+import LoadingCube from "./CricketAnimation"; // Import the reusable component
 const Profile = () => {
 
   const [userData, setUserData] = useState(null);
@@ -112,7 +113,7 @@ const Profile = () => {
   );
 
   if (loading) {
-    return <div className="loading">Loading profile...</div>;
+    return <LoadingCube animationFile="Profile.json" />;
   }
 
   if (error) {

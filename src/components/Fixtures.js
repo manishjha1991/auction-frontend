@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import axios from "axios";
 import { API_ENDPOINTS } from "../const";
-
+import LoadingCube from "./CricketAnimation"; // Import the reusable component
 const Input = styled.input`
   width: 90%;
   margin: 0.5rem 0;
@@ -122,6 +122,7 @@ const Fixtures = () => {
   const [team2Score, setTeam2Score] = useState("");
   const [players, setPlayers] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true); // New loading state
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -134,7 +135,9 @@ const Fixtures = () => {
           (fixture) => fixture.team1 !== "NA" && fixture.team2 !== "NA"
         );
         setFixtures(validFixtures);
+        setLoading(false); // Stop loading after fetching
       } catch (error) {
+        setLoading(false); 
         console.error("Error fetching fixtures:", error);
       }
     };
@@ -198,6 +201,9 @@ const Fixtures = () => {
       alert("Failed to save fixture.");
     }
   };
+  if (loading) {
+    return <LoadingCube animationFile="Schedule.json" />;
+  }
 
   return (
     <FixtureWrapper>
