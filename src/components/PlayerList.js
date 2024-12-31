@@ -53,7 +53,7 @@ const PlayerList = () => {
     if (value >= 100000) return `${(value / 100000).toFixed(2)} Lakh`;
     return `${(value / 1000).toFixed(2)} K`;
   };
-
+  const unsoldPlayers = players.filter((player) => player.status !== "Sold");
   const sortedPlayers = [...players]
     .filter((player) =>
       player.name.toLowerCase().includes(search.toLowerCase())
@@ -140,6 +140,17 @@ const PlayerList = () => {
 
   return (
     <div className="player-list">
+      {unsoldPlayers.length === 0 ? (
+        <div style={{ textAlign: "center", marginTop: "20px" }}>
+          <img
+            src="/images/back.jpg" // Path to your image in the `public` folder
+            alt="No players available"
+            style={{ width: "300px", height: "auto" }}
+          />
+          <p>No players available. Please check back later.</p>
+        </div>
+      ) : (
+      <>
       <div className="list-header">
         <div
           className="search-wrapper"
@@ -256,7 +267,8 @@ const PlayerList = () => {
         })}
 
       </div>
-
+      </>
+      )}
 
 
       {selectedPlayer && (
