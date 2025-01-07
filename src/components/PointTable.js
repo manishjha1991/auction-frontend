@@ -16,15 +16,17 @@ const fadeIn = keyframes`
 `;
 
 // Styled components
+// Styled components
 const TableWrapper = styled.div`
   margin: 2rem auto;
   width: 95%;
   max-width: 800px;
   border-radius: 10px;
-  overflow: hidden;
+  overflow-x: auto; /* Add horizontal scrolling for small screens */
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   background: #ffffff;
 `;
+
 
 const Table = styled.table`
   width: 100%;
@@ -33,6 +35,10 @@ const Table = styled.table`
   font-size: 0.9rem;
   color: #343a40;
   table-layout: auto;
+
+  @media (max-width: 600px) {
+    font-size: 0.8rem; /* Adjust font size for smaller screens */
+  }
 `;
 
 const TableHead = styled.thead`
@@ -41,6 +47,10 @@ const TableHead = styled.thead`
   font-weight: 600;
   text-transform: uppercase;
   color: #7a7a7a;
+
+  @media (max-width: 600px) {
+    font-size: 0.75rem; /* Reduce font size on mobile screens */
+  }
 `;
 
 const TableRow = styled.tr`
@@ -49,12 +59,16 @@ const TableRow = styled.tr`
 `;
 
 const TableCell = styled.td`
-  padding: 0.8rem;
+  padding: 0.5rem; /* Reduce padding for better fit */
   font-size: 0.9rem;
   border: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  @media (max-width: 600px) {
+    padding: 0.3rem; /* Adjust padding for smaller screens */
+  }
 `;
 
 const HighlightCell = styled(TableCell)`
@@ -72,12 +86,17 @@ const HighlightCell = styled(TableCell)`
     border-radius: 50%;
     object-fit: cover;
   }
+
+  @media (max-width: 600px) {
+    padding-left: 0.5rem; /* Reduce padding on mobile screens */
+  }
 `;
 
 const RankCell = styled(TableCell)`
   font-weight: bold;
   color: #000;
 `;
+
 
 const Tower = styled.div`
   position: absolute;
@@ -324,6 +343,7 @@ const PointsTable = () => {
               <TableCell>L</TableCell>
               <TableCell>FAIR</TableCell>
               <TableCell>PTS</TableCell>
+              <TableCell>MP</TableCell>
             </tr>
           </TableHead>
           <tbody>
@@ -349,6 +369,7 @@ const PointsTable = () => {
                     <TableCell>{losses}</TableCell>
                     <TableCell>{team.fairness}</TableCell>
                     <TableCell>{team.points}</TableCell>
+                    <TableCell>{team.matchesPlayed}</TableCell> {/* Added matchesPlayed */}
                   </TableRow>
                 );
               })}
