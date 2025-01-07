@@ -2,15 +2,6 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import axios from "axios";
 import { API_ENDPOINTS } from "../const";
-import LoadingCube from "./CricketAnimation"; // Import the reusable component
-
-const Input = styled.input`
-  width: 90%;
-  margin: 0.5rem 0;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-`;
 
 const FixtureWrapper = styled.div`
   margin: 2rem auto;
@@ -21,28 +12,104 @@ const FixtureWrapper = styled.div`
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 `;
 
-const FixtureTable = styled.table`
+const SearchBar = styled.input`
   width: 100%;
-  border-collapse: collapse;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
   font-size: 1rem;
-  margin-top: 1rem;
+`;
 
-  th,
-  td {
-    border: 1px solid #dee2e6;
-    padding: 1rem;
+const FixtureCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  padding: ${(props) => (props.hasMom ? "1rem" : "0.5rem")};
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+`;
+
+const MatchHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #495057;
+
+  .match-number {
+    color: #007bff;
+  }
+`;
+
+const MatchDetails = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: ${(props) => (props.hasMom ? "center" : "flex-start")};
+  margin-top: 0.5rem;
+  flex-direction: ${(props) => (props.hasMom ? "row" : "column")};
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+const TeamBox = styled.div`
+  flex: 1;
+  text-align: ${(props) => (props.hasMom ? "left" : "center")};
+  display: flex;
+  align-items: center;
+  justify-content: ${(props) => (props.hasMom ? "flex-start" : "center")};
+  margin: ${(props) => (props.hasMom ? "0.5rem 0" : "0")};
+
+  .team-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: ${(props) =>
+    props.isWinner ? "green" : props.isLoser ? "red" : "#343a40"};
+  }
+
+  .score {
+    font-size: 1rem;
+    margin-left: ${(props) => (props.hasMom ? "1rem" : "0")};
+    color: ${(props) => (props.isWinner ? "white" : props.isLoser ? "white" : "#495057")};
+    background-color: ${(props) =>
+    props.isWinner ? "green" : props.isLoser ? "red" : "#f8f9fa"};
+    padding: 0.5rem;
+    border-radius: 8px;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+  }
+`;
+
+const MomDetails = styled.div`
+  margin-top: 0.5rem;
+  padding: 0.8rem;
+  background: #e9ecef;
+  border-radius: 8px;
+  text-align: center;
+
+  .mom-header,
+  .mom-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem; /* Optional for spacing */
+    font-size: 0.9rem;
+    color: #6c757d;
     text-align: center;
   }
 
-  th {
-    background: #343a40;
-    color: #fff;
-  }
-
-  tr:nth-child(even) {
-    background: #f1f3f5;
+  .mom-header {
+    font-weight: bold;
+    color: #495057;
   }
 `;
+
 
 const EditButton = styled.button`
   background: #007bff;
@@ -78,7 +145,7 @@ const ModalContent = styled.div`
   text-align: center;
 `;
 
-const Select = styled.select`
+const Input = styled.input`
   width: 90%;
   margin: 0.5rem 0;
   padding: 0.5rem;
@@ -86,20 +153,12 @@ const Select = styled.select`
   border-radius: 5px;
 `;
 
-const MomDetails = styled.div`
-  font-size: 1rem;
-  font-weight: bold;
-  color: #343a40;
-  background-color: #e9ecef;
+const Select = styled.select`
+  width: 90%;
+  margin: 0.5rem 0;
   padding: 0.5rem;
+  border: 1px solid #ccc;
   border-radius: 5px;
-  text-align: left;
-  margin-top: 0.5rem;
-
-  div {
-    font-size: 0.9rem;
-    margin-top: 0.3rem;
-  }
 `;
 
 const SubmitButton = styled.button`
@@ -127,45 +186,16 @@ const CloseButton = styled.button`
     background: #c82333;
   }
 `;
-
-const TeamCell = styled.td`
-  background-color: ${(props) =>
-    props.isWinner ? "green" : props.isLoser ? "red" : "transparent"};
-  color: ${(props) => (props.isWinner || props.isLoser ? "white" : "black")};
-  font-weight: bold;
+const MarginText = styled.span`
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 400;
+  margin-left: 0.5rem;
 `;
-
-const ScoreBox = styled.div`
-  background-color: ${(props) =>
-    props.isWinner ? "green" : props.isLoser ? "red" : "#f8f9fa"};
-  color: ${(props) => (props.isWinner || props.isLoser ? "white" : "black")};
-  padding: 0.5rem;
-  border-radius: 10px;
-  font-size: 1.2rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-
-  .team-name {
-    font-size: 1.1rem;
-    font-weight: bold;
-  }
-
-  .score {
-    font-size: 1rem;
-    margin-top: 0.3rem;
-  }
-
-  .margin {
-    font-size: 0.9rem;
-    margin-top: 0.3rem;
-    font-style: italic;
-  }
-`;
-
 const Fixtures = () => {
   const [fixtures, setFixtures] = useState([]);
+  const [filteredFixtures, setFilteredFixtures] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [currentFixture, setCurrentFixture] = useState(null);
   const [winner, setWinner] = useState("");
@@ -174,60 +204,65 @@ const Fixtures = () => {
   const [team1Score, setTeam1Score] = useState("");
   const [team2Score, setTeam2Score] = useState("");
   const [players, setPlayers] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     setIsAdmin(user?.isAdmin === true);
-
     const fetchFixtures = async () => {
       try {
-        const fixtureResponse = await axios.get(`${API_ENDPOINTS}/api/fixtures`);
-        const validFixtures = fixtureResponse.data.filter(
-          (fixture) => fixture.team1 !== "NA" && fixture.team2 !== "NA"
-        );
-        setFixtures(validFixtures);
-        setLoading(false); // Stop loading after fetching
+        const response = await axios.get(`${API_ENDPOINTS}/api/fixtures`);
+        const sortedFixtures = response.data.sort((a, b) => {
+          if (a.winner && !b.winner) return -1;
+          if (!a.winner && b.winner) return 1;
+          return new Date(a.date) - new Date(b.date);
+        });
+        setFixtures(sortedFixtures);
+        setFilteredFixtures(sortedFixtures);
       } catch (error) {
-        setLoading(false);
         console.error("Error fetching fixtures:", error);
       }
     };
-
     fetchFixtures();
   }, []);
+
+  const handleSearch = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+
+    const filtered = fixtures.filter(
+      (fixture) =>
+        fixture.team1.toLowerCase().includes(query) ||
+        fixture.team2.toLowerCase().includes(query)
+    );
+
+    setFilteredFixtures(filtered);
+  };
+
+  const handleWinnerChange = (selectedTeam) => {
+    setWinner(selectedTeam);
+    const playersList =
+      selectedTeam === currentFixture.team1
+        ? currentFixture.team1Details?.players || []
+        : currentFixture.team2Details?.players || [];
+    setPlayers(playersList.map((player) => player.name)); // Extract player names
+  };
 
   const handleEditFixture = (fixture) => {
     setCurrentFixture(fixture);
     setWinner(fixture.winner || "");
     setMargin(fixture.margin || "");
-    setPlayers([]);
-    setMom({
-      name: fixture.mom?.name || "",
-      score: fixture.mom?.score || "",
-      wickets: fixture.mom?.wickets || "",
-    });
+    setMom(fixture.mom || { name: "", score: 0, wickets: 0 });
     setTeam1Score(fixture.team1Score || "");
     setTeam2Score(fixture.team2Score || "");
+    setPlayers([]);
     setShowModal(true);
-  };
-
-  const handleWinnerChange = (teamName) => {
-    setWinner(teamName);
-    const teamDetails =
-      teamName === currentFixture.team1
-        ? currentFixture.team1Details
-        : currentFixture.team2Details;
-
-    setPlayers((prevPlayers) => teamDetails.players.length ? teamDetails.players : prevPlayers);
   };
 
   const handleSaveFixture = async () => {
     try {
-      const payload = {
-        team1: currentFixture.team1,
-        team2: currentFixture.team2,
+      const updatedFixture = {
+        ...currentFixture,
         winner,
         margin,
         team1Score,
@@ -235,15 +270,20 @@ const Fixtures = () => {
         mom,
       };
 
-      await axios.post(`${API_ENDPOINTS}/api/fixtures/save`, payload);
+      await axios.post(`${API_ENDPOINTS}/api/fixtures/save`, updatedFixture);
 
-      const updatedFixtures = fixtures.map((fixture) =>
-        fixture._id === currentFixture._id
-          ? { ...fixture, winner, margin, mom, team1Score, team2Score }
-          : fixture
+      setFixtures((prevFixtures) =>
+        prevFixtures.map((fixture) =>
+          fixture._id === currentFixture._id ? updatedFixture : fixture
+        )
       );
 
-      setFixtures(updatedFixtures);
+      setFilteredFixtures((prevFixtures) =>
+        prevFixtures.map((fixture) =>
+          fixture._id === currentFixture._id ? updatedFixture : fixture
+        )
+      );
+
       setShowModal(false);
       alert("Fixture updated successfully!");
     } catch (error) {
@@ -252,76 +292,113 @@ const Fixtures = () => {
     }
   };
 
-  if (loading) {
-    return <LoadingCube animationFile="Schedule.json" />;
-  }
-
   return (
     <FixtureWrapper>
       <h2>Fixtures</h2>
-      <FixtureTable>
-        <thead>
-          <tr>
-            <th>Team 1</th>
-            <th>Team 2</th>
-            <th>Man of the Match</th>
-            {isAdmin && <th>Action</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {fixtures.map((fixture) => (
-            <tr key={fixture._id}>
-              <TeamCell
-                isWinner={fixture.winner === fixture.team1}
-                isLoser={fixture.winner === fixture.team2}
-              >
-                <ScoreBox isWinner={fixture.winner === fixture.team1} isLoser={fixture.winner === fixture.team2}>
-                  <div className="team-name">{fixture.team1}</div>
+      <SearchBar
+        type="text"
+        placeholder="Search by team name"
+        value={searchQuery}
+        onChange={handleSearch}
+      />
+      {filteredFixtures.map((fixture, index) => (
+        <FixtureCard key={fixture._id} hasMom={!!fixture.mom?.name}>
+          <MatchHeader>
+            <div className="match-number">
+              T20 {index + 1} of {filteredFixtures.length}
+            </div>
+            <div className="match-date">{fixture.date || ""}</div>
+          </MatchHeader>
+          <MatchDetails hasMom={!!fixture.mom?.name}>
+            {Number(fixture.team1Score || 0) >= Number(fixture.team2Score || 0) ? (
+              <>
+                <TeamBox
+                  isWinner={fixture.winner === fixture.team1}
+                  isLoser={fixture.winner === fixture.team2}
+                  hasMom={!!fixture.mom?.name}
+                >
+                  <div className="team-name">
+                    {fixture.team1}
+                    {fixture.winner === fixture.team1 && fixture.margin && (
+                      <MarginText>(Won by {fixture.margin})</MarginText>
+                    )}
+                  </div>
                   <div className="score">{fixture.team1Score || "TBD"}</div>
-                  {fixture.winner === fixture.team1 && <div className="margin">Won by {fixture.margin}</div>}
-                </ScoreBox>
-              </TeamCell>
-              <TeamCell
-                isWinner={fixture.winner === fixture.team2}
-                isLoser={fixture.winner === fixture.team1}
-              >
-                <ScoreBox isWinner={fixture.winner === fixture.team2} isLoser={fixture.winner === fixture.team1}>
-                  <div className="team-name">{fixture.team2}</div>
+                </TeamBox>
+                <TeamBox
+                  isWinner={fixture.winner === fixture.team2}
+                  isLoser={fixture.winner === fixture.team1}
+                  hasMom={!!fixture.mom?.name}
+                >
+                  <div className="team-name">
+                    {fixture.team2}
+                    {fixture.winner === fixture.team2 && fixture.margin && (
+                      <MarginText>(Won by {fixture.margin})</MarginText>
+                    )}
+                  </div>
                   <div className="score">{fixture.team2Score || "TBD"}</div>
-                  {fixture.winner === fixture.team2 && <div className="margin">Won by {fixture.margin}</div>}
-                </ScoreBox>
-              </TeamCell>
-              <td>
-                {fixture.mom?.name ? (
-                  <MomDetails>
-                    <div>{fixture.mom.name}</div>
-                    <div>Score: {fixture.mom.score}</div>
-                    <div>Wickets: {fixture.mom.wickets}</div>
-                  </MomDetails>
-                ) : (
-                  "TBD"
-                )}
-              </td>
-              {isAdmin && (
-                <td>
-                  <EditButton onClick={() => handleEditFixture(fixture)}>
-                    Edit
-                  </EditButton>
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </FixtureTable>
+                </TeamBox>
+              </>
+            ) : (
+              <>
+                <TeamBox
+                  isWinner={fixture.winner === fixture.team2}
+                  isLoser={fixture.winner === fixture.team1}
+                  hasMom={!!fixture.mom?.name}
+                >
+                  <div className="team-name">
+                    {fixture.team2}
+                    {fixture.winner === fixture.team2 && fixture.margin && (
+                      <MarginText>(Won by {fixture.margin})</MarginText>
+                    )}
+                  </div>
+                  <div className="score">{fixture.team2Score || "TBD"}</div>
+                </TeamBox>
+                <TeamBox
+                  isWinner={fixture.winner === fixture.team1}
+                  isLoser={fixture.winner === fixture.team2}
+                  hasMom={!!fixture.mom?.name}
+                >
+                  <div className="team-name">
+                    {fixture.team1}
+                    {fixture.winner === fixture.team1 && fixture.margin && (
+                      <MarginText>(Won by {fixture.margin})</MarginText>
+                    )}
+                  </div>
+                  <div className="score">{fixture.team1Score || "TBD"}</div>
+                </TeamBox>
+              </>
+            )}
+          </MatchDetails>
+
+          {fixture.mom?.name && (
+            <MomDetails>
+              <div className="mom-header">
+                <span>Name</span>
+                <span>Run</span>
+                <span>Wkt</span>
+              </div>
+              <div className="mom-info">
+                <span>{fixture.mom.name}</span>
+                <span>{fixture.mom.score}</span>
+                <span>{fixture.mom.wickets}</span>
+              </div>
+            </MomDetails>
+          )}
+          {isAdmin && (
+            <div style={{ textAlign: "right", marginTop: "1rem" }}>
+              <EditButton onClick={() => handleEditFixture(fixture)}>Edit</EditButton>
+            </div>
+          )}
+        </FixtureCard>
+      ))}
+
 
       {showModal && (
         <ModalWrapper>
           <ModalContent>
             <h3>Edit Fixture</h3>
-            <Select
-              value={winner}
-              onChange={(e) => handleWinnerChange(e.target.value)}
-            >
+            <Select value={winner} onChange={(e) => handleWinnerChange(e.target.value)}>
               <option value="">Select Winner</option>
               <option value={currentFixture.team1}>{currentFixture.team1}</option>
               <option value={currentFixture.team2}>{currentFixture.team2}</option>
@@ -350,8 +427,8 @@ const Fixtures = () => {
             >
               <option value="">Select Man of the Match</option>
               {players.map((player) => (
-                <option key={player._id} value={player.name}>
-                  {player.name}
+                <option key={player} value={player}>
+                  {player}
                 </option>
               ))}
             </Select>
