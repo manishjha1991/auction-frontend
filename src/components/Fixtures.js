@@ -3,6 +3,7 @@ import styled from "styled-components";
 import axios from "axios";
 import { API_ENDPOINTS } from "../const";
 import LoadingCube from "./CricketAnimation"; // Import the reusable component
+
 const Input = styled.input`
   width: 90%;
   margin: 0.5rem 0;
@@ -85,6 +86,22 @@ const Select = styled.select`
   border-radius: 5px;
 `;
 
+const MomDetails = styled.div`
+  font-size: 1rem;
+  font-weight: bold;
+  color: #343a40;
+  background-color: #e9ecef;
+  padding: 0.5rem;
+  border-radius: 5px;
+  text-align: left;
+  margin-top: 0.5rem;
+
+  div {
+    font-size: 0.9rem;
+    margin-top: 0.3rem;
+  }
+`;
+
 const SubmitButton = styled.button`
   background: #28a745;
   color: #fff;
@@ -111,6 +128,42 @@ const CloseButton = styled.button`
   }
 `;
 
+const TeamCell = styled.td`
+  background-color: ${(props) =>
+    props.isWinner ? "green" : props.isLoser ? "red" : "transparent"};
+  color: ${(props) => (props.isWinner || props.isLoser ? "white" : "black")};
+  font-weight: bold;
+`;
+
+const ScoreBox = styled.div`
+  background-color: ${(props) =>
+    props.isWinner ? "green" : props.isLoser ? "red" : "#f8f9fa"};
+  color: ${(props) => (props.isWinner || props.isLoser ? "white" : "black")};
+  padding: 0.5rem;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+
+  .team-name {
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+
+  .score {
+    font-size: 1rem;
+    margin-top: 0.3rem;
+  }
+
+  .margin {
+    font-size: 0.9rem;
+    margin-top: 0.3rem;
+    font-style: italic;
+  }
+`;
+
 const Fixtures = () => {
   const [fixtures, setFixtures] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -122,7 +175,7 @@ const Fixtures = () => {
   const [team2Score, setTeam2Score] = useState("");
   const [players, setPlayers] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true); // New loading state
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -137,7 +190,7 @@ const Fixtures = () => {
         setFixtures(validFixtures);
         setLoading(false); // Stop loading after fetching
       } catch (error) {
-        setLoading(false); 
+        setLoading(false);
         console.error("Error fetching fixtures:", error);
       }
     };
@@ -162,14 +215,11 @@ const Fixtures = () => {
 
   const handleWinnerChange = (teamName) => {
     setWinner(teamName);
-
-    // Update players based on the selected winner's team
     const teamDetails =
       teamName === currentFixture.team1
         ? currentFixture.team1Details
         : currentFixture.team2Details;
 
-    // Maintain the players in dropdown if available
     setPlayers((prevPlayers) => teamDetails.players.length ? teamDetails.players : prevPlayers);
   };
 
@@ -201,6 +251,7 @@ const Fixtures = () => {
       alert("Failed to save fixture.");
     }
   };
+
   if (loading) {
     return <LoadingCube animationFile="Schedule.json" />;
   }
@@ -213,10 +264,6 @@ const Fixtures = () => {
           <tr>
             <th>Team 1</th>
             <th>Team 2</th>
-            <th>Winner</th>
-            <th>Margin</th>
-            <th>Team 1 Score</th>
-            <th>Team 2 Score</th>
             <th>Man of the Match</th>
             {isAdmin && <th>Action</th>}
           </tr>
@@ -224,13 +271,37 @@ const Fixtures = () => {
         <tbody>
           {fixtures.map((fixture) => (
             <tr key={fixture._id}>
-              <td>{fixture.team1}</td>
-              <td>{fixture.team2}</td>
-              <td>{fixture.winner || "TBD"}</td>
-              <td>{fixture.margin || "TBD"}</td>
-              <td>{fixture.team1Score || "TBD"}</td>
-              <td>{fixture.team2Score || "TBD"}</td>
-              <td>{fixture.mom?.name || "TBD"}</td>
+              <TeamCell
+                isWinner={fixture.winner === fixture.team1}
+                isLoser={fixture.winner === fixture.team2}
+              >
+                <ScoreBox isWinner={fixture.winner === fixture.team1} isLoser={fixture.winner === fixture.team2}>
+                  <div className="team-name">{fixture.team1}</div>
+                  <div className="score">{fixture.team1Score || "TBD"}</div>
+                  {fixture.winner === fixture.team1 && <div className="margin">Won by {fixture.margin}</div>}
+                </ScoreBox>
+              </TeamCell>
+              <TeamCell
+                isWinner={fixture.winner === fixture.team2}
+                isLoser={fixture.winner === fixture.team1}
+              >
+                <ScoreBox isWinner={fixture.winner === fixture.team2} isLoser={fixture.winner === fixture.team1}>
+                  <div className="team-name">{fixture.team2}</div>
+                  <div className="score">{fixture.team2Score || "TBD"}</div>
+                  {fixture.winner === fixture.team2 && <div className="margin">Won by {fixture.margin}</div>}
+                </ScoreBox>
+              </TeamCell>
+              <td>
+                {fixture.mom?.name ? (
+                  <MomDetails>
+                    <div>{fixture.mom.name}</div>
+                    <div>Score: {fixture.mom.score}</div>
+                    <div>Wickets: {fixture.mom.wickets}</div>
+                  </MomDetails>
+                ) : (
+                  "TBD"
+                )}
+              </td>
               {isAdmin && (
                 <td>
                   <EditButton onClick={() => handleEditFixture(fixture)}>
@@ -257,6 +328,12 @@ const Fixtures = () => {
             </Select>
             <Input
               type="text"
+              placeholder="Margin"
+              value={margin}
+              onChange={(e) => setMargin(e.target.value)}
+            />
+            <Input
+              type="text"
               placeholder="Team 1 Score"
               value={team1Score}
               onChange={(e) => setTeam1Score(e.target.value)}
@@ -266,12 +343,6 @@ const Fixtures = () => {
               placeholder="Team 2 Score"
               value={team2Score}
               onChange={(e) => setTeam2Score(e.target.value)}
-            />
-            <Input
-              type="text"
-              placeholder="Margin"
-              value={margin}
-              onChange={(e) => setMargin(e.target.value)}
             />
             <Select
               value={mom.name}
