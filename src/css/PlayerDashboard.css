@@ -1,0 +1,98 @@
+/* General Styles */
+.bowler-leaderboard {
+    padding: 16px;
+    font-family: "Poppins", sans-serif; /* Clean font for readability */
+    background-color: #8f1c1c;
+    border-radius: 8px;
+    max-width: 1000px;
+    margin: auto;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    overflow-x: auto; /* Mobile-friendly */
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+  }
+  
+  thead tr {
+    background-color: #003865; /* Dark blue header */
+    color: rgb(135, 19, 19);
+    font-size: 16px;
+  }
+  
+  th {
+    padding: 12px 8px;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: #b12424;
+  }
+  
+  tbody tr {
+    background-color: #953434;
+    border-bottom: 1px solid #ddd;
+    transition: background-color 0.3s;
+  }
+  
+  tbody tr:nth-child(odd) {
+    background-color: #7d2323;
+  }
+  
+  tbody tr:hover {
+    background-color: #2a5887; /* Row hover effect */
+  }
+  
+  .highlighted-row {
+    background-color: #003865; /* Highlighted row */
+    color: rgb(107, 17, 17);
+  }
+  
+  td {
+    padding: 12px 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333; /* Ensure high visibility for text */
+  }
+  
+  .player-info {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+  }
+  
+  .player-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .player-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333; /* Ensure text is dark and visible */
+  }
+  
+  .team-logo {
+    width: 24px;
+    height: 24px;
+  }
+  
+  /* Responsive Styles */
+  @media (max-width: 768px) {
+    .player-info {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+  
+    table {
+      font-size: 12px;
+    }
+  
+    th,
+    td {
+      padding: 8px;
+    }
+  }
+  
