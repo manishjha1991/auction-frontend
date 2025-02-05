@@ -16,7 +16,6 @@ const fadeIn = keyframes`
 `;
 
 // Styled components
-// Styled components
 const TableWrapper = styled.div`
   margin: 2rem auto;
   width: 95%;
@@ -26,7 +25,6 @@ const TableWrapper = styled.div`
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   background: #ffffff !important;
 `;
-
 
 const Table = styled.table`
   width: 100%;
@@ -54,7 +52,7 @@ const TableHead = styled.thead`
 `;
 
 const TableRow = styled.tr`
- background-color: #ffffff !important;
+  background-color: #ffffff !important;
   height: 50px;
 `;
 
@@ -97,7 +95,6 @@ const RankCell = styled(TableCell)`
   color: #000;
 `;
 
-
 const Tower = styled.div`
   position: absolute;
   top: ${(props) => props.position.y}px;
@@ -121,7 +118,11 @@ const Tower = styled.div`
 
 const PopupButton = styled.button`
   background-color: ${(props) =>
-    props.variant === "win" ? "#4CAF50" : props.variant === "loss" ? "#F44336" : "#FFC107"};
+    props.variant === "win"
+      ? "#4CAF50"
+      : props.variant === "loss"
+      ? "#F44336"
+      : "#FFC107"};
   color: #fff;
   padding: 0.7rem 1.5rem;
   border: none;
@@ -137,7 +138,6 @@ const PopupButton = styled.button`
   }
 `;
 
-// Main Component
 const PointsTable = () => {
   const [teams, setTeams] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -156,7 +156,9 @@ const PointsTable = () => {
 
   const fetchTeams = async () => {
     try {
-      const response = await axios.get(`${API_ENDPOINTS}/api/users/points-table`);
+      const response = await axios.get(
+        `${API_ENDPOINTS}/api/users/points-table`
+      );
       setTeams(response.data);
     } catch (error) {
       console.error("Error fetching teams data:", error);
@@ -179,23 +181,26 @@ const PointsTable = () => {
   const handleVerifyAndSubmit = (result) => {
     const newPoints = result === "win" ? 2 : 0; // Always send 2 for win, 0 for loss
     const newFairness = Number(fairness);
-  
+
     setPendingUpdate({
       points: newPoints,
       fairness: newFairness,
       result,
     });
-  
+
     setConfirmationModal(true);
   };
-  
+
   const confirmUpdate = async () => {
     try {
-      await axios.put(`${API_ENDPOINTS}/api/users/update-points/${selectedTeam._id}`, {
-        points: pendingUpdate.points, // Send 2 for win, 0 for loss
-        fairness: pendingUpdate.fairness,
-      });
-  
+      await axios.put(
+        `${API_ENDPOINTS}/api/users/update-points/${selectedTeam._id}`,
+        {
+          points: pendingUpdate.points, // Send 2 for win, 0 for loss
+          fairness: pendingUpdate.fairness,
+        }
+      );
+
       alert("Points and fairness updated successfully!");
       setShowModal(false);
       setConfirmationModal(false);
@@ -205,8 +210,6 @@ const PointsTable = () => {
       alert("Failed to update points.");
     }
   };
-  
-  
 
   return (
     <>
@@ -245,7 +248,7 @@ const PointsTable = () => {
             <h3 style={{ marginBottom: "1rem" }}>Update Points and Fairness</h3>
             <input
               type="number"
-              placeholder="Enter Fairness Points"
+              placeholder={`Enter fairness for ${selectedTeam?.teamName || ""}`}
               value={fairness}
               onChange={(e) => setFairness(e.target.value)}
               style={{
@@ -308,15 +311,16 @@ const PointsTable = () => {
           >
             <h3>Confirm Update</h3>
             <p>
-              Are you sure you want to update the team points and fairness? <br />
-              Points: {pendingUpdate.points} <br />
-              Fairness: {pendingUpdate.fairness}
+              Are you sure you want to update the team points and fairness?
+              <br />
+              Team: {selectedTeam?.teamName}
+              <br />
+              Points: {pendingUpdate?.points}
+              <br />
+              Fairness: {pendingUpdate?.fairness}
             </p>
             <div>
-              <PopupButton
-                variant="win"
-                onClick={confirmUpdate}
-              >
+              <PopupButton variant="win" onClick={confirmUpdate}>
                 Confirm
               </PopupButton>
               <PopupButton
@@ -331,7 +335,9 @@ const PointsTable = () => {
       )}
 
       <TableWrapper>
-        <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "1.5rem" }}>
+        <h2
+          style={{ textAlign: "center", color: "#343a40", marginBottom: "1.5rem" }}
+        >
           Points Table
         </h2>
         <Table>
@@ -369,7 +375,7 @@ const PointsTable = () => {
                     <TableCell>{losses}</TableCell>
                     <TableCell>{team.fairness}</TableCell>
                     <TableCell>{team.points}</TableCell>
-                    <TableCell>{team.matchesPlayed}</TableCell> {/* Added matchesPlayed */}
+                    <TableCell>{team.matchesPlayed}</TableCell>
                   </TableRow>
                 );
               })}
