@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-
 import '../css/Profile.css';
 import { API_ENDPOINTS } from "../const";
 import LoadingCube from "./CricketAnimation"; // Import the reusable component
-const Profile = () => {
 
+const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -103,21 +102,40 @@ const Profile = () => {
     }
   };
 
+  // While loading or if error
+  if (loading) {
+    return <LoadingCube animationFile="Profile.json" />;
+  }
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
 
+  // Filter logic
   const filteredSoldPlayers = userData?.soldPlayers.filter(({ player }) =>
     player.name.toLowerCase().includes(searchTerm)
   );
-
   const filteredActiveBids = userData?.activeBids.filter(({ player }) =>
     player.name.toLowerCase().includes(searchTerm)
   );
 
-  if (loading) {
-    return <LoadingCube animationFile="Profile.json" />;
-  }
-
-  if (error) {
-    return <div className="error">{error}</div>;
+  // We assume userData.lastFiveMatches might be an array of objects: 
+  // [ {score: "...", fairness: "...", result: "..."}, ... ]
+  // If missing or partial, fill up to 5 with {score: "NA", fairness: "NA", result: "NA"}.
+  let lastFiveMatches = userData?.lastFiveMatches || [];
+  if (!lastFiveMatches.length) {
+    lastFiveMatches = Array(5).fill({
+      score: "NA",
+      fairness: "NA",
+      result: "NA",
+    });
+  } else {
+    while (lastFiveMatches.length < 5) {
+      lastFiveMatches.push({
+        score: "NA",
+        fairness: "NA",
+        result: "NA",
+      });
+    }
   }
 
   return (
@@ -136,14 +154,19 @@ const Profile = () => {
           <div>
             <h2>{userData.user.name}</h2>
             <p>
-              Total Purse Remaining: <span className="purse-amount">{formatAmount(parseFloat(userData.user.purse["$numberDecimal"]))}</span>
+              Total Purse Remaining:{' '}
+              <span className="purse-amount">
+                {formatAmount(parseFloat(userData.user.purse["$numberDecimal"]))}
+              </span>
             </p>
           </div>
         </div>
         <div className="additional-info">
           <p><strong>Team Name:</strong> {userData.user.teamName}</p>
           <p><strong>Email:</strong> {userData.user.email}</p>
-          <button className="edit-profile-button" onClick={() => setIsEditing(true)}>Edit Profile</button>
+          <button className="edit-profile-button" onClick={() => setIsEditing(true)}>
+            Edit Profile
+          </button>
         </div>
       </header>
 
@@ -179,6 +202,7 @@ const Profile = () => {
         </div>
       )}
 
+      {/* Search Bar */}
       <div className="search-bar">
         <input
           type="text"
@@ -189,6 +213,7 @@ const Profile = () => {
       </div>
 
       <div className="profile-content">
+        {/* Sold Players */}
         <div className="section">
           <h3>Sold Players</h3>
           <div className="bought-players">
@@ -208,6 +233,7 @@ const Profile = () => {
           </div>
         </div>
 
+        {/* Active Bids */}
         <div className="section">
           <h3>Active Bids</h3>
           <div className="bids-section">
@@ -225,6 +251,7 @@ const Profile = () => {
           </div>
         </div>
 
+        {/* Past Bids */}
         <div className="section">
           <h3>Past Bids</h3>
           <div className="past-bids">
@@ -245,6 +272,34 @@ const Profile = () => {
                 <p><strong>Status:</strong> {status}</p>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Last 5 Matches (styled like Past Bids) */}
+        <div className="section">
+          <h3>Your Last 5 Match Results</h3>
+          <div className="bought-players" style={{ display: "grid", gap: "15px" }}>
+            {lastFiveMatches.map((match, idx) => {
+              // Decide if "Won" style or not
+              const isWon = (match.result || "").toLowerCase() === "won";
+              return (
+                <div
+                  key={idx}
+                  className="past-bid-card"
+                  style={{
+                    border: isWon ? "2px solid gold" : "1px solid #ccc",
+                    backgroundColor: isWon ? "#fffbea" : "transparent",
+                    boxShadow: isWon ? "0px 4px 8px rgba(255, 215, 0, 0.4)" : "none",
+                    transition: "all 0.3s ease-in-out",
+                  }}
+                >
+                  <p><strong>🆚</strong> {match.opponentTeam}</p>
+                  <p><strong>🏏</strong> {match.score}</p>
+                  <p><strong>⚖️</strong> {match.fairness}</p>
+                  <p><strong>🏆</strong> {match.result}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -300,6 +300,12 @@
   border-radius: 5px;
   cursor: pointer;
 }
+/* Your existing Profile.css content exactly as you provided... */
+/* (no changes above) */
+
+/* --- NEW STYLES FOR MATCH HISTORY (added at the very bottom) --- */
+
+/* --- END NEW STYLES --- */
 
 .popup-buttons button:first-child {
   background-color: #28a745;
