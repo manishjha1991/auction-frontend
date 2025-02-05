@@ -4,12 +4,16 @@ import PlayerPopup from "./PlayerPopup";
 import { API_ENDPOINTS } from "../const";
 import { FaWallet } from "react-icons/fa"; // Wallet Icon
 import LoadingCube from "./CricketAnimation"; // Import the reusable component
+
 const SoldPlayers = () => {
   const [players, setPlayers] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // NEW: search query state
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchSoldPlayers = async () => {
@@ -57,8 +61,14 @@ const SoldPlayers = () => {
     }
   };
 
-  if (loading) return <LoadingCube animationFile="HandToHand.json" />;;
+  // If still loading or if error
+  if (loading) return <LoadingCube animationFile="HandToHand.json" />;
   if (error) return <div className="error">{error}</div>;
+
+  // NEW: Filter players by search query
+  const filteredPlayers = players.filter((player) =>
+    player.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="sold-players-container" style={{ padding: "20px" }}>
@@ -76,6 +86,28 @@ const SoldPlayers = () => {
         🎉 Sold Players 🎉
       </h2>
 
+      {/* NEW: Super sexy search bar */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="Search player by name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            width: "300px",
+            padding: "10px 15px",
+            borderRadius: "25px",
+            border: "2px solid #ff4b5c",
+            outline: "none",
+            fontSize: "16px",
+            transition: "box-shadow 0.3s ease-in-out",
+            textAlign: "center",
+          }}
+          onFocus={(e) => (e.target.style.boxShadow = "0 0 10px #ff4b5c")}
+          onBlur={(e) => (e.target.style.boxShadow = "none")}
+        />
+      </div>
+
       <div
         className="player-grid"
         style={{
@@ -84,7 +116,7 @@ const SoldPlayers = () => {
           gap: "15px",
         }}
       >
-        {players.map((player) => (
+        {filteredPlayers.map((player) => (
           <div
             key={player.id}
             className="player-card"
