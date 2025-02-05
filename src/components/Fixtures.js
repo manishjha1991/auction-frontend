@@ -1,7 +1,33 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import axios from "axios";
+import ReactSelect from "react-select"; // <-- 1) Import react-select
 import { API_ENDPOINTS } from "../const";
+
+// We rename the existing styled Select component to StyledSelect:
+const StyledSelect = styled.select`
+  width: 90%;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+`;
+
+const FairnessTag = styled.div`
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: ${(props) => {
+    if (!props.fairness) return "#6c757d"; // default if no fairness
+    if (props.fairness > 7) return "#28a745"; // greenish
+    if (props.fairness > 4) return "#ffc107"; // yellowish
+    return "#dc3545"; // red
+  }};
+`;
 
 const FixtureWrapper = styled.div`
   margin: 2rem auto;
@@ -70,15 +96,16 @@ const TeamBox = styled.div`
     font-size: 1.2rem;
     font-weight: bold;
     color: ${(props) =>
-    props.isWinner ? "green" : props.isLoser ? "red" : "#343a40"};
+      props.isWinner ? "green" : props.isLoser ? "red" : "#343a40"};
   }
 
   .score {
     font-size: 1rem;
     margin-left: ${(props) => (props.hasMom ? "1rem" : "0")};
-    color: ${(props) => (props.isWinner ? "white" : props.isLoser ? "white" : "#495057")};
+    color: ${(props) =>
+      props.isWinner ? "white" : props.isLoser ? "white" : "#495057"};
     background-color: ${(props) =>
-    props.isWinner ? "green" : props.isLoser ? "red" : "#f8f9fa"};
+      props.isWinner ? "green" : props.isLoser ? "red" : "#f8f9fa"};
     padding: 0.5rem;
     border-radius: 8px;
     display: inline-block;
@@ -98,7 +125,7 @@ const MomDetails = styled.div`
   .mom-info {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 0.5rem; /* Optional for spacing */
+    gap: 0.5rem;
     font-size: 0.9rem;
     color: #6c757d;
     text-align: center;
@@ -109,7 +136,6 @@ const MomDetails = styled.div`
     color: #495057;
   }
 `;
-
 
 const EditButton = styled.button`
   background: #007bff;
@@ -153,14 +179,6 @@ const Input = styled.input`
   border-radius: 5px;
 `;
 
-const Select = styled.select`
-  width: 90%;
-  margin: 0.5rem 0;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-`;
-
 const SubmitButton = styled.button`
   background: #28a745;
   color: #fff;
@@ -186,29 +204,44 @@ const CloseButton = styled.button`
     background: #c82333;
   }
 `;
+
 const MarginText = styled.span`
   font-size: 0.85rem;
   color: #6c757d;
   font-weight: 400;
   margin-left: 0.5rem;
 `;
+
+// Abbreviation helper for fairness display
+const getAbbreviation = (name) => {
+  if (!name) return "UNK";
+  return name.slice(0, 3).toUpperCase();
+};
+
 const Fixtures = () => {
   const [fixtures, setFixtures] = useState([]);
   const [filteredFixtures, setFilteredFixtures] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [currentFixture, setCurrentFixture] = useState(null);
+
+  // Using empty strings here so placeholder shows up until user enters something
   const [winner, setWinner] = useState("");
   const [margin, setMargin] = useState("");
-  const [mom, setMom] = useState({ name: "", score: 0, wickets: 0 });
+  const [mom, setMom] = useState({ name: "", score: "", wickets: "" });
   const [team1Score, setTeam1Score] = useState("");
   const [team2Score, setTeam2Score] = useState("");
   const [players, setPlayers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Using empty strings so "Fairness" fields show placeholders initially
+  const [team1Fairness, setTeam1Fairness] = useState("");
+  const [team2Fairness, setTeam2Fairness] = useState("");
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     setIsAdmin(user?.isAdmin === true);
+
     const fetchFixtures = async () => {
       try {
         const response = await axios.get(`${API_ENDPOINTS}/api/fixtures`);
@@ -235,52 +268,78 @@ const Fixtures = () => {
         fixture.team1.toLowerCase().includes(query) ||
         fixture.team2.toLowerCase().includes(query)
     );
-
     setFilteredFixtures(filtered);
   };
 
   const handleWinnerChange = (selectedTeam) => {
     setWinner(selectedTeam);
+    // If you still want to maintain "players" for any reason,
+    // you can combine both teams' details or keep existing logic:
     const playersList =
-      selectedTeam === currentFixture.team1
-        ? currentFixture.team1Details?.players || []
-        : currentFixture.team2Details?.players || [];
-    setPlayers(playersList.map((player) => player.name)); // Extract player names
+      selectedTeam === currentFixture?.team1
+        ? currentFixture?.team1Details?.players || []
+        : currentFixture?.team2Details?.players || [];
+    setPlayers(playersList.map((player) => player.name));
   };
 
   const handleEditFixture = (fixture) => {
     setCurrentFixture(fixture);
+
+    // Populate fields with existing values or empty strings
     setWinner(fixture.winner || "");
     setMargin(fixture.margin || "");
-    setMom(fixture.mom || { name: "", score: 0, wickets: 0 });
     setTeam1Score(fixture.team1Score || "");
     setTeam2Score(fixture.team2Score || "");
+
+    // Convert numeric fields to string so placeholders can show up
+    setMom({
+      name: fixture.mom?.name || "",
+      score: fixture.mom?.score?.toString() || "",
+      wickets: fixture.mom?.wickets?.toString() || "",
+    });
+
+    setTeam1Fairness(
+      fixture.team1Fairness ? fixture.team1Fairness.toString() : ""
+    );
+    setTeam2Fairness(
+      fixture.team2Fairness ? fixture.team2Fairness.toString() : ""
+    );
+
     setPlayers([]);
     setShowModal(true);
   };
 
   const handleSaveFixture = async () => {
     try {
+      // Convert string inputs back to numbers safely
+      const updatedMom = {
+        ...mom,
+        score: mom.score ? Number(mom.score) : 0,
+        wickets: mom.wickets ? Number(mom.wickets) : 0,
+      };
+
       const updatedFixture = {
         ...currentFixture,
         winner,
         margin,
         team1Score,
         team2Score,
-        mom,
+        mom: updatedMom,
+        team1Fairness: team1Fairness ? Number(team1Fairness) : 0,
+        team2Fairness: team2Fairness ? Number(team2Fairness) : 0,
       };
 
       await axios.post(`${API_ENDPOINTS}/api/fixtures/save`, updatedFixture);
 
       setFixtures((prevFixtures) =>
-        prevFixtures.map((fixture) =>
-          fixture._id === currentFixture._id ? updatedFixture : fixture
+        prevFixtures.map((fx) =>
+          fx._id === currentFixture._id ? updatedFixture : fx
         )
       );
 
       setFilteredFixtures((prevFixtures) =>
-        prevFixtures.map((fixture) =>
-          fixture._id === currentFixture._id ? updatedFixture : fixture
+        prevFixtures.map((fx) =>
+          fx._id === currentFixture._id ? updatedFixture : fx
         )
       );
 
@@ -292,6 +351,20 @@ const Fixtures = () => {
     }
   };
 
+  // Combine both teams' players for the Mom dropdown (with search)
+  // We'll build this array whenever we render the modal.
+  let playerOptions = [];
+  if (currentFixture) {
+    const allPlayers = [
+      ...(currentFixture.team1Details?.players || []),
+      ...(currentFixture.team2Details?.players || []),
+    ];
+    playerOptions = allPlayers.map((p) => ({
+      value: p.name,
+      label: p.name,
+    }));
+  }
+
   return (
     <FixtureWrapper>
       <h2>Fixtures</h2>
@@ -301,6 +374,7 @@ const Fixtures = () => {
         value={searchQuery}
         onChange={handleSearch}
       />
+
       {filteredFixtures.map((fixture, index) => (
         <FixtureCard key={fixture._id} hasMom={!!fixture.mom?.name}>
           <MatchHeader>
@@ -309,6 +383,7 @@ const Fixtures = () => {
             </div>
             <div className="match-date">{fixture.date || ""}</div>
           </MatchHeader>
+
           <MatchDetails hasMom={!!fixture.mom?.name}>
             {Number(fixture.team1Score || 0) >= Number(fixture.team2Score || 0) ? (
               <>
@@ -371,6 +446,29 @@ const Fixtures = () => {
             )}
           </MatchDetails>
 
+          {/* Show both teams' fairness on the same line */}
+          <div
+            style={{
+              marginTop: "0.5rem",
+              textAlign: "left",
+              display: "flex",
+              gap: "1rem",
+            }}
+          >
+            <div>
+              <strong>{getAbbreviation(fixture.team1)}:&nbsp;</strong>
+              <FairnessTag fairness={fixture.team1Fairness}>
+                {fixture.team1Fairness || "N/A"}
+              </FairnessTag>
+            </div>
+            <div>
+              <strong>{getAbbreviation(fixture.team2)}:&nbsp;</strong>
+              <FairnessTag fairness={fixture.team2Fairness}>
+                {fixture.team2Fairness || "N/A"}
+              </FairnessTag>
+            </div>
+          </div>
+
           {fixture.mom?.name && (
             <MomDetails>
               <div className="mom-header">
@@ -387,63 +485,91 @@ const Fixtures = () => {
           )}
           {isAdmin && (
             <div style={{ textAlign: "right", marginTop: "1rem" }}>
-              <EditButton onClick={() => handleEditFixture(fixture)}>Edit</EditButton>
+              <EditButton onClick={() => handleEditFixture(fixture)}>
+                Edit
+              </EditButton>
             </div>
           )}
         </FixtureCard>
       ))}
 
-
       {showModal && (
         <ModalWrapper>
           <ModalContent>
             <h3>Edit Fixture</h3>
-            <Select value={winner} onChange={(e) => handleWinnerChange(e.target.value)}>
+
+            {/* Winner selection (unchanged, now uses StyledSelect) */}
+            <StyledSelect
+              value={winner}
+              onChange={(e) => handleWinnerChange(e.target.value)}
+            >
               <option value="">Select Winner</option>
-              <option value={currentFixture.team1}>{currentFixture.team1}</option>
-              <option value={currentFixture.team2}>{currentFixture.team2}</option>
-            </Select>
+              <option value={currentFixture?.team1}>
+                {currentFixture?.team1}
+              </option>
+              <option value={currentFixture?.team2}>
+                {currentFixture?.team2}
+              </option>
+            </StyledSelect>
+
             <Input
               type="text"
-              placeholder="Margin"
+              placeholder="Margin (e.g. 5 runs or 2 wickets)"
               value={margin}
               onChange={(e) => setMargin(e.target.value)}
             />
             <Input
               type="text"
-              placeholder="Team 1 Score"
+              placeholder={`Team 1 Score (${currentFixture?.team1})`}
               value={team1Score}
               onChange={(e) => setTeam1Score(e.target.value)}
             />
             <Input
               type="text"
-              placeholder="Team 2 Score"
+              placeholder={`Team 2 Score (${currentFixture?.team2})`}
               value={team2Score}
               onChange={(e) => setTeam2Score(e.target.value)}
             />
-            <Select
-              value={mom.name}
-              onChange={(e) => setMom({ ...mom, name: e.target.value })}
-            >
-              <option value="">Select Man of the Match</option>
-              {players.map((player) => (
-                <option key={player} value={player}>
-                  {player}
-                </option>
-              ))}
-            </Select>
+
+            {/* New searchable dropdown with both teams' players */}
+            <ReactSelect
+              placeholder="Select Man of the Match"
+              value={
+                playerOptions.find((opt) => opt.value === mom.name) || null
+              }
+              onChange={(selectedOption) =>
+                setMom({ ...mom, name: selectedOption?.value || "" })
+              }
+              options={playerOptions}
+              isClearable
+            />
+
             <Input
               type="number"
-              placeholder="MoM Score"
+              placeholder="Batting Score"
               value={mom.score}
-              onChange={(e) => setMom({ ...mom, score: Number(e.target.value) })}
+              onChange={(e) => setMom({ ...mom, score: e.target.value })}
             />
             <Input
               type="number"
-              placeholder="MoM Wickets"
+              placeholder="Bowling Wickets"
               value={mom.wickets}
-              onChange={(e) => setMom({ ...mom, wickets: Number(e.target.value) })}
+              onChange={(e) => setMom({ ...mom, wickets: e.target.value })}
             />
+
+            <Input
+              type="number"
+              placeholder={`Fairness for ${currentFixture?.team1}`}
+              value={team1Fairness}
+              onChange={(e) => setTeam1Fairness(e.target.value)}
+            />
+            <Input
+              type="number"
+              placeholder={`Fairness for ${currentFixture?.team2}`}
+              value={team2Fairness}
+              onChange={(e) => setTeam2Fairness(e.target.value)}
+            />
+
             <SubmitButton onClick={handleSaveFixture}>Save</SubmitButton>
             <CloseButton onClick={() => setShowModal(false)}>Close</CloseButton>
           </ModalContent>

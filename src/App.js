@@ -10,7 +10,7 @@ import SoldPlayersList from "./components/SoldPlayersList"; // Import the new co
 import Fixtures from './components/Fixtures'; // Import the new component
 
 import PointTable from './components/PointTable';
-import PlayerDashboard from './components/PlayerDashboard';
+// import PlayerDashboard from './components/PlayerDashboard';
 import PlayerStatsList from './components/PlayerStatsList';
 import AddPlayerStats from './components/AddPlayerStats';
 import SoldPlayers from './components/SoldPlayers'; // Import SoldPlayers
@@ -122,7 +122,7 @@ function App() {
             <Route path="/user-purses" element={<PrivateRoute><UserPursePage /></PrivateRoute>} />
             <Route path="/points-table" element={<PrivateRoute><PointTable /></PrivateRoute>} />
            <Route path="/sold-playerslist" element={<PrivateRoute><SoldPlayersList /></PrivateRoute>} />
-           <Route path="/player-dashboard" element={<PrivateRoute><PlayerDashboard /></PrivateRoute>} />
+           {/* <Route path="/player-dashboard" element={<PrivateRoute><PlayerDashboard /></PrivateRoute>} /> */}
 
            <Route path="/fixtures" element={<PrivateRoute><Fixtures user={user} /></PrivateRoute>} />
            <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />

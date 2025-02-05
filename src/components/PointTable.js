@@ -22,9 +22,9 @@ const TableWrapper = styled.div`
   width: 95%;
   max-width: 800px;
   border-radius: 10px;
-  overflow-x: auto; /* Add horizontal scrolling for small screens */
+  overflow-x: auto;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  background: #ffffff;
+  background: #ffffff !important;
 `;
 
 
@@ -42,11 +42,11 @@ const Table = styled.table`
 `;
 
 const TableHead = styled.thead`
-  background-color: #f5f5f5;
+  background-color: #ffffff !important;
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;
-  color: #7a7a7a;
+  color: #343a40;
 
   @media (max-width: 600px) {
     font-size: 0.75rem; /* Reduce font size on mobile screens */
@@ -54,7 +54,7 @@ const TableHead = styled.thead`
 `;
 
 const TableRow = styled.tr`
-  background-color: ${(props) => (props.index % 2 === 0 ? "#f9fdf9" : "#ffffff")};
+ background-color: #ffffff !important;
   height: 50px;
 `;
 
