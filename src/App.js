@@ -6,14 +6,13 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import AddPlayer from './components/AddPlayer';
 import UserPursePage from './components/UserPurse';
-import SoldPlayersList from "./components/SoldPlayersList"; // Import the new component
-import Fixtures from './components/Fixtures'; // Import the new component
-
+import SoldPlayersList from "./components/SoldPlayersList";
+import Fixtures from './components/Fixtures';
 import PointTable from './components/PointTable';
-// import PlayerDashboard from './components/PlayerDashboard';
 import PlayerStatsList from './components/PlayerStatsList';
-import AddPlayerStats from './components/AddPlayerStats';
-import SoldPlayers from './components/SoldPlayers'; // Import SoldPlayers
+import SoldPlayers from './components/SoldPlayers';
+import StatsOverview from './components/StatsOverview'; // <-- import your new component
+
 import './App.css';
 
 function App() {
@@ -32,7 +31,6 @@ function App() {
     } else {
       setIsAuthenticated(false);
     }
-
     setLoading(false);
   }, []);
 
@@ -101,6 +99,9 @@ function App() {
                 <li><Link to="/fixtures" onClick={toggleSidebar}>Fixtures</Link></li>
                 <li><Link to="/sold-playerslist" onClick={toggleSidebar}>Sold Player List</Link></li>
                 
+                {/* NEW: Link to Stats Overview */}
+                <li><Link to="/stats-overview" onClick={toggleSidebar}>Stats Overview</Link></li>
+
                 <li>
                   <button className="logout-btn" onClick={handleLogout}>
                     Logout
@@ -110,7 +111,7 @@ function App() {
             </nav>
           </>
         )}
-
+        
         <main className={getContentClass()}>
           <Routes>
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
@@ -121,12 +122,22 @@ function App() {
             <Route path="/add-player" element={<PrivateRoute><AddPlayer /></PrivateRoute>} />
             <Route path="/user-purses" element={<PrivateRoute><UserPursePage /></PrivateRoute>} />
             <Route path="/points-table" element={<PrivateRoute><PointTable /></PrivateRoute>} />
-           <Route path="/sold-playerslist" element={<PrivateRoute><SoldPlayersList /></PrivateRoute>} />
-           {/* <Route path="/player-dashboard" element={<PrivateRoute><PlayerDashboard /></PrivateRoute>} /> */}
+            <Route path="/sold-playerslist" element={<PrivateRoute><SoldPlayersList /></PrivateRoute>} />
+            <Route path="/fixtures" element={<PrivateRoute><Fixtures user={user} /></PrivateRoute>} />
+            <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
+            {user?.isAdmin && (
+              <Route path="/sold-players" element={<PrivateRoute><SoldPlayers /></PrivateRoute>} />
+            )}
 
-           <Route path="/fixtures" element={<PrivateRoute><Fixtures user={user} /></PrivateRoute>} />
-           <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
-            {user?.isAdmin && <Route path="/sold-players" element={<PrivateRoute><SoldPlayers /></PrivateRoute>} />}
+            {/* NEW: StatsOverview Route */}
+            <Route
+              path="/stats-overview"
+              element={
+                <PrivateRoute>
+                  <StatsOverview />
+                </PrivateRoute>
+              }
+            />
           </Routes>
         </main>
       </div>
