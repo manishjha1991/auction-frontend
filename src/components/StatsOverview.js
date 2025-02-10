@@ -6,10 +6,12 @@ import {
   FaBowlingBall,
   FaRunning,
   FaMedal,
-  FaStar
+  FaStar,
+  FaHatCowboy  // <-- NEW icon import for the cap
 } from 'react-icons/fa';
 import '../css/StatsOverview.css';
 import { API_ENDPOINTS } from "../const";
+
 const StatsOverview = () => {
   // State to hold the fetched stats
   const [statsData, setStatsData] = useState(null);
@@ -25,7 +27,7 @@ const StatsOverview = () => {
           throw new Error(`Request failed with status ${response.status}`);
         }
         const data = await response.json();
-        setStatsData(data);  // Store the API response in state
+        setStatsData(data);
         setLoading(false);
       } catch (err) {
         setError(err.message);
@@ -55,7 +57,14 @@ const StatsOverview = () => {
     highestFiveWicketHauls = [],
     highestFourWicketHauls = [],
     centuries = [],
-    halfCenturies = []
+    halfCenturies = [],
+
+    // NEW "Top 5" fields
+    top5RunScorers = [],
+    top5WicketTakers = [],
+    top5MOM = [],
+    top5BowlingStrikeRate = [],
+    top5BestBattingAverage = [],
   } = statsData || {};
 
   return (
@@ -69,9 +78,8 @@ const StatsOverview = () => {
         </div>
       </div>
       
-      {/* Cards */}
+      {/* Cards: Single-Match / Overall Summaries */}
       <div className="stats-cards-grid fade-in-up">
-
         {/* Highest Strike Rate */}
         <div className="stats-card">
           <h2><FaFireAlt className="icon" /> Highest Strike Rate</h2>
@@ -110,22 +118,162 @@ const StatsOverview = () => {
           <span className="stat-label">Runs</span>
         </div>
 
-        {/* Leading Wicket Taker (Overall) */}
+        {/* Leading Wicket Taker (Overall) -- Purple Cap */}
         <div className="stats-card">
-          <h2><FaMedal className="icon" /> Leading Wicket Taker</h2>
+          <h2>
+            {/* Purple cap icon */}
+            <FaHatCowboy 
+              className="icon" 
+              style={{ color: 'purple', fontSize: '1.3rem', marginRight: '6px' }}
+            /> 
+            Leading Wicket Taker
+          </h2>
           <p><strong>Player:</strong> {leadingWicketTaker.playerName || 'N/A'}</p>
           <p><strong>Team:</strong> {leadingWicketTaker.teamName || 'N/A'}</p>
           <p className="highlight-stat">{leadingWicketTaker.totalWickets || 0}</p>
           <span className="stat-label">Wickets</span>
         </div>
 
-        {/* Leading Run Scorer (Overall) */}
+        {/* Leading Run Scorer (Overall) -- Orange Cap */}
         <div className="stats-card">
-          <h2><FaRunning className="icon" /> Leading Run Scorer</h2>
+          <h2>
+            {/* Orange cap icon */}
+            <FaHatCowboy 
+              className="icon" 
+              style={{ color: 'orange', fontSize: '1.3rem', marginRight: '6px' }}
+            /> 
+            Leading Run Scorer
+          </h2>
           <p><strong>Player:</strong> {leadingRunScorer.playerName || 'N/A'}</p>
           <p><strong>Team:</strong> {leadingRunScorer.teamName || 'N/A'}</p>
           <p className="highlight-stat">{leadingRunScorer.totalRuns || 0}</p>
           <span className="stat-label">Runs</span>
+        </div>
+      </div>
+
+      {/* NEW: Top-5 Performers Section */}
+      <div className="top5-section fade-in-up">
+        <h2 className="top5-heading">Top 5 Performers</h2>
+
+        <div className="top5-cards-grid">
+          {/* Top 5 Run Scorers */}
+          <div className="stats-card top5-card">
+            <h2 className="top5-card-title">
+              <FaFireAlt className="icon" /> Top 5 Run Scorers
+            </h2>
+            {top5RunScorers.length > 0 ? (
+              <ul className="top5-list">
+                {top5RunScorers.map((player, i) => (
+                  <li key={i} className="top5-list-item">
+                    <span className={`rank-badge rank-${i + 1}`}>{i + 1}</span>
+                    <div className="player-info">
+                      <strong>{player.playerName}</strong> 
+                      <span className="team-name">({player.teamName})</span>
+                    </div>
+                    <div className="stat-highlight">{player.runs} Runs</div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No data available</p>
+            )}
+          </div>
+
+          {/* Top 5 Wicket Takers */}
+          <div className="stats-card top5-card">
+            <h2 className="top5-card-title">
+              <FaBowlingBall className="icon" /> Top 5 Wicket Takers
+            </h2>
+            {top5WicketTakers.length > 0 ? (
+              <ul className="top5-list">
+                {top5WicketTakers.map((player, i) => (
+                  <li key={i} className="top5-list-item">
+                    <span className={`rank-badge rank-${i + 1}`}>{i + 1}</span>
+                    <div className="player-info">
+                      <strong>{player.playerName}</strong>
+                      <span className="team-name">({player.teamName})</span>
+                    </div>
+                    <div className="stat-highlight">{player.wickets} Wkts</div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No data available</p>
+            )}
+          </div>
+
+          {/* Top 5 MOM */}
+          <div className="stats-card top5-card">
+            <h2 className="top5-card-title">
+              <FaStar className="icon" /> Top 5 MOM
+            </h2>
+            {top5MOM.length > 0 ? (
+              <ul className="top5-list">
+                {top5MOM.map((player, i) => (
+                  <li key={i} className="top5-list-item">
+                    <span className={`rank-badge rank-${i + 1}`}>{i + 1}</span>
+                    <div className="player-info">
+                      <strong>{player.playerName}</strong> 
+                      <span className="team-name">({player.teamName})</span>
+                    </div>
+                    <div className="stat-highlight">{player.momCount} MoM</div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No data available</p>
+            )}
+          </div>
+
+          {/* Top 5 Bowling Strike Rate */}
+          <div className="stats-card top5-card">
+            <h2 className="top5-card-title">
+              <FaBowlingBall className="icon" /> Best Bowling S/R
+            </h2>
+            {top5BowlingStrikeRate.length > 0 ? (
+              <ul className="top5-list">
+                {top5BowlingStrikeRate.map((player, i) => (
+                  <li key={i} className="top5-list-item">
+                    <span className={`rank-badge rank-${i + 1}`}>{i + 1}</span>
+                    <div className="player-info">
+                      <strong>{player.playerName}</strong>
+                      <span className="team-name">({player.teamName})</span>
+                    </div>
+                    <div className="stat-highlight">
+                      {player.strikeRate.toFixed(1)} S/R
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No data available</p>
+            )}
+          </div>
+
+          {/* Top 5 Best Batting Average */}
+          <div className="stats-card top5-card">
+            <h2 className="top5-card-title">
+              <FaFireAlt className="icon" /> Best Batting Avg
+            </h2>
+            {top5BestBattingAverage.length > 0 ? (
+              <ul className="top5-list">
+                {top5BestBattingAverage.map((player, i) => (
+                  <li key={i} className="top5-list-item">
+                    <span className={`rank-badge rank-${i + 1}`}>{i + 1}</span>
+                    <div className="player-info">
+                      <strong>{player.playerName}</strong>
+                      <span className="team-name">({player.teamName})</span>
+                    </div>
+                    <div className="stat-highlight">
+                      {player.average.toFixed(2)} Avg
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No data available</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -150,7 +298,6 @@ const StatsOverview = () => {
                   <td>{haul.teamName}</td>
                   <td>{haul.opponentTeam}</td>
                   <td>{haul.wickets}</td>
-                  {/* Format date however you like, e.g. new Date(haul.date).toLocaleString() */}
                   <td>{haul.date}</td>
                 </tr>
               ))}
@@ -245,7 +392,6 @@ const StatsOverview = () => {
           </table>
         </div>
       </div>
-
     </div>
   );
 };

@@ -168,3 +168,118 @@
       opacity: 1;
   }
 }
+
+/* ================= NEW ADDITIONS BELOW ================= */
+
+/* Search Bar Container */
+.search-bar-container {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.player-search-input {
+  width: 250px;
+  max-width: 90%;
+  padding: 0.5rem 0.8rem;
+  border: 2px solid #1565c0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: box-shadow 0.3s;
+}
+
+.player-search-input:focus {
+  outline: none;
+  box-shadow: 0 0 5px rgba(21, 101, 192, 0.5);
+}
+
+/* "Edit Stats" button in modal */
+.modal-edit-btn {
+  position: absolute;
+  top: 10px;
+  left: 15px;
+  background: #1565c0;
+  color: #fff;
+  border: none;
+  font-size: 0.9rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.modal-edit-btn:hover {
+  background: #0d47a1;
+}
+
+/* Stats Form */
+.stats-form {
+  margin-top: 1rem;
+  background: #f3f3f3;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  font-size: 0.9rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.8rem;
+}
+
+/* For the checkbox, we might want a row layout */
+.form-group.checkbox-group {
+  flex-direction: row;
+  align-items: center;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+/* Inline label for checkbox group */
+.checkbox-label {
+  margin-bottom: 0;
+  margin-left: 0.5rem;
+  cursor: pointer;
+}
+
+.stats-form input[type="number"],
+.stats-form select {
+  padding: 0.4rem 0.6rem;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 0.85rem;
+  transition: border-color 0.2s;
+}
+
+.stats-form input[type="number"]:focus,
+.stats-form select:focus {
+  border-color: #1565c0;
+  outline: none;
+}
+
+.form-submit-btn {
+  background: #1565c0;
+  color: #fff;
+  font-weight: bold;
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  margin-top: 0.5rem;
+}
+
+.form-submit-btn:hover {
+  background: #0d47a1;
+  transform: translateY(-2px);
+}
+
+.submit-message {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #333;
+}

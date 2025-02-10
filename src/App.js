@@ -10,7 +10,6 @@ import SoldPlayersList from "./components/SoldPlayersList";
 import Fixtures from './components/Fixtures';
 import PointTable from './components/PointTable';
 import PlayerStatsList from './components/PlayerStatsList';
-import SoldPlayers from './components/SoldPlayers';
 import StatsOverview from './components/StatsOverview'; // <-- import your new component
 
 import './App.css';
@@ -92,7 +91,7 @@ function App() {
                 <li><Link to="/players" onClick={toggleSidebar}>Players</Link></li>
                 <li><Link to="/profile" onClick={toggleSidebar}>Profile</Link></li>
                 {user?.isAdmin && <li><Link to="/add-player" onClick={toggleSidebar}>Add Player</Link></li>}
-                {user?.isAdmin && <li><Link to="/sold-players" onClick={toggleSidebar}>Sold Players</Link></li>}
+                
                 <li><Link to="/user-purses" onClick={toggleSidebar}>User Purses</Link></li>
                 <li><Link to="/points-table" onClick={toggleSidebar}>Points Table</Link></li>
                 <li><Link to="/player-stats" onClick={toggleSidebar}>Player Stats</Link></li>
@@ -125,9 +124,7 @@ function App() {
             <Route path="/sold-playerslist" element={<PrivateRoute><SoldPlayersList /></PrivateRoute>} />
             <Route path="/fixtures" element={<PrivateRoute><Fixtures user={user} /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
-            {user?.isAdmin && (
-              <Route path="/sold-players" element={<PrivateRoute><SoldPlayers /></PrivateRoute>} />
-            )}
+            
 
             {/* NEW: StatsOverview Route */}
             <Route

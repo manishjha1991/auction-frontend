@@ -2,193 +2,309 @@
 
 /* Root variables for easy color adjustment */
 :root {
-    --primary-gradient: linear-gradient(120deg, #4facfe, #00f2fe);
-    --card-bg: #ffffff;
-    --card-shadow: rgba(0, 0, 0, 0.1);
-    --text-color: #333;
-    --highlight-color: #0084ff;
-    --table-head-bg: #f1f1f1;
-    --table-row-hover: #f7fbff;
-    --hero-text-color: #ffffff;
-    --hero-height: 200px;
-  }
-  
-  body {
-    margin: 0;
-    padding: 0;
-    font-family: sans-serif;
-    background: #f9f9f9;
-    color: var(--text-color);
-  }
-  
-  .stats-overview-wrapper {
-    width: 100%;
-    min-height: 100vh;
-    overflow-x: hidden; /* If you prefer, remove this. */
-  }
-  
-  /* Hero Section */
-  .hero-section {
-    width: 100%;
-    height: var(--hero-height);
-    background: var(--primary-gradient);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 2rem;
-  }
-  
-  .hero-text {
-    text-align: center;
-    color: var(--hero-text-color);
-  }
-  
-  .hero-text h1 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-  }
-  
-  .hero-text p {
-    font-size: 1rem;
-    opacity: 0.9;
-  }
-  
-  /* Simple fade-in-up */
-  .fade-in-up {
-    opacity: 0;
-    animation: fadeInUp 0.4s forwards ease;
-    animation-delay: 0.1s;
-  }
-  @keyframes fadeInUp {
-    to {
-      opacity: 1;
-      transform: translateY(0px);
-    }
-    from {
-      transform: translateY(10px);
-    }
-  }
-  
-  /* Cards */
-  .stats-cards-grid {
-    display: grid;
-    grid-template-columns: 1fr; /* single column by default */
-    gap: 1rem;
-    padding: 0 1rem;
-    margin-bottom: 2rem;
-  }
-  
-  /* Larger screens: multiple columns */
-  @media (min-width: 600px) {
-    .stats-cards-grid {
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    }
-  }
-  
-  .stats-card {
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    box-shadow: 0 4px 10px var(--card-shadow);
-    padding: 1rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  
-  .stats-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-  }
-  
-  .stats-card h2 {
-    display: flex;
-    align-items: center;
-    font-size: 1rem;
-    margin-bottom: 0.5rem;
-    color: #444;
-  }
-  
-  .stats-card .icon {
-    margin-right: 6px;
-    font-size: 1.2rem;
-    color: var(--highlight-color);
-  }
-  
-  .highlight-stat {
-    font-size: 1.4rem;
-    font-weight: bold;
-    color: var(--highlight-color);
-    margin: 0.5rem 0 0.3rem;
-  }
-  
-  .stat-label {
-    font-size: 0.8rem;
-    color: #666;
-  }
-  
-  /* Tables */
-  .table-section {
-    margin: 2rem 1rem;
-  }
-  .table-section h2 {
-    display: flex;
-    align-items: center;
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-  }
-  .table-heading-icon {
-    color: var(--highlight-color);
-    margin-right: 0.5rem;
-  }
-  
-  /* Scrollable container for tables on small screens */
-  .responsive-table-wrapper {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  .stats-table {
-    width: 100%;
-    min-width: 600px; /* So it can scroll horizontally if screen < 600px */
-    border-collapse: collapse;
-    background-color: #fff;
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.08);
-  }
-  
-  .stats-table thead {
-    background-color: var(--table-head-bg);
-  }
-  
-  .stats-table th,
-  .stats-table td {
-    padding: 0.8rem;
-    text-align: left;
-    font-size: 0.9rem;
-    white-space: nowrap; /* Helps keep columns from squishing */
-  }
-  
-  .stats-table th {
-    font-weight: 600;
-    color: #444;
-  }
-  
-  .stats-table tbody tr {
-    border-bottom: 1px solid #eee;
-  }
-  
-  .stats-table tbody tr:hover {
-    background-color: var(--table-row-hover);
-  }
-  
-  /* Custom scrollbar (optional) */
-  .responsive-table-wrapper::-webkit-scrollbar {
-    height: 6px;
-  }
-  .responsive-table-wrapper::-webkit-scrollbar-track {
-    background: #e0e0e0;
-  }
-  .responsive-table-wrapper::-webkit-scrollbar-thumb {
-    background: var(--highlight-color);
-  }
-  
+  --primary-gradient: linear-gradient(120deg, #4facfe, #00f2fe);
+  --card-bg: #ffffff;
+  --card-shadow: rgba(0, 0, 0, 0.1);
+  --text-color: #333;
+  --highlight-color: #0084ff;
+  --table-head-bg: #f1f1f1;
+  --table-row-hover: #f7fbff;
+  --hero-text-color: #ffffff;
+  --hero-height: 200px;
+
+  /* New rank colors (optional) */
+  --rank-1-color: #ffb400; /* gold */
+  --rank-2-color: #a5a5a5; /* silver */
+  --rank-3-color: #e67e22; /* bronze */
+  --rank-other-color: #0084ff; /* default for 4th, 5th, etc. */
+}
+
+body {
+margin: 0;
+padding: 0;
+font-family: sans-serif;
+background: #f9f9f9;
+color: var(--text-color);
+}
+
+.stats-overview-wrapper {
+width: 100%;
+min-height: 100vh;
+overflow-x: hidden; /* If you prefer, remove this. */
+}
+
+/* Hero Section */
+.hero-section {
+width: 100%;
+height: var(--hero-height);
+background: var(--primary-gradient);
+display: flex;
+justify-content: center;
+align-items: center;
+margin-bottom: 2rem;
+}
+
+.hero-text {
+text-align: center;
+color: var(--hero-text-color);
+}
+
+.hero-text h1 {
+font-size: 2rem;
+margin-bottom: 0.5rem;
+}
+
+.hero-text p {
+font-size: 1rem;
+opacity: 0.9;
+}
+
+/* Simple fade-in-up */
+.fade-in-up {
+opacity: 0;
+animation: fadeInUp 0.4s forwards ease;
+animation-delay: 0.1s;
+}
+@keyframes fadeInUp {
+to {
+  opacity: 1;
+  transform: translateY(0px);
+}
+from {
+  transform: translateY(10px);
+}
+}
+
+/* Cards */
+.stats-cards-grid {
+display: grid;
+grid-template-columns: 1fr; /* single column by default */
+gap: 1rem;
+padding: 0 1rem;
+margin-bottom: 2rem;
+}
+
+/* Larger screens: multiple columns */
+@media (min-width: 600px) {
+.stats-cards-grid {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+}
+
+.stats-card {
+background-color: var(--card-bg);
+border-radius: 8px;
+box-shadow: 0 4px 10px var(--card-shadow);
+padding: 1rem;
+transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stats-card:hover {
+transform: translateY(-3px);
+box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.stats-card h2 {
+display: flex;
+align-items: center;
+font-size: 1rem;
+margin-bottom: 0.5rem;
+color: #444;
+}
+
+.stats-card .icon {
+margin-right: 6px;
+font-size: 1.2rem;
+color: var(--highlight-color);
+}
+
+.highlight-stat {
+font-size: 1.4rem;
+font-weight: bold;
+color: var(--highlight-color);
+margin: 0.5rem 0 0.3rem;
+}
+
+.stat-label {
+font-size: 0.8rem;
+color: #666;
+}
+
+/* Tables */
+.table-section {
+margin: 2rem 1rem;
+}
+.table-section h2 {
+display: flex;
+align-items: center;
+font-size: 1.1rem;
+margin-bottom: 1rem;
+}
+.table-heading-icon {
+color: var(--highlight-color);
+margin-right: 0.5rem;
+}
+
+/* Scrollable container for tables on small screens */
+.responsive-table-wrapper {
+width: 100%;
+overflow-x: auto;
+-webkit-overflow-scrolling: touch;
+}
+
+.stats-table {
+width: 100%;
+min-width: 600px; /* So it can scroll horizontally if screen < 600px */
+border-collapse: collapse;
+background-color: #fff;
+border-radius: 4px;
+overflow: hidden;
+box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+}
+
+.stats-table thead {
+background-color: var(--table-head-bg);
+}
+
+.stats-table th,
+.stats-table td {
+padding: 0.8rem;
+text-align: left;
+font-size: 0.9rem;
+white-space: nowrap; /* Helps keep columns from squishing */
+}
+
+.stats-table th {
+font-weight: 600;
+color: #444;
+}
+
+.stats-table tbody tr {
+border-bottom: 1px solid #eee;
+}
+
+.stats-table tbody tr:hover {
+background-color: var(--table-row-hover);
+}
+
+/* Custom scrollbar (optional) */
+.responsive-table-wrapper::-webkit-scrollbar {
+height: 6px;
+}
+.responsive-table-wrapper::-webkit-scrollbar-track {
+background: #e0e0e0;
+}
+.responsive-table-wrapper::-webkit-scrollbar-thumb {
+background: var(--highlight-color);
+}
+
+/* =============== NEW STYLES FOR TOP-5 SECTION =============== */
+
+/* Wrapper for the entire "Top 5 Performers" area */
+.top5-section {
+margin: 2rem 1rem;
+}
+
+.top5-heading {
+font-size: 1.3rem;
+margin-bottom: 1rem;
+color: #444;
+text-align: left;
+padding-left: 0.2rem;
+}
+
+/* Grid for the top5-cards, similar to your stats-cards-grid but with a bit more space */
+.top5-cards-grid {
+display: grid;
+grid-template-columns: 1fr; /* single column by default */
+gap: 1rem;
+margin-bottom: 2rem;
+}
+
+/* Larger screens: multiple columns for top5 cards */
+@media (min-width: 750px) {
+.top5-cards-grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+}
+
+/* Additional styling for the top5 "card" containers */
+.top5-card {
+padding: 1rem;
+position: relative;
+}
+
+.top5-card-title {
+font-size: 1rem;
+margin-bottom: 0.8rem;
+display: flex;
+align-items: center;
+}
+
+/* The list inside each top5 card */
+.top5-list {
+list-style-type: none;
+margin: 0;
+padding: 0;
+}
+
+.top5-list-item {
+display: flex;
+align-items: center;
+margin-bottom: 0.6rem;
+background-color: #fafafa;
+border-radius: 6px;
+padding: 0.6rem;
+transition: background-color 0.2s ease;
+}
+
+.top5-list-item:hover {
+background-color: #f3f7fa;
+}
+
+/* Badge showing the rank: #1, #2, #3, etc. */
+.rank-badge {
+width: 28px;
+height: 28px;
+border-radius: 50%;
+background-color: var(--rank-other-color);
+display: flex;
+align-items: center;
+justify-content: center;
+color: #fff;
+font-weight: bold;
+margin-right: 0.8rem;
+}
+
+/* Color-coding for top 1/2/3 if you like */
+.rank-1 {
+background-color: var(--rank-1-color);
+}
+.rank-2 {
+background-color: var(--rank-2-color);
+}
+.rank-3 {
+background-color: var(--rank-3-color);
+}
+/* For 4th place, 5th place, default rank-other-color is used */
+
+/* Player info next to the rank badge */
+.player-info {
+flex: 1;
+}
+.player-info strong {
+display: block;
+font-size: 0.95rem;
+color: #333;
+}
+.team-name {
+font-size: 0.8rem;
+color: #777;
+}
+
+/* The stat highlight (runs, wickets, etc.) to the right */
+.stat-highlight {
+font-size: 0.85rem;
+color: var(--highlight-color);
+font-weight: 600;
+}

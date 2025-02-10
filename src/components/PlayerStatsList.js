@@ -15,6 +15,10 @@ const PlayerStatsList = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [allTeams, setAllTeams] = useState([]);
   const [submitMessage, setSubmitMessage] = useState('');
+
+  // NEW: Local state for the search term
+  const [searchTerm, setSearchTerm] = useState("");
+
   const [formData, setFormData] = useState({
     battingRuns: '',
     battingBalls: '',
@@ -49,7 +53,7 @@ const PlayerStatsList = () => {
             id: player._id || `player-${index}`,
             name: player.name || "Unknown Player",
             type: player.type,
-            role: player.role, // Expected: "Batsman", "Bowler", "Allrounder", "WicketKeeper"
+            role: player.role, // "Batsman", "Bowler", "Allrounder", "WicketKeeper", etc.
             matchPerformance: {
               batting: player.matchPerformance?.batting || [],
               bowling: player.matchPerformance?.bowling || [],
@@ -102,7 +106,7 @@ const PlayerStatsList = () => {
       battingBalls: '',
       bowlingRunsGiven: '',
       bowlingBallsBowled: '',
-      wicketsTaken: '', // Reset new field
+      wicketsTaken: '', 
       opponentUserId: '',
       isMom: false,
     });
@@ -124,7 +128,7 @@ const PlayerStatsList = () => {
   // Handle changes in the form inputs.
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
@@ -175,13 +179,30 @@ const PlayerStatsList = () => {
     }
   };
 
+  // FILTER the players by the search term:
+  const filteredPlayers = players.filter((player) =>
+    player.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="player-list-wrapper">
       <h2 style={{ textAlign: "center", color: "#1565c0", fontWeight: "bold" }}>
         Player Stats
       </h2>
+
+      {/* NEW: Search Bar */}
+      <div className="search-bar-container">
+        <input
+          type="text"
+          className="player-search-input"
+          placeholder="Search Player..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
       <div className="player-cards-container">
-        {players.map((player) => (
+        {filteredPlayers.map((player) => (
           <div
             className="player-card"
             key={player.name}
@@ -201,12 +222,10 @@ const PlayerStatsList = () => {
             </div>
             <div className="player-stats">
               <div className="icon-with-text color-batting">
-                <MdSportsCricket /> {player.totalStats.batting.runs}{" "}
-                <span style={{ fontWeight: "bold" }}></span>
+                <MdSportsCricket /> {player.totalStats.batting.runs}
               </div>
               <div className="icon-with-text color-bowling">
-                <FaBowlingBall /> {player.totalStats.bowling.wickets}{" "}
-                <span style={{ fontWeight: "bold" }}></span>
+                <FaBowlingBall /> {player.totalStats.bowling.wickets}
               </div>
             </div>
           </div>
@@ -216,7 +235,6 @@ const PlayerStatsList = () => {
       {expandedPlayer && selectedPlayer && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            {/* Super Sexy Edit Button */}
             <button
               className="modal-edit-btn"
               onClick={() => setIsEditing(true)}
@@ -226,6 +244,7 @@ const PlayerStatsList = () => {
             <button className="modal-close-btn" onClick={closeModal}>
               &times;
             </button>
+
             <h2>{selectedPlayer.name}</h2>
             {isEditing ? (
               <form onSubmit={handleFormSubmit} className="stats-form">
@@ -269,7 +288,6 @@ const PlayerStatsList = () => {
                     required
                   />
                 </div>
-                {/* New field: Wickets Taken */}
                 <div className="form-group">
                   <label>Wickets Taken:</label>
                   <input
@@ -280,6 +298,7 @@ const PlayerStatsList = () => {
                     required
                   />
                 </div>
+
                 {/* Opponent Team Dropdown */}
                 <div className="form-group">
                   <label>Opponent Team:</label>
@@ -289,18 +308,29 @@ const PlayerStatsList = () => {
                     onChange={handleInputChange}
                     required
                   >
-                    <option value="">Select Opponent Team</option>
-                    {allTeams
-                      .filter(team => team.teamName !== currentUser.teamName)
-                      .map(team => (
-                        <option key={team._id} value={team._id}>
-                          {team.teamName}
-                        </option>
-                      ))}
+                     <option value="">Select Opponent Team</option>
+    {allTeams
+      .filter(team => {
+        // 1) Exclude the current user's team.
+        if (team.teamName === currentUser.teamName) return false;
+
+        // 2) Exclude the team that actually owns this player.
+        //    (Only if 'ownerTeamName' is different from currentUser.)
+        //    If the player is owned by the same user, we’re already filtering above.
+        if (team.teamName === selectedPlayer.ownerTeamName) return false;
+
+        return true;
+      })
+      .map(team => (
+        <option key={team._id} value={team._id}>
+          {team.teamName}
+        </option>
+      ))}
                   </select>
                 </div>
-                <div className="form-group">
-                  <label>
+
+                <div className="form-group checkbox-group">
+                  <label className="checkbox-label">
                     <input
                       type="checkbox"
                       name="isMom"
@@ -310,6 +340,7 @@ const PlayerStatsList = () => {
                     Man of the Match?
                   </label>
                 </div>
+
                 <button type="submit" className="form-submit-btn">
                   Save Stats
                 </button>
