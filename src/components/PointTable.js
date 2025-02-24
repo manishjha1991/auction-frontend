@@ -369,7 +369,7 @@ const PointsTable = () => {
                       onClick={(event) => handleTeamClick(event, team)}
                     >
                       <img src={teamImage} alt={team.teamName} />
-                      {team.teamName.slice(0, 3).toUpperCase()}
+                      {team.teamName}
                     </HighlightCell>
                     <TableCell>{team.wins}</TableCell>
                     <TableCell>{losses}</TableCell>
