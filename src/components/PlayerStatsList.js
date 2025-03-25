@@ -8,7 +8,7 @@ import { API_ENDPOINTS } from "../const";
 const PlayerStatsList = () => {
   // Initialize current user only once
   const [currentUser] = useState(() => JSON.parse(localStorage.getItem("user")));
-  
+
   const [expandedPlayer, setExpandedPlayer] = useState(null);
   const [activeTab, setActiveTab] = useState("batting");
   const [players, setPlayers] = useState([]);
@@ -27,6 +27,7 @@ const PlayerStatsList = () => {
     wicketsTaken: '', // NEW FIELD for wickets taken
     opponentUserId: '',
     isMom: false,
+    isPlayoffScore:false,
   });
 
   // Fetch players (only once on mount)
@@ -106,9 +107,10 @@ const PlayerStatsList = () => {
       battingBalls: '',
       bowlingRunsGiven: '',
       bowlingBallsBowled: '',
-      wicketsTaken: '', 
+      wicketsTaken: '',
       opponentUserId: '',
       isMom: false,
+      isPlayoffScore:false,
     });
   };
 
@@ -159,6 +161,7 @@ const PlayerStatsList = () => {
         // Add extra field "wicketsTaken"
         wicketsTaken: Number(formData.wicketsTaken),
         isMom: formData.isMom,
+        isPlayoffScore: formData.isPlayoffScore,
       };
 
       const res = await fetch(`${API_ENDPOINTS}/api/player-stats/store`, {
@@ -308,24 +311,24 @@ const PlayerStatsList = () => {
                     onChange={handleInputChange}
                     required
                   >
-                     <option value="">Select Opponent Team</option>
-    {allTeams
-      .filter(team => {
-        // 1) Exclude the current user's team.
-        if (team.teamName === currentUser.teamName) return false;
+                    <option value="">Select Opponent Team</option>
+                    {allTeams
+                      .filter(team => {
+                        // 1) Exclude the current user's team.
+                        if (team.teamName === currentUser.teamName) return false;
 
-        // 2) Exclude the team that actually owns this player.
-        //    (Only if 'ownerTeamName' is different from currentUser.)
-        //    If the player is owned by the same user, we’re already filtering above.
-        if (team.teamName === selectedPlayer.ownerTeamName) return false;
+                        // 2) Exclude the team that actually owns this player.
+                        //    (Only if 'ownerTeamName' is different from currentUser.)
+                        //    If the player is owned by the same user, we’re already filtering above.
+                        if (team.teamName === selectedPlayer.ownerTeamName) return false;
 
-        return true;
-      })
-      .map(team => (
-        <option key={team._id} value={team._id}>
-          {team.teamName}
-        </option>
-      ))}
+                        return true;
+                      })
+                      .map(team => (
+                        <option key={team._id} value={team._id}>
+                          {team.teamName}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -338,6 +341,17 @@ const PlayerStatsList = () => {
                       onChange={handleInputChange}
                     />{" "}
                     Man of the Match?
+                  </label>
+                </div>
+                <div className="form-group checkbox-group">
+                  <label className="checkbox-label playoff-checkbox">
+                    <input
+                      type="checkbox"
+                      name="isPlayoffScore"
+                      checked={formData.isPlayoffScore}
+                      onChange={handleInputChange}
+                    />{' '}
+                    Playoff Score
                   </label>
                 </div>
 
