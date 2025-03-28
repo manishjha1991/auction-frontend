@@ -133,6 +133,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+/* Overriding the same class name for a single style approach */
 .past-bid-card {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -314,34 +315,12 @@
   }
 }
 
-/* SUPER SEXY GLOWING BUTTON */
-.glow-button {
-display: inline-block;
-padding: 12px 24px;
-font-weight: bold;
-font-size: 1rem;
-text-transform: uppercase;
-color: #fff;
-background: linear-gradient(45deg, #ff6ec4, #7873f5);
-border: none;
-border-radius: 30px;
-cursor: pointer;
-transition: all 0.3s ease-in-out;
-box-shadow: 0 0 10px #ff6ec4, 0 0 10px #7873f5;
-margin: 10px auto;
-}
-
-.glow-button:hover {
-box-shadow: 0 0 20px #ff6ec4, 0 0 20px #7873f5;
-transform: scale(1.03);
-}
-/* Admin Container (for the admin-only UI) */
+/* Admin Container */
 .admin-container {
   margin: 40px auto;
   padding: 40px 20px;
   width: 90%;
   max-width: 600px;
-  /* Vibrant gradient background */
   background: linear-gradient(45deg, #7873f5, #ff6ec4);
   border-radius: 12px;
   text-align: center;
@@ -362,21 +341,55 @@ transform: scale(1.03);
   margin-bottom: 30px;
   color: #f0f0f0;
 }
-/* Confirmation Overlay (full screen dim background) */
+
+/* Base Glow Button */
+.glow-button {
+  display: inline-block;
+  padding: 12px 24px;
+  font-weight: bold;
+  font-size: 1rem;
+  text-transform: uppercase;
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  margin: 10px 5px; /* space between admin buttons */
+  box-shadow: 0 0 10px #ff6ec4, 0 0 10px #7873f5;
+}
+
+/* SELL Button Variation */
+.glow-button-sell {
+  background: linear-gradient(45deg, #ff8e9c, #ff3d54); /* pinkish-red gradient */
+}
+.glow-button-sell:hover {
+  box-shadow: 0 0 20px #ff3d54, 0 0 20px #ff8e9c;
+  transform: scale(1.05);
+}
+
+/* REMOVE 2ND-HIGHEST Button Variation */
+.glow-button-remove {
+  background: linear-gradient(45deg, #43cea2, #185a9d); /* teal/blue gradient */
+}
+.glow-button-remove:hover {
+  box-shadow: 0 0 20px #185a9d, 0 0 20px #43cea2;
+  transform: scale(1.05);
+}
+
+/* Confirmation Overlay */
 .confirm-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6); /* semi-transparent dark overlay */
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 2000; /* above other modals/popups */
+  z-index: 2000; /* Above other modals */
 }
 
-/* Confirmation Popup Styles */
 .confirm-popup {
   background: linear-gradient(135deg, #ff6ec4, #7873f5);
   color: #fff;
@@ -384,7 +397,7 @@ transform: scale(1.03);
   padding: 30px;
   border-radius: 15px;
   width: 90%;
-  max-width: 400px;
+  max-width: 420px;
   box-shadow: 0 0 20px rgba(255, 110, 196, 0.6);
   animation: popIn 0.4s ease forwards;
 }
@@ -400,12 +413,12 @@ transform: scale(1.03);
   margin-bottom: 20px;
 }
 
-/* Popup Buttons */
 .popup-buttons {
   display: flex;
   justify-content: space-around;
 }
 
+/* Confirm and Cancel Buttons */
 .confirm-button,
 .cancel-button {
   padding: 10px 20px;
@@ -416,9 +429,9 @@ transform: scale(1.03);
   transition: transform 0.3s ease;
 }
 
-/* Confirm Button: bright, neon green */
+/* Confirm: neon green */
 .confirm-button {
-  background-color: #00c851; /* bright green */
+  background-color: #00c851;
   color: #fff;
   box-shadow: 0 0 10px #00c851;
 }
@@ -427,9 +440,9 @@ transform: scale(1.03);
   box-shadow: 0 0 20px #00d85f;
 }
 
-/* Cancel Button: bright, neon red */
+/* Cancel: neon red */
 .cancel-button {
-  background-color: #ff4444; /* bright red */
+  background-color: #ff4444;
   color: #fff;
   box-shadow: 0 0 10px #ff4444;
 }

@@ -14,8 +14,9 @@ const Profile = () => {
   // Admin state
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // NEW state for showing the confirmation popup
-  const [showConfirm, setShowConfirm] = useState(false);
+  // Confirmation popups
+  const [showConfirmSell, setShowConfirmSell] = useState(false);
+  const [showConfirmRemoveSecond, setShowConfirmRemoveSecond] = useState(false);
 
   // Check localStorage for user.isAdmin
   useEffect(() => {
@@ -59,7 +60,7 @@ const Profile = () => {
     fetchUserData();
   }, [API_ENDPOINTS]);
 
-  // Handler for actually finalizing single-bid sale
+  // ------------- SELL SINGLE-BID PLAYERS -------------
   const handleSingleBidSale = async () => {
     try {
       const response = await fetch(`${API_ENDPOINTS}/api/bids/sold/single-bid`, {
@@ -71,20 +72,38 @@ const Profile = () => {
 
       const result = await response.json();
       console.log("Single-bid sale result:", result);
-
-      // Optionally re-fetch user data or show a toast
-      // (If you want to refresh the UI to reflect changes)
-      // fetchUserData();
+      // Optionally re-fetch data or show toast
     } catch (err) {
       console.error('Failed to finalize single-bid sale:', err);
       setError('Failed to finalize single-bid sale. Please try again later.');
     }
   };
+  const handleConfirmSell = () => {
+    setShowConfirmSell(false);
+    handleSingleBidSale();
+  };
 
-  // CONFIRM button inside the popup
-  const handleConfirmSale = () => {
-    setShowConfirm(false); // Hide the popup
-    handleSingleBidSale(); // Trigger the sale
+  // ------------- REMOVE ALL SECOND-HIGHEST BIDDERS -------------
+  const handleRemoveAllSecondHighest = async () => {
+    try {
+      const response = await fetch(`${API_ENDPOINTS}/api/bids/exit-second-highest/all`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Remove second-highest result:", result);
+      // Optionally re-fetch data or show toast
+    } catch (err) {
+      console.error('Failed to remove second-highest bidders:', err);
+      setError('Failed to remove second-highest bidders. Please try again later.');
+    }
+  };
+  const handleConfirmRemoveSecond = () => {
+    setShowConfirmRemoveSecond(false);
+    handleRemoveAllSecondHighest();
   };
 
   // Format amounts nicely
@@ -97,12 +116,10 @@ const Profile = () => {
 
   // Input handlers
   const handleSearchChange = (e) => setSearchTerm(e.target.value.toLowerCase());
-
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setEditData({ ...editData, [name]: value });
   };
-
   const handleImageChange = (e) => {
     setEditData({ ...editData, image: e.target.files[0] });
   };
@@ -161,35 +178,73 @@ const Profile = () => {
           Manage auctions, finalize single-bid sales & more.
         </p>
 
-        <button
-          className="glow-button"
-          onClick={() => setShowConfirm(true)}
-        >
-          Sell All Single-Bid Players
-        </button>
+        {/* Two glow buttons for admin actions */}
+        <div style={{ marginTop: '20px' }}>
+          <button
+            className="glow-button glow-button-sell"
+            onClick={() => setShowConfirmSell(true)}
+            style={{ marginRight: '10px' }}
+          >
+            Sell All Single-Bid Players
+          </button>
+          <button
+            className="glow-button glow-button-remove"
+            onClick={() => setShowConfirmRemoveSecond(true)}
+          >
+            Remove All Second-Highest Bidders
+          </button>
+        </div>
 
-        {/* Funny Confirmation Popup */}
-        {showConfirm && (
+        {/* Funny Confirmation Popup - SELL */}
+        {showConfirmSell && (
           <div className="confirm-overlay">
             <div className="confirm-popup">
               <h2>Are You Absolutely Sure?!</h2>
               <p>
-                This will sell all players with exactly one bid.<br/>
+                This will <strong>sell all players</strong> with exactly one bid.<br/>
                 We hope your fellow owners won't mind...<br/>
                 Once you do this, there's no going back!
               </p>
               <div className="popup-buttons">
                 <button
                   className="confirm-button"
-                  onClick={handleConfirmSale}
+                  onClick={handleConfirmSell}
                 >
                   Yes, let's do this!
                 </button>
                 <button
                   className="cancel-button"
-                  onClick={() => setShowConfirm(false)}
+                  onClick={() => setShowConfirmSell(false)}
                 >
                   Hmm, better not...
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Funny Confirmation Popup - REMOVE 2ND HIGHEST */}
+        {showConfirmRemoveSecond && (
+          <div className="confirm-overlay">
+            <div className="confirm-popup">
+              <h2>Double Check, My Lord!</h2>
+              <p>
+                This will <strong>remove every second-highest bidder</strong> from active bids.<br/>
+                Brace yourself—some people might get upset!<br/>
+                Proceed only if you can handle the drama...
+              </p>
+              <div className="popup-buttons">
+                <button
+                  className="confirm-button"
+                  onClick={handleConfirmRemoveSecond}
+                >
+                  Do it. I'm ready!
+                </button>
+                <button
+                  className="cancel-button"
+                  onClick={() => setShowConfirmRemoveSecond(false)}
+                >
+                  Actually, nevermind...
                 </button>
               </div>
             </div>
