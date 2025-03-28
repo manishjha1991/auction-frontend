@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "../css/PlayerPopup.css";
 import { FaClock } from "react-icons/fa";
 import { API_ENDPOINTS } from "../const";
+
 const PlayerPopup = ({ player, onClose }) => {
   const [playerDetails, setPlayerDetails] = useState(null);
   const [topTwoBids, setTopTwoBids] = useState([]);
@@ -16,10 +17,12 @@ const PlayerPopup = ({ player, onClose }) => {
   const [soldMessage, setSoldMessage] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [releaseMessage, setReleaseMessage] = useState(null);
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     setIsAdmin(user?.isAdmin === true);
   }, []);
+
   useEffect(() => {
     const fetchPlayerData = async () => {
       try {
@@ -82,6 +85,7 @@ const PlayerPopup = ({ player, onClose }) => {
       return () => clearInterval(lastBidInterval);
     }
   }, [topTwoBids, playerDetails]);
+
   const formatHumanReadableAmount = (amount) => {
     if (amount >= 10000000) {
       return `${(amount / 10000000).toFixed(2)} Cr`;
@@ -92,6 +96,7 @@ const PlayerPopup = ({ player, onClose }) => {
     }
     return amount.toString();
   };
+
   const handleReleasePlayer = async () => {
     try {
       setReleaseMessage(null);
@@ -115,6 +120,7 @@ const PlayerPopup = ({ player, onClose }) => {
       setReleaseMessage(err.message || "Failed to release player. Please try again.");
     }
   };
+
   const handleMarkAsSold = async () => {
     try {
       setSoldMessage(null);
@@ -136,6 +142,7 @@ const PlayerPopup = ({ player, onClose }) => {
       setSoldMessage(err.message || "Failed to mark player as sold. Please try again.");
     }
   };
+
   const determineBidIncrement = (playerType, lastBidAmount) => {
     if (playerType === "Sapphire" || playerType === "Gold" || playerType === "Emerald") {
       return 5000000; // ₹50,00,000
@@ -146,6 +153,7 @@ const PlayerPopup = ({ player, onClose }) => {
     }
     return 1000000; // Default increment
   };
+
   const handlePlaceBid = async () => {
     try {
       setPlacingBid(true);
@@ -197,7 +205,6 @@ const PlayerPopup = ({ player, onClose }) => {
     }
   };
 
-
   const handleExitAuction = async () => {
     try {
       setExitMessage(null); // Reset the message toggle
@@ -223,19 +230,9 @@ const PlayerPopup = ({ player, onClose }) => {
 
       setExitMessage(result.message || "Successfully exited the auction.");
     } catch (err) {
-
       setExitMessage(err.message || "Failed to exit the auction. Please try again.");
     }
   };
-
-  if (loading) {
-    return <div className="loading">Loading player details...</div>;
-  }
-  if (error) {
-    return <div className="error">{error}</div>;
-  }
-
-
 
   if (loading) {
     return <div className="loading">Loading player details...</div>;
@@ -283,6 +280,15 @@ const PlayerPopup = ({ player, onClose }) => {
               <span className="player-detail-icon">💎</span>
               <b>Type:</b> <span>{playerDetails.type}</span>
             </p>
+            {/* NEW LINES FOR TOTAL RUNS & TOTAL WICKETS */}
+            <p>
+              <span className="player-detail-icon">⚾</span>
+              <b>Total Runs:</b> <span>{playerDetails.totalRuns || 0}</span>
+            </p>
+            <p>
+              <span className="player-detail-icon">🔥</span>
+              <b>Total Wickets:</b> <span>{playerDetails.totalWickets || 0}</span>
+            </p>
           </div>
 
           {topTwoBids.length > 0 && (
@@ -296,7 +302,9 @@ const PlayerPopup = ({ player, onClose }) => {
                       {bid.isBidOn === false && <span className="bid-out-text">Out</span>}{" "}
                       {bid.bidder.name}
                     </span>
-                    <span className="bid-amount">{formatHumanReadableAmount(bid.bidAmount)}</span>
+                    <span className="bid-amount">
+                      {formatHumanReadableAmount(bid.bidAmount)}
+                    </span>
                   </p>
                   <p className="bid-time">
                     <FaClock className="timer-icon" /> Last Bid Time:{" "}
@@ -315,7 +323,6 @@ const PlayerPopup = ({ player, onClose }) => {
             </div>
           )}
 
-
           {allBids.length > 0 && !isSold && (
             <div className="timer-section">
               <p><b>Overall Timer:</b> {timer}</p>
@@ -333,64 +340,67 @@ const PlayerPopup = ({ player, onClose }) => {
                 {placingBid
                   ? "Placing..."
                   : `Place Bid (₹${formatHumanReadableAmount(
-                    determineBidIncrement(playerDetails?.type,
-                      topTwoBids.length > 0
-                        ? topTwoBids[0]?.bidAmount || 0
-                        : playerDetails?.basePrice || 0)
-                  )})`}
+                      determineBidIncrement(
+                        playerDetails?.type,
+                        topTwoBids.length > 0
+                          ? topTwoBids[0]?.bidAmount || 0
+                          : playerDetails?.basePrice || 0
+                      )
+                    )})`}
               </button>
               {bidError && <p className="error">{bidError}</p>}
             </div>
           )}
-{isAdmin && !isSold && (
-  <div className="admin-action-buttons">
-    <button
-      className="sold-btn"
-      onClick={handleMarkAsSold}
-      style={{
-        padding: "10px 20px",
-        fontSize: "18px",
-        fontWeight: "bold",
-        color: "#fff",
-        backgroundColor: "linear-gradient(to right, #ff416c, #ff4b2b)",
-        borderRadius: "8px",
-        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-        cursor: "pointer",
-        transition: "all 0.3s ease",
-      }}
-    >
-      SOLD
-    </button>
-    <button
-      className="exit-btn"
-      onClick={handleExitAuction}
-      style={{
-        padding: "10px 20px",
-        fontSize: "18px",
-        fontWeight: "bold",
-        color: "#fff",
-        background: "linear-gradient(to right, #ff7e5f, #feb47b)",
-        borderRadius: "8px",
-        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-        cursor: "pointer",
-        transition: "all 0.3s ease",
-        marginLeft: "10px",
-      }}
-      onMouseOver={(e) => {
-        e.target.style.background = "linear-gradient(to right, #feb47b, #ff7e5f)";
-        e.target.style.transform = "scale(1.05)";
-      }}
-      onMouseOut={(e) => {
-        e.target.style.background = "linear-gradient(to right, #ff7e5f, #feb47b)";
-        e.target.style.transform = "scale(1)";
-      }}
-    >
-      EXIT
-    </button>
-    {soldMessage && <p className="sold-message">{soldMessage}</p>}
-    {exitMessage && <p className="exit-message">{exitMessage}</p>}
-  </div>
-)}
+
+          {isAdmin && !isSold && (
+            <div className="admin-action-buttons">
+              <button
+                className="sold-btn"
+                onClick={handleMarkAsSold}
+                style={{
+                  padding: "10px 20px",
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  color: "#fff",
+                  backgroundColor: "linear-gradient(to right, #ff416c, #ff4b2b)",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                }}
+              >
+                SOLD
+              </button>
+              <button
+                className="exit-btn"
+                onClick={handleExitAuction}
+                style={{
+                  padding: "10px 20px",
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  color: "#fff",
+                  background: "linear-gradient(to right, #ff7e5f, #feb47b)",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  marginLeft: "10px",
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = "linear-gradient(to right, #feb47b, #ff7e5f)";
+                  e.target.style.transform = "scale(1.05)";
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = "linear-gradient(to right, #ff7e5f, #feb47b)";
+                  e.target.style.transform = "scale(1)";
+                }}
+              >
+                EXIT
+              </button>
+              {soldMessage && <p className="sold-message">{soldMessage}</p>}
+              {exitMessage && <p className="exit-message">{exitMessage}</p>}
+            </div>
+          )}
 
           {isAdmin && isSold && (
             <div className="release-button-section">
