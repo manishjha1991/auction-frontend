@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../css/Profile.css';
 import { API_ENDPOINTS } from "../const";
-import LoadingCube from "./CricketAnimation"; // Import the reusable component
+import LoadingCube from "./CricketAnimation";
 
 const Profile = () => {
   const [userData, setUserData] = useState(null);
@@ -11,6 +11,19 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Admin state
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // NEW state for showing the confirmation popup
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  // Check localStorage for user.isAdmin
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    setIsAdmin(user?.isAdmin === true);
+  }, []);
+
+  // Fetch user data
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -18,7 +31,6 @@ const Profile = () => {
 
         const user = JSON.parse(localStorage.getItem('user'));
         const userId = user?.id;
-
         if (!userId) {
           throw new Error('User ID not found in local storage.');
         }
@@ -44,10 +56,38 @@ const Profile = () => {
         setLoading(false);
       }
     };
-
     fetchUserData();
-  }, []);
+  }, [API_ENDPOINTS]);
 
+  // Handler for actually finalizing single-bid sale
+  const handleSingleBidSale = async () => {
+    try {
+      const response = await fetch(`${API_ENDPOINTS}/api/bids/sold/single-bid`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Single-bid sale result:", result);
+
+      // Optionally re-fetch user data or show a toast
+      // (If you want to refresh the UI to reflect changes)
+      // fetchUserData();
+    } catch (err) {
+      console.error('Failed to finalize single-bid sale:', err);
+      setError('Failed to finalize single-bid sale. Please try again later.');
+    }
+  };
+
+  // CONFIRM button inside the popup
+  const handleConfirmSale = () => {
+    setShowConfirm(false); // Hide the popup
+    handleSingleBidSale(); // Trigger the sale
+  };
+
+  // Format amounts nicely
   const formatAmount = (amount) => {
     if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Crore`;
     if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)} Lakh`;
@@ -55,9 +95,8 @@ const Profile = () => {
     return `₹${amount}`;
   };
 
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value.toLowerCase());
-  };
+  // Input handlers
+  const handleSearchChange = (e) => setSearchTerm(e.target.value.toLowerCase());
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;
@@ -90,8 +129,8 @@ const Profile = () => {
       }
 
       const updatedUser = await response.json();
-      setUserData((prevUserData) => ({
-        ...prevUserData,
+      setUserData((prev) => ({
+        ...prev,
         user: updatedUser.user,
       }));
 
@@ -102,33 +141,75 @@ const Profile = () => {
     }
   };
 
-  // While loading or if error
+  // Loading or error states
   if (loading) {
     return <LoadingCube animationFile="Profile.json" />;
   }
   if (error) {
     return <div className="error">{error}</div>;
   }
+  if (!userData) {
+    return null;
+  }
 
-  // Filter logic
-  const filteredSoldPlayers = userData?.soldPlayers.filter(({ player }) =>
+  // --- ADMIN VIEW ---
+  if (isAdmin) {
+    return (
+      <div className="admin-container">
+        <h2 className="admin-title">Welcome, Admin {userData.user.name}!</h2>
+        <p className="admin-subtitle">
+          Manage auctions, finalize single-bid sales & more.
+        </p>
+
+        <button
+          className="glow-button"
+          onClick={() => setShowConfirm(true)}
+        >
+          Sell All Single-Bid Players
+        </button>
+
+        {/* Funny Confirmation Popup */}
+        {showConfirm && (
+          <div className="confirm-overlay">
+            <div className="confirm-popup">
+              <h2>Are You Absolutely Sure?!</h2>
+              <p>
+                This will sell all players with exactly one bid.<br/>
+                We hope your fellow owners won't mind...<br/>
+                Once you do this, there's no going back!
+              </p>
+              <div className="popup-buttons">
+                <button
+                  className="confirm-button"
+                  onClick={handleConfirmSale}
+                >
+                  Yes, let's do this!
+                </button>
+                <button
+                  className="cancel-button"
+                  onClick={() => setShowConfirm(false)}
+                >
+                  Hmm, better not...
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // --- NON-ADMIN (REGULAR) VIEW ---
+  const filteredSoldPlayers = userData.soldPlayers?.filter(({ player }) =>
     player.name.toLowerCase().includes(searchTerm)
   );
-  const filteredActiveBids = userData?.activeBids.filter(({ player }) =>
+  const filteredActiveBids = userData.activeBids?.filter(({ player }) =>
     player.name.toLowerCase().includes(searchTerm)
   );
 
-  // We assume userData.lastFiveMatches might be an array of objects: 
-  // [ {score: "...", fairness: "...", result: "..."}, ... ]
-  // If missing or partial, fill up to 5 with {score: "NA", fairness: "NA", result: "NA"}.
-  let lastFiveMatches = userData?.lastFiveMatches || [];
-  if (!lastFiveMatches.length) {
-    lastFiveMatches = Array(5).fill({
-      score: "NA",
-      fairness: "NA",
-      result: "NA",
-    });
-  } else {
+  // Last 5 matches fallback
+  let lastFiveMatches = userData.lastFiveMatches || [];
+  if (lastFiveMatches.length < 5) {
     while (lastFiveMatches.length < 5) {
       lastFiveMatches.push({
         score: "NA",
@@ -191,7 +272,11 @@ const Profile = () => {
               />
               <div className="file-input">
                 <label htmlFor="image">Upload New Image</label>
-                <input type="file" id="image" onChange={handleImageChange} />
+                <input
+                  type="file"
+                  id="image"
+                  onChange={handleImageChange}
+                />
               </div>
               <div className="popup-buttons">
                 <button type="button" onClick={handleSave}>Save</button>
@@ -217,9 +302,9 @@ const Profile = () => {
         <div className="section">
           <h3>Sold Players</h3>
           <div className="bought-players">
-            {filteredSoldPlayers?.length > 0 ? (
-              filteredSoldPlayers.map(({ player, bidValue }, index) => (
-                <div className={`player-card ${player.type.toLowerCase()}`} key={index}>
+            {filteredSoldPlayers && filteredSoldPlayers.length > 0 ? (
+              filteredSoldPlayers.map(({ player, bidValue }, idx) => (
+                <div className={`player-card ${player.type.toLowerCase()}`} key={idx}>
                   <p><strong>Name:</strong> {player.name}</p>
                   <p><strong>Type:</strong> {player.type}</p>
                   <p><strong>Role:</strong> {player.role}</p>
@@ -237,9 +322,9 @@ const Profile = () => {
         <div className="section">
           <h3>Active Bids</h3>
           <div className="bids-section">
-            {filteredActiveBids?.length > 0 ? (
-              filteredActiveBids.map(({ player, bidAmount }, index) => (
-                <div className={`player-card ${player.type.toLowerCase()}`} key={index}>
+            {filteredActiveBids && filteredActiveBids.length > 0 ? (
+              filteredActiveBids.map(({ player, bidAmount }, idx) => (
+                <div className={`player-card ${player.type.toLowerCase()}`} key={idx}>
                   <p><strong>Name:</strong> {player.name}</p>
                   <p><strong>Role:</strong> {player.role}</p>
                   <p><strong>Bid Amount:</strong> {formatAmount(bidAmount)}</p>
@@ -255,7 +340,7 @@ const Profile = () => {
         <div className="section">
           <h3>Past Bids</h3>
           <div className="past-bids">
-            {userData.pastBids.map(({ player, bidAmount, status }, index) => (
+            {userData.pastBids.map(({ player, bidAmount, status }, idx) => (
               <div
                 className={`past-bid-card ${status.toLowerCase()}`}
                 style={{
@@ -264,7 +349,7 @@ const Profile = () => {
                   boxShadow: status === "Won" ? "0px 4px 8px rgba(255, 215, 0, 0.4)" : "none",
                   transition: "all 0.3s ease-in-out",
                 }}
-                key={index}
+                key={idx}
               >
                 <p><strong>Name:</strong> {player.name}</p>
                 <p><strong>Your Bid:</strong> {formatAmount(bidAmount)}</p>
@@ -275,12 +360,11 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Last 5 Matches (styled like Past Bids) */}
+        {/* Last 5 Matches */}
         <div className="section">
           <h3>Your Last 5 Match Results</h3>
           <div className="bought-players" style={{ display: "grid", gap: "15px" }}>
             {lastFiveMatches.map((match, idx) => {
-              // Decide if "Won" style or not
               const isWon = (match.result || "").toLowerCase() === "won";
               return (
                 <div
