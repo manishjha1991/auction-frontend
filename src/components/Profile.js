@@ -18,6 +18,15 @@ const Profile = () => {
   const [showConfirmSell, setShowConfirmSell] = useState(false);
   const [showConfirmRemoveSecond, setShowConfirmRemoveSecond] = useState(false);
 
+  // NEW STATE for multi-sell
+  const [showMultiSell, setShowMultiSell] = useState(false);        // controls the multi-sell popup
+  const [activeBidPlayers, setActiveBidPlayers] = useState([]);       // players with ongoing bids
+  const [selectedPlayers, setSelectedPlayers] = useState([]);         // IDs of players selected for multi-sell
+  const [showMultiSellConfirm, setShowMultiSellConfirm] = useState(false);
+
+  // NEW: State for search inside the multi-sell popup
+  const [multiSellSearch, setMultiSellSearch] = useState('');
+
   // Check localStorage for user.isAdmin
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -29,21 +38,17 @@ const Profile = () => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-
         const user = JSON.parse(localStorage.getItem('user'));
         const userId = user?.id;
         if (!userId) {
           throw new Error('User ID not found in local storage.');
         }
-
         const response = await fetch(`${API_ENDPOINTS}/api/users/${userId}/details`, {
           headers: { 'Content-Type': 'application/json' },
         });
-
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
-
         const data = await response.json();
         setUserData(data);
         setEditData({
@@ -60,7 +65,7 @@ const Profile = () => {
     fetchUserData();
   }, [API_ENDPOINTS]);
 
-  // ------------- SELL SINGLE-BID PLAYERS -------------
+  // Single-bid sale API
   const handleSingleBidSale = async () => {
     try {
       const response = await fetch(`${API_ENDPOINTS}/api/bids/sold/single-bid`, {
@@ -69,21 +74,20 @@ const Profile = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-
       const result = await response.json();
       console.log("Single-bid sale result:", result);
-      // Optionally re-fetch data or show toast
     } catch (err) {
       console.error('Failed to finalize single-bid sale:', err);
       setError('Failed to finalize single-bid sale. Please try again later.');
     }
   };
+
   const handleConfirmSell = () => {
     setShowConfirmSell(false);
     handleSingleBidSale();
   };
 
-  // ------------- REMOVE ALL SECOND-HIGHEST BIDDERS -------------
+  // Remove second-highest bidders
   const handleRemoveAllSecondHighest = async () => {
     try {
       const response = await fetch(`${API_ENDPOINTS}/api/bids/exit-second-highest/all`, {
@@ -92,18 +96,91 @@ const Profile = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-
       const result = await response.json();
       console.log("Remove second-highest result:", result);
-      // Optionally re-fetch data or show toast
     } catch (err) {
       console.error('Failed to remove second-highest bidders:', err);
       setError('Failed to remove second-highest bidders. Please try again later.');
     }
   };
+
   const handleConfirmRemoveSecond = () => {
     setShowConfirmRemoveSecond(false);
     handleRemoveAllSecondHighest();
+  };
+
+  // Multi-sell logic using all players data
+  const handleOpenMultiSell = async () => {
+    try {
+      // Show the multi-sell popup
+      setShowMultiSell(true);
+      // Reset the search field whenever popup is opened
+      setMultiSellSearch('');
+      // Fetch all players from the data endpoint
+      const resp = await fetch(`${API_ENDPOINTS}/api/players/data`, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!resp.ok) {
+        throw new Error('Could not fetch players');
+      }
+      const players = await resp.json();
+      
+      // Filter players with active bids:
+      // They are not sold and have a valid currentBidder (not "N/A")
+      const activePlayers = players.filter(player => 
+        player.status !== "Sold" &&
+        player.currentBidder &&
+        player.currentBidder !== "N/A"
+      );
+      setActiveBidPlayers(activePlayers);
+      setSelectedPlayers([]); // Reset any previous selection
+    } catch (err) {
+      console.error('Failed to fetch active bid players:', err);
+      setError('Failed to load players for multi-sell. Please try again later.');
+    }
+  };
+
+  const handleSelectPlayer = (playerId) => {
+    // Toggle player selection using a functional update
+    setSelectedPlayers(prevSelected => {
+      if (prevSelected.includes(playerId)) {
+        return prevSelected.filter(id => id !== playerId);
+      } else {
+        return [...prevSelected, playerId];
+      }
+    });
+  };
+
+  const handleMultiSell = async () => {
+    // Show confirmation popup before finalizing
+    setShowMultiSellConfirm(true);
+  };
+
+  const handleConfirmMultiSell = async () => {
+    try {
+      setShowMultiSellConfirm(false);
+      // Call the multi-sell API with the selected player IDs
+      const resp = await fetch(`${API_ENDPOINTS}/api/bids/bid/sold`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerIDs: selectedPlayers })
+      });
+      if (!resp.ok) {
+        throw new Error(`HTTP error! Status: ${resp.status}`);
+      }
+      const result = await resp.json();
+      console.log('Multi-sell result:', result);
+      setShowMultiSell(false);
+    } catch (err) {
+      console.error('Failed to multi-sell players:', err);
+      setError('Failed to multi-sell players. Please try again.');
+    }
+  };
+
+  const handleCancelMultiSell = () => {
+    setShowMultiSellConfirm(false);
   };
 
   // Format amounts nicely
@@ -132,25 +209,20 @@ const Profile = () => {
       if (editData.image) {
         formData.append('teamImage', editData.image);
       }
-
       const user = JSON.parse(localStorage.getItem('user'));
       const userId = user?.id;
-
       const response = await fetch(`${API_ENDPOINTS}/api/users/${userId}`, {
         method: 'PUT',
         body: formData,
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-
       const updatedUser = await response.json();
-      setUserData((prev) => ({
+      setUserData(prev => ({
         ...prev,
         user: updatedUser.user,
       }));
-
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to update profile:', err);
@@ -158,7 +230,6 @@ const Profile = () => {
     }
   };
 
-  // Loading or error states
   if (loading) {
     return <LoadingCube animationFile="Profile.json" />;
   }
@@ -171,6 +242,11 @@ const Profile = () => {
 
   // --- ADMIN VIEW ---
   if (isAdmin) {
+    // Filter the active bid players based on the search query in the multi-sell popup
+    const filteredActiveBidPlayers = activeBidPlayers.filter(p =>
+      p.name.toLowerCase().includes(multiSellSearch.toLowerCase())
+    );
+
     return (
       <div className="admin-container">
         <h2 className="admin-title">Welcome, Admin {userData.user.name}!</h2>
@@ -178,7 +254,7 @@ const Profile = () => {
           Manage auctions, finalize single-bid sales & more.
         </p>
 
-        {/* Two glow buttons for admin actions */}
+        {/* Admin Buttons */}
         <div style={{ marginTop: '20px' }}>
           <button
             className="glow-button glow-button-sell"
@@ -190,12 +266,19 @@ const Profile = () => {
           <button
             className="glow-button glow-button-remove"
             onClick={() => setShowConfirmRemoveSecond(true)}
+            style={{ marginRight: '10px' }}
           >
             Remove All Second-Highest Bidders
           </button>
+          <button
+            className="glow-button glow-button-sell"
+            onClick={handleOpenMultiSell}
+          >
+            Multi-Sell Bidding Players
+          </button>
         </div>
 
-        {/* Funny Confirmation Popup - SELL */}
+        {/* Existing SELL Single-Bid Confirmation */}
         {showConfirmSell && (
           <div className="confirm-overlay">
             <div className="confirm-popup">
@@ -206,16 +289,10 @@ const Profile = () => {
                 Once you do this, there's no going back!
               </p>
               <div className="popup-buttons">
-                <button
-                  className="confirm-button"
-                  onClick={handleConfirmSell}
-                >
+                <button className="confirm-button" onClick={handleConfirmSell}>
                   Yes, let's do this!
                 </button>
-                <button
-                  className="cancel-button"
-                  onClick={() => setShowConfirmSell(false)}
-                >
+                <button className="cancel-button" onClick={() => setShowConfirmSell(false)}>
                   Hmm, better not...
                 </button>
               </div>
@@ -223,7 +300,7 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Funny Confirmation Popup - REMOVE 2ND HIGHEST */}
+        {/* Existing Remove 2nd Highest Confirmation */}
         {showConfirmRemoveSecond && (
           <div className="confirm-overlay">
             <div className="confirm-popup">
@@ -234,22 +311,87 @@ const Profile = () => {
                 Proceed only if you can handle the drama...
               </p>
               <div className="popup-buttons">
-                <button
-                  className="confirm-button"
-                  onClick={handleConfirmRemoveSecond}
-                >
+                <button className="confirm-button" onClick={handleConfirmRemoveSecond}>
                   Do it. I'm ready!
                 </button>
-                <button
-                  className="cancel-button"
-                  onClick={() => setShowConfirmRemoveSecond(false)}
-                >
+                <button className="cancel-button" onClick={() => setShowConfirmRemoveSecond(false)}>
                   Actually, nevermind...
                 </button>
               </div>
             </div>
           </div>
         )}
+
+        {/* NEW: Multi-Sell Popup with Search Bar */}
+        {showMultiSell && (
+          <div className="confirm-overlay">
+            <div className="confirm-popup" style={{ width: '500px', maxWidth: '90%' }}>
+              <h2>Pick your players to sell!</h2>
+              <p style={{ marginBottom: '15px' }}>
+                Select any players who currently have active bids. Then click <b>Multi-Sell</b>.
+              </p>
+              {/* Super Cool Sexy Search Bar */}
+              <div style={{ marginBottom: '10px' }}>
+                <input
+                  type="text"
+                  placeholder="Search bidding players..."
+                  value={multiSellSearch}
+                  onChange={(e) => setMultiSellSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ccc'
+                  }}
+                />
+              </div>
+              <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #ccc', padding: '10px' }}>
+                {filteredActiveBidPlayers.map((p) => (
+                  <label key={p.id} style={{ display: 'block', marginBottom: '8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedPlayers.includes(p.id)}
+                      onChange={() => handleSelectPlayer(p.id)}
+                      style={{ marginRight: '8px' }}
+                    />
+                    {p.name} ({p.type})
+                  </label>
+                ))}
+              </div>
+              <div className="popup-buttons" style={{ marginTop: '15px' }}>
+                <button className="confirm-button" onClick={handleMultiSell}>
+                  Multi-Sell
+                </button>
+                <button className="cancel-button" onClick={() => setShowMultiSell(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* NEW: Comedic confirmation for the multi-sell */}
+        {showMultiSellConfirm && (
+          <div className="confirm-overlay">
+            <div className="confirm-popup">
+              <h2>Are you TOTALLY sure?!</h2>
+              <p>
+                You're about to <b>mass-sell</b> multiple players. 
+                <br />Some might cry, some might rejoice. 
+                <br />This can't be undone!
+              </p>
+              <div className="popup-buttons">
+                <button className="confirm-button" onClick={handleConfirmMultiSell}>
+                  Yes, do it!
+                </button>
+                <button className="cancel-button" onClick={handleCancelMultiSell}>
+                  Wait, no!!
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     );
   }
@@ -262,7 +404,6 @@ const Profile = () => {
     player.name.toLowerCase().includes(searchTerm)
   );
 
-  // Last 5 matches fallback
   let lastFiveMatches = userData.lastFiveMatches || [];
   if (lastFiveMatches.length < 5) {
     while (lastFiveMatches.length < 5) {
