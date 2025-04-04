@@ -3,6 +3,7 @@ import "../css/UserPurse.css"; // Custom CSS file
 import { API_ENDPOINTS } from "../const";
 import { FaWallet } from "react-icons/fa"; // Import Wallet Icon
 import LoadingCube from "./CricketAnimation"; // Import the reusable component
+import NotificationBell from './NotificationBell';
 const UserPursePage = () => {
   const [usersData, setUsersData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +54,8 @@ const UserPursePage = () => {
 
   return (
     <div className="user-purse-page">
+       {/* Include the NotificationBell component */}
+       <NotificationBell />
       <div className="page-header" style={{ textAlign: "center", marginTop: "20px" }}>
         <FaWallet
           style={{
