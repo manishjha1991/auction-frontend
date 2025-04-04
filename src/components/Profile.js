@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import '../css/Profile.css';
 import { API_ENDPOINTS } from "../const";
 import LoadingCube from "./CricketAnimation";
-
+import NotificationBell from './NotificationBell';
 const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -417,6 +417,8 @@ const Profile = () => {
 
   return (
     <div className="profile-container">
+      {/* Include the NotificationBell component */}
+      <NotificationBell />
       <header className="profile-header">
         <div className="user-info">
           <img

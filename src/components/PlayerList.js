@@ -4,7 +4,7 @@ import "../css/PlayerList.css";
 import PlayerPopup from "./PlayerPopup";
 import { API_ENDPOINTS } from "../const";
 import LoadingCube from "./CricketAnimation"; // Import the reusable component
-
+import NotificationBell from './NotificationBell';
 
 
 
@@ -146,6 +146,7 @@ const PlayerList = () => {
 
   return (
     <div className="player-list">
+       <NotificationBell />
       {unsoldPlayers.length === 0 ? (
         <div style={{ textAlign: "center", marginTop: "20px" }}>
           <img
