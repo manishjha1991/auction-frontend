@@ -6,7 +6,6 @@ import '../css/NotificationBell.css';
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [countdown, setCountdown] = useState(10);
 
   // Get the logged-in user ID from localStorage
   const user = JSON.parse(localStorage.getItem("user"));
@@ -34,32 +33,14 @@ const NotificationBell = () => {
     };
   }, [loggedUserId]);
 
-  // Auto-close dropdown and clear notifications after 10 sec when dropdown is open
-  useEffect(() => {
-    let timer, countdownTimer;
-    if (dropdownVisible) {
-      setCountdown(10);
-      countdownTimer = setInterval(() => {
-        setCountdown(prev => prev - 1);
-      }, 1000);
-
-      timer = setTimeout(() => {
-        setNotifications([]);
-        setDropdownVisible(false);
-      }, 10000);
-    }
-    return () => {
-      clearTimeout(timer);
-      clearInterval(countdownTimer);
-    };
-  }, [dropdownVisible]);
-
   const handleBellClick = () => {
-    // If closing manually, clear notifications immediately
     if (dropdownVisible) {
+      // When manually closing the dropdown, clear notifications.
       setNotifications([]);
+      setDropdownVisible(false);
+    } else {
+      setDropdownVisible(true);
     }
-    setDropdownVisible(!dropdownVisible);
   };
 
   const notificationCount = notifications.length;
@@ -101,10 +82,6 @@ const NotificationBell = () => {
           ) : (
             <p className="no-notifications">No new notifications</p>
           )}
-          <div className="dropdown-loader">
-            <div className="spinner"></div>
-            <span>Closing in {countdown} sec</span>
-          </div>
         </div>
       )}
     </div>
