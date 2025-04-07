@@ -3,6 +3,7 @@ import '../css/Profile.css';
 import { API_ENDPOINTS } from "../const";
 import LoadingCube from "./CricketAnimation";
 import NotificationBell from './NotificationBell';
+import TeamStrengthChart from './TeamStrengthChart';
 const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -515,7 +516,10 @@ const Profile = () => {
             )}
           </div>
         </div>
-
+ {/* Add the chart here for normal users based on sold players */}
+ {!isAdmin && userData.soldPlayers && userData.soldPlayers.length > 0 && (
+        <TeamStrengthChart players={userData.soldPlayers.map(item => item.player)} />
+      )}
         {/* Active Bids */}
         <div className="section">
           <h3>Active Bids</h3>
