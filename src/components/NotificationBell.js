@@ -6,19 +6,48 @@ import '../css/NotificationBell.css';
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [countdown, setCountdown] = useState(10);
 
   // Get the logged-in user ID from localStorage
   const user = JSON.parse(localStorage.getItem("user"));
   const loggedUserId = user?.id;
 
-  // Helper function to format bid amounts in Thousand, Lakh, or Crore
-  const formatBidAmount = (amount) => {
-    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Crore`;
-    if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)} Lakh`;
-    if (amount >= 1000) return `₹${(amount / 1000).toFixed(2)} Thousand`;
-    return `₹${amount}`;
+  // Function to fetch notifications from the API
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/notifications`);
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data);
+      } else {
+        console.error("Error fetching notifications:", res.status);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
   };
 
+  // Fetch notifications on component mount (page refresh)
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  // Socket connection for exit notifications:
+  useEffect(() => {
+    const socket = io(API_ENDPOINTS);
+    socket.on('bid_exit_notification', (data) => {
+      console.log("Received bid exit notification:", data);
+      // Show exit notification only if logged user is the current bidder
+      if (data.currentBidder && data.currentBidder === loggedUserId) {
+        setNotifications(prev => [...prev, data]);
+      }
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, [loggedUserId]);
+
+  // Socket connection for live bid notifications
   useEffect(() => {
     const socket = io(API_ENDPOINTS);
     socket.on('bid_notification', (data) => {
@@ -33,15 +62,70 @@ const NotificationBell = () => {
     };
   }, [loggedUserId]);
 
-  const handleBellClick = () => {
+  // Auto-close dropdown and clear notifications after 10 sec when dropdown is open
+  useEffect(() => {
+    let timer, countdownTimer;
     if (dropdownVisible) {
-      // When manually closing the dropdown, clear notifications.
-      setNotifications([]);
-      setDropdownVisible(false);
-    } else {
-      setDropdownVisible(true);
+      setCountdown(10);
+      countdownTimer = setInterval(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+      timer = setTimeout(() => {
+        handleClearNotifications();
+        setDropdownVisible(false);
+      }, 10000);
+    }
+    return () => {
+      clearTimeout(timer);
+      clearInterval(countdownTimer);
+    };
+  }, [dropdownVisible]);
+
+  const handleBellClick = () => {
+    setDropdownVisible(!dropdownVisible);
+  };
+
+  // Handler for manually clearing notifications via API
+  const handleClearNotifications = async () => {
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/notifications/clear`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        setNotifications([]);
+      } else {
+        console.error("Error clearing notifications:", res.status);
+      }
+    } catch (error) {
+      console.error("Error clearing notifications:", error);
     }
   };
+
+  // Helper function to format bid amounts in Thousand, Lakh, or Crore
+  const formatBidAmount = (amount) => {
+    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Crore`;
+    if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)} Lakh`;
+    if (amount >= 1000) return `₹${(amount / 1000).toFixed(2)} Thousand`;
+    return `₹${amount}`;
+  };
+
+  // Determine notification type based on its message content
+  const getNotificationType = (notif) => {
+    const msg = notif.message.toLowerCase();
+    if (msg.includes("exit")) return "exit";
+    if (msg.includes("new bid")) return "new";
+    return "normal";
+  };
+
+  // Compute count badge color based on majority type
+  const newBidCount = notifications.filter(n => n.message.toLowerCase().includes("new bid")).length;
+  const exitCount = notifications.filter(n => n.message.toLowerCase().includes("exit")).length;
+  let badgeColor = "#ffc107"; // yellow (default)
+  if (newBidCount > exitCount && newBidCount > 0) {
+    badgeColor = "#00ff00"; // green for new bids
+  } else if (exitCount > newBidCount && exitCount > 0) {
+    badgeColor = "#ff4444"; // red for exit notifications
+  }
 
   const notificationCount = notifications.length;
 
@@ -55,15 +139,20 @@ const NotificationBell = () => {
           />
         </svg>
         {notificationCount > 0 && (
-          <div className="notification-count">{notificationCount}</div>
+          <div 
+            className="notification-count" 
+            style={{ backgroundColor: badgeColor }}
+          >
+            {notificationCount}
+          </div>
         )}
       </div>
       {dropdownVisible && (
         <div className="notification-dropdown">
           <button className="dropdown-close-btn" onClick={handleBellClick}>✖</button>
           {notifications.length > 0 ? (
-            notifications.map((notif, index) => (
-              <div key={index} className="notification-item">
+            [...notifications].reverse().map((notif, index) => (
+              <div key={index} className={`notification-item ${getNotificationType(notif)}`}>
                 <p className="notif-message">{notif.message}</p>
                 <div className="notif-details">
                   <span className="notif-label">Player:</span>
@@ -73,15 +162,24 @@ const NotificationBell = () => {
                   <span className="notif-label">Bid:</span>
                   <span className="notif-value">{formatBidAmount(notif.currentBid)}</span>
                 </div>
-                <div className="notif-details">
-                  <span className="notif-label">Bidder:</span>
-                  <span className="notif-value">{notif.currentBidder}</span>
-                </div>
+                {getNotificationType(notif) !== 'exit' && (
+                  <div className="notif-details">
+                    <span className="notif-label">Bidder:</span>
+                    <span className="notif-value">{notif.currentBidder}</span>
+                  </div>
+                )}
               </div>
             ))
           ) : (
             <p className="no-notifications">No new notifications</p>
           )}
+          <div className="dropdown-loader">
+            <div className="spinner"></div>
+            <span>Closing in {countdown} sec</span>
+          </div>
+          <button className="clear-notifications-btn" onClick={handleClearNotifications}>
+            Clear Notifications
+          </button>
         </div>
       )}
     </div>
