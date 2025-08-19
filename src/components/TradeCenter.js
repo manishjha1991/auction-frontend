@@ -18,7 +18,6 @@ function TradeCenter() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
   const [trades, setTrades] = useState([]);
-  const [counterSelections, setCounterSelections] = useState({});
   // removed server roster cache; we derive from allPlayers by teamName
   const [limitReached, setLimitReached] = useState(false);
   const [releasePlayerId, setReleasePlayerId] = useState('');
@@ -28,6 +27,14 @@ function TradeCenter() {
   const [unsoldPage, setUnsoldPage] = useState(1);
   const [unsoldTotalPages, setUnsoldTotalPages] = useState(1);
   const [unsoldType, setUnsoldType] = useState('');
+
+  const isMe = (maybeId) => {
+    if (!user) return false;
+    const uid = user.id || user._id;
+    return String(maybeId) === String(uid);
+  };
+  const isFromMe = (trade) => isMe(trade?.fromUser?._id || trade?.fromUser);
+  const isToMe = (trade) => isMe(trade?.toUser?._id || trade?.toUser);
 
   useEffect(() => {
     const cachedUser = localStorage.getItem('user');
@@ -67,7 +74,7 @@ function TradeCenter() {
           setUnsoldTotalPages(1);
         }
         if (Array.isArray(tradesJson)) {
-          const active = tradesJson.filter(t => ['pending', 'counter', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
+          const active = tradesJson.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
           setLimitReached(active.length >= 4);
         }
       } catch (e) {
@@ -108,7 +115,7 @@ function TradeCenter() {
           setUnsoldTotalPages(1);
         }
         if (Array.isArray(tradesJson)) {
-          const active = tradesJson.filter(t => ['pending', 'counter', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
+          const active = tradesJson.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
           setLimitReached(active.length >= 4);
         }
       } catch {}
@@ -141,7 +148,7 @@ function TradeCenter() {
 
   async function proposeTrade() {
     if (!selectedMyPlayer || !selectedTargetPlayer || !targetTeamId) {
-      setToast('Select your player, target team, and their player.');
+      setToast('Select player, target team, and target player.');
       return;
     }
     try {
@@ -157,7 +164,7 @@ function TradeCenter() {
       const j = await res.json();
       const updated = [j, ...trades];
       setTrades(updated);
-      const activeMine = updated.filter(t => ['pending', 'counter', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
+      const activeMine = updated.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
       setLimitReached(activeMine.length >= 4);
       setToast('Trade proposal sent!');
       // Refresh usage (actual increment happens on admin approval, but we keep UI fresh)
@@ -210,21 +217,7 @@ function TradeCenter() {
     }
   }
 
-  async function negotiateTrade(tradeId, counterPlayerId) {
-    try {
-      const res = await fetch(`${API_ENDPOINTS}/api/trades/${tradeId}/negotiate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ byUserId: user.id, counterOfferedPlayerId: counterPlayerId })
-      });
-      const j = await res.json();
-      setTrades(trades.map(t => (t._id === tradeId ? j : t)));
-      setToast('Counter sent.');
-      setCounterSelections({ ...counterSelections, [tradeId]: '' });
-    } catch (e) {
-      setToast('Negotiation failed.');
-    }
-  }
+  // Counter feature removed
 
   if (loading) {
     return (
@@ -240,7 +233,7 @@ function TradeCenter() {
       <div className="trade-hero">
         <div className="hero-text">
           <h1 className="gradient-title"><FaExchangeAlt style={{ marginRight: 10 }} />Trade Center</h1>
-          <p>Propose trades, negotiate, and finalize with admin approval.</p>
+          <p>Propose trades and finalize with admin approval.</p>
           <div className="usage-row">
             <span className="usage-badge usage-used"><FaExchangeAlt style={{ marginRight: 6 }} />Used: {tradeUsage.tradesUsed}</span>
             <span className="usage-badge usage-left"><FaRetweet style={{ marginRight: 6 }} />Left: {tradeUsage.remaining}</span>
@@ -253,11 +246,14 @@ function TradeCenter() {
       </div>
 
       <div className="trade-propose">
-        <div className="card glass">
-          <h3><FaPaperPlane style={{ marginRight: 8 }} />Create Trade Inquiry</h3>
+        <div className="card glass propose-card">
+          <div className="card-header">
+            <h3 className="card-title"><FaPaperPlane style={{ marginRight: 8 }} />Create Trade Inquiry</h3>
+            <p className="card-subtitle">Pick one from your roster and one from a target team to propose a swap.</p>
+          </div>
           <div className="grid">
-            <div>
-              <label>Your Player</label>
+            <div className="field-group">
+              <label className="field-label">Your Player</label>
               <select className="select" value={selectedMyPlayer} onChange={(e) => setSelectedMyPlayer(e.target.value)}>
                 <option value="">Select player</option>
                 {myRoster.map(p => {
@@ -269,8 +265,8 @@ function TradeCenter() {
                 })}
               </select>
             </div>
-            <div>
-              <label>Target Team</label>
+            <div className="field-group">
+              <label className="field-label">Target Team</label>
               <select className="select" value={targetTeamId} onChange={(e) => setTargetTeamId(e.target.value)}>
                 <option value="">Select team</option>
                 {otherTeams.map(t => (
@@ -278,8 +274,8 @@ function TradeCenter() {
                 ))}
               </select>
             </div>
-            <div>
-              <label>Target Player</label>
+            <div className="field-group">
+              <label className="field-label">Target Player</label>
               <select className="select" value={selectedTargetPlayer} onChange={(e) => setSelectedTargetPlayer(e.target.value)} disabled={!targetTeamId}>
                 <option value="">Select player</option>
                 {targetRoster.map(p => {
@@ -291,11 +287,11 @@ function TradeCenter() {
                 })}
               </select>
             </div>
-            <div className="actions">
-              <button className="btn btn-primary" title="Send trade proposal" onClick={proposeTrade} disabled={limitReached || tradeUsage.remaining === 0}>
+            <div className="actions cta-row">
+              <button className="btn btn-info" title="Send trade proposal" onClick={proposeTrade} disabled={limitReached || tradeUsage.remaining === 0}>
                 <FaPaperPlane style={{ marginRight: 8 }} />{limitReached ? 'Limit Reached (4)' : 'Send Proposal'}
               </button>
-              <button className="btn btn-ghost" style={{ marginLeft: 8 }} onClick={async () => {
+              <button className="btn btn-refresh" style={{ marginLeft: 8 }} onClick={async () => {
                 try {
                   const [tradesRes, playersRes, usageRes, releasesRes, unsoldRes] = await Promise.all([
                     user ? fetch(`${API_ENDPOINTS}/api/trades/user/${user.id}`) : Promise.resolve({ ok: true, json: async () => [] }),
@@ -329,10 +325,10 @@ function TradeCenter() {
               }}>Refresh</button>
             </div>
           <div className="release-box">
-            <label>Request Player Release</label>
+            <label className="field-label">Request Release</label>
             <div className="release-row">
               <select className="select" value={releasePlayerId} onChange={(e) => setReleasePlayerId(e.target.value)}>
-                <option value="">Select your player</option>
+                <option value="">Select player</option>
                 {myRoster.map(p => {
                   const meta = (allPlayers || []).find(ap => ap.id === p.id);
                   const typ = meta?.type ? ` - ${meta.type}` : '';
@@ -354,7 +350,7 @@ function TradeCenter() {
                 return (
                   <div className="chips">
                     <div className="player-chip">
-                      <span className="name">{mine ? mine.name : 'Your player'}</span>
+                      <span className="name">{mine ? mine.name : 'Player'}</span>
                       {mine?.type && <span className={typeClass(mine.type)}>{mine.type}</span>}
                     </div>
                     <span className="chip-arrow">↔</span>
@@ -434,48 +430,20 @@ function TradeCenter() {
                   ))}
                 </div>
                 <div className="item-actions">
-                  {user && String(t.toUser?._id) === String(user.id) && !['completed','rejected','withdrawn'].includes(t.status) && (
+                  {user && isToMe(t) && t.status === 'pending' && (
                     <>
                       <button className="btn btn-success" onClick={() => respondTrade(t._id, 'accept')}><FaCheck style={{ marginRight: 6 }} />Accept</button>
                       <button className="btn btn-danger" onClick={() => respondTrade(t._id, 'reject')}><FaTimes style={{ marginRight: 6 }} />Reject</button>
-                      <div className="negotiation">
-                        <select
-                          className="select"
-                          value={counterSelections[t._id] || ''}
-                          onChange={(e) => setCounterSelections({ ...counterSelections, [t._id]: e.target.value })}
-                        >
-                          <option value="">Ask for different player…</option>
-                          {((allPlayers || []).filter(p => p.teamName && p.teamName === (t.fromUser?.teamName || ''))).map(p => (
-                            <option key={p.id} value={p.id}>{p.name} ({p.role}){p.type ? ` - ${p.type}` : ''}</option>
-                          ))}
-                        </select>
-                        <button className="btn btn-ghost"
-                          disabled={!counterSelections[t._id]}
-                          onClick={() => negotiateTrade(t._id, counterSelections[t._id])}
-                        >
-                          <FaRetweet style={{ marginRight: 6 }} />Send Counter
-                        </button>
-                        {counterSelections[t._id] && (() => {
-                          const sel = (allPlayers || []).find(p => p.id === counterSelections[t._id]);
-                          if (!sel) return null;
-                          return (
-                            <span className="offer-chip inline">
-                              <span className="nm">{sel.name}</span>
-                              {sel.type && <span className={`type-badge ${String(sel.type).toLowerCase()}`}>{sel.type}</span>}
-                            </span>
-                          );
-                        })()}
-                      </div>
                     </>
                   )}
-                  {user && String(t.fromUser?._id) === String(user.id) && !['completed','rejected','withdrawn'].includes(t.status) && (
-                    <button className="btn btn-ghost" onClick={async () => {
+                  {user && isFromMe(t) && !['completed','rejected','withdrawn'].includes(t.status) && (
+                    <button className="btn btn-withdraw" onClick={async () => {
                       try {
                         const r = await fetch(`${API_ENDPOINTS}/api/trades/${t._id}/withdraw`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ byUserId: user.id }) });
                         const j = await r.json();
                         const updated = trades.map(x => (x._id === t._id ? j : x));
                         setTrades(updated);
-                        const activeMine = updated.filter(u => ['pending','counter','admin_pending'].includes(u.status) && String(u.fromUser?._id) === String(user?.id));
+                        const activeMine = updated.filter(u => ['pending','admin_pending'].includes(u.status) && String(u.fromUser?._id) === String(user?.id));
                         setLimitReached(activeMine.length >= 4);
                         setToast('Trade withdrawn');
                       } catch { setToast('Failed to withdraw'); }
