@@ -1,0 +1,37 @@
+.unsold-page { padding: 20px; display: grid; gap: 16px; background: radial-gradient(1200px 600px at 100% -10%, rgba(13,110,253,0.06), transparent), radial-gradient(1200px 600px at -10% 100%, rgba(32,201,151,0.06), transparent); }
+.toast { background: linear-gradient(135deg, #0d6efd, #6610f2); color: #fff; padding: 10px 12px; border-radius: 12px; box-shadow: 0 8px 24px rgba(13,110,253,0.25); }
+.header { display: flex; align-items: center; justify-content: space-between; }
+.gradient-title { background: linear-gradient(90deg, #0d6efd, #20c997); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.toolbar { display: flex; gap: 8px; }
+.select { padding: 10px 12px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.04); }
+.btn { padding: 10px 12px; border: none; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.06); }
+.btn-primary { background: linear-gradient(135deg, #0d6efd, #20c997); color: #fff; }
+.btn-ghost { background: #ffffff; color: #0d6efd; border: 1px solid rgba(13,110,253,0.25); }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
+.card { background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); padding: 14px; display: grid; gap: 6px; }
+.card-top { display: flex; align-items: center; justify-content: space-between; }
+.name { font-weight: 700; }
+.meta { color: #555; font-size: 13px; }
+.actions { display: flex; justify-content: flex-end; }
+.requested-badge { background: #fff7e6; color: #a35d00; border: 1px solid rgba(163,93,0,0.2); padding: 6px 10px; border-radius: 999px; font-weight: 700; }
+.picked-badge { background: #e6ffed; color: #0a7d33; border: 1px solid rgba(10,125,51,0.2); padding: 6px 10px; border-radius: 999px; font-weight: 700; }
+.type-badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; margin-left: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.06); }
+.type-badge.sapphire { background: linear-gradient(135deg, #3a7bd5, #3a6073); color: #fff; }
+.type-badge.gold { background: linear-gradient(135deg, #f7971e, #ffd200); color: #3a2f00; }
+.type-badge.emerald { background: linear-gradient(135deg, #56ab2f, #a8e063); color: #0b3d0b; }
+.type-badge.silver { background: linear-gradient(135deg, #ffffff, #e0e0e0); color: #333; }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.page { font-weight: 700; }
+@media (max-width: 1100px) { .grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (max-width: 800px) { .grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+
+/* Pick history */
+.pick-history { margin-top: 16px; }
+.pick-list { display: grid; gap: 10px; }
+.pick-item { display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px; padding: 10px; background: #fff; box-shadow: 0 10px 22px rgba(0,0,0,0.06); }
+.status-badge { padding: 6px 10px; border-radius: 999px; font-weight: 700; }
+.status-badge.completed { background: #e6ffed; color: #0a7d33; border: 1px solid rgba(10,125,51,0.2); }
+.status-badge.rejected { background: #ffebee; color: #b00020; border: 1px solid rgba(176,0,32,0.2); }
+.status-badge.pending, .status-badge.admin_pending { background: #fff7e6; color: #a35d00; border: 1px solid rgba(163,93,0,0.2); }
+

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import axios from "axios";
 import { API_ENDPOINTS } from "../const";
+import { useMemo } from "react";
 
 // Keyframes for subtle animations
 const fadeIn = keyframes`
@@ -52,7 +53,12 @@ const TableHead = styled.thead`
 `;
 
 const TableRow = styled.tr`
-  background-color: #ffffff !important;
+  background-color: ${(props) =>
+    props.variant === "top"
+      ? "#d4edda"
+      : props.variant === "bottom"
+      ? "#f8d7da"
+      : "#fff3cd"} !important;
   height: 50px;
 `;
 
@@ -88,6 +94,36 @@ const HighlightCell = styled(TableCell)`
   @media (max-width: 600px) {
     padding-left: 0.5rem; /* Reduce padding on mobile screens */
   }
+`;
+
+const QualifierBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #28a745; /* green */
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 800;
+`;
+
+const EliminatedBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #dc3545; /* red */
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 800;
 `;
 
 const RankCell = styled(TableCell)`
@@ -147,6 +183,10 @@ const PointsTable = () => {
   const [towerPosition, setTowerPosition] = useState(null);
   const [confirmationModal, setConfirmationModal] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const TOTAL_MATCHES = 13;
+  const NUM_QUALIFIERS = 6; // always top-6 qualify
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -160,6 +200,7 @@ const PointsTable = () => {
         `${API_ENDPOINTS}/api/users/points-table`
       );
       setTeams(response.data);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching teams data:", error);
     }
@@ -210,6 +251,79 @@ const PointsTable = () => {
       alert("Failed to update points.");
     }
   };
+
+  // Filter out placeholder teams once
+  const filteredTeams = useMemo(
+    () => teams.filter((team) => team.teamName !== "NA"),
+    [teams]
+  );
+
+  useEffect(() => {
+    console.log(filteredTeams, '@@@@@');
+  }, [filteredTeams]);
+
+  // Current top-N based on points (fairness tie-breaker)
+  const currentTopMap = useMemo(() => {
+    const ids = {};
+    if (filteredTeams.length === 0) return ids;
+    const sorted = [...filteredTeams].sort((a, b) => {
+      const pa = Number(a.points) || 0;
+      const pb = Number(b.points) || 0;
+      if (pb !== pa) return pb - pa;
+      const fa = Number(a.fairness) || 0;
+      const fb = Number(b.fairness) || 0;
+      return fb - fa;
+    });
+    sorted.slice(0, NUM_QUALIFIERS).forEach((t) => {
+      ids[t._id] = true;
+    });
+    return ids;
+  }, [filteredTeams, NUM_QUALIFIERS]);
+
+  // Mathematical status map (Q/E/NONE) only for 13-match format
+  const mathStatusMap = useMemo(() => {
+    const result = {};
+    const isThirteen = TOTAL_MATCHES === 13;
+    if (!isThirteen || loading || filteredTeams.length === 0) return result;
+
+    filteredTeams.forEach((team) => {
+      const points = Number(team.points) || 0;
+      const played = Number(team.matchesPlayed) || 0;
+      const remaining = Math.max(0, TOTAL_MATCHES - played);
+      const teamMin = points; // lose out
+      const teamMax = points + remaining * 2; // win out
+
+      const others = filteredTeams.filter((t) => t._id !== team._id);
+      const othersMax = others
+        .map((t) => {
+          const tp = Number(t.points) || 0;
+          const pl = Number(t.matchesPlayed) || 0;
+          const rem = Math.max(0, TOTAL_MATCHES - pl);
+          return tp + rem * 2;
+        })
+        .sort((a, b) => b - a);
+
+      const othersCurrent = others
+        .map((t) => Number(t.points) || 0)
+        .sort((a, b) => b - a);
+
+      const kthIndex = NUM_QUALIFIERS - 1;
+      const kthMax = othersMax[kthIndex];
+      const kthCurrent = othersCurrent[kthIndex];
+
+      const clinched = othersMax.length < NUM_QUALIFIERS
+        ? true
+        : teamMin > (kthMax ?? -Infinity); // must be strictly greater than others' best
+
+      const eliminated = othersCurrent.length >= NUM_QUALIFIERS
+        ? teamMax < (kthCurrent ?? Infinity) // strictly less than current kth team's points
+        : false;
+
+      result[team._id] = clinched ? 'Q' : eliminated ? 'E' : 'NONE';
+    });
+
+    return result;
+  }, [filteredTeams, TOTAL_MATCHES, NUM_QUALIFIERS, loading]);
 
   return (
     <>
@@ -353,32 +467,52 @@ const PointsTable = () => {
             </tr>
           </TableHead>
           <tbody>
-            {teams
-              .filter((team) => team.teamName !== "NA")
-              .map((team, index) => {
-                const losses = team.matchesPlayed - team.wins;
-                const teamImage = team.teamImage
-                  ? `${API_ENDPOINTS}${team.teamImage}`
-                  : "https://via.placeholder.com/100";
+            {filteredTeams.map((team, index) => {
+              const losses = team.matchesPlayed - team.wins;
+              const teamImage = team.teamImage
+                ? `${API_ENDPOINTS}${team.teamImage}`
+                : "https://via.placeholder.com/100";
 
-                return (
-                  <TableRow key={team._id} index={index}>
-                    <RankCell>{`${index + 1} -`}</RankCell>
-                    <HighlightCell
-                      isAdmin={isAdmin}
-                      onClick={(event) => handleTeamClick(event, team)}
-                    >
-                      <img src={teamImage} alt={team.teamName} />
-                      {team.teamName}
-                    </HighlightCell>
-                    <TableCell>{team.wins}</TableCell>
-                    <TableCell>{losses}</TableCell>
-                    <TableCell>{team.fairness}</TableCell>
-                    <TableCell>{team.points}</TableCell>
-                    <TableCell>{team.matchesPlayed}</TableCell>
-                  </TableRow>
-                );
-              })}
+              const variant =
+                index < 6
+                  ? "top"
+                  : index >= filteredTeams.length - 3
+                  ? "bottom"
+                  : "middle";
+
+              const isTop = Boolean(currentTopMap[team._id]);
+
+              // Decide which badge to show
+              const isThirteen = TOTAL_MATCHES === 13;
+              const mathStatus = mathStatusMap[team._id]; // 'Q' | 'E' | 'NONE' | undefined
+              const showQ = isThirteen ? mathStatus === 'Q' : isTop;
+              const showE = isThirteen ? mathStatus === 'E' : !isTop;
+              const qTitle = isThirteen ? "Qualified (Mathematical)" : "Qualified (Top 6)";
+              const eTitle = isThirteen ? "Eliminated (Mathematical)" : "Eliminated";
+
+              return (
+                <TableRow key={team._id} index={index} variant={variant}>
+                  <RankCell>{`${index + 1} -`}</RankCell>
+                  <HighlightCell
+                    isAdmin={isAdmin}
+                    onClick={(event) => handleTeamClick(event, team)}
+                  >
+                    <img src={teamImage} alt={team.teamName} />
+                    {team.teamName}
+                    {showQ ? (
+                      <QualifierBadge title={qTitle}>Q</QualifierBadge>
+                    ) : showE ? (
+                      <EliminatedBadge title={eTitle}>E</EliminatedBadge>
+                    ) : null}
+                  </HighlightCell>
+                  <TableCell>{team.wins}</TableCell>
+                  <TableCell>{losses}</TableCell>
+                  <TableCell>{team.fairness}</TableCell>
+                  <TableCell>{team.points}</TableCell>
+                  <TableCell>{team.matchesPlayed}</TableCell>
+                </TableRow>
+              );
+            })}
           </tbody>
         </Table>
       </TableWrapper>

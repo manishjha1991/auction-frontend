@@ -1,0 +1,42 @@
+.admin-trades-page { padding: 20px; display: grid; gap: 16px; background: radial-gradient(1200px 600px at 100% -10%, rgba(13,110,253,0.08), transparent), radial-gradient(1200px 600px at -10% 100%, rgba(32,201,151,0.08), transparent); }
+.admin-trades-page .toast { background: linear-gradient(135deg, #0d6efd, #6610f2); color: #fff; padding: 8px 10px; border-radius: 12px; box-shadow: 0 8px 24px rgba(13,110,253,0.25); }
+.admin-trades-page .list { display: grid; gap: 12px; }
+.admin-trades-page .item { background: linear-gradient(180deg, #ffffff, #fafafa); border-radius: 16px; padding: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.06); }
+.admin-trades-page .actions { display: flex; gap: 8px; margin-top: 8px; }
+.admin-trades-page .btn { padding: 10px 12px; border-radius: 12px; border: none; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.06); }
+.admin-trades-page .btn.btn-success { background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff; }
+.admin-trades-page .btn.btn-danger { background: linear-gradient(135deg, #dc2626, #ef4444); color: #fff; }
+.admin-trades-page .empty { color: #777; }
+.gradient-title { background: linear-gradient(90deg, #0d6efd, #20c997); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+.history-list { display: grid; gap: 12px; margin-top: 8px; }
+.history-item { background: #fff; border-radius: 14px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.06); }
+.history-item .status { padding: 4px 8px; border-radius: 999px; margin-left: 8px; font-size: 12px; }
+.history-item .status.completed { background: #e6ffed; color: #0a7d33; }
+.history-item .status.rejected { background: #ffebee; color: #b00020; }
+.history-item .status.withdrawn { background: #f2f2f2; color: #666; }
+.history-item .small { color: #666; font-size: 12px; }
+
+/* New sexy history grid */
+.history-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+.decision-card { background: linear-gradient(180deg, #ffffff, #fafafa); border: 1px solid rgba(0,0,0,0.06); border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); padding: 14px; display: grid; gap: 10px; }
+.decision-header { display: flex; align-items: center; justify-content: space-between; }
+.badge { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; font-weight: 600; font-size: 12px; box-shadow: 0 8px 18px rgba(0,0,0,0.06); }
+.badge-approved { background: #e6ffed; color: #0a7d33; border: 1px solid rgba(10,125,51,0.2); }
+.badge-rejected { background: #ffebee; color: #b00020; border: 1px solid rgba(176,0,32,0.2); }
+.meta-row { display: flex; gap: 8px; }
+.meta-chip { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 999px; padding: 4px 8px; font-size: 12px; }
+.teams-row, .players-row { display: flex; align-items: center; gap: 10px; }
+.team-pill, .player-chip { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px; padding: 6px 10px; box-shadow: 0 10px 22px rgba(0,0,0,0.06); }
+.arrow { opacity: 0.6; }
+.players-inline { display: flex; align-items: center; gap: 8px; }
+.type-badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; margin-left: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.06); }
+.type-badge.sapphire { background: linear-gradient(135deg, #3a7bd5, #3a6073); color: #fff; }
+.type-badge.gold { background: linear-gradient(135deg, #f7971e, #ffd200); color: #3a2f00; }
+.type-badge.emerald { background: linear-gradient(135deg, #56ab2f, #a8e063); color: #0b3d0b; }
+.type-badge.silver { background: linear-gradient(135deg, #ffffff, #e0e0e0); color: #333; }
+
+@media (max-width: 1100px) { .history-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 640px) { .history-grid { grid-template-columns: 1fr; } }
+
+

@@ -1,0 +1,82 @@
+.trade-page { display: flex; flex-direction: column; gap: 20px; padding: 20px; background: radial-gradient(1200px 600px at 100% -10%, rgba(13,110,253,0.08), transparent), radial-gradient(1200px 600px at -10% 100%, rgba(32,201,151,0.08), transparent); }
+.trade-loading { display: flex; align-items: center; justify-content: center; height: 60vh; }
+.toast { background: linear-gradient(135deg, #0d6efd, #6610f2); color: #fff; padding: 10px 12px; border-radius: 12px; box-shadow: 0 8px 24px rgba(13,110,253,0.25); }
+.trade-hero { display: grid; grid-template-columns: 1.4fr 1fr; align-items: center; gap: 16px; background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(255,255,255,0.6)); backdrop-filter: blur(8px); border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.12); padding: 22px 26px; }
+.gradient-title { background: linear-gradient(90deg, #0d6efd, #20c997); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.usage-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.usage-badge { background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 999px; padding: 6px 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.06); font-weight: 700; letter-spacing: 0.2px; }
+.usage-used { color: #0a7d33; border-color: rgba(10,125,51,0.2); }
+.usage-left { color: #0d47a1; border-color: rgba(13,71,161,0.2); }
+.usage-cap { color: #b00020; font-weight: 600; }
+.card { background: #fff; border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); padding: 16px; }
+.card.glass { background: linear-gradient(135deg, rgba(255,255,255,0.65), rgba(255,255,255,0.55)); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.5); }
+.trade-propose .grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+.select { width: 100%; padding: 12px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.04); }
+.btn { padding: 11px 14px; border: none; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.06); }
+.btn-primary { background: linear-gradient(135deg, #0d6efd, #20c997); color: #fff; }
+.btn-success { background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff; }
+.btn-danger { background: linear-gradient(135deg, #dc2626, #ef4444); color: #fff; }
+.btn-ghost { background: #ffffff; color: #0d6efd; border: 1px solid rgba(13,110,253,0.25); }
+.trade-inbox .trade-list { display: grid; gap: 14px; }
+.trade-item { border: 1px solid rgba(0,0,0,0.06); border-radius: 16px; padding: 14px; display: grid; gap: 8px; background: linear-gradient(180deg, #ffffff, #fafafa); }
+.trade-item.disabled { opacity: 0.6; pointer-events: none; filter: grayscale(0.1); }
+.trade-item .meta { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; align-items: center; }
+.trade-item .status { justify-self: end; padding: 6px 10px; border-radius: 999px; font-size: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06); }
+.trade-item .status.pending { background: #fff7e6; color: #a35d00; }
+.trade-item .status.counter { background: #e6f4ff; color: #0d47a1; }
+.trade-item .status.admin_pending { background: #fff0f6; color: #9c27b0; }
+.trade-item .status.completed { background: #e6ffed; color: #0a7d33; }
+.trade-item .status.rejected { background: #ffebee; color: #b00020; }
+.trade-item .status.withdrawn { background: #f2f2f2; color: #666; }
+.trade-item .history { display: grid; gap: 4px; font-size: 13px; color: #555; }
+.trade-item .item-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+@media (max-width: 900px) { .trade-propose .grid { grid-template-columns: 1fr 1fr; } .trade-item .meta { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .trade-hero { grid-template-columns: 1fr; } }
+
+/* Badges and chips */
+.type-badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; margin-left: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.06); }
+.type-badge.sapphire { background: linear-gradient(135deg, #3a7bd5, #3a6073); color: #fff; }
+.type-badge.gold { background: linear-gradient(135deg, #f7971e, #ffd200); color: #3a2f00; }
+.type-badge.emerald { background: linear-gradient(135deg, #56ab2f, #a8e063); color: #0b3d0b; }
+.type-badge.silver { background: linear-gradient(135deg, #ffffff, #e0e0e0); color: #333; }
+
+.preview-row { margin-top: 12px; }
+.chips { display: inline-flex; align-items: center; gap: 10px; background: #fff; padding: 8px 10px; border-radius: 14px; box-shadow: 0 14px 30px rgba(0,0,0,0.08); }
+.player-chip { display: inline-flex; align-items: center; gap: 8px; }
+.player-chip .name { font-weight: 600; }
+.chip-arrow { opacity: 0.6; }
+
+.offer-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.offer-chip { display: inline-flex; align-items: center; gap: 8px; background: #fff; padding: 4px 8px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 8px 18px rgba(0,0,0,0.06); }
+.offer-chip.inline { margin-left: 8px; }
+
+/* Teams visuals */
+.team-line { display: flex; align-items: center; gap: 10px; }
+.team-pill { display: inline-flex; align-items: center; gap: 8px; background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 999px; padding: 2px 10px; box-shadow: 0 10px 22px rgba(0,0,0,0.06); }
+.team-avatar { width: 22px; height: 22px; border-radius: 999px; object-fit: cover; }
+.team-initial { width: 22px; height: 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0d6efd, #20c997); color: #fff; font-weight: 700; font-size: 12px; }
+.team-name { font-weight: 600; }
+
+.empty-card { display: grid; justify-items: center; background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.6)); border-radius: 16px; padding: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); }
+
+/* Release section */
+.release-box { margin-top: 14px; display: grid; gap: 8px; }
+.release-row { display: flex; gap: 8px; align-items: center; }
+
+/* Release history */
+.release-history { margin-top: 10px; }
+.release-list { display: grid; gap: 10px; }
+.release-item { display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px; padding: 10px; background: #fff; box-shadow: 0 10px 22px rgba(0,0,0,0.06); }
+.release-icon { color: #0a7d33; background: #e6ffed; border: 1px solid rgba(10,125,51,0.2); width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; box-shadow: 0 8px 18px rgba(0,0,0,0.06); }
+
+/* Unsold picks */
+.unsold-picks { margin-top: 12px; }
+.unsold-list { display: grid; gap: 10px; }
+.unsold-item { display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px; padding: 10px; background: #fff; box-shadow: 0 10px 22px rgba(0,0,0,0.06); }
+.unsold-item .left { display: flex; gap: 10px; align-items: center; }
+.unsold-meta { color: #555; font-size: 13px; }
+.unsold-toolbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.unsold-pagination { display: flex; justify-content: center; gap: 10px; align-items: center; margin-top: 10px; }
+.page-indicator { color: #333; font-weight: 600; }
+
+

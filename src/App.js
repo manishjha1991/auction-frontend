@@ -11,6 +11,13 @@ import Fixtures from './components/Fixtures';
 import PointTable from './components/PointTable';
 import PlayerStatsList from './components/PlayerStatsList';
 import StatsOverview from './components/StatsOverview'; // <-- import your new component
+import NewsAlerts from './components/NewsAlerts';
+import TradeCenter from './components/TradeCenter';
+import UnsoldPlayers from './components/UnsoldPlayers';
+import AdminSettings from './components/AdminSettings';
+import { API_ENDPOINTS } from './const';
+import { FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen } from 'react-icons/fa';
+import AdminTrades from './components/AdminTrades';
 
 import './App.css';
 
@@ -19,6 +26,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [appSettings, setAppSettings] = useState({ enableTradeCenter: true, enableUnsoldPlayers: true });
 
   useEffect(() => {
     const cachedAuth = localStorage.getItem('isLoggedIn') === 'true';
@@ -31,6 +39,20 @@ function App() {
       setIsAuthenticated(false);
     }
     setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const res = await fetch(`${API_ENDPOINTS}/api/settings`);
+        const j = await res.json();
+        if (typeof j.enableTradeCenter === 'boolean') setAppSettings({ enableTradeCenter: j.enableTradeCenter, enableUnsoldPlayers: j.enableUnsoldPlayers });
+      } catch {}
+    }
+    fetchSettings();
+    const handler = () => fetchSettings();
+    window.addEventListener('settings-updated', handler);
+    return () => window.removeEventListener('settings-updated', handler);
   }, []);
 
   const handleLogin = (userData) => {
@@ -99,7 +121,32 @@ function App() {
                 <li><Link to="/sold-playerslist" onClick={toggleSidebar}>Sold Player List</Link></li>
                 
                 {/* NEW: Link to Stats Overview */}
-                <li><Link to="/stats-overview" onClick={toggleSidebar}>Stats Overview</Link></li>
+                <li>
+                  <Link to="/stats-overview" onClick={toggleSidebar}>
+                    <FaChartPie /> <span>Stats Overview</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/news" onClick={toggleSidebar}>
+                    <FaBullhorn /> <span>News Alerts</span>
+                  </Link>
+                </li>
+                {appSettings.enableTradeCenter && (
+                  <li>
+                    <Link to="/trade" onClick={toggleSidebar}>
+                      <FaExchangeAlt /> <span>Trade Center</span>
+                    </Link>
+                  </li>
+                )}
+                {appSettings.enableUnsoldPlayers && (
+                  <li>
+                    <Link to="/unsold" onClick={toggleSidebar}>
+                      <FaBoxOpen /> <span>Unsold Players</span>
+                    </Link>
+                  </li>
+                )}
+                {user?.isAdmin && <li><Link to="/admin/trades" onClick={toggleSidebar}>Admin Trades</Link></li>}
+                {user?.isAdmin && <li><Link to="/admin/settings" onClick={toggleSidebar}>Admin Settings</Link></li>}
 
                 <li>
                   <button className="logout-btn" onClick={handleLogout}>
@@ -132,6 +179,54 @@ function App() {
               element={
                 <PrivateRoute>
                   <StatsOverview />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/news"
+              element={
+                <PrivateRoute>
+                  <NewsAlerts />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/trade"
+              element={
+                <PrivateRoute>
+                  {appSettings.enableTradeCenter ? <TradeCenter /> : <Navigate to="/profile" />}
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/unsold"
+              element={
+                <PrivateRoute>
+                  {appSettings.enableUnsoldPlayers ? <UnsoldPlayers /> : <Navigate to="/profile" />}
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/trades"
+              element={
+                <PrivateRoute>
+                  <AdminTrades />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <PrivateRoute>
+                  <AdminSettings />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/newsletter"
+              element={
+                <PrivateRoute>
+                  <Navigate to="/news" />
                 </PrivateRoute>
               }
             />
