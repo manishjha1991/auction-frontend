@@ -185,7 +185,7 @@ const PointsTable = () => {
   const [pendingUpdate, setPendingUpdate] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const TOTAL_MATCHES = 13;
+  const TOTAL_MATCHES = 12;
   const NUM_QUALIFIERS = 6; // always top-6 qualify
 
   useEffect(() => {
@@ -280,7 +280,7 @@ const PointsTable = () => {
     return ids;
   }, [filteredTeams, NUM_QUALIFIERS]);
 
-  // Mathematical status map (Q/E/NONE) only for 13-match format
+  // Mathematical status map (Q/E/NONE) from previous logic (kept for reference, not used when season incomplete)
   const mathStatusMap = useMemo(() => {
     const result = {};
     const isThirteen = TOTAL_MATCHES === 13;
@@ -324,6 +324,28 @@ const PointsTable = () => {
 
     return result;
   }, [filteredTeams, TOTAL_MATCHES, NUM_QUALIFIERS, loading]);
+
+  // Season completion flag: everyone played all matches
+  const allCompleted = useMemo(() => {
+    if (filteredTeams.length === 0) return false;
+    return filteredTeams.every(t => Number(t.matchesPlayed) >= TOTAL_MATCHES);
+  }, [filteredTeams, TOTAL_MATCHES]);
+
+  // Top-N map at completion (used when allCompleted)
+  const completedTopMap = useMemo(() => {
+    const ids = {};
+    if (!allCompleted) return ids;
+    const sorted = [...filteredTeams].sort((a, b) => {
+      const pa = Number(a.points) || 0;
+      const pb = Number(b.points) || 0;
+      if (pb !== pa) return pb - pa;
+      const fa = Number(a.fairness) || 0;
+      const fb = Number(b.fairness) || 0;
+      return fb - fa;
+    });
+    sorted.slice(0, NUM_QUALIFIERS).forEach((t) => { ids[t._id] = true; });
+    return ids;
+  }, [allCompleted, filteredTeams, NUM_QUALIFIERS]);
 
   return (
     <>
@@ -480,15 +502,29 @@ const PointsTable = () => {
                   ? "bottom"
                   : "middle";
 
-              const isTop = Boolean(currentTopMap[team._id]);
-
-              // Decide which badge to show
-              const isThirteen = TOTAL_MATCHES === 13;
+              const isTop = allCompleted ? Boolean(completedTopMap[team._id]) : false;
               const mathStatus = mathStatusMap[team._id]; // 'Q' | 'E' | 'NONE' | undefined
-              const showQ = isThirteen ? mathStatus === 'Q' : isTop;
-              const showE = isThirteen ? mathStatus === 'E' : !isTop;
-              const qTitle = isThirteen ? "Qualified (Mathematical)" : "Qualified (Top 6)";
-              const eTitle = isThirteen ? "Eliminated (Mathematical)" : "Eliminated";
+              // Rules:
+              // - During season (not allCompleted):
+              //   Q if points > 20
+              //   E if team meets early thresholds:
+              //       >=12 MP and PTS <= 10
+              //       >=11 MP and PTS <= 8
+              //       >=10 MP and PTS <= 6
+              //       >=9  MP and PTS <= 4
+              // - After season complete: Q for final Top-6; E for non Top-6
+              const points = Number(team.points) || 0;
+              const playedNow = Number(team.matchesPlayed) || 0;
+              const earlyEliminated = (
+                (playedNow >= 12 && points <= 10) ||
+                (playedNow >= 11 && points <= 8)  ||
+                (playedNow >= 10 && points <= 6)  ||
+                (playedNow >= 9  && points <= 4)
+              );
+              const showQ = allCompleted ? isTop : points > 20;
+              const showE = allCompleted ? !isTop : earlyEliminated;
+              const qTitle = allCompleted ? "Qualified (Final)" : "Qualified (20+ points)";
+              const eTitle = allCompleted ? "Eliminated (Final)" : "Eliminated (early threshold)";
 
               return (
                 <TableRow key={team._id} index={index} variant={variant}>
