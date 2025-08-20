@@ -58,8 +58,16 @@ const TableRow = styled.tr`
       ? "#d4edda"
       : props.variant === "bottom"
       ? "#f8d7da"
+      : props.variant === "eliminated"
+      ? "#f8d7da"
       : "#fff3cd"} !important;
   height: 50px;
+  ${(props) =>
+    props.variant === "eliminated" &&
+    `
+    border-left: 4px solid #dc3545;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+    `}
 `;
 
 const TableCell = styled.td`
@@ -257,6 +265,43 @@ const PointsTable = () => {
     () => teams.filter((team) => team.teamName !== "NA"),
     [teams]
   );
+
+  // Sort teams: eliminated teams go to bottom, others by points
+  const sortedTeams = useMemo(() => {
+    return [...filteredTeams].sort((a, b) => {
+      const pointsA = Number(a.points) || 0;
+      const pointsB = Number(b.points) || 0;
+      const playedA = Number(a.matchesPlayed) || 0;
+      const playedB = Number(b.matchesPlayed) || 0;
+      
+      // Check if teams are eliminated based on early thresholds
+      const isEliminatedA = (
+        (playedA >= 12 && pointsA <= 10) ||
+        (playedA >= 11 && pointsA <= 8) ||
+        (playedA >= 10 && pointsA <= 6) ||
+        (playedA >= 9 && pointsA <= 4)
+      );
+      
+      const isEliminatedB = (
+        (playedB >= 12 && pointsB <= 10) ||
+        (playedB >= 11 && pointsB <= 8) ||
+        (playedB >= 10 && pointsB <= 6) ||
+        (playedB >= 9 && pointsB <= 4)
+      );
+      
+      // Eliminated teams go to bottom
+      if (isEliminatedA && !isEliminatedB) return 1;
+      if (!isEliminatedA && isEliminatedB) return -1;
+      
+      // If both eliminated or both not eliminated, sort by points (descending)
+      if (pointsB !== pointsA) return pointsB - pointsA;
+      
+      // If points are equal, sort by fairness (descending)
+      const fairnessA = Number(a.fairness) || 0;
+      const fairnessB = Number(b.fairness) || 0;
+      return fairnessB - fairnessA;
+    });
+  }, [filteredTeams]);
 
   useEffect(() => {
     console.log(filteredTeams, '@@@@@');
@@ -489,18 +534,34 @@ const PointsTable = () => {
             </tr>
           </TableHead>
           <tbody>
-            {filteredTeams.map((team, index) => {
+            {sortedTeams.map((team, index) => {
               const losses = team.matchesPlayed - team.wins;
               const teamImage = team.teamImage
                 ? `${API_ENDPOINTS}${team.teamImage}`
                 : "https://via.placeholder.com/100";
 
-              const variant =
-                index < 6
-                  ? "top"
-                  : index >= filteredTeams.length - 3
-                  ? "bottom"
-                  : "middle";
+              const points = Number(team.points) || 0;
+              const playedNow = Number(team.matchesPlayed) || 0;
+
+              // Check if team is eliminated based on early thresholds
+              const isEliminated = (
+                (playedNow >= 12 && points <= 10) ||
+                (playedNow >= 11 && points <= 8) ||
+                (playedNow >= 10 && points <= 6) ||
+                (playedNow >= 9 && points <= 4)
+              );
+
+              // Variant logic: eliminated teams get red card, others by position
+              let variant;
+              if (isEliminated) {
+                variant = "eliminated"; // Red card design
+              } else if (index < 6) {
+                variant = "top";
+              } else if (index >= sortedTeams.length - 3) {
+                variant = "bottom";
+              } else {
+                variant = "middle";
+              }
 
               const isTop = allCompleted ? Boolean(completedTopMap[team._id]) : false;
               const mathStatus = mathStatusMap[team._id]; // 'Q' | 'E' | 'NONE' | undefined
@@ -513,8 +574,6 @@ const PointsTable = () => {
               //       >=10 MP and PTS <= 6
               //       >=9  MP and PTS <= 4
               // - After season complete: Q for final Top-6; E for non Top-6
-              const points = Number(team.points) || 0;
-              const playedNow = Number(team.matchesPlayed) || 0;
               const earlyEliminated = (
                 (playedNow >= 12 && points <= 10) ||
                 (playedNow >= 11 && points <= 8)  ||
