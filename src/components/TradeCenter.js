@@ -3,6 +3,69 @@ import { API_ENDPOINTS } from '../const';
 import '../css/TradeCenter.css';
 import { FaExchangeAlt, FaCheck,FaClock, FaBoxOpen,FaTimes, FaPaperPlane, FaRetweet, FaUsers, FaUnlock, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
 
+// Sexy Dropdown Loader Component
+const SexyDropdownLoader = ({ isLoading, children, placeholder = "Loading...", dataLength = 0, dataType = "", isStale = false, onRefresh, loadingProgress = 0 }) => {
+  if (isLoading) {
+    let message = placeholder;
+    
+    // Show different messages based on data type and loading state
+    if (dataType === "roster" && dataLength === 0) {
+      message = loadingProgress > 0 ? `Fetching your players... ${loadingProgress}%` : "Fetching your players...";
+    } else if (dataType === "teams" && dataLength === 0) {
+      message = loadingProgress > 0 ? `Loading all teams... ${loadingProgress}%` : "Loading all teams...";
+    } else if (dataType === "targetRoster" && dataLength === 0) {
+      message = loadingProgress > 0 ? `Loading team roster... ${loadingProgress}%` : "Loading team roster...";
+    }
+    
+    return (
+      <div className="sexy-dropdown-loader">
+        <div className="loader-content">
+          <div className="loader-spinner">
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+          </div>
+          <span className="loader-text">{message}</span>
+          {loadingProgress > 0 && (
+            <div className="loader-progress">
+              <div className="progress-bar" style={{ width: `${loadingProgress}%` }}></div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  
+  // Show stale data state with refresh option
+  if (isStale && dataLength === 0) {
+    return (
+      <div className="sexy-stale-data">
+        <div className="stale-data-content">
+          <div className="stale-data-icon">🔄</div>
+          <span className="stale-data-text">Data may be outdated</span>
+          <button className="refresh-btn" onClick={onRefresh}>
+            <span>↻</span> Refresh
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show cool "no data" state if data is empty after loading
+  if (dataLength === 0 && !isLoading) {
+    return (
+      <div className="sexy-no-data">
+        <div className="no-data-content">
+          <div className="no-data-icon">📭</div>
+          <span className="no-data-text">No {dataType === "roster" ? "players" : dataType === "teams" ? "teams" : "data"} available</span>
+        </div>
+      </div>
+    );
+  }
+  
+  return children;
+};
+
 // Sexy Alert Component
 const SexyAlert = ({ alert, onClose }) => {
   if (!alert) return null;
@@ -48,10 +111,8 @@ function TradeCenter() {
   const [user, setUser] = useState(null);
   const [teams, setTeams] = useState([]); // all teams
   const [allPlayers, setAllPlayers] = useState([]); // from /api/players/data
-  const [myRoster, setMyRoster] = useState([]);
   const [selectedMyPlayer, setSelectedMyPlayer] = useState('');
   const [targetTeamId, setTargetTeamId] = useState('');
-  const [targetRoster, setTargetRoster] = useState([]);
   const [selectedTargetPlayer, setSelectedTargetPlayer] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -75,6 +136,102 @@ function TradeCenter() {
   const [isSelectingTrade, setIsSelectingTrade] = useState(false);
   const [isSelectingRelease, setIsSelectingRelease] = useState(false);
   const [alert, setAlert] = useState(null);
+  
+  // Dropdown loading states
+  const [dropdownLoading, setDropdownLoading] = useState({
+    myRoster: true,
+    teams: true,
+    targetRoster: true
+  });
+  
+  // Track when data was last fetched
+  const [lastFetchTime, setLastFetchTime] = useState({
+    teams: 0,
+    players: 0,
+    trades: 0
+  });
+  
+  // Derive my roster from allPlayers using my teamName - OPTIMIZED with memoization
+  const myRoster = useMemo(() => {
+    if (!user || !allPlayers.length) return [];
+    
+    // Use Set for faster team name comparison
+    const userTeamName = user.teamName;
+    if (!userTeamName) return [];
+    
+    // Filter players efficiently
+    return allPlayers
+      .filter(p => p.teamName === userTeamName)
+      .map(p => ({ id: p.id, name: p.name, role: p.role }));
+  }, [user?.teamName, allPlayers]);
+
+  // Derive target roster from allPlayers using selected teamName - OPTIMIZED
+  const targetRoster = useMemo(() => {
+    if (!targetTeamId || !teams.length || !allPlayers.length) return [];
+    
+    const team = teams.find(t => t._id === targetTeamId);
+    if (!team?.teamName) return [];
+    
+    // Filter players efficiently
+    return allPlayers
+      .filter(p => p.teamName === team.teamName)
+      .map(p => ({ id: p.id, name: p.name, role: p.role }));
+  }, [targetTeamId, teams, allPlayers]);
+
+  // Derive other teams - OPTIMIZED
+  const otherTeams = useMemo(() => {
+    if (!teams.length || !user?.id) return [];
+    return teams.filter(t => t._id !== user.id);
+  }, [teams, user?.id]);
+
+  // Simple stale data detection
+  const isDataStale = (dataType) => {
+    const now = Date.now();
+    const staleThreshold = 30000; // 30 seconds
+    return (now - lastFetchTime[dataType]) > staleThreshold;
+  };
+
+  // Track when user is selecting trade options
+  useEffect(() => {
+    const hasTradeSelection = selectedMyPlayer || selectedTargetPlayer || targetTeamId;
+    setIsSelectingTrade(!!hasTradeSelection);
+  }, [selectedMyPlayer, selectedTargetPlayer, targetTeamId]);
+  
+  // Track when user is selecting release options
+  useEffect(() => {
+    setIsSelectingRelease(!!releasePlayerId);
+  }, [releasePlayerId]);
+
+  // Update loading states when data changes
+  useEffect(() => {
+    if (allPlayers.length > 0 && user?.teamName) {
+      setDropdownLoading(prev => ({ ...prev, myRoster: false }));
+    }
+  }, [allPlayers, user?.teamName]);
+  
+  useEffect(() => {
+    if (teams.length > 0) {
+      setDropdownLoading(prev => ({ ...prev, teams: false }));
+    }
+  }, [teams]);
+  
+  useEffect(() => {
+    if (targetTeamId && targetRoster.length > 0) {
+      setDropdownLoading(prev => ({ ...prev, targetRoster: false }));
+    }
+  }, [targetTeamId, targetRoster]);
+  
+  // Set target roster loading when team is selected
+  useEffect(() => {
+    if (targetTeamId) {
+      setDropdownLoading(prev => ({ ...prev, targetRoster: true }));
+      // Small delay to show loading animation
+      const timer = setTimeout(() => {
+        setDropdownLoading(prev => ({ ...prev, targetRoster: false }));
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [targetTeamId]);
 
   const isMe = (maybeId) => {
     if (!user) return false;
@@ -97,44 +254,98 @@ function TradeCenter() {
         setLoading(true);
         setLoadingProgress(10);
         
-        const [teamsRes, tradesRes, playersRes, usageRes, releasesRes] = await Promise.all([
+        // Cache user data to avoid repeated localStorage access
+        const cachedUser = localStorage.getItem('user');
+        const currentUser = cachedUser ? JSON.parse(cachedUser) : null;
+        
+        // Fetch user-specific data and general data in parallel for better performance
+        const userSpecificPromises = currentUser ? [
+          fetch(`${API_ENDPOINTS}/api/trades/user/${currentUser.id}`),
+          fetch(`${API_ENDPOINTS}/api/users/${currentUser.id}/trades-usage`),
+          fetch(`${API_ENDPOINTS}/api/releases/user/${currentUser.id}`)
+        ] : [
+          Promise.resolve({ ok: true, json: async () => [] }),
+          Promise.resolve({ ok: true, json: async () => ({ tradesUsed: 0, cap: 4, remaining: 4 }) }),
+          Promise.resolve({ ok: true, json: async () => [] })
+        ];
+        
+        // Fetch teams and players data in parallel
+        const [teamsRes, playersRes, ...userSpecificResults] = await Promise.all([
           fetch(`${API_ENDPOINTS}/api/users/teams`),
-          user ? fetch(`${API_ENDPOINTS}/api/trades/user/${user.id}`) : Promise.resolve({ ok: true, json: async () => [] }),
           fetch(`${API_ENDPOINTS}/api/players/data`),
-          user ? fetch(`${API_ENDPOINTS}/api/users/${user.id}/trades-usage`) : Promise.resolve({ ok: true, json: async () => ({ tradesUsed: 0, cap: 4, remaining: 4 }) }),
-          user ? fetch(`${API_ENDPOINTS}/api/releases/user/${user.id}`) : Promise.resolve({ ok: true, json: async () => [] })
+          ...userSpecificPromises
         ]);
+        
         setLoadingProgress(30);
-        const teamsJson = await teamsRes.json();
-        setLoadingProgress(50);
-        const tradesJson = user ? await tradesRes.json() : [];
+        
+        // Parse responses in parallel
+        const [teamsJson, playersJson, tradesJson, usageJson, releasesJson] = await Promise.all([
+          teamsRes.json(),
+          playersRes.json(),
+          userSpecificResults[0].json(),
+          userSpecificResults[1].json(),
+          userSpecificResults[2].json()
+        ]);
+        
         setLoadingProgress(70);
-        const playersJson = await playersRes.json();
-        setLoadingProgress(80);
-        const usageJson = user ? await usageRes.json() : { tradesUsed: 0, cap: 4, remaining: 4 };
-        setLoadingProgress(90);
-        const releasesJson = user ? await releasesRes.json() : [];
+        
+        // Set all data at once to reduce re-renders
         setTeams(teamsJson.teams || []);
         setTrades(tradesJson || []);
         setAllPlayers(Array.isArray(playersJson) ? playersJson : []);
-        if (usageJson && typeof usageJson.tradesUsed !== 'undefined') setTradeUsage({ tradesUsed: usageJson.tradesUsed, cap: usageJson.cap || 4, remaining: usageJson.remaining });
+        
+        // Set fetch times
+        const now = Date.now();
+        setLastFetchTime({
+          teams: now,
+          players: now,
+          trades: now
+        });
+        
+        // Set dropdown loading states to false when data is loaded
+        setDropdownLoading(prev => ({
+          ...prev,
+          teams: false,
+          myRoster: false
+        }));
+        
+        if (usageJson && typeof usageJson.tradesUsed !== 'undefined') {
+          setTradeUsage({ 
+            tradesUsed: usageJson.tradesUsed, 
+            cap: usageJson.cap || 4, 
+            remaining: usageJson.remaining 
+          });
+        }
+        
         setMyReleases(Array.isArray(releasesJson) ? releasesJson : []);
-        if (Array.isArray(tradesJson)) {
-          const activeTrades = tradesJson.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
-          const activeReleases = releasesJson.filter(r => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(user?.id));
+        
+        if (Array.isArray(tradesJson) && currentUser) {
+          const activeTrades = tradesJson.filter(t => 
+            ['pending', 'admin_pending'].includes(t.status) && 
+            String(t.fromUser?._id) === String(currentUser?.id)
+          );
+          const activeReleases = releasesJson.filter(r => 
+            ['pending', 'admin_pending'].includes(r.status) && 
+            String(r.user) === String(currentUser?.id)
+          );
           const totalActive = activeTrades.length + activeReleases.length;
           setLimitReached(totalActive >= 4);
           setPendingTradesCount(totalActive);
         }
-              setLoadingProgress(100);
-        } catch (e) {
-          setToast('Failed to load trade data.');
-        } finally {
-          setLoading(false);
-          setLoadingProgress(0);
-        }
+        
+        setLoadingProgress(100);
+      } catch (e) {
+        console.error('Bootstrap error:', e);
+        setToast('Failed to load trade data.');
+      } finally {
+        setLoading(false);
+        setLoadingProgress(0);
+      }
     }
-    bootstrap();
+    
+    if (user) {
+      bootstrap();
+    }
   }, [user]);
 
   // periodic refresh so roster updates after admin approval are reflected without manual reload
@@ -142,66 +353,94 @@ function TradeCenter() {
     let timer;
     async function refreshData() {
       try {
+        // Only refresh if user exists and component is mounted
+        if (!user) return;
+        
         const [tradesRes, playersRes, usageRes, releasesRes] = await Promise.all([
-          user ? fetch(`${API_ENDPOINTS}/api/trades/user/${user.id}`) : Promise.resolve({ ok: true, json: async () => [] }),
+          fetch(`${API_ENDPOINTS}/api/trades/user/${user.id}`),
           fetch(`${API_ENDPOINTS}/api/players/data`),
-          user ? fetch(`${API_ENDPOINTS}/api/users/${user.id}/trades-usage`) : Promise.resolve({ ok: true, json: async () => ({ tradesUsed: 0, cap: 4, remaining: 4 }) }),
-          user ? fetch(`${API_ENDPOINTS}/api/releases/user/${user.id}`) : Promise.resolve({ ok: true, json: async () => [] })
+          fetch(`${API_ENDPOINTS}/api/users/${user.id}/trades-usage`),
+          fetch(`${API_ENDPOINTS}/api/releases/user/${user.id}`)
         ]);
-        const tradesJson = user ? await tradesRes.json() : [];
+        
+        const tradesJson = await tradesRes.json();
         const playersJson = await playersRes.json();
-        const usageJson = user ? await usageRes.json() : { tradesUsed: 0, cap: 4, remaining: 4 };
-        const releasesJson = user ? await releasesRes.json() : [];
+        const usageJson = await usageRes.json();
+        const releasesJson = await releasesRes.json();
 
         setTrades(Array.isArray(tradesJson) ? tradesJson : []);
         setAllPlayers(Array.isArray(playersJson) ? playersJson : []);
-        if (usageJson && typeof usageJson.tradesUsed !== 'undefined') setTradeUsage({ tradesUsed: usageJson.tradesUsed, cap: usageJson.cap || 4, remaining: usageJson.remaining });
+        
+        if (usageJson && typeof usageJson.tradesUsed !== 'undefined') {
+          setTradeUsage({ 
+            tradesUsed: usageJson.tradesUsed, 
+            cap: usageJson.cap || 4, 
+            remaining: usageJson.remaining 
+          });
+        }
+        
         setMyReleases(Array.isArray(releasesJson) ? releasesJson : []);
 
         if (Array.isArray(tradesJson)) {
-          const activeTrades = tradesJson.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
-          const activeReleases = releasesJson.filter(r => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(user?.id));
+          const activeTrades = tradesJson.filter(t => 
+            ['pending', 'admin_pending'].includes(t.status) && 
+            String(t.fromUser?._id) === String(user?.id)
+          );
+          const activeReleases = releasesJson.filter(r => 
+            ['pending', 'admin_pending'].includes(r.status) && 
+            String(r.user) === String(user?.id)
+          );
           const totalActive = activeTrades.length + activeReleases.length;
           setLimitReached(totalActive >= 4);
           setPendingTradesCount(totalActive);
         }
-      } catch {}
+      } catch (error) {
+        console.error('Refresh error:', error);
+        // Don't show error to user for background refresh
+      }
     }
-    // refresh every 8 seconds when user is present
+    
+    // Increase refresh interval to 15 seconds to reduce server load
     if (user) {
-      timer = setInterval(refreshData, 8000);
+      timer = setInterval(refreshData, 15000);
     }
-    return () => { if (timer) clearInterval(timer); };
+    
+    return () => { 
+      if (timer) clearInterval(timer); 
+    };
   }, [user]);
 
-  // Derive my roster from allPlayers using my teamName
-  useEffect(() => {
-    if (!user) return;
-    const mine = (allPlayers || []).filter(p => p.teamName && user.teamName && p.teamName === user.teamName);
-    setMyRoster(mine.map(p => ({ id: p.id, name: p.name, role: p.role })));
-  }, [user, allPlayers]);
+  // Function to refresh specific data - OPTIMIZED
+  const refreshData = async (dataType) => {
+    const startTime = performance.now();
+    try {
+      setDropdownLoading(prev => ({ ...prev, [dataType]: true }));
+      
+      if (dataType === 'teams') {
+        const teamsRes = await fetch(`${API_ENDPOINTS}/api/users/teams`);
+        if (!teamsRes.ok) throw new Error('Failed to fetch teams');
+        const teamsJson = await teamsRes.json();
+        setTeams(teamsJson.teams || []);
+        setLastFetchTime(prev => ({ ...prev, teams: Date.now() }));
+      } else if (dataType === 'players') {
+        const playersRes = await fetch(`${API_ENDPOINTS}/api/players/data`);
+        if (!playersRes.ok) throw new Error('Failed to fetch players');
+        const playersJson = await playersRes.json();
+        setAllPlayers(Array.isArray(playersJson) ? playersJson : []);
+        setLastFetchTime(prev => ({ ...prev, players: Date.now() }));
+      }
+      
+      const loadTime = performance.now() - startTime;
+      console.log(`🔄 ${dataType} refreshed in ${loadTime.toFixed(2)}ms`);
+      
+      setDropdownLoading(prev => ({ ...prev, [dataType]: false }));
+    } catch (error) {
+      console.error(`Error refreshing ${dataType}:`, error);
+      setDropdownLoading(prev => ({ ...prev, [dataType]: false }));
+      setToast(`Failed to refresh ${dataType}. Please try again.`);
+    }
+  };
 
-  // Derive target roster from allPlayers using selected teamName
-  useEffect(() => {
-    if (!targetTeamId) { setTargetRoster([]); return; }
-    const team = (teams || []).find(t => t._id === targetTeamId);
-    if (!team) { setTargetRoster([]); return; }
-    const roster = (allPlayers || []).filter(p => p.teamName && p.teamName === team.teamName);
-    setTargetRoster(roster.map(p => ({ id: p.id, name: p.name, role: p.role })));
-  }, [targetTeamId, teams, allPlayers]);
-  
-  // Track when user is selecting trade options
-  useEffect(() => {
-    const hasTradeSelection = selectedMyPlayer || selectedTargetPlayer || targetTeamId;
-    setIsSelectingTrade(!!hasTradeSelection);
-  }, [selectedMyPlayer, selectedTargetPlayer, targetTeamId]);
-  
-  // Track when user is selecting release options
-  useEffect(() => {
-    setIsSelectingRelease(!!releasePlayerId);
-  }, [releasePlayerId]);
-
-  const otherTeams = useMemo(() => (teams || []).filter(t => t._id !== (user && user.id)), [teams, user]);
   const findTeamByName = (teamName) => (teams || []).find(t => t.teamName === teamName);
 
   async function proposeTrade() {
@@ -248,7 +487,6 @@ function TradeCenter() {
       setSelectedMyPlayer('');
       setTargetTeamId('');
       setSelectedTargetPlayer('');
-      setTargetRoster([]);
       setReleasePlayerId(''); // Also reset release selection
     } catch (e) {
       // Show sexy error alert
@@ -283,7 +521,6 @@ function TradeCenter() {
       setSelectedMyPlayer('');
       setTargetTeamId('');
       setSelectedTargetPlayer('');
-      setTargetRoster([]);
       
       // Refresh data to update pending count
       try {
@@ -419,38 +656,44 @@ function TradeCenter() {
           <div className="grid">
             <div className="field-group">
               <label className="field-label">Your Player</label>
-              <select className="select" value={selectedMyPlayer} onChange={(e) => setSelectedMyPlayer(e.target.value)} disabled={isSelectingRelease}>
-                <option value="">Select player</option>
-                {myRoster.map(p => {
-                  const meta = (allPlayers || []).find(ap => ap.id === p.id);
-                  const typ = meta?.type ? ` - ${meta.type}` : '';
-                  return (
-                    <option key={p.id} value={p.id}>{p.name} ({p.role}){typ}</option>
-                  );
-                })}
-              </select>
+              <SexyDropdownLoader isLoading={dropdownLoading.myRoster} placeholder="Loading your roster..." dataLength={myRoster.length} dataType="roster" isStale={isDataStale('players') && myRoster.length === 0} onRefresh={() => refreshData('players')} loadingProgress={loadingProgress}>
+                <select className="select" value={selectedMyPlayer} onChange={(e) => setSelectedMyPlayer(e.target.value)} disabled={isSelectingRelease}>
+                  <option value="">Select player</option>
+                  {myRoster.map(p => {
+                    const meta = (allPlayers || []).find(ap => ap.id === p.id);
+                    const typ = meta?.type ? ` - ${meta.type}` : '';
+                    return (
+                      <option key={p.id} value={p.id}>{p.name} ({p.role}){typ}</option>
+                    );
+                  })}
+                </select>
+              </SexyDropdownLoader>
             </div>
             <div className="field-group">
               <label className="field-label">Target Team</label>
-              <select className="select" value={targetTeamId} onChange={(e) => setTargetTeamId(e.target.value)} disabled={isSelectingRelease}>
-                <option value="">Select team</option>
-                {otherTeams.map(t => (
-                  <option key={t._id} value={t._id}>{t.teamName}</option>
-                ))}
-              </select>
+              <SexyDropdownLoader isLoading={dropdownLoading.teams} placeholder="Loading teams..." dataLength={otherTeams.length} dataType="teams" isStale={isDataStale('teams') && otherTeams.length === 0} onRefresh={() => refreshData('teams')} loadingProgress={loadingProgress}>
+                <select className="select" value={targetTeamId} onChange={(e) => setTargetTeamId(e.target.value)} disabled={isSelectingRelease}>
+                  <option value="">Select team</option>
+                  {otherTeams.map(t => (
+                    <option key={t._id} value={t._id}>{t.teamName}</option>
+                  ))}
+                </select>
+              </SexyDropdownLoader>
             </div>
             <div className="field-group">
               <label className="field-label">Target Player</label>
-              <select className="select" value={selectedTargetPlayer} onChange={(e) => setSelectedTargetPlayer(e.target.value)} disabled={!targetTeamId || isSelectingRelease}>
-                <option value="">Select player</option>
-                {targetRoster.map(p => {
-                  const meta = (allPlayers || []).find(ap => ap.id === p.id);
-                  const typ = meta?.type ? ` - ${meta.type}` : '';
-                  return (
-                    <option key={p.id} value={p.id}>{p.name} ({p.role}){typ}</option>
-                  );
-                })}
-              </select>
+              <SexyDropdownLoader isLoading={dropdownLoading.targetRoster} placeholder="Loading target roster..." dataLength={targetRoster.length} dataType="targetRoster" isStale={isDataStale('players') && targetRoster.length === 0} onRefresh={() => refreshData('players')} loadingProgress={loadingProgress}>
+                <select className="select" value={selectedTargetPlayer} onChange={(e) => setSelectedTargetPlayer(e.target.value)} disabled={!targetTeamId || isSelectingRelease}>
+                  <option value="">Select player</option>
+                  {targetRoster.map(p => {
+                    const meta = (allPlayers || []).find(ap => ap.id === p.id);
+                    const typ = meta?.type ? ` - ${meta.type}` : '';
+                    return (
+                      <option key={p.id} value={p.id}>{p.name} ({p.role}){typ}</option>
+                    );
+                  })}
+                </select>
+              </SexyDropdownLoader>
             </div>
             <div className="actions cta-row">
               <button 
@@ -476,16 +719,18 @@ function TradeCenter() {
           <div className="release-box">
             <label className="field-label">Request Release</label>
             <div className="release-row">
-              <select className="select" value={releasePlayerId} onChange={(e) => setReleasePlayerId(e.target.value)} disabled={isSelectingTrade}>
-                <option value="">Select player</option>
-                {myRoster.map(p => {
-                  const meta = (allPlayers || []).find(ap => ap.id === p.id);
-                  const typ = meta?.type ? ` - ${meta.type}` : '';
-                  return (
-                    <option key={p.id} value={p.id}>{p.name} ({p.role}){typ}</option>
-                  );
-                })}
-              </select>
+              <SexyDropdownLoader isLoading={dropdownLoading.myRoster} placeholder="Loading your roster..." dataLength={myRoster.length} dataType="roster" isStale={isDataStale('players') && myRoster.length === 0} onRefresh={() => refreshData('players')} loadingProgress={loadingProgress}>
+                <select className="select" value={releasePlayerId} onChange={(e) => setReleasePlayerId(e.target.value)} disabled={isSelectingTrade}>
+                  <option value="">Select player</option>
+                  {myRoster.map(p => {
+                    const meta = (allPlayers || []).find(ap => ap.id === p.id);
+                    const typ = meta?.type ? ` - ${meta.type}` : '';
+                    return (
+                      <option key={p.id} value={p.id}>{p.name} ({p.role}){typ}</option>
+                    );
+                  })}
+                </select>
+              </SexyDropdownLoader>
               <button 
                 className="btn btn-danger" 
                 onClick={requestRelease} 
