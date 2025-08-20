@@ -9,6 +9,7 @@ function AdminSettings() {
   const [toast, setToast] = useState('');
   const [enableTradeCenter, setEnableTradeCenter] = useState(true);
   const [enableUnsoldPlayers, setEnableUnsoldPlayers] = useState(true);
+  const [enablePickButton, setEnablePickButton] = useState(true);
 
   useEffect(() => {
     const cached = localStorage.getItem('user');
@@ -22,6 +23,7 @@ function AdminSettings() {
       const j = await res.json();
       if (typeof j.enableTradeCenter === 'boolean') setEnableTradeCenter(j.enableTradeCenter);
       if (typeof j.enableUnsoldPlayers === 'boolean') setEnableUnsoldPlayers(j.enableUnsoldPlayers);
+      if (typeof j.enablePickButton === 'boolean') setEnablePickButton(j.enablePickButton);
     } catch (e) {
       setToast('Failed to load settings');
     } finally {
@@ -42,6 +44,7 @@ function AdminSettings() {
       if (!res.ok) throw new Error(j.message || 'Failed');
       if (typeof j.enableTradeCenter === 'boolean') setEnableTradeCenter(j.enableTradeCenter);
       if (typeof j.enableUnsoldPlayers === 'boolean') setEnableUnsoldPlayers(j.enableUnsoldPlayers);
+      if (typeof j.enablePickButton === 'boolean') setEnablePickButton(j.enablePickButton);
       setToast('Saved');
       try { window.dispatchEvent(new Event('settings-updated')); } catch {}
     } catch (e) {
@@ -80,6 +83,16 @@ function AdminSettings() {
             </div>
             <label className="switch">
               <input type="checkbox" checked={enableUnsoldPlayers} onChange={(e) => save({ enableUnsoldPlayers: e.target.checked })} disabled={saving} />
+              <span className="slider" />
+            </label>
+          </div>
+          <div className="setting-row">
+            <div className="info">
+              <div className="label">Pick Button</div>
+              <div className="desc">Enable or disable the pick button for users to request players.</div>
+            </div>
+            <label className="switch">
+              <input type="checkbox" checked={enablePickButton} onChange={(e) => save({ enablePickButton: e.target.checked })} disabled={saving} />
               <span className="slider" />
             </label>
           </div>

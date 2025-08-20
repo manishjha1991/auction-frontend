@@ -8,10 +8,13 @@ function UnsoldPlayers() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [type, setType] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [toast, setToast] = useState('');
   const [myPicks, setMyPicks] = useState([]);
   const [pickStatusByPlayer, setPickStatusByPlayer] = useState({});
+  const [pickButtonEnabled, setPickButtonEnabled] = useState(true);
 
   useEffect(() => {
     const cached = localStorage.getItem('user');
@@ -21,8 +24,18 @@ function UnsoldPlayers() {
   async function loadUnsold() {
     try {
       setLoading(true);
-      const res = await fetch(`${API_ENDPOINTS}/api/picks/unsold?page=${page}&limit=10${type ? `&type=${encodeURIComponent(type)}` : ''}`);
+      setLoadingProgress(10);
+      
+      const res = await fetch(`${API_ENDPOINTS}/api/picks/unsold?page=${page}&limit=10${type ? `&type=${encodeURIComponent(type)}` : ''}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`);
+      setLoadingProgress(50);
+      
+      if (!res.ok) {
+        throw new Error('Failed to load unsold players');
+      }
+      
       const j = await res.json();
+      setLoadingProgress(80);
+      
       if (j && Array.isArray(j.items)) {
         setItems(j.items);
         setTotalPages(j.totalPages || 1);
@@ -30,14 +43,39 @@ function UnsoldPlayers() {
         setItems([]);
         setTotalPages(1);
       }
+      
+      setLoadingProgress(100);
     } catch (e) {
       setToast('Failed to load unsold players');
     } finally {
       setLoading(false);
+      setLoadingProgress(0);
     }
   }
 
-  useEffect(() => { loadUnsold(); }, [page, type]);
+  useEffect(() => { loadUnsold(); }, [page, type, searchQuery]);
+
+  // Load app settings to check if pick button is enabled
+  async function loadAppSettings() {
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/settings`);
+      const j = await res.json();
+      if (typeof j.enablePickButton === 'boolean') {
+        setPickButtonEnabled(j.enablePickButton);
+      }
+    } catch (e) {
+      console.error('Failed to load app settings');
+    }
+  }
+
+  useEffect(() => { loadAppSettings(); }, []);
+
+  // Handle search input with debouncing
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    setPage(1); // Reset to first page when searching
+  };
 
   async function loadMyPicks() {
     if (!user) return;
@@ -75,6 +113,25 @@ function UnsoldPlayers() {
       <div className="header">
         <h1 className="gradient-title">Unsold Players</h1>
         <div className="toolbar">
+          <div className="search-container">
+            <div className="search-icon">🔍</div>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search players by name..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
+            {searchQuery && (
+              <button 
+                className="clear-search" 
+                onClick={() => { setSearchQuery(''); setPage(1); }}
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <select className="select" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }}>
             <option value="">All Types</option>
             <option value="Sapphire">Sapphire</option>
@@ -87,9 +144,30 @@ function UnsoldPlayers() {
       </div>
 
       {loading ? (
-        <div className="loading">Loading…</div>
+        <div className="unsold-loading">
+          <div className="loading-container">
+            <div className="loading-circle">
+              <div className="loading-progress" style={{ transform: `rotate(${loadingProgress * 3.6}deg)` }}></div>
+              <div className="loading-text">{loadingProgress}%</div>
+            </div>
+            <div className="loading-label">Loading Unsold Players...</div>
+          </div>
+        </div>
       ) : (
         <>
+          {searchQuery && (
+            <div className="search-results-info">
+              <span className="search-highlight">🔍</span>
+              <span className="search-text">Search results for "{searchQuery}"</span>
+              <span className="results-count">({items.length} players found)</span>
+            </div>
+          )}
+          {!pickButtonEnabled && (
+            <div className="pick-disabled-info">
+              <span className="warning-icon">⚠️</span>
+              <span className="warning-text">Pick button is currently disabled by admin</span>
+            </div>
+          )}
           <div className="grid">
             {items.map(p => (
               <div className="card" key={p._id}>
@@ -108,13 +186,24 @@ function UnsoldPlayers() {
                       return <span className="picked-badge" title="Approved by admin">Picked</span>;
                     }
                     return (
-                      <button className="btn btn-primary" onClick={() => pickPlayer(p._id)} disabled={!user}>Pick</button>
+                      <button 
+                        className="btn btn-primary" 
+                        onClick={() => pickPlayer(p._id)} 
+                        disabled={!user || !pickButtonEnabled}
+                        title={!pickButtonEnabled ? 'Pick button is currently disabled by admin' : ''}
+                      >
+                        {pickButtonEnabled ? 'Pick' : 'Pick Disabled'}
+                      </button>
                     );
                   })()}
                 </div>
               </div>
             ))}
-            {items.length === 0 && <div className="empty">No unsold players found</div>}
+            {items.length === 0 && (
+            <div className="empty">
+              {searchQuery ? `No players found matching "${searchQuery}"` : 'No unsold players found'}
+            </div>
+          )}
           </div>
           <div className="pagination">
             <button className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</button>
