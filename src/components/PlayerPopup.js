@@ -7,16 +7,13 @@ const PlayerPopup = ({ player, onClose }) => {
   const [playerDetails, setPlayerDetails] = useState(null);
   const [topTwoBids, setTopTwoBids] = useState([]);
   const [allBids, setAllBids] = useState([]);
-  const [timer, setTimer] = useState("");
-  const [setLastBidTimer] = useState("");
+  const [lastBidTimer, setLastBidTimer] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [exitMessage, setExitMessage] = useState(null);
   const [placingBid, setPlacingBid] = useState(false);
   const [bidError, setBidError] = useState(null);
-  const [soldMessage, setSoldMessage] = useState(null);
+  const [bidAlert, setBidAlert] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [releaseMessage, setReleaseMessage] = useState(null);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -50,23 +47,7 @@ const PlayerPopup = ({ player, onClose }) => {
     fetchPlayerData();
   }, [player.id]);
 
-  useEffect(() => {
-    if (playerDetails && allBids.length > 0 && !playerDetails.status === "Sold") {
-      const endTime = new Date();
-      endTime.setHours(endTime.getHours() + 72);
 
-      const interval = setInterval(() => {
-        const currentTime = new Date();
-        const timeRemaining = Math.max(0, endTime - currentTime);
-        const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
-        const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-        setTimer(`${hours}h ${minutes}m ${seconds}s`);
-      }, 1000);
-
-      return () => clearInterval(interval);
-    }
-  }, [playerDetails, allBids]);
 
   useEffect(() => {
     if (topTwoBids.length > 0 && !playerDetails?.status === "Sold") {
@@ -86,6 +67,17 @@ const PlayerPopup = ({ player, onClose }) => {
     }
   }, [topTwoBids, playerDetails]);
 
+  // Auto-hide bid alert after 5 seconds
+  useEffect(() => {
+    if (bidAlert) {
+      const timer = setTimeout(() => {
+        setBidAlert(null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [bidAlert]);
+
   const formatHumanReadableAmount = (amount) => {
     if (amount >= 10000000) {
       return `${(amount / 10000000).toFixed(2)} Cr`;
@@ -99,7 +91,7 @@ const PlayerPopup = ({ player, onClose }) => {
 
   const handleReleasePlayer = async () => {
     try {
-      setReleaseMessage(null);
+      setBidAlert(null);
 
       const response = await fetch(`${API_ENDPOINTS}/api/bids/release-player`, {
         method: "POST",
@@ -115,15 +107,27 @@ const PlayerPopup = ({ player, onClose }) => {
         throw new Error(result.message || "Failed to release player.");
       }
 
-      setReleaseMessage(result.message || "Player released successfully.");
+      setBidAlert({
+        message: result.message || "Player released successfully.",
+        amount: null,
+        playerName: playerDetails.name,
+        isSuccess: true,
+        isRelease: true
+      });
     } catch (err) {
-      setReleaseMessage(err.message || "Failed to release player. Please try again.");
+      setBidAlert({
+        message: err.message || "Failed to release player. Please try again.",
+        amount: null,
+        playerName: playerDetails.name,
+        isSuccess: false,
+        isRelease: true
+      });
     }
   };
 
   const handleMarkAsSold = async () => {
     try {
-      setSoldMessage(null);
+      setBidAlert(null);
 
       const response = await fetch(`${API_ENDPOINTS}/api/bids/bid/sold`, {
         method: "POST",
@@ -137,9 +141,21 @@ const PlayerPopup = ({ player, onClose }) => {
         throw new Error(result.message || "Failed to mark player as sold.");
       }
 
-      setSoldMessage(result.message || "Player marked as sold successfully.");
+      setBidAlert({
+        message: result.message || "Player marked as sold successfully.",
+        amount: null,
+        playerName: playerDetails.name,
+        isSuccess: true,
+        isSold: true
+      });
     } catch (err) {
-      setSoldMessage(err.message || "Failed to mark player as sold. Please try again.");
+      setBidAlert({
+        message: err.message || "Failed to mark player as sold. Please try again.",
+        amount: null,
+        playerName: playerDetails.name,
+        isSuccess: false,
+        isSold: true
+      });
     }
   };
 
@@ -195,11 +211,21 @@ const PlayerPopup = ({ player, onClose }) => {
       }
 
       // On success, update the message and state
-      setExitMessage(result.message || "Bid placed successfully.");
+      setBidAlert({
+        message: result.message || "Bid placed successfully!",
+        amount: bidAmount,
+        playerName: playerDetails.name,
+        isSuccess: true
+      });
       setAllBids([...allBids, result.newBid]);
     } catch (err) {
       // Display the error message from the server or a default error
-      setExitMessage(err.message || "Failed to place bid.");
+      setBidAlert({
+        message: err.message || "Failed to place bid.",
+        amount: null,
+        playerName: playerDetails.name,
+        isSuccess: false
+      });
     } finally {
       setPlacingBid(false);
     }
@@ -207,7 +233,7 @@ const PlayerPopup = ({ player, onClose }) => {
 
   const handleExitAuction = async () => {
     try {
-      setExitMessage(null); // Reset the message toggle
+      setBidAlert(null); // Reset the alert
 
       const user = JSON.parse(localStorage.getItem("user"));
       const userId = user?.id;
@@ -228,9 +254,21 @@ const PlayerPopup = ({ player, onClose }) => {
         throw new Error(result.message || "Failed to exit auction.");
       }
 
-      setExitMessage(result.message || "Successfully exited the auction.");
+      setBidAlert({
+        message: result.message || "Successfully exited the auction.",
+        amount: null,
+        playerName: playerDetails.name,
+        isSuccess: true,
+        isExit: true
+      });
     } catch (err) {
-      setExitMessage(err.message || "Failed to exit the auction. Please try again.");
+      setBidAlert({
+        message: err.message || "Failed to exit the auction. Please try again.",
+        amount: null,
+        playerName: playerDetails.name,
+        isSuccess: false,
+        isExit: true
+      });
     }
   };
 
@@ -244,211 +282,321 @@ const PlayerPopup = ({ player, onClose }) => {
   const isSold = playerDetails?.status === true;
 
   return (
-    <div className="popup-overlay">
-      <div className={`popup-card elegant-card ${playerDetails.type.toLowerCase()}`}>
-        <button className="close-btn" onClick={onClose}>✖</button>
-        <div className="scrollable-content">
-          <img
-            src={`https://via.placeholder.com/150?text=${playerDetails.name}`}
-            alt={playerDetails.name}
-            className="player-image"
-          />
-          <h2 className="player-name">{playerDetails.name}</h2>
-
-          <div className="player-details">
-            <p>
-              <span className="player-detail-icon">🧑‍🎤</span>
-              <b>Name:</b> <span>{playerDetails.name}</span>
-            </p>
-            <p>
-              <span className="player-detail-icon">🏏</span>
-              <b>Role:</b> <span>{playerDetails.role}</span>
-            </p>
-            <p>
-              <span className="player-detail-icon">✋</span>
-              <b>Batting Style:</b> <span>{playerDetails.battingStyle || "N/A"}</span>
-            </p>
-            <p>
-              <span className="player-detail-icon">📊</span>
-              <b>Overall Score:</b> <span>{playerDetails.score || "N/A"}</span>
-            </p>
-            <p>
-              <span className="player-detail-icon">💰</span>
-              <b>Base Price:</b> <span>{formatHumanReadableAmount(playerDetails.basePrice)}</span>
-            </p>
-            <p>
-              <span className="player-detail-icon">💎</span>
-              <b>Type:</b> <span>{playerDetails.type}</span>
-            </p>
-            {/* NEW LINES FOR TOTAL RUNS & TOTAL WICKETS */}
-            <p>
-              <span className="player-detail-icon">⚾</span>
-              <b>Total Runs:</b> <span>{playerDetails.totalRuns || 0}</span>
-            </p>
-            <p>
-              <span className="player-detail-icon">🔥</span>
-              <b>Total Wickets:</b> <span>{playerDetails.totalWickets || 0}</span>
-            </p>
+    <>
+      {/* Super Sexy Bid Loading Popup */}
+      {placingBid && (
+        <div className="bid-loading-overlay">
+          <div className="bid-loading-card">
+            <div className="bid-loading-icon">🚀</div>
+            <div className="bid-loading-title">PLACING BID</div>
+            <div className="bid-loading-subtitle">
+              Your bid is being processed...<br />
+              Please wait while we confirm your bid
+            </div>
+            <div className="bid-loading-progress">
+              <div className="bid-loading-progress-bar"></div>
+            </div>
+            <div className="bid-loading-status">Processing...</div>
           </div>
+        </div>
+      )}
+      
+      {/* Centered Bid Alert Popup */}
+      {bidAlert && (
+        <div className="bid-alert-overlay">
+          <div className={`bid-alert-card ${bidAlert.isSuccess ? 'success' : 'error'}`}>
+            <div className="bid-alert-icon">
+              {bidAlert.isExit 
+                ? (bidAlert.isSuccess ? '🚪' : '❌')
+                : bidAlert.isSold
+                ? (bidAlert.isSuccess ? '🏆' : '❌')
+                : bidAlert.isRelease
+                ? (bidAlert.isSuccess ? '🔄' : '❌')
+                : (bidAlert.isSuccess ? '🎯' : '⚠️')
+              }
+            </div>
+            <div className="bid-alert-title">
+              {bidAlert.isExit 
+                ? (bidAlert.isSuccess ? 'EXIT SUCCESSFUL!' : 'EXIT FAILED!')
+                : bidAlert.isSold
+                ? (bidAlert.isSuccess ? 'PLAYER SOLD!' : 'SOLD FAILED!')
+                : bidAlert.isRelease
+                ? (bidAlert.isSuccess ? 'PLAYER RELEASED!' : 'RELEASE FAILED!')
+                : (bidAlert.isSuccess ? 'BID PLACED!' : 'BID FAILED!')
+              }
+            </div>
+            <div className="bid-alert-message">
+              {bidAlert.isExit ? (
+                bidAlert.isSuccess ? (
+                  <>
+                    Successfully exited auction for<br />
+                    <strong>{bidAlert.playerName}</strong>
+                  </>
+                ) : (
+                  <>
+                    Failed to exit auction for<br />
+                    <strong>{bidAlert.playerName}</strong>
+                  </>
+                )
+              ) : bidAlert.isSold ? (
+                bidAlert.isSuccess ? (
+                  <>
+                    Successfully marked as sold<br />
+                    <strong>{bidAlert.playerName}</strong>
+                  </>
+                ) : (
+                  <>
+                    Failed to mark as sold<br />
+                    <strong>{bidAlert.playerName}</strong>
+                  </>
+                )
+              ) : bidAlert.isRelease ? (
+                bidAlert.isSuccess ? (
+                  <>
+                    Successfully released<br />
+                    <strong>{bidAlert.playerName}</strong>
+                  </>
+                ) : (
+                  <>
+                    Failed to release<br />
+                    <strong>{bidAlert.playerName}</strong>
+                  </>
+                )
+              ) : (
+                bidAlert.isSuccess ? (
+                  <>
+                    Your bid has been successfully placed for<br />
+                    <strong>{bidAlert.playerName}</strong>
+                  </>
+                ) : (
+                  <>
+                    Failed to place bid for<br />
+                    <strong>{bidAlert.playerName}</strong>
+                  </>
+                )
+              )}
+            </div>
+            {bidAlert.isSuccess && bidAlert.amount && !bidAlert.isExit && !bidAlert.isSold && !bidAlert.isRelease && (
+              <div className="bid-alert-amount">
+                ₹{formatHumanReadableAmount(bidAlert.amount)}
+              </div>
+            )}
+            <div className="bid-alert-api-message">
+              {bidAlert.message}
+            </div>
+            <button 
+              className="bid-alert-close" 
+              onClick={() => setBidAlert(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+      
+      <div className="popup-overlay">
+        <div className={`popup-card elegant-card ${playerDetails.type.toLowerCase()}`}>
+          <button className="close-btn" onClick={onClose}>✖</button>
+          <div className="scrollable-content">
+            <img
+              src={`https://via.placeholder.com/150?text=${playerDetails.name}`}
+              alt={playerDetails.name}
+              className="player-image"
+            />
+            <h2 className="player-name">{playerDetails.name}</h2>
 
-          {topTwoBids.length > 0 && (
-            <div className="bids-section">
-              <h3>Last Two Bids</h3>
-              {topTwoBids.map((bid, index) => (
-                <div key={bid.id} className="bid-row">
-                  <p>
-                    <b>Bidder:</b>{" "}
-                    <span className="bidder-name">
-                      {bid.isBidOn === false && <span className="bid-out-text">Out</span>}{" "}
-                      {bid.bidder.name}
-                    </span>
-                    <span className="bid-amount">
-                      {formatHumanReadableAmount(bid.bidAmount)}
-                    </span>
-                  </p>
-                  <p className="bid-time">
-                    <FaClock className="timer-icon" /> Last Bid Time:{" "}
-                    {new Date(bid.createdAt).toLocaleString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                      hour12: true,
-                    })}
-                  </p>
-                </div>
-              ))}
+            <div className="player-details">
+              <p>
+                <span className="player-detail-icon">🧑‍🎤</span>
+                <b>Name:</b> <span>{playerDetails.name}</span>
+              </p>
+              <p>
+                <span className="player-detail-icon">🏏</span>
+                <b>Role:</b> <span>{playerDetails.role}</span>
+              </p>
+              <p>
+                <span className="player-detail-icon">✋</span>
+                <b>Batting Style:</b> <span>{playerDetails.battingStyle || "N/A"}</span>
+              </p>
+              <p>
+                <span className="player-detail-icon">📊</span>
+                <b>Overall Score:</b> <span>{playerDetails.score || "N/A"}</span>
+              </p>
+              <p>
+                <span className="player-detail-icon">💰</span>
+                <b>Base Price:</b> <span>{formatHumanReadableAmount(playerDetails.basePrice)}</span>
+              </p>
+              <p>
+                <span className="player-detail-icon">💎</span>
+                <b>Type:</b> <span>{playerDetails.type}</span>
+              </p>
+              {/* NEW LINES FOR TOTAL RUNS & TOTAL WICKETS */}
+              <p>
+                <span className="player-detail-icon">⚾</span>
+                <b>Total Runs:</b> <span>{playerDetails.totalRuns || 0}</span>
+              </p>
+              <p>
+                <span className="player-detail-icon">🔥</span>
+                <b>Total Wickets:</b> <span>{playerDetails.totalWickets || 0}</span>
+              </p>
             </div>
-          )}
 
-          {allBids.length > 0 && !isSold && (
-            <div className="timer-section">
-              <p><b>Overall Timer:</b> {timer}</p>
-            </div>
-          )}
+            {topTwoBids.length > 0 && (
+              <div className="bids-section">
+                <h3>Last Two Bids</h3>
+                {topTwoBids.map((bid, index) => {
+                  return (
+                    <div key={bid.id} className={`bid-row ${index === 0 ? 'first-bid' : 'second-bid'}`}>
+                      <p>
+                        <b>Bidder:</b>{" "}
+                        <span className="bidder-name">
+                          {bid.isBidOn === false && <span className="bid-out-text">Out</span>}{" "}
+                          {bid.bidder?.name || bid.bidderName || 'Unknown Bidder'}
+                        </span>
+                        <span className="bid-amount">
+                          {formatHumanReadableAmount(bid.bidAmount)}
+                        </span>
+                      </p>
+                      <p className="bid-time">
+                        <FaClock className="timer-icon" /> Last Bid Time:{" "}
+                        {new Date(bid.createdAt).toLocaleString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                          hour12: true,
+                        })}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-          {!isAdmin && !isSold && (
-            <div className="place-bid-section">
-              <h3>Place a Bid</h3>
-              <button
-                className="user-btn place-bid"
-                onClick={handlePlaceBid}
-                disabled={placingBid}
-              >
-                {placingBid
-                  ? "Placing..."
-                  : `Place Bid (₹${formatHumanReadableAmount(
-                      determineBidIncrement(
-                        playerDetails?.type,
-                        topTwoBids.length > 0
-                          ? topTwoBids[0]?.bidAmount || 0
-                          : playerDetails?.basePrice || 0
-                      )
-                    )})`}
-              </button>
-              {bidError && <p className="error">{bidError}</p>}
-            </div>
-          )}
+            {!isAdmin && !isSold && (
+              <div className="place-bid-section">
+                <h3>Place a Bid</h3>
+                <button
+                  className="user-btn place-bid"
+                  onClick={handlePlaceBid}
+                  disabled={placingBid}
+                >
+                  {placingBid
+                    ? "Placing..."
+                    : `Place Bid (₹${formatHumanReadableAmount(
+                        determineBidIncrement(
+                          playerDetails?.type,
+                          topTwoBids.length > 0
+                            ? topTwoBids[0]?.bidAmount || 0
+                            : playerDetails?.basePrice || 0
+                        )
+                      )})`}
+                </button>
+                {bidError && <p className="error">{bidError}</p>}
+              </div>
+            )}
 
-          {isAdmin && !isSold && (
-            <div className="admin-action-buttons">
-              <button
-                className="sold-btn"
-                onClick={handleMarkAsSold}
-                style={{
-                  padding: "10px 20px",
-                  fontSize: "18px",
-                  fontWeight: "bold",
-                  color: "#fff",
-                  backgroundColor: "linear-gradient(to right, #ff416c, #ff4b2b)",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                }}
-              >
-                SOLD
-              </button>
-              <button
-                className="exit-btn"
-                onClick={handleExitAuction}
-                style={{
-                  padding: "10px 20px",
-                  fontSize: "18px",
-                  fontWeight: "bold",
-                  color: "#fff",
-                  background: "linear-gradient(to right, #ff7e5f, #feb47b)",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                  marginLeft: "10px",
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.background = "linear-gradient(to right, #feb47b, #ff7e5f)";
-                  e.target.style.transform = "scale(1.05)";
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.background = "linear-gradient(to right, #ff7e5f, #feb47b)";
-                  e.target.style.transform = "scale(1)";
-                }}
-              >
-                EXIT
-              </button>
-              {soldMessage && <p className="sold-message">{soldMessage}</p>}
-              {exitMessage && <p className="exit-message">{exitMessage}</p>}
-            </div>
-          )}
+            {isAdmin && !isSold && (
+              <div className="admin-action-buttons">
+                <button
+                  className="sold-btn"
+                  onClick={handleMarkAsSold}
+                  style={{
+                    padding: "10px 20px",
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    color: "#fff",
+                    backgroundColor: "linear-gradient(to right, #ff416c, #ff4b2b)",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  SOLD
+                </button>
+                <button
+                  className="exit-btn"
+                  onClick={handleExitAuction}
+                  style={{
+                    padding: "10px 20px",
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    color: "#fff",
+                    background: "linear-gradient(to right, #ff7e5f, #feb47b)",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    marginLeft: "10px",
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = "linear-gradient(to right, #feb47b, #ff7e5f)";
+                    e.target.style.transform = "scale(1.05)";
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = "linear-gradient(to right, #ff7e5f, #feb47b)";
+                    e.target.style.transform = "scale(1)";
+                  }}
+                >
+                  EXIT
+                </button>
+                {/* soldMessage && <p className="sold-message">{soldMessage}</p> */}
+                {/* exitMessage && <p className="exit-message">{exitMessage}</p> */}
+              </div>
+            )}
 
-          {isAdmin && isSold && (
-            <div className="release-button-section">
-              <button
-                className="release-btn"
-                onClick={handleReleasePlayer}
-                style={{
-                  padding: "12px 25px",
-                  fontSize: "20px",
-                  fontWeight: "bold",
-                  color: "#fff",
-                  background: "linear-gradient(to right, #4CAF50, #8BC34A)",
-                  border: "none",
-                  borderRadius: "12px",
-                  boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)",
-                  cursor: "pointer",
-                  transition: "transform 0.2s, background 0.3s",
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.background = "linear-gradient(to right, #8BC34A, #4CAF50)";
-                  e.target.style.transform = "scale(1.05)";
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.background = "linear-gradient(to right, #4CAF50, #8BC34A)";
-                  e.target.style.transform = "scale(1)";
-                }}
-              >
-                RELEASE PLAYER
-              </button>
-              {releaseMessage && <p className="release-message">{releaseMessage}</p>}
-            </div>
-          )}
-          {exitMessage && (
-            <div className="exit-message">
-              <p>{exitMessage}</p>
-            </div>
-          )}
+            {isAdmin && isSold && (
+              <div className="release-button-section">
+                <button
+                  className="release-btn"
+                  onClick={handleReleasePlayer}
+                  style={{
+                    padding: "12px 25px",
+                    fontSize: "20px",
+                    fontWeight: "bold",
+                    color: "#fff",
+                    background: "linear-gradient(to right, #4CAF50, #8BC34A)",
+                    border: "none",
+                    borderRadius: "12px",
+                    boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)",
+                    cursor: "pointer",
+                    transition: "transform 0.2s, background 0.3s",
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = "linear-gradient(to right, #8BC34A, #4CAF50)";
+                    e.target.style.transform = "scale(1.05)";
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = "linear-gradient(to right, #4CAF50, #8BC34A)";
+                    e.target.style.transform = "scale(1)";
+                  }}
+                >
+                  RELEASE PLAYER
+                </button>
+                {/* releaseMessage && <p className="release-message">{releaseMessage}</p> */}
+              </div>
+            )}
+            
+            {/* exitMessage && (
+              <div className="exit-message">
+                <p>{exitMessage}</p>
+              </div>
+            ) */}
 
-          {!isAdmin && !isSold && (
-            <div className="exit-auction-section">
-              <button className="unique-exit-btn" onClick={handleExitAuction}>
-                Exit Auction 🚪
-              </button>
-            </div>
-          )}
+            {!isAdmin && !isSold && (
+              <div className="exit-auction-section">
+                <button className="unique-exit-btn" onClick={handleExitAuction}>
+                  Exit Auction 🚪
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

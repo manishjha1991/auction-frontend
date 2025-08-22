@@ -81,3 +81,285 @@
     100% { opacity: 1; }
   }
   
+/* Sexy Bidding Status Indicators */
+.bidding-status {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  animation: floatingCrown 3s ease-in-out infinite;
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+.bidding-status:hover {
+  transform: scale(1.2) rotate(5deg);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
+}
+
+/* Floating Crown Animation */
+@keyframes floatingCrown {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  }
+  25% { 
+    transform: translateY(-8px) rotate(2deg);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  }
+  50% { 
+    transform: translateY(-12px) rotate(0deg);
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.6);
+  }
+  75% { 
+    transform: translateY(-8px) rotate(-2deg);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Winning Bid - Dark Green W */
+.bidding-status.winning-bid {
+  background: linear-gradient(135deg, #006400, #228B22, #006400);
+  color: #fff;
+  text-shadow: 0 0 15px rgba(0, 100, 0, 0.9);
+  border-color: rgba(0, 100, 0, 0.9);
+  box-shadow: 
+    0 8px 25px rgba(0, 100, 0, 0.5),
+    0 0 0 4px rgba(0, 100, 0, 0.3),
+    0 0 0 8px rgba(0, 100, 0, 0.1);
+  animation: floatingCrown 3s ease-in-out infinite, greenGlow 2s ease-in-out infinite;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+/* Second Bid - Red L */
+.bidding-status.second-bid {
+  background: linear-gradient(135deg, #ff4444, #cc0000, #ff4444);
+  color: #fff;
+  text-shadow: 0 0 15px rgba(255, 68, 68, 0.9);
+  border-color: rgba(255, 68, 68, 0.9);
+  box-shadow: 
+    0 8px 25px rgba(255, 68, 68, 0.5),
+    0 0 0 4px rgba(255, 68, 68, 0.3),
+    0 0 0 8px rgba(255, 68, 68, 0.1);
+  animation: floatingCrown 3s ease-in-out infinite, redGlow 2s ease-in-out infinite;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+/* Losing Bid - Flaming Fire Badge with Smoke */
+.bidding-status.losing-bid {
+  background: linear-gradient(135deg, #ff4444, #cc0000, #ff4444);
+  color: #fff;
+  text-shadow: 0 0 15px rgba(255, 68, 68, 0.9);
+  border-color: rgba(255, 68, 68, 0.9);
+  box-shadow: 
+    0 8px 25px rgba(255, 68, 68, 0.5),
+    0 0 0 4px rgba(255, 68, 68, 0.3),
+    0 0 0 8px rgba(255, 68, 68, 0.1);
+  animation: floatingCrown 3s ease-in-out infinite, redGlow 2s ease-in-out infinite;
+}
+
+.bidding-status.losing-bid::before {
+  content: '💨';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  font-size: 16px;
+  animation: smokeLeft 2.5s ease-in-out infinite;
+}
+
+.bidding-status.losing-bid::after {
+  content: '💨';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 16px;
+  animation: smokeRight 2.5s ease-in-out infinite;
+}
+
+/* Glow Animations */
+@keyframes goldenGlow {
+  0%, 100% { 
+    box-shadow: 
+      0 8px 25px rgba(255, 215, 0, 0.5),
+      0 0 0 4px rgba(255, 215, 0, 0.3),
+      0 0 0 8px rgba(255, 215, 0, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 8px 25px rgba(255, 215, 0, 0.8),
+      0 0 0 6px rgba(255, 215, 0, 0.5),
+      0 0 0 12px rgba(255, 215, 0, 0.2);
+  }
+}
+
+@keyframes fireGlow {
+  0%, 100% { 
+    box-shadow: 
+      0 8px 25px rgba(255, 107, 53, 0.5),
+      0 0 0 4px rgba(255, 107, 53, 0.3),
+      0 0 0 8px rgba(255, 107, 53, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 8px 25px rgba(255, 107, 53, 0.8),
+      0 0 0 6px rgba(255, 107, 53, 0.5),
+      0 0 0 12px rgba(255, 107, 53, 0.2);
+  }
+}
+
+@keyframes redGlow {
+  0%, 100% { 
+    box-shadow: 
+      0 8px 25px rgba(255, 68, 68, 0.5),
+      0 0 0 4px rgba(255, 68, 68, 0.3),
+      0 0 0 8px rgba(255, 68, 68, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 8px 25px rgba(255, 68, 68, 0.8),
+      0 0 0 6px rgba(255, 68, 68, 0.5),
+      0 0 0 12px rgba(255, 68, 68, 0.2);
+  }
+}
+
+@keyframes greenGlow {
+  0%, 100% { 
+    box-shadow: 
+      0 8px 25px rgba(0, 100, 0, 0.5),
+      0 0 0 4px rgba(0, 100, 0, 0.3),
+      0 0 0 8px rgba(0, 100, 0, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 8px 25px rgba(0, 100, 0, 0.8),
+      0 0 0 6px rgba(0, 100, 0, 0.5),
+      0 0 0 12px rgba(0, 100, 0, 0.2);
+  }
+}
+
+/* Sparkle Animations */
+@keyframes sparkleLeft {
+  0%, 100% { 
+    transform: scale(1) rotate(0deg);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: scale(1.3) rotate(180deg);
+    opacity: 1;
+  }
+}
+
+@keyframes sparkleRight {
+  0%, 100% { 
+    transform: scale(1) rotate(0deg);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: scale(1.3) rotate(-180deg);
+    opacity: 1;
+  }
+}
+
+/* Lightning Animations */
+@keyframes lightningLeft {
+  0%, 100% { 
+    transform: scale(1) rotate(0deg);
+    opacity: 0.7;
+  }
+  50% { 
+    transform: scale(1.4) rotate(90deg);
+    opacity: 1;
+  }
+}
+
+@keyframes lightningRight {
+  0%, 100% { 
+    transform: scale(1) rotate(0deg);
+    opacity: 0.7;
+  }
+  50% { 
+    transform: scale(1.4) rotate(-90deg);
+    opacity: 1;
+  }
+}
+
+/* Smoke Animations */
+@keyframes smokeLeft {
+  0%, 100% { 
+    transform: translateY(0px) scale(1) rotate(0deg);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: translateY(-8px) scale(1.3) rotate(-15deg);
+    opacity: 1;
+  }
+}
+
+@keyframes smokeRight {
+  0%, 100% { 
+    transform: translateY(0px) scale(1) rotate(0deg);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: translateY(-8px) scale(1.3) rotate(15deg);
+    opacity: 1;
+  }
+}
+
+/* Enhanced player card for bidding status */
+.player-card.bidding {
+  position: relative;
+  overflow: visible;
+}
+
+.player-card.bidding:hover .bidding-status {
+  transform: scale(1.2) rotate(5deg);
+  transition: transform 0.3s ease;
+}
+
+/* Mobile responsive for bidding status */
+@media (max-width: 768px) {
+  .bidding-status {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    top: -12px;
+    right: -12px;
+  }
+  
+  .bidding-status::before,
+  .bidding-status::after {
+    font-size: 14px;
+    top: -6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bidding-status {
+    width: 35px;
+    height: 35px;
+    font-size: 18px;
+    top: -10px;
+    right: -10px;
+  }
+  
+  .bidding-status::before,
+  .bidding-status::after {
+    font-size: 12px;
+    top: -5px;
+  }
+}
+  
