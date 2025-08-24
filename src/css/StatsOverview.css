@@ -452,20 +452,21 @@ border: 1px solid rgba(0, 132, 255, 0.2);
   margin: 5px 0;
   color: #FFFFFF !important;
   font-size: 0.9rem;
-  text-shadow: 0 0 10px #000000, 0 0 20px #000000;
+  text-shadow: none;
   font-weight: 600;
   -webkit-text-fill-color: #FFFFFF !important;
-  -webkit-text-stroke: 1px #000000;
+  -webkit-text-stroke: 0px;
 }
 
 .leading-box .player-info p:not(:first-child) {
   color: #FFFF00 !important;
   -webkit-text-fill-color: #FFFF00 !important;
-  -webkit-text-stroke: 1px #000000;
+  -webkit-text-stroke: 0px;
   font-family: 'Poppins', sans-serif;
   font-weight: 800;
   font-size: 1.2rem;
   letter-spacing: 1px;
+  text-shadow: none;
 }
 
 .leading-box .player-info p:first-child {
@@ -473,13 +474,13 @@ border: 1px solid rgba(0, 132, 255, 0.2);
   font-weight: 800;
   margin-bottom: 8px;
   color: #FFFFFF !important;
-  text-shadow: 0 0 10px #000000, 0 0 20px #000000;
+  text-shadow: none;
   background: none;
   padding: 0;
   border-radius: 0;
   display: block;
   -webkit-text-fill-color: #FFFFFF !important;
-  -webkit-text-stroke: 1px #000000;
+  -webkit-text-stroke: 0px;
 }
 
 .leading-box .highlight-stat {
@@ -487,7 +488,7 @@ border: 1px solid rgba(0, 132, 255, 0.2);
   font-weight: 900;
   margin-bottom: 8px;
   color: #FFD700;
-  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+  text-shadow: none;
 }
 
 .leading-box .stat-label {
@@ -497,7 +498,7 @@ border: 1px solid rgba(0, 132, 255, 0.2);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 2px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: none;
 }
 
 /* Purple Box for Leading Wicket Taker */
@@ -509,13 +510,13 @@ border: 1px solid rgba(0, 132, 255, 0.2);
 .purple-box .player-info p:first-child {
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
-  -webkit-text-stroke: 1px #000000;
+  -webkit-text-stroke: 0px;
 }
 
 .purple-box .player-info p:not(:first-child) {
   color: #FFFF00 !important;
   -webkit-text-fill-color: #FFFF00 !important;
-  -webkit-text-stroke: 1px #000000;
+  -webkit-text-stroke: 0px;
   font-family: 'Poppins', sans-serif;
   font-weight: 800;
   font-size: 1.2rem;
@@ -531,13 +532,13 @@ border: 1px solid rgba(0, 132, 255, 0.2);
 .orange-box .player-info p:first-child {
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
-  -webkit-text-stroke: 1px #000000;
+  -webkit-text-stroke: 0px;
 }
 
 .orange-box .player-info p:not(:first-child) {
   color: #FFFF00 !important;
   -webkit-text-fill-color: #FFFF00 !important;
-  -webkit-text-stroke: 1px #000000;
+  -webkit-text-stroke: 0px;
   font-family: 'Poppins', sans-serif;
   font-weight: 800;
   font-size: 1.2rem;

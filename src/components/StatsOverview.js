@@ -72,18 +72,8 @@ const StatsOverview = () => {
 
 
       
-      {/* Leading Performers Section - Purple and Orange Boxes */}
+      {/* Leading Performers Section - Orange and Purple Boxes */}
       <div className="leading-performers">
-        {/* Leading Wicket Taker - Purple Box */}
-        <div className="leading-box purple-box">
-          <div className="player-info">
-            <p><strong>{leadingWicketTaker.playerName || 'N/A'}</strong></p>
-            <p>{leadingWicketTaker.teamName || 'N/A'}</p>
-          </div>
-          <div className="highlight-stat">{leadingWicketTaker.totalWickets || 0}</div>
-          <span className="stat-label">Wickets</span>
-        </div>
-
         {/* Leading Run Scorer - Orange Box */}
         <div className="leading-box orange-box">
           <div className="player-info">
@@ -92,6 +82,16 @@ const StatsOverview = () => {
           </div>
           <div className="highlight-stat">{leadingRunScorer.totalRuns || 0}</div>
           <span className="stat-label">Runs</span>
+        </div>
+
+        {/* Leading Wicket Taker - Purple Box */}
+        <div className="leading-box purple-box">
+          <div className="player-info">
+            <p><strong>{leadingWicketTaker.playerName || 'N/A'}</strong></p>
+            <p>{leadingWicketTaker.teamName || 'N/A'}</p>
+          </div>
+          <div className="highlight-stat">{leadingWicketTaker.totalWickets || 0}</div>
+          <span className="stat-label">Wickets</span>
         </div>
       </div>
 
