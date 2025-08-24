@@ -1,310 +1,1910 @@
 /* src/components/StatsOverview.css */
 
-/* Root variables for easy color adjustment */
+/* Root variables for modern design */
 :root {
-  --primary-gradient: linear-gradient(120deg, #4facfe, #00f2fe);
-  --card-bg: #ffffff;
-  --card-shadow: rgba(0, 0, 0, 0.1);
-  --text-color: #333;
-  --highlight-color: #0084ff;
-  --table-head-bg: #f1f1f1;
-  --table-row-hover: #f7fbff;
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --purple-gradient: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  --orange-gradient: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --text-color: #1f2937;
+  --highlight-color: #3b82f6;
   --hero-text-color: #ffffff;
-  --hero-height: 200px;
-
-  /* New rank colors (optional) */
-  --rank-1-color: #ffb400; /* gold */
-  --rank-2-color: #a5a5a5; /* silver */
-  --rank-3-color: #e67e22; /* bronze */
-  --rank-other-color: #0084ff; /* default for 4th, 5th, etc. */
+  --hero-height: 400px;
+  
+  /* Modern colors */
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --info-color: #3b82f6;
+  
+  /* Rank colors */
+  --rank-1-color: #fbbf24;
+  --rank-2-color: #9ca3af;
+  --rank-3-color: #f97316;
+  --rank-other-color: #6b7280;
 }
 
 body {
-margin: 0;
-padding: 0;
-font-family: sans-serif;
-background: #f9f9f9;
-color: var(--text-color);
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  color: var(--text-color);
+  line-height: 1.6;
 }
 
 .stats-overview-wrapper {
-width: 100%;
-min-height: 100vh;
-overflow-x: hidden; /* If you prefer, remove this. */
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Hero Section */
+/* =============== LOADING SCREEN =============== */
+.loading-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: var(--primary-gradient);
+}
+
+.loading-animation {
+  text-align: center;
+  color: white;
+}
+
+.loading-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: bounce 2s infinite;
+}
+
+.loading-text {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.loading-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.loading-dots span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  animation: pulse 1.5s infinite;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-20px); }
+  60% { transform: translateY(-10px); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* =============== ERROR & NO DATA SCREENS =============== */
+.error-screen, .no-data-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: var(--secondary-gradient);
+}
+
+.error-content, .no-data-content {
+  text-align: center;
+  color: white;
+  padding: 2rem;
+}
+
+.error-icon, .no-data-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.retry-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.retry-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* =============== HERO SECTION =============== */
 .hero-section {
-width: 100%;
-height: var(--hero-height);
-background: var(--primary-gradient);
-display: flex;
-justify-content: center;
-align-items: center;
-margin-bottom: 2rem;
+  width: 100%;
+  height: var(--hero-height);
+  background: var(--primary-gradient);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.hero-text {
-text-align: center;
-color: var(--hero-text-color);
+.hero-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
 }
 
-.hero-text h1 {
-font-size: 2rem;
-margin-bottom: 0.5rem;
+.floating-cricket-balls {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
-.hero-text p {
-font-size: 1rem;
-opacity: 0.9;
+.ball {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Simple fade-in-up */
-.fade-in-up {
-opacity: 0;
-animation: fadeInUp 0.4s forwards ease;
-animation-delay: 0.1s;
-}
-@keyframes fadeInUp {
-to {
-  opacity: 1;
-  transform: translateY(0px);
-}
-from {
-  transform: translateY(10px);
-}
+.ball-1 {
+  top: 20%;
+  left: 10%;
+  animation: float 6s ease-in-out infinite;
 }
 
-/* Cards */
-.stats-cards-grid {
-display: grid;
-grid-template-columns: 1fr; /* single column by default */
-gap: 1rem;
-padding: 0 1rem;
-margin-bottom: 2rem;
+.ball-2 {
+  top: 60%;
+  right: 15%;
+  animation: float 8s ease-in-out infinite reverse;
 }
 
-/* Larger screens: multiple columns */
-@media (min-width: 600px) {
-.stats-cards-grid {
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-}
-}
-
-.stats-card {
-background-color: var(--card-bg);
-border-radius: 8px;
-box-shadow: 0 4px 10px var(--card-shadow);
-padding: 1rem;
-transition: transform 0.2s ease, box-shadow 0.2s ease;
+.ball-3 {
+  bottom: 20%;
+  left: 20%;
+  animation: float 7s ease-in-out infinite;
 }
 
-.stats-card:hover {
-transform: translateY(-3px);
-box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(180deg); }
 }
 
-.stats-card h2 {
-display: flex;
-align-items: center;
-font-size: 1rem;
-margin-bottom: 0.5rem;
-color: #444;
+.hero-content {
+  text-align: center;
+  color: var(--hero-text-color);
+  z-index: 2;
+  position: relative;
 }
 
-.stats-card .icon {
-margin-right: 6px;
-font-size: 1.2rem;
-color: var(--highlight-color);
+.hero-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: glow 2s ease-in-out infinite alternate;
 }
 
-.highlight-stat {
-font-size: 1.4rem;
-font-weight: bold;
-color: var(--highlight-color);
-margin: 0.5rem 0 0.3rem;
+@keyframes glow {
+  from { text-shadow: 0 0 20px rgba(255, 255, 255, 0.5); }
+  to { text-shadow: 0 0 30px rgba(255, 255, 255, 0.8); }
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.hero-subtitle {
+  font-size: 1.3rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.hero-stats-preview {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.stat-preview {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1rem 1.5rem;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-number {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
 }
 
 .stat-label {
-font-size: 0.8rem;
-color: #666;
+  font-size: 0.9rem;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-/* Tables */
-.table-section {
-margin: 2rem 1rem;
-}
-.table-section h2 {
-display: flex;
-align-items: center;
-font-size: 1.1rem;
-margin-bottom: 1rem;
-}
-.table-heading-icon {
-color: var(--highlight-color);
-margin-right: 0.5rem;
+/* =============== SECTION HEADERS =============== */
+.section-header {
+  text-align: center;
+  margin: 3rem 0 2rem;
+  padding: 0 1rem;
 }
 
-/* Scrollable container for tables on small screens */
-.responsive-table-wrapper {
-width: 100%;
-overflow-x: auto;
--webkit-overflow-scrolling: touch;
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-color);
 }
 
-.stats-table {
-width: 100%;
-min-width: 600px; /* So it can scroll horizontally if screen < 600px */
-border-collapse: collapse;
-background-color: #fff;
-border-radius: 4px;
-overflow: hidden;
-box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+.title-icon {
+  margin-right: 1rem;
+  color: var(--highlight-color);
+  font-size: 2rem;
 }
 
-.stats-table thead {
-background-color: var(--table-head-bg);
+.section-subtitle {
+  font-size: 1.1rem;
+  color: #6b7280;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.stats-table th,
-.stats-table td {
-padding: 0.8rem;
-text-align: left;
-font-size: 0.9rem;
-white-space: nowrap; /* Helps keep columns from squishing */
+/* =============== CAP WINNERS SECTION =============== */
+.cap-winners-section {
+  padding: 2rem 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-.stats-table th {
-font-weight: 600;
-color: #444;
+.cap-winners-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  margin-top: 2rem;
 }
 
-.stats-table tbody tr {
-border-bottom: 1px solid #eee;
+@media (min-width: 1024px) {
+  .cap-winners-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
-.stats-table tbody tr:hover {
-background-color: var(--table-row-hover);
+/* Cap Winner Cards */
+.cap-winner-card {
+  background: var(--card-bg);
+  border-radius: 25px;
+  padding: 2rem;
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
-/* Custom scrollbar (optional) */
-.responsive-table-wrapper::-webkit-scrollbar {
-height: 6px;
-}
-.responsive-table-wrapper::-webkit-scrollbar-track {
-background: #e0e0e0;
-}
-.responsive-table-wrapper::-webkit-scrollbar-thumb {
-background: var(--highlight-color);
-}
-
-/* =============== NEW STYLES FOR TOP-5 SECTION =============== */
-
-/* Wrapper for the entire "Top 5 Performers" area */
-.top5-section {
-margin: 2rem 1rem;
+.cap-winner-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 25px;
+  padding: 3px;
+  background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.top5-heading {
-font-size: 1.3rem;
-margin-bottom: 1rem;
-color: #444;
-text-align: left;
-padding-left: 0.2rem;
+.cap-winner-card:hover::before {
+  opacity: 1;
 }
 
-/* Grid for the top5-cards, similar to your stats-cards-grid but with a bit more space */
-.top5-cards-grid {
-display: grid;
-grid-template-columns: 1fr; /* single column by default */
-gap: 1rem;
-margin-bottom: 2rem;
+.cap-winner-card:hover {
+  transform: translateY(-10px);
+  box-shadow: var(--card-shadow-hover);
 }
 
-/* Larger screens: multiple columns for top5 cards */
-@media (min-width: 750px) {
-.top5-cards-grid {
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-}
-}
-
-/* Additional styling for the top5 "card" containers */
-.top5-card {
-padding: 1rem;
-position: relative;
+/* Orange Cap - Run Scorer (Batsman) */
+.cap-winner-card.orange-cap {
+  border: 2px solid #f59e0b;
+  background: linear-gradient(135deg, rgba(254, 215, 170, 0.15), rgba(251, 191, 36, 0.1), rgba(254, 243, 199, 0.15));
+  box-shadow: 
+    0 0 20px rgba(245, 158, 11, 0.3),
+    0 0 40px rgba(245, 158, 11, 0.2),
+    0 0 60px rgba(245, 158, 11, 0.1),
+    inset 0 0 20px rgba(245, 158, 11, 0.05);
 }
 
-.top5-card-title {
-font-size: 1rem;
-margin-bottom: 0.8rem;
-display: flex;
-align-items: center;
+.cap-winner-card.orange-cap .cap-badge {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
 }
 
-/* The list inside each top5 card */
-.top5-list {
-list-style-type: none;
-margin: 0;
-padding: 0;
+.cap-winner-card.orange-cap .player-image-container {
+  border: 3px solid #f59e0b;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+  background: #f59e0b;
 }
 
-.top5-list-item {
-display: flex;
-align-items: center;
-margin-bottom: 0.6rem;
-background-color: #fafafa;
-border-radius: 6px;
-padding: 0.6rem;
-transition: background-color 0.2s ease;
+.cap-winner-card.orange-cap .player-name,
+.cap-winner-card.orange-cap .player-team,
+.cap-winner-card.orange-cap .stat-label {
+  color: #1f2937;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
-.top5-list-item:hover {
-background-color: #f3f7fa;
+.cap-winner-card.orange-cap .main-stat-display .stat-number {
+  color: #92400e;
+  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9);
 }
 
-/* Badge showing the rank: #1, #2, #3, etc. */
-.rank-badge {
-width: 28px;
-height: 28px;
-border-radius: 50%;
-background-color: var(--rank-other-color);
-display: flex;
-align-items: center;
-justify-content: center;
-color: #fff;
-font-weight: bold;
-margin-right: 0.8rem;
+/* Purple Cap - Wicket Taker (Bowler) */
+.cap-winner-card.purple-cap {
+  border: 2px solid #8b5cf6;
+  background: linear-gradient(135deg, rgba(196, 181, 253, 0.15), rgba(139, 92, 246, 0.1), rgba(237, 233, 254, 0.15));
+  box-shadow: 
+    0 0 20px rgba(139, 92, 246, 0.3),
+    0 0 40px rgba(139, 92, 246, 0.2),
+    0 0 60px rgba(139, 92, 246, 0.1),
+    inset 0 0 20px rgba(139, 92, 246, 0.05);
 }
 
-/* Color-coding for top 1/2/3 if you like */
-.rank-1 {
-background-color: var(--rank-1-color);
+.cap-winner-card.purple-cap .cap-badge {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
 }
-.rank-2 {
-background-color: var(--rank-2-color);
-}
-.rank-3 {
-background-color: var(--rank-3-color);
-}
-/* For 4th place, 5th place, default rank-other-color is used */
 
-/* Player info next to the rank badge */
-.player-info {
-flex: 1;
+.cap-winner-card.purple-cap .player-image-container {
+  border: 3px solid #8b5cf6;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+  background: #8b5cf6;
 }
-.player-info strong {
-display: block;
-font-size: 0.95rem;
-color: #333;
+
+.cap-winner-card.purple-cap .player-name,
+.cap-winner-card.purple-cap .player-team,
+.cap-winner-card.purple-cap .stat-label {
+  color: #1f2937;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
+
+.cap-winner-card.purple-cap .main-stat-display .stat-number {
+  color: #581c87;
+  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9);
+}
+
+/* Ensure content is above background images */
+.cap-winner-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Team Name Styling - Eye Catching Effects */
 .team-name {
-font-size: 0.8rem;
-color: #777;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-/* The stat highlight (runs, wickets, etc.) to the right */
-.stat-highlight {
-font-size: 0.85rem;
-color: var(--highlight-color);
-font-weight: 600;
+.team-name::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.team-name:hover::before {
+  left: 100%;
+}
+
+.team-name:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+}
+
+/* Cap Winner Cards Team Names */
+.cap-winner-card .player-team {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+  margin: 0.5rem 0;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.cap-winner-card .player-team::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.cap-winner-card .player-team:hover::before {
+  left: 100%;
+}
+
+.cap-winner-card .player-team:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+}
+
+/* Performance Highlights Team Names */
+.highlight-card .player-details .team-name {
+  font-weight: 700;
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+/* Top Performers Team Names */
+.performer-team {
+  font-weight: 700;
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+/* Tournament Records Team Names */
+.records-table td:nth-child(2) {
+  font-weight: 700;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  text-align: left;
+  padding: 1rem;
+}
+
+/* Animated Team Name Glow */
+@keyframes teamGlow {
+  0%, 100% {
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.7), 0 0 30px rgba(59, 130, 246, 0.3);
+  }
+}
+
+.cap-winner-card .player-team {
+  animation: teamGlow 3s ease-in-out infinite;
+}
+
+.cap-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  color: white;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.cap-icon {
+  font-size: 1.5rem;
+  margin-right: 0.75rem;
+}
+
+.cap-label {
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.player-image-container {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  position: relative;
+  margin-bottom: 1.5rem;
+  border: 3px solid transparent;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.player-image-container:hover .image-overlay {
+  opacity: 1;
+}
+
+.overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.overlay-icon {
+  font-size: 1.5rem;
+  color: white;
+}
+
+.overlay-content span {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.player-info {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.player-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+.player-team {
+  font-size: 1rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.main-stat-display {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.main-stat-display .stat-number {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.main-stat-display .stat-label {
+  font-size: 1rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.additional-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+}
+
+.stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.stat-name {
+  font-size: 0.8rem;
+  color: #6b7280;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.achievement-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 20px;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+}
+
+.achievement-icon {
+  font-size: 1.2rem;
+}
+
+/* =============== PERFORMANCE HIGHLIGHTS =============== */
+.performance-highlights {
+  padding: 2rem 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.highlights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.highlight-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+  border-left: 5px solid transparent;
+}
+
+.highlight-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.strike-rate { border-left-color: var(--danger-color); }
+.economy { border-left-color: var(--success-color); }
+.highest-score { border-left-color: var(--warning-color); }
+.match-wickets { border-left-color: var(--info-color); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.card-icon {
+  font-size: 2rem;
+  margin-right: 1rem;
+  color: var(--highlight-color);
+}
+
+.card-header h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-color);
+}
+
+.card-content {
+  text-align: center;
+}
+
+.card-content .main-stat {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  color: var(--highlight-color);
+}
+
+.card-content .stat-label {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.card-content .player-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-content .player-details strong {
+  font-size: 1.1rem;
+  color: var(--text-color);
+}
+
+.card-content .player-details span {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* =============== TOP PERFORMERS SECTION =============== */
+/* Top Performers Section */
+.top-performers-section {
+  padding: 2rem 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.performers-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.performer-category {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+}
+
+.performer-category:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.category-title {
+  display: flex;
+  align-items: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: var(--text-color);
+}
+
+.category-icon {
+  margin-right: 1rem;
+  color: var(--highlight-color);
+  font-size: 1.5rem;
+}
+
+.performer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.performer-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.performer-item:hover {
+  transform: translateX(5px);
+}
+
+.performer-item:nth-child(1) {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
+}
+
+.performer-item:nth-child(2) {
+  background: linear-gradient(135deg, #fcd34d, #fbbf24);
+  color: white;
+}
+
+.performer-item:nth-child(3) {
+  background: linear-gradient(135deg, #fde68a, #fcd34d);
+  color: #92400e;
+}
+
+.performer-item:nth-child(4) {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+}
+
+.performer-item:nth-child(5) {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  color: #92400e;
+}
+
+.rank-badge {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.performer-item:nth-child(1) .rank-badge {
+  background: #dc2626;
+}
+
+.performer-item:nth-child(2) .rank-badge {
+  background: #ea580c;
+}
+
+.performer-item:nth-child(3) .rank-badge {
+  background: #d97706;
+}
+
+.performer-item:nth-child(4) .rank-badge {
+  background: #ca8a04;
+}
+
+.performer-item:nth-child(5) .rank-badge {
+  background: #a16207;
+}
+
+.performer-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.performer-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: inherit;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.performer-team {
+  font-size: 0.9rem;
+  color: inherit;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.performer-stat {
+  font-size: 1rem;
+  font-weight: 600;
+  color: inherit;
+  opacity: 0.9;
+}
+
+/* Top Wicket Takers - Purple Background */
+.performer-category:nth-child(2) .performer-item:nth-child(1) {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+}
+
+.performer-category:nth-child(2) .performer-item:nth-child(2) {
+  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+  color: white;
+}
+
+.performer-category:nth-child(2) .performer-item:nth-child(3) {
+  background: linear-gradient(135deg, #c4b5fd, #a78bfa);
+  color: white;
+}
+
+.performer-category:nth-child(2) .performer-item:nth-child(4) {
+  background: linear-gradient(135deg, #ddd6fe, #c4b5fd);
+  color: #581c87;
+}
+
+.performer-category:nth-child(2) .performer-item:nth-child(5) {
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+  color: #581c87;
+}
+
+/* Top Run Scorers - Faded Orange Background */
+.performer-category:nth-child(1) .performer-item:nth-child(1) {
+  background: linear-gradient(135deg, #fed7aa, #fdba74);
+  color: #9a3412;
+}
+
+.performer-category:nth-child(1) .performer-item:nth-child(2) {
+  background: linear-gradient(135deg, #fed7aa, #fbbf24);
+  color: #92400e;
+}
+
+.performer-category:nth-child(1) .performer-item:nth-child(3) {
+  background: linear-gradient(135deg, #fde68a, #fcd34d);
+  color: #92400e;
+}
+
+.performer-category:nth-child(1) .performer-item:nth-child(4) {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+}
+
+.performer-category:nth-child(1) .performer-item:nth-child(5) {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  color: #92400e;
+}
+
+.no-data {
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+  padding: 2rem;
+}
+
+/* =============== RECORDS SECTION =============== */
+.records-section {
+  padding: 2rem 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.records-tables-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.record-table-wrapper {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: var(--card-shadow);
+}
+
+.table-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: var(--text-color);
+  text-align: center;
+  border-bottom: 2px solid var(--highlight-color);
+  padding-bottom: 0.5rem;
+}
+
+.table-container {
+  overflow-x: auto;
+  border-radius: 15px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.records-table thead {
+  background: linear-gradient(135deg, var(--highlight-color), #1d4ed8);
+  color: white;
+}
+
+.records-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.records-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+.records-table tbody tr:hover {
+  background: #f8fafc;
+  transform: translateX(5px);
+}
+
+.records-table td {
+  padding: 1rem;
+  vertical-align: middle;
+}
+
+.player-cell {
+  min-width: 200px;
+}
+
+.player-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.player-thumbnail {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--highlight-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.player-name-text {
+  font-weight: 700;
+  color: var(--text-color);
+  font-size: 0.95rem;
+}
+
+.runs-cell, .wickets-cell {
+  text-align: center;
+}
+
+.runs-badge, .wickets-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: white;
+  min-width: 60px;
+  text-align: center;
+}
+
+.runs-badge {
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+}
+
+.runs-badge.half-century {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.wickets-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: white;
+  min-width: 60px;
+  text-align: center;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.wickets-badge.four-wicket {
+  background: linear-gradient(135deg, #fb7185, #e11d48);
+}
+
+.no-data-cell {
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+  padding: 2rem;
+}
+
+/* Mobile Table Styles - Responsive Table Format */
+@media (max-width: 768px) {
+  .table-container {
+    overflow-x: visible;
+    border: none;
+  }
+  
+  .records-table {
+    display: table;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 0.8rem;
+  }
+  
+  .records-table thead {
+    display: table-header-group;
+  }
+  
+  .records-table tbody {
+    display: table-row-group;
+  }
+  
+  .records-table tbody tr {
+    display: table-row;
+    background: white;
+    border-bottom: 1px solid #f1f5f9;
+    transform: none;
+  }
+  
+  .records-table tbody tr:hover {
+    transform: none;
+    background: #f8fafc;
+  }
+  
+  .records-table td {
+    display: table-cell;
+    padding: 0.5rem 0.3rem;
+    border: none;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 0.75rem;
+  }
+  
+  .records-table th {
+    padding: 0.5rem 0.3rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+  }
+  
+  .player-cell {
+    min-width: 80px;
+    max-width: 100px;
+  }
+  
+  .player-info-cell {
+    flex-direction: column;
+    gap: 0.3rem;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .player-thumbnail {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+  }
+  
+  .player-name-text {
+    font-size: 0.7rem;
+    text-align: center;
+    line-height: 1.2;
+  }
+  
+  .runs-cell, .wickets-cell {
+    text-align: center;
+    min-width: 50px;
+  }
+  
+  .runs-badge, .wickets-badge {
+    display: inline-block;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+    min-width: 40px;
+    text-align: center;
+  }
+  
+  /* Hide less important columns on mobile */
+  .records-table th:nth-child(3),
+  .records-table td:nth-child(3) {
+    display: none;
+  }
+  
+  .records-table th:nth-child(5),
+  .records-table td:nth-child(5) {
+    display: none;
+  }
+  
+  .no-data-cell {
+    padding: 1rem;
+    text-align: center;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+  }
+}
+
+/* Extra Small Mobile Table Adjustments */
+@media (max-width: 480px) {
+  .records-table {
+    font-size: 0.7rem;
+  }
+  
+  .records-table th,
+  .records-table td {
+    padding: 0.4rem 0.2rem;
+    font-size: 0.65rem;
+  }
+  
+  .records-table th {
+    font-size: 0.65rem;
+  }
+  
+  .player-cell {
+    min-width: 70px;
+    max-width: 90px;
+  }
+  
+  .player-thumbnail {
+    width: 25px;
+    height: 25px;
+  }
+  
+  .player-name-text {
+    font-size: 0.65rem;
+  }
+  
+  .runs-badge, .wickets-badge {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.65rem;
+    min-width: 35px;
+  }
+  
+  .runs-cell, .wickets-cell {
+    min-width: 45px;
+  }
+}
+
+/* Very Small Mobile Table Adjustments */
+@media (max-width: 360px) {
+  .records-table {
+    font-size: 0.65rem;
+  }
+  
+  .records-table th,
+  .records-table td {
+    padding: 0.3rem 0.15rem;
+    font-size: 0.6rem;
+  }
+  
+  .records-table th {
+    font-size: 0.6rem;
+  }
+  
+  .player-cell {
+    min-width: 60px;
+    max-width: 80px;
+  }
+  
+  .player-thumbnail {
+    width: 22px;
+    height: 22px;
+  }
+  
+  .player-name-text {
+    font-size: 0.6rem;
+  }
+  
+  .runs-badge, .wickets-badge {
+    padding: 0.2rem 0.3rem;
+    font-size: 0.6rem;
+    min-width: 30px;
+  }
+  
+  .runs-cell, .wickets-cell {
+    min-width: 40px;
+  }
+}
+
+/* Responsive table adjustments */
+@media (max-width: 768px) {
+  .record-table-wrapper {
+    padding: 1rem;
+  }
+  
+  .records-table th,
+  .records-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .player-info-cell {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+  
+  .player-thumbnail {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .runs-badge, .wickets-badge {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    min-width: 50px;
+  }
+}
+
+/* =============== RESPONSIVE DESIGN =============== */
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .stats-overview-wrapper {
+    min-height: auto;
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+  
+  .hero-section {
+    height: 70vh;
+    min-height: 500px;
+    padding: 1.5rem;
+  }
+  
+  .hero-title {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+  
+  .hero-subtitle {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.4;
+    padding: 0 0.5rem;
+  }
+  
+  .hero-stats-preview {
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding: 0 0.5rem;
+  }
+  
+  .stat-preview {
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+  }
+  
+  .stat-number {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .stat-label {
+    font-size: 0.8rem;
+  }
+  
+  .floating-cricket-balls .ball {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .cap-winners-section {
+    padding: 1.5rem 1rem;
+  }
+  
+  .cap-winners-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .cap-winner-card {
+    min-height: auto;
+    padding: 1.5rem;
+  }
+  
+  .player-image-container {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .player-name {
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .player-team {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .main-stat-display {
+    padding: 1rem;
+  }
+  
+  .main-stat-display .stat-number {
+    font-size: 2.5rem;
+  }
+  
+  .main-stat-display .stat-label {
+    font-size: 1rem;
+  }
+  
+  .cap-label {
+    font-size: 1rem;
+  }
+  
+  .performance-highlights {
+    padding: 1.5rem 1rem;
+  }
+  
+  .highlights-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .highlight-card {
+    padding: 1.5rem;
+  }
+  
+  .card-header h3 {
+    font-size: 1.3rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .card-content .main-stat {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .card-content .stat-label {
+    font-size: 0.9rem;
+  }
+  
+  .top-performers-section {
+    padding: 1.5rem 1rem;
+  }
+  
+  .performers-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .performer-category {
+    padding: 1.5rem;
+  }
+  
+  .category-title {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+  
+  .performer-item {
+    padding: 0.75rem;
+  }
+  
+  .performer-name {
+    font-size: 1rem;
+  }
+  
+  .performer-team {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+  }
+  
+  .records-section {
+    padding: 1.5rem 1rem;
+  }
+  
+  .records-tables-container {
+    gap: 1.5rem;
+    margin: 0 0.5rem;
+  }
+  
+  .record-table-wrapper {
+    padding: 1rem;
+  }
+  
+  .table-title {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+  
+  .table-container {
+    border-radius: 10px;
+  }
+  
+  .records-table {
+    font-size: 0.85rem;
+  }
+  
+  .records-table th,
+  .records-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  
+  .player-cell {
+    min-width: 150px;
+  }
+  
+  .player-info-cell {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+    align-items: center;
+  }
+  
+  .player-thumbnail {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .player-name-text {
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  
+  .runs-badge, .wickets-badge {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    min-width: 50px;
+  }
+  
+  /* Section Headers Mobile */
+  .section-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .section-title {
+    font-size: 1.8rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .section-subtitle {
+    font-size: 1rem;
+  }
+}
+
+/* Extra Small Mobile Adjustments */
+@media (max-width: 480px) {
+  .hero-section {
+    height: 65vh;
+    min-height: 450px;
+    padding: 1.25rem;
+  }
+  
+  .hero-title {
+    font-size: 1.8rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 1.25rem;
+    padding: 0 0.25rem;
+  }
+  
+  .hero-stats-preview {
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding: 0 0.25rem;
+  }
+  
+  .stat-preview {
+    padding: 0.6rem 0.8rem;
+    border-radius: 10px;
+  }
+  
+  .stat-number {
+    font-size: 1.3rem;
+    margin-bottom: 0.4rem;
+  }
+  
+  .stat-label {
+    font-size: 0.75rem;
+  }
+  
+  .floating-cricket-balls .ball {
+    width: 25px;
+    height: 25px;
+  }
+  
+  .cap-winner-card {
+    padding: 1rem;
+  }
+  
+  .player-image-container {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .player-name {
+    font-size: 1.2rem;
+  }
+  
+  .main-stat-display .stat-number {
+    font-size: 2rem;
+  }
+  
+  .highlight-card {
+    padding: 1rem;
+  }
+  
+  .performer-category {
+    padding: 1rem;
+  }
+  
+  .record-table-wrapper {
+    padding: 0.75rem;
+  }
+  
+  .records-table th,
+  .records-table td {
+    padding: 0.5rem 0.3rem;
+    font-size: 0.75rem;
+  }
+  
+  .player-cell {
+    min-width: 120px;
+  }
+  
+  .player-thumbnail {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .player-name-text {
+    font-size: 0.8rem;
+  }
+  
+  .runs-badge, .wickets-badge {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    min-width: 45px;
+  }
+}
+
+/* Very Small Mobile Adjustments */
+@media (max-width: 360px) {
+  .hero-section {
+    height: 60vh;
+    min-height: 400px;
+    padding: 1rem;
+  }
+  
+  .hero-title {
+    font-size: 1.6rem;
+    margin-bottom: 0.6rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+  }
+  
+  .hero-stats-preview {
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+  }
+  
+  .stat-preview {
+    padding: 0.5rem 0.7rem;
+  }
+  
+  .stat-number {
+    font-size: 1.2rem;
+    margin-bottom: 0.3rem;
+  }
+  
+  .stat-label {
+    font-size: 0.7rem;
+  }
+  
+  .floating-cricket-balls .ball {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .cap-winner-card {
+    padding: 0.75rem;
+  }
+  
+  .player-image-container {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .player-name {
+    font-size: 1.1rem;
+  }
+  
+  .main-stat-display .stat-number {
+    font-size: 1.8rem;
+  }
+  
+  .highlight-card {
+    padding: 0.75rem;
+  }
+  
+  .performer-category {
+    padding: 0.75rem;
+  }
+  
+  .record-table-wrapper {
+    padding: 0.5rem;
+  }
+  
+  .records-table th,
+  .records-table td {
+    padding: 0.4rem 0.2rem;
+    font-size: 0.7rem;
+  }
+  
+  .player-cell {
+    min-width: 100px;
+  }
+  
+  .player-thumbnail {
+    width: 25px;
+    height: 25px;
+  }
+  
+  .player-name-text {
+    font-size: 0.75rem;
+  }
+  
+  .runs-badge, .wickets-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    min-width: 40px;
+  }
+}
+
+/* Landscape Mobile Optimizations */
+@media (max-width: 768px) and (orientation: landscape) {
+  .hero-section {
+    height: 40vh;
+    min-height: 250px;
+  }
+  
+  .hero-title {
+    font-size: 2rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .cap-winners-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .cap-winner-card {
+    padding: 1rem;
+  }
+  
+  .player-image-container {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .main-stat-display .stat-number {
+    font-size: 1.8rem;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .cap-winner-card:hover,
+  .highlight-card:hover,
+  .performer-category:hover,
+  .performer-item:hover {
+    transform: none;
+  }
+  
+  .cap-winner-card:active,
+  .highlight-card:active,
+  .performer-category:active,
+  .performer-item:active {
+    transform: scale(0.98);
+  }
+  
+  .records-table tbody tr:hover {
+    transform: none;
+    background: #f8fafc;
+  }
+  
+  .records-table tbody tr:active {
+    background: #e2e8f0;
+  }
+  
+  /* Larger touch targets */
+  .retry-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .achievement-badge {
+    min-height: 44px;
+  }
+  
+  .cap-badge {
+    min-height: 44px;
+  }
+}
+
+/* Orange Cap Achievement Badge */
+.cap-winner-card.orange-cap .achievement-badge {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+  transition: all 0.3s ease;
+}
+
+.cap-winner-card.orange-cap .achievement-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
+}
+
+.cap-winner-card.orange-cap .achievement-icon {
+  color: white;
+  margin-right: 0.5rem;
+}
+
+/* Purple Cap Achievement Badge */
+.cap-winner-card.purple-cap .achievement-badge {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+  transition: all 0.3s ease;
+}
+
+.cap-winner-card.purple-cap .achievement-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+}
+
+.cap-winner-card.purple-cap .achievement-icon {
+  color: white;
+  margin-right: 0.5rem;
 }
