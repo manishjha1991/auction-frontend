@@ -638,7 +638,7 @@ function TradeCenter() {
           <p>Propose trades and finalize with admin approval.</p>
           <div className="usage-row">
             <span className="usage-badge usage-used"><FaExchangeAlt style={{ marginRight: 6 }} />Completed: {tradeUsage.tradesUsed}</span>
-            <span className="usage-badge usage-left"><FaRetweet style={{ marginRight: 6 }} />Remaining: {Math.max(0, 4 - tradeUsage.tradesUsed)}</span>
+            <span className="usage-badge usage-left"><FaRetweet style={{ marginRight: 6 }} />Remaining: {Math.max(0, 6 - tradeUsage.tradesUsed)}</span>
             <span className="usage-badge usage-pending"><FaClock style={{ marginRight: 6 }} />Pending: {pendingTradesCount}</span>
             {pendingTradesCount >= 6 && (<span className="usage-cap">You have reached your 4 pending requests limit (trades + releases).</span>)}
             {tradeUsage.tradesUsed >= 6 && (<span className="usage-cap">You have used all 4 trades.</span>)}
