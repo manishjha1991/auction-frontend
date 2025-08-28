@@ -329,7 +329,7 @@ function TradeCenter() {
             String(r.user) === String(currentUser?.id)
           );
           const totalActive = activeTrades.length + activeReleases.length;
-          setLimitReached(totalActive >= 4);
+          setLimitReached(totalActive >= 6);
           setPendingTradesCount(totalActive);
         }
         
@@ -391,7 +391,7 @@ function TradeCenter() {
             String(r.user) === String(user?.id)
           );
           const totalActive = activeTrades.length + activeReleases.length;
-          setLimitReached(totalActive >= 4);
+          setLimitReached(totalActive >= 6);
           setPendingTradesCount(totalActive);
         }
       } catch (error) {
@@ -467,7 +467,7 @@ function TradeCenter() {
       const updated = [j, ...trades];
       setTrades(updated);
       const activeMine = updated.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
-      setLimitReached(activeMine.length >= 4);
+      setLimitReached(activeMine.length >= 6);
       setPendingTradesCount(activeMine.length);
       
       // Show sexy success alert
@@ -542,7 +542,7 @@ function TradeCenter() {
         const activeReleases = releasesJson.filter(r => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(user?.id));
         const totalActive = activeTrades.length + activeReleases.length;
         
-        setLimitReached(totalActive >= 4);
+        setLimitReached(totalActive >= 6);
         setPendingTradesCount(totalActive);
         
         if (typeof usageJson.tradesUsed !== 'undefined') {
@@ -587,7 +587,7 @@ function TradeCenter() {
       const activeReleases = myReleases.filter(r => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(user?.id));
       const totalActive = activeTrades.length + activeReleases.length;
       
-      setLimitReached(totalActive >= 4);
+      setLimitReached(totalActive >= 6);
       setPendingTradesCount(totalActive);
       
       // Show sexy success alert
@@ -640,8 +640,8 @@ function TradeCenter() {
             <span className="usage-badge usage-used"><FaExchangeAlt style={{ marginRight: 6 }} />Completed: {tradeUsage.tradesUsed}</span>
             <span className="usage-badge usage-left"><FaRetweet style={{ marginRight: 6 }} />Remaining: {Math.max(0, 4 - tradeUsage.tradesUsed)}</span>
             <span className="usage-badge usage-pending"><FaClock style={{ marginRight: 6 }} />Pending: {pendingTradesCount}</span>
-            {pendingTradesCount >= 4 && (<span className="usage-cap">You have reached your 4 pending requests limit (trades + releases).</span>)}
-            {tradeUsage.tradesUsed >= 4 && (<span className="usage-cap">You have used all 4 trades.</span>)}
+            {pendingTradesCount >= 6 && (<span className="usage-cap">You have reached your 4 pending requests limit (trades + releases).</span>)}
+            {tradeUsage.tradesUsed >= 6 && (<span className="usage-cap">You have used all 4 trades.</span>)}
           </div>
         </div>
         
@@ -700,7 +700,7 @@ function TradeCenter() {
                 className="btn btn-info" 
                 title="Send trade proposal" 
                 onClick={proposeTrade} 
-                disabled={limitReached || tradeUsage.tradesUsed >= 4 || loadingStates.propose || isSelectingRelease}
+                disabled={limitReached || tradeUsage.tradesUsed >= 6 || loadingStates.propose || isSelectingRelease}
               >
                 {loadingStates.propose ? (
                   <>
@@ -896,7 +896,7 @@ function TradeCenter() {
                         const activeReleases = myReleases.filter(r => ['pending','admin_pending'].includes(r.status) && String(r.user) === String(user?.id));
                         const totalActive = activeTrades.length + activeReleases.length;
                         
-                        setLimitReached(totalActive >= 4);
+                        setLimitReached(totalActive >= 6);
                         setPendingTradesCount(totalActive);
                           
                           // Show sexy success alert
@@ -1010,7 +1010,7 @@ function TradeCenter() {
                             const activeReleases = updatedReleases.filter(rel => ['pending', 'admin_pending'].includes(rel.status) && String(rel.user) === String(user?.id));
                             const totalActive = activeTrades.length + activeReleases.length;
                             
-                            setLimitReached(totalActive >= 4);
+                            setLimitReached(totalActive >= 6);
                             setPendingTradesCount(totalActive);
                             
                             // Show sexy success alert
