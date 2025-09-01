@@ -3,6 +3,7 @@ import styled from "styled-components";
 import axios from "axios";
 import ReactSelect from "react-select"; // <-- 1) Import react-select
 import { API_ENDPOINTS } from "../const";
+import PlayoffFixtures from "./PlayoffFixtures";
 
 // We rename the existing styled Select component to StyledSelect:
 const StyledSelect = styled.select`
@@ -29,13 +30,46 @@ const FairnessTag = styled.div`
   }};
 `;
 
-const FixtureWrapper = styled.div`
+// Tab styles
+const TabContainer = styled.div`
   margin: 2rem auto;
   max-width: 1200px;
-  padding: 1rem;
-  background: #f8f9fa;
+  background: #ffffff;
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+`;
+
+const TabHeader = styled.div`
+  display: flex;
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+`;
+
+const TabButton = styled.button`
+  flex: 1;
+  padding: 1rem;
+  background: ${props => props.active ? '#007bff' : 'transparent'};
+  color: ${props => props.active ? '#ffffff' : '#6c757d'};
+  border: none;
+  font-weight: ${props => props.active ? 'bold' : 'normal'};
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  
+  &:hover {
+    background: ${props => props.active ? '#007bff' : '#e9ecef'};
+  }
+  
+  @media (max-width: 600px) {
+    padding: 0.8rem 0.5rem;
+    font-size: 0.8rem;
+  }
+`;
+
+const FixtureWrapper = styled.div`
+  padding: 1rem;
+  background: #f8f9fa;
 `;
 
 const SearchBar = styled.input`
@@ -226,6 +260,9 @@ const Fixtures = () => {
   const [currentFixture, setCurrentFixture] = useState(null);
   const [teams, setTeams] = useState([]);
   const [groupFilter, setGroupFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('all');
+  const [mode, setMode] = useState('overall');
+  const [top6Teams, setTop6Teams] = useState([]);
 
   // Using empty strings here so placeholder shows up until user enters something
   const [winner, setWinner] = useState("");
@@ -264,8 +301,36 @@ const Fixtures = () => {
         setTeams(t.data?.teams || []);
       } catch {}
     };
+    const fetchMode = async () => {
+      try {
+        const settings = await axios.get(`${API_ENDPOINTS}/api/settings`);
+        const pmode = settings?.data?.pointsMode || 'overall';
+        setMode(pmode);
+      } catch (error) {
+        console.error("Error fetching mode:", error);
+      }
+    };
+    const fetchTop6Teams = async () => {
+      try {
+        const response = await axios.get(`${API_ENDPOINTS}/api/users/points-table`);
+        const teams = response.data.filter(team => team.teamName !== "NA");
+        const sortedTeams = teams.sort((a, b) => {
+          const pointsA = Number(a.points) || 0;
+          const pointsB = Number(b.points) || 0;
+          if (pointsB !== pointsA) return pointsB - pointsA;
+          const fairnessA = Number(a.fairness) || 0;
+          const fairnessB = Number(b.fairness) || 0;
+          return fairnessB - fairnessA;
+        });
+        setTop6Teams(sortedTeams.slice(0, 6));
+      } catch (error) {
+        console.error("Error fetching top 6 teams:", error);
+      }
+    };
     fetchFixtures();
     fetchTeams();
+    fetchMode();
+    fetchTop6Teams();
   }, []);
 
   const handleSearch = (e) => {
@@ -395,21 +460,76 @@ const Fixtures = () => {
   }
 
   return (
-    <FixtureWrapper>
-      <h2>Fixtures</h2>
-      <SearchBar
-        type="text"
-        placeholder="Search by team name"
-        value={searchQuery}
-        onChange={handleSearch}
-      />
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-        <button className={`btn ${groupFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setGroupFilter('all')}>All</button>
-        <button className={`btn ${groupFilter === 'A' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setGroupFilter('A')}>Group A</button>
-        <button className={`btn ${groupFilter === 'B' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setGroupFilter('B')}>Group B</button>
-      </div>
+    <TabContainer>
+      <TabHeader>
+        <TabButton 
+          active={activeTab === 'all'} 
+          onClick={() => setActiveTab('all')}
+        >
+          All Fixtures
+        </TabButton>
+        {mode === 'groups' && (
+          <>
+            <TabButton 
+              active={activeTab === 'groupA'} 
+              onClick={() => setActiveTab('groupA')}
+            >
+              Group A
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'groupB'} 
+              onClick={() => setActiveTab('groupB')}
+            >
+              Group B
+            </TabButton>
+          </>
+        )}
+        <TabButton 
+          active={activeTab === 'playoffs'} 
+          onClick={() => setActiveTab('playoffs')}
+        >
+          Playoffs
+        </TabButton>
+      </TabHeader>
+      
+      <FixtureWrapper>
+        <h2>Fixtures</h2>
+        <SearchBar
+          type="text"
+          placeholder="Search by team name"
+          value={searchQuery}
+          onChange={handleSearch}
+        />
+        
+                {/* Show group filter buttons only when in group mode and on specific group tabs */}
+        {mode === 'groups' && (activeTab === 'groupA' || activeTab === 'groupB') && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+            <button 
+              className={`btn ${groupFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`} 
+              onClick={() => setGroupFilter('all')}
+            >
+              All
+            </button>
+            <button 
+              className={`btn ${groupFilter === 'A' ? 'btn-primary' : 'btn-ghost'}`} 
+              onClick={() => setGroupFilter('A')}
+            >
+              Group A
+            </button>
+            <button 
+              className={`btn ${groupFilter === 'B' ? 'btn-primary' : 'btn-ghost'}`} 
+              onClick={() => setGroupFilter('B')}
+            >
+              Group B
+            </button>
+          </div>
+        )}
 
-      {filteredFixtures.map((fixture, index) => (
+        {/* Show fixtures based on active tab */}
+        {activeTab === 'playoffs' ? (
+          <PlayoffFixtures top6Teams={top6Teams} />
+        ) : (
+          filteredFixtures.map((fixture, index) => (
         <FixtureCard key={fixture._id} hasMom={!!fixture.mom?.name}>
           <MatchHeader>
             <div className="match-number">
@@ -545,7 +665,8 @@ const Fixtures = () => {
             </div>
           )}
         </FixtureCard>
-      ))}
+      ))
+        )}
 
       {showModal && (
         <ModalWrapper>
@@ -629,7 +750,8 @@ const Fixtures = () => {
           </ModalContent>
         </ModalWrapper>
       )}
-    </FixtureWrapper>
+      </FixtureWrapper>
+    </TabContainer>
   );
 };
 

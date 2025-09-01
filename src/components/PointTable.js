@@ -3,35 +3,56 @@ import styled, { keyframes } from "styled-components";
 import axios from "axios";
 import { API_ENDPOINTS } from "../const";
 import { useMemo } from "react";
+import PlayoffFixtures from "./PlayoffFixtures";
 
-// Keyframes for subtle animations
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
+// Keyframes for subtle animations (removed unused fadeIn)
+
+// Tab styles
+const TabContainer = styled.div`
+  margin: 2rem auto;
+  width: 95%;
+  max-width: 800px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+`;
+
+const TabHeader = styled.div`
+  display: flex;
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+`;
+
+const TabButton = styled.button`
+  flex: 1;
+  padding: 1rem;
+  background: ${props => props.active ? '#007bff' : 'transparent'};
+  color: ${props => props.active ? '#ffffff' : '#6c757d'};
+  border: none;
+  font-weight: ${props => props.active ? 'bold' : 'normal'};
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  
+  &:hover {
+    background: ${props => props.active ? '#007bff' : '#e9ecef'};
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  
+  @media (max-width: 600px) {
+    padding: 0.8rem 0.5rem;
+    font-size: 0.8rem;
   }
 `;
 
 // Styled components
 const TableWrapper = styled.div`
-  margin: 2rem auto;
-  width: 95%;
-  max-width: 900px;
-  border-radius: 16px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  box-shadow: 0 18px 50px rgba(13,110,253,0.08);
-  background: linear-gradient(180deg, #ffffff, #f7fbff) !important;
-  border: 1px solid rgba(13,110,253,0.08);
+  padding: 1rem;
+  background: #ffffff;
 `;
 
 const Table = styled.table`
   width: 100%;
-  min-width: 720px;
   border-collapse: collapse;
   text-align: center;
   font-size: 0.9rem;
@@ -40,24 +61,18 @@ const Table = styled.table`
 
   @media (max-width: 600px) {
     font-size: 0.8rem; /* Adjust font size for smaller screens */
-    min-width: 100%;
   }
 `;
 
 const TableHead = styled.thead`
-  background: linear-gradient(90deg, rgba(13,110,253,0.06), rgba(32,201,151,0.06)) !important;
+  background-color: #ffffff !important;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   color: #343a40;
-  letter-spacing: .02em;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  backdrop-filter: saturate(140%) blur(4px);
 
   @media (max-width: 600px) {
-    font-size: 0.75rem;
+    font-size: 0.75rem; /* Reduce font size on mobile screens */
   }
 `;
 
@@ -77,8 +92,6 @@ const TableRow = styled.tr`
     border-left: 4px solid #dc3545;
     box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
     `}
-  transition: transform .12s ease, box-shadow .12s ease;
-  &:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.06); }
 `;
 
 const TableCell = styled.td`
@@ -146,95 +159,16 @@ const EliminatedBadge = styled.span`
 `;
 
 const RankCell = styled(TableCell)`
-  font-weight: 800;
-  color: #0d6efd;
+  font-weight: bold;
+  color: #000;
 `;
-
-const SectionTitle = styled.h2`
-  text-align: center;
-  color: #0b132b;
-  margin: 18px 0 8px;
-  background: linear-gradient(90deg, #0d6efd, #20c997);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-`;
-
-const FairnessPill = styled.span`
-  display: inline-block;
-  min-width: 34px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 0.8rem;
-  color: #0b132b;
-  background: ${(props) => {
-    const f = Number(props.value) || 0;
-    if (f >= 8) return 'linear-gradient(135deg, rgba(32,201,151,.18), rgba(13,110,253,.18))';
-    if (f >= 5) return 'rgba(255,193,7,.18)';
-    return 'rgba(220,53,69,.18)';
-  }};
-  border: ${(props) => {
-    const f = Number(props.value) || 0;
-    if (f >= 8) return '1px solid rgba(32,201,151,.35)';
-    if (f >= 5) return '1px solid rgba(255,193,7,.35)';
-    return '1px solid rgba(220,53,69,.35)';
-  }};
-`;
-
-const PointsBar = styled.div`
-  width: 100%;
-  height: 8px;
-  background: rgba(13,110,253,.12);
-  border-radius: 999px;
-  overflow: hidden;
-  position: relative;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,.05);
-  @media (max-width: 600px) {
-    display: none;
-  }
-`;
-
-const PointsFill = styled.div`
-  height: 100%;
-  background: linear-gradient(90deg, #0d6efd, #20c997);
-  width: ${(props) => `${props.pct}%`};
-  transition: width .3s ease;
-`;
-
-const HideOnMobile = styled(TableCell)`
-  @media (max-width: 600px) {
-    display: none;
-  }
-`;
-
-const MobileMeta = styled.div`
-  display: none;
-  @media (max-width: 600px) {
-    display: flex;
-    gap: 6px;
-    margin-left: 8px;
-    font-size: 0.72rem;
-    color: #6c757d;
-  }
-`;
-
-const Chip = styled.span`
-  padding: 2px 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(0,0,0,0.12);
-  background: #f5f7fb;
-`;
-
-
-
-
 
 const PointsTable = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState('overall');
   const [groups, setGroups] = useState({ A: [], B: [] });
+  const [activeTab, setActiveTab] = useState('overall');
 
   const TOTAL_MATCHES = 12;
   const NUM_QUALIFIERS = 6; // always top-6 qualify
@@ -262,8 +196,6 @@ const PointsTable = () => {
       setLoading(false);
     }
   };
-
-
 
   // Filter out placeholder teams once
   const filteredTeams = useMemo(
@@ -308,25 +240,7 @@ const PointsTable = () => {
     });
   }, [filteredTeams]);
 
-
-
-  // Current top-N based on points (fairness tie-breaker)
-  const currentTopMap = useMemo(() => {
-    const ids = {};
-    if (filteredTeams.length === 0) return ids;
-    const sorted = [...filteredTeams].sort((a, b) => {
-      const pa = Number(a.points) || 0;
-      const pb = Number(b.points) || 0;
-      if (pb !== pa) return pb - pa;
-      const fa = Number(a.fairness) || 0;
-      const fb = Number(b.fairness) || 0;
-      return fb - fa;
-    });
-    sorted.slice(0, NUM_QUALIFIERS).forEach((t) => {
-      ids[t._id] = true;
-    });
-    return ids;
-  }, [filteredTeams, NUM_QUALIFIERS]);
+  // Removed unused currentTopMap
 
   // Mathematical status map (Q/E/NONE) from previous logic (kept for reference, not used when season incomplete)
   const mathStatusMap = useMemo(() => {
@@ -398,149 +312,211 @@ const PointsTable = () => {
   const renderTableBody = (list) => (
     <tbody>
       {list.map((team, index) => {
-              const losses = team.matchesPlayed - team.wins;
-              const teamImage = team.teamImage
-                ? `${API_ENDPOINTS}${team.teamImage}`
-                : "https://via.placeholder.com/100";
+        const losses = team.matchesPlayed - team.wins;
+        const teamImage = team.teamImage
+          ? `${API_ENDPOINTS}${team.teamImage}`
+          : "https://via.placeholder.com/100";
 
-              const points = Number(team.points) || 0;
-              const playedNow = Number(team.matchesPlayed) || 0;
+        const points = Number(team.points) || 0;
+        const playedNow = Number(team.matchesPlayed) || 0;
 
-              // Check if team is eliminated based on early thresholds
-              const isEliminated = (
-                (playedNow >= 12 && points <= 10) ||
-                (playedNow >= 11 && points <= 8) ||
-                (playedNow >= 10 && points <= 6) ||
-                (playedNow >= 9 && points <= 4)
-              );
+        // Check if team is eliminated based on early thresholds
+        const isEliminated = (
+          (playedNow >= 12 && points <= 10) ||
+          (playedNow >= 11 && points <= 8) ||
+          (playedNow >= 10 && points <= 6) ||
+          (playedNow >= 9 && points <= 4)
+        );
 
-              // Variant logic: eliminated teams get red card, others by position
-              let variant;
-              if (isEliminated) {
-                variant = "eliminated"; // Red card design
-              } else if (index < 6) {
-                variant = "top";
-              } else if (index >= sortedTeams.length - 3) {
-                variant = "bottom";
-              } else {
-                variant = "middle";
-              }
+        // Rules:
+        // - During season (not allCompleted):
+        //   Q if points > 20
+        //   E if team meets early thresholds:
+        //       >=12 MP and PTS <= 10
+        //       >=11 MP and PTS <= 8
+        //       >=10 MP and PTS <= 6
+        //       >=9  MP and PTS <= 4
+        // - After season complete: Q for final Top-6; E for non Top-6
+        const earlyEliminated = (
+          (playedNow >= 12 && points <= 10) ||
+          (playedNow >= 11 && points <= 8)  ||
+          (playedNow >= 10 && points <= 6)  ||
+          (playedNow >= 9  && points <= 4)
+        );
+        const showQ = allCompleted ? false : points > 20; // Simplified since completedTopMap removed
+        const showE = allCompleted ? false : earlyEliminated; // Simplified since completedTopMap removed
+        const qTitle = allCompleted ? "Qualified (Final)" : "Qualified (20+ points)";
+        const eTitle = allCompleted ? "Eliminated (Final)" : "Eliminated (early threshold)";
 
-              const isTop = allCompleted ? Boolean(completedTopMap[team._id]) : false;
-              const mathStatus = mathStatusMap[team._id]; // 'Q' | 'E' | 'NONE' | undefined
-              // Rules:
-              // - During season (not allCompleted):
-              //   Q if points > 20
-              //   E if team meets early thresholds:
-              //       >=12 MP and PTS <= 10
-              //       >=11 MP and PTS <= 8
-              //       >=10 MP and PTS <= 6
-              //       >=9  MP and PTS <= 4
-              // - After season complete: Q for final Top-6; E for non Top-6
-              const earlyEliminated = (
-                (playedNow >= 12 && points <= 10) ||
-                (playedNow >= 11 && points <= 8)  ||
-                (playedNow >= 10 && points <= 6)  ||
-                (playedNow >= 9  && points <= 4)
-              );
-              const showQ = allCompleted ? isTop : points > 20;
-              const showE = allCompleted ? !isTop : earlyEliminated;
-              const qTitle = allCompleted ? "Qualified (Final)" : "Qualified (20+ points)";
-              const eTitle = allCompleted ? "Eliminated (Final)" : "Eliminated (early threshold)";
+        // Variant logic: different for groups vs overall
+        let variant;
+        if (mode === 'groups') {
+          // Group mode: Top 3 green, E teams red, others yellow
+          if (showE) {
+            variant = "eliminated"; // Red
+          } else if (index < 3) {
+            variant = "top"; // Green for top 3
+          } else {
+            variant = "middle"; // Yellow for others
+          }
+        } else {
+          // Overall mode: original logic
+          if (isEliminated) {
+            variant = "eliminated"; // Red card design
+          } else if (index < 6) {
+            variant = "top";
+          } else if (index >= list.length - 3) {
+            variant = "bottom";
+          } else {
+            variant = "middle";
+          }
+        }
 
-              const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
-              return (
-                <TableRow key={team._id} index={index} variant={variant}>
-                  <RankCell>{medal ? medal : `${index + 1} -`}</RankCell>
-                  <HighlightCell>
-                    <img src={teamImage} alt={team.teamName} />
-                    {team.teamName}
-                    <MobileMeta>
-                      <Chip>W {team.wins}</Chip>
-                      <Chip>L {losses}</Chip>
-                      <Chip>MP {team.matchesPlayed}</Chip>
-                    </MobileMeta>
-                    {showQ ? (
-                      <QualifierBadge title={qTitle}>Q</QualifierBadge>
-                    ) : showE ? (
-                      <EliminatedBadge title={eTitle}>E</EliminatedBadge>
-                    ) : null}
-                  </HighlightCell>
-                  <HideOnMobile>{team.wins}</HideOnMobile>
-                  <HideOnMobile>{losses}</HideOnMobile>
-                  <HideOnMobile><FairnessPill value={team.fairness}>{team.fairness}</FairnessPill></HideOnMobile>
-                  <HideOnMobile>
-                    <div style={{ minWidth: 90 }}>
-                      <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{team.points}</div>
-                      <PointsBar>
-                        <PointsFill pct={Math.min(100, Math.round(((Number(team.points)||0) / 24) * 100))} />
-                      </PointsBar>
-                    </div>
-                  </HideOnMobile>
-                  <HideOnMobile>{team.matchesPlayed}</HideOnMobile>
-                </TableRow>
-              );
-            })}
+        return (
+          <TableRow key={team._id} index={index} variant={variant}>
+            <RankCell>{`${index + 1} -`}</RankCell>
+            <HighlightCell>
+              <img src={teamImage} alt={team.teamName} />
+              {team.teamName}
+              {showQ ? (
+                <QualifierBadge title={qTitle}>Q</QualifierBadge>
+              ) : showE ? (
+                <EliminatedBadge title={eTitle}>E</EliminatedBadge>
+              ) : null}
+            </HighlightCell>
+            <TableCell>{team.wins}</TableCell>
+            <TableCell>{losses}</TableCell>
+            <TableCell>{team.fairness}</TableCell>
+            <TableCell>{team.points}</TableCell>
+            <TableCell>{team.matchesPlayed}</TableCell>
+          </TableRow>
+        );
+      })}
     </tbody>
   );
 
   return (
     <>
       {mode === 'groups' ? (
-        <>
+        // Group mode - show tabs for Group A, Group B, and Playoffs
+        <TabContainer>
+          <TabHeader>
+            <TabButton 
+              active={activeTab === 'groupA'} 
+              onClick={() => setActiveTab('groupA')}
+            >
+              Group A
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'groupB'} 
+              onClick={() => setActiveTab('groupB')}
+            >
+              Group B
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'playoffs'} 
+              onClick={() => setActiveTab('playoffs')}
+            >
+              Playoffs
+            </TabButton>
+          </TabHeader>
+          
           <TableWrapper>
-            <SectionTitle>Group A</SectionTitle>
-            <Table>
-              <TableHead>
-                <tr>
-                  <TableCell>POS</TableCell>
-                  <TableCell>TEAMS</TableCell>
-                  <TableCell>W</TableCell>
-                  <TableCell>L</TableCell>
-                  <TableCell>FAIR</TableCell>
-                  <TableCell>PTS</TableCell>
-                  <TableCell>MP</TableCell>
-                </tr>
-              </TableHead>
-              {renderTableBody(groups.A)}
-            </Table>
+            {activeTab === 'groupA' && (
+              <>
+                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "1.5rem" }}>
+                  Group A
+                </h2>
+                <Table>
+                  <TableHead>
+                    <tr>
+                      <TableCell>POS</TableCell>
+                      <TableCell>TEAMS</TableCell>
+                      <TableCell>W</TableCell>
+                      <TableCell>L</TableCell>
+                      <TableCell>FAIR</TableCell>
+                      <TableCell>PTS</TableCell>
+                      <TableCell>MP</TableCell>
+                    </tr>
+                  </TableHead>
+                  {renderTableBody(groups.A)}
+                </Table>
+              </>
+            )}
+            
+            {activeTab === 'groupB' && (
+              <>
+                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "1.5rem" }}>
+                  Group B
+                </h2>
+                <Table>
+                  <TableHead>
+                    <tr>
+                      <TableCell>POS</TableCell>
+                      <TableCell>TEAMS</TableCell>
+                      <TableCell>W</TableCell>
+                      <TableCell>L</TableCell>
+                      <TableCell>FAIR</TableCell>
+                      <TableCell>PTS</TableCell>
+                      <TableCell>MP</TableCell>
+                    </tr>
+                  </TableHead>
+                  {renderTableBody(groups.B)}
+                </Table>
+              </>
+            )}
+            
+            {activeTab === 'playoffs' && (
+              <PlayoffFixtures top6Teams={sortedTeams.slice(0, 6)} />
+            )}
           </TableWrapper>
-          <TableWrapper>
-            <SectionTitle>Group B</SectionTitle>
-            <Table>
-              <TableHead>
-                <tr>
-                  <TableCell>POS</TableCell>
-                  <TableCell>TEAMS</TableCell>
-                  <TableCell>W</TableCell>
-                  <TableCell>L</TableCell>
-                  <TableCell>FAIR</TableCell>
-                  <TableCell>PTS</TableCell>
-                  <TableCell>MP</TableCell>
-                </tr>
-              </TableHead>
-              {renderTableBody(groups.B)}
-            </Table>
-          </TableWrapper>
-        </>
+        </TabContainer>
       ) : (
-        <TableWrapper>
-          <SectionTitle>Points Table</SectionTitle>
-          <Table>
-            <TableHead>
-              <tr>
-                <TableCell>POS</TableCell>
-                <TableCell>TEAMS</TableCell>
-                <TableCell>W</TableCell>
-                <TableCell>L</TableCell>
-                <TableCell>FAIR</TableCell>
-                <TableCell>PTS</TableCell>
-                <TableCell>MP</TableCell>
-              </tr>
-            </TableHead>
-            {renderTableBody(sortedTeams)}
-          </Table>
-        </TableWrapper>
+        // Overall mode - show tabs for Overall Table and Playoffs
+        <TabContainer>
+          <TabHeader>
+            <TabButton 
+              active={activeTab === 'overall'} 
+              onClick={() => setActiveTab('overall')}
+            >
+              Overall Table
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'playoffs'} 
+              onClick={() => setActiveTab('playoffs')}
+            >
+              Playoffs
+            </TabButton>
+          </TabHeader>
+          
+          <TableWrapper>
+            {activeTab === 'overall' && (
+              <>
+                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "1.5rem" }}>
+                  Points Table
+                </h2>
+                <Table>
+                  <TableHead>
+                    <tr>
+                      <TableCell>POS</TableCell>
+                      <TableCell>TEAMS</TableCell>
+                      <TableCell>W</TableCell>
+                      <TableCell>L</TableCell>
+                      <TableCell>FAIR</TableCell>
+                      <TableCell>PTS</TableCell>
+                      <TableCell>MP</TableCell>
+                    </tr>
+                  </TableHead>
+                  {renderTableBody(sortedTeams)}
+                </Table>
+              </>
+            )}
+            
+            {activeTab === 'playoffs' && (
+              <PlayoffFixtures top6Teams={sortedTeams.slice(0, 6)} />
+            )}
+          </TableWrapper>
+        </TabContainer>
       )}
     </>
   );
