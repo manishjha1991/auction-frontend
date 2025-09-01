@@ -224,6 +224,8 @@ const Fixtures = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [currentFixture, setCurrentFixture] = useState(null);
+  const [teams, setTeams] = useState([]);
+  const [groupFilter, setGroupFilter] = useState('all');
 
   // Using empty strings here so placeholder shows up until user enters something
   const [winner, setWinner] = useState("");
@@ -256,7 +258,14 @@ const Fixtures = () => {
         console.error("Error fetching fixtures:", error);
       }
     };
+    const fetchTeams = async () => {
+      try {
+        const t = await axios.get(`${API_ENDPOINTS}/api/users/teams`);
+        setTeams(t.data?.teams || []);
+      } catch {}
+    };
     fetchFixtures();
+    fetchTeams();
   }, []);
 
   const handleSearch = (e) => {
@@ -268,8 +277,28 @@ const Fixtures = () => {
         fixture.team1.toLowerCase().includes(query) ||
         fixture.team2.toLowerCase().includes(query)
     );
-    setFilteredFixtures(filtered);
+    setFilteredFixtures(applyGroupFilter(filtered, groupFilter));
   };
+
+  const getGroupForTeam = (teamName) => {
+    const team = teams.find(t => t.teamName === teamName);
+    return team?.group || null;
+  };
+
+  const applyGroupFilter = (list, filter) => {
+    if (filter === 'all') return list;
+    return list.filter(fx => {
+      const g1 = getGroupForTeam(fx.team1);
+      const g2 = getGroupForTeam(fx.team2);
+      if (filter === 'A') return g1 === 'A' && g2 === 'A';
+      if (filter === 'B') return g1 === 'B' && g2 === 'B';
+      return true;
+    });
+  };
+
+  useEffect(() => {
+    setFilteredFixtures(applyGroupFilter(fixtures, groupFilter));
+  }, [fixtures, groupFilter]);
 
   const handleWinnerChange = (selectedTeam) => {
     setWinner(selectedTeam);
@@ -374,6 +403,11 @@ const Fixtures = () => {
         value={searchQuery}
         onChange={handleSearch}
       />
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+        <button className={`btn ${groupFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setGroupFilter('all')}>All</button>
+        <button className={`btn ${groupFilter === 'A' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setGroupFilter('A')}>Group A</button>
+        <button className={`btn ${groupFilter === 'B' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setGroupFilter('B')}>Group B</button>
+      </div>
 
       {filteredFixtures.map((fixture, index) => (
         <FixtureCard key={fixture._id} hasMom={!!fixture.mom?.name}>
@@ -394,6 +428,11 @@ const Fixtures = () => {
                 >
                   <div className="team-name">
                     {fixture.team1}
+                    {getGroupForTeam(fixture.team1) ? (
+                      <span style={{ marginLeft: '6px', fontSize: '0.72rem', color: '#0d6efd', background: 'rgba(13,110,253,0.08)', border: '1px solid rgba(13,110,253,0.2)', padding: '2px 6px', borderRadius: '999px' }}>
+                        G{getGroupForTeam(fixture.team1)}
+                      </span>
+                    ) : null}
                     {fixture.winner === fixture.team1 && fixture.margin && (
                       <MarginText>(Won by {fixture.margin})</MarginText>
                     )}
@@ -407,6 +446,11 @@ const Fixtures = () => {
                 >
                   <div className="team-name">
                     {fixture.team2}
+                    {getGroupForTeam(fixture.team2) ? (
+                      <span style={{ marginLeft: '6px', fontSize: '0.72rem', color: '#20c997', background: 'rgba(32,201,151,0.08)', border: '1px solid rgba(32,201,151,0.2)', padding: '2px 6px', borderRadius: '999px' }}>
+                        G{getGroupForTeam(fixture.team2)}
+                      </span>
+                    ) : null}
                     {fixture.winner === fixture.team2 && fixture.margin && (
                       <MarginText>(Won by {fixture.margin})</MarginText>
                     )}
@@ -423,6 +467,11 @@ const Fixtures = () => {
                 >
                   <div className="team-name">
                     {fixture.team2}
+                    {getGroupForTeam(fixture.team2) ? (
+                      <span style={{ marginLeft: '6px', fontSize: '0.72rem', color: '#20c997', background: 'rgba(32,201,151,0.08)', border: '1px solid rgba(32,201,151,0.2)', padding: '2px 6px', borderRadius: '999px' }}>
+                        G{getGroupForTeam(fixture.team2)}
+                      </span>
+                    ) : null}
                     {fixture.winner === fixture.team2 && fixture.margin && (
                       <MarginText>(Won by {fixture.margin})</MarginText>
                     )}
@@ -436,6 +485,11 @@ const Fixtures = () => {
                 >
                   <div className="team-name">
                     {fixture.team1}
+                    {getGroupForTeam(fixture.team1) ? (
+                      <span style={{ marginLeft: '6px', fontSize: '0.72rem', color: '#0d6efd', background: 'rgba(13,110,253,0.08)', border: '1px solid rgba(13,110,253,0.2)', padding: '2px 6px', borderRadius: '999px' }}>
+                        G{getGroupForTeam(fixture.team1)}
+                      </span>
+                    ) : null}
                     {fixture.winner === fixture.team1 && fixture.margin && (
                       <MarginText>(Won by {fixture.margin})</MarginText>
                     )}
