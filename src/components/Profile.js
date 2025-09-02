@@ -51,10 +51,15 @@ const Profile = () => {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         const data = await response.json();
+        console.log('Fetched user data from API:', data);
+        console.log('User timezone from API:', data.user.timezone);
         setUserData(data);
         setEditData({
           name: data.user.name,
           teamName: data.user.teamName,
+          timezone: data.user.timezone || 'Asia/Kolkata',
+          streamLink: data.user.streamLink || '',
+          abbreviation: data.user.abbreviation || '',
         });
       } catch (err) {
         console.error('Failed to fetch user data:', err);
@@ -64,7 +69,7 @@ const Profile = () => {
       }
     };
     fetchUserData();
-  }, [API_ENDPOINTS]);
+  }, []);
 
   // Single-bid sale API
   const handleSingleBidSale = async () => {
@@ -196,6 +201,7 @@ const Profile = () => {
   const handleSearchChange = (e) => setSearchTerm(e.target.value.toLowerCase());
   const handleEditChange = (e) => {
     const { name, value } = e.target;
+    console.log('Edit change:', name, value);
     setEditData({ ...editData, [name]: value });
   };
   const handleImageChange = (e) => {
@@ -204,11 +210,20 @@ const Profile = () => {
 
   const handleSave = async () => {
     try {
+      console.log('Saving profile with data:', editData);
       const formData = new FormData();
       formData.append('name', editData.name);
       formData.append('teamName', editData.teamName);
+      formData.append('timezone', editData.timezone);
+      formData.append('streamLink', editData.streamLink || '');
+      formData.append('abbreviation', editData.abbreviation || '');
       if (editData.image) {
         formData.append('teamImage', editData.image);
+      }
+      
+      // Debug: Log FormData contents
+      for (let [key, value] of formData.entries()) {
+        console.log('FormData:', key, value);
       }
       const user = JSON.parse(localStorage.getItem('user'));
       const userId = user?.id;
@@ -220,10 +235,25 @@ const Profile = () => {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const updatedUser = await response.json();
+      console.log('Updated user data:', updatedUser);
+      
+      // Update the userData state with the new timezone
       setUserData(prev => ({
         ...prev,
-        user: updatedUser.user,
+        user: {
+          ...prev.user,
+          ...updatedUser.user
+        }
       }));
+      
+      // Also update editData to reflect the new timezone and streamLink
+      setEditData(prev => ({
+        ...prev,
+        timezone: updatedUser.user.timezone,
+        streamLink: updatedUser.user.streamLink,
+        abbreviation: updatedUser.user.abbreviation
+      }));
+      
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to update profile:', err);
@@ -250,33 +280,49 @@ const Profile = () => {
 
     return (
       <div className="admin-container">
-        <h2 className="admin-title">Welcome, Admin {userData.user.name}!</h2>
+        <h2 className="admin-title">👑 Admin Panel</h2>
         <p className="admin-subtitle">
-          Manage auctions, finalize single-bid sales & more.
+          Manage user accounts, timezones, and stream links.
         </p>
 
-        {/* Admin Buttons */}
+        {/* User Management Section */}
         <div style={{ marginTop: '20px' }}>
-          <button
-            className="glow-button glow-button-sell"
-            onClick={() => setShowConfirmSell(true)}
-            style={{ marginRight: '10px' }}
-          >
-            Sell All Single-Bid Players
-          </button>
-          <button
-            className="glow-button glow-button-remove"
-            onClick={() => setShowConfirmRemoveSecond(true)}
-            style={{ marginRight: '10px' }}
-          >
-            Remove All Second-Highest Bidders
-          </button>
-          <button
-            className="glow-button glow-button-sell"
-            onClick={handleOpenMultiSell}
-          >
-            Multi-Sell Bidding Players
-          </button>
+          <div style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: '15px',
+            padding: '20px',
+            color: 'white',
+            marginBottom: '20px'
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '1.5rem' }}>👥 User Management</h3>
+            <p style={{ margin: '0 0 15px 0', opacity: 0.9 }}>
+              Manage user timezones, stream links, and account settings.
+            </p>
+            <button
+              onClick={() => window.location.href = '/admin/user-management'}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '10px',
+                padding: '12px 24px',
+                color: 'white',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+                e.target.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              🚀 Open User Management
+            </button>
+          </div>
         </div>
 
         {/* Existing SELL Single-Bid Confirmation */}
@@ -436,7 +482,7 @@ const Profile = () => {
             <p>
               Total Purse Remaining:{' '}
               <span className="purse-amount">
-                {formatAmount(parseFloat(userData.user.purse["$numberDecimal"]))}
+                {formatAmount(parseFloat(userData.user.purse?.["$numberDecimal"] || userData.user.purse || 0))}
               </span>
             </p>
           </div>
@@ -444,6 +490,98 @@ const Profile = () => {
         <div className="additional-info">
           <p><strong>Team Name:</strong> {userData.user.teamName}</p>
           <p><strong>Email:</strong> {userData.user.email}</p>
+          
+          {/* Cool Timezone Display */}
+          {userData && userData.user && (
+          <div style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: '15px',
+            padding: '20px',
+            margin: '20px 0',
+            boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '-20px',
+              right: '-20px',
+              width: '80px',
+              height: '80px',
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: '50%'
+            }} />
+            
+            <div style={{
+              position: 'relative',
+              zIndex: 2,
+              textAlign: 'center'
+            }}>
+              <div style={{
+                fontSize: '24px',
+                marginBottom: '10px',
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+              }}>
+                🌍
+              </div>
+              <div style={{
+                fontSize: '14px',
+                color: 'rgba(255,255,255,0.8)',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                marginBottom: '8px'
+              }}>
+                Your Timezone
+              </div>
+              <div style={{
+                fontSize: '18px',
+                color: '#ffffff',
+                fontWeight: '700',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                marginBottom: '8px'
+              }}>
+                {(() => {
+                  if (!userData || !userData.user) {
+                    console.log('UserData not loaded yet');
+                    return 'Loading...';
+                  }
+                  const timezone = userData.user.timezone || 'Asia/Kolkata';
+                  console.log('Displaying timezone:', timezone, 'from userData:', userData.user.timezone);
+                  return timezone;
+                })()}
+              </div>
+              <div style={{
+                fontSize: '16px',
+                color: 'rgba(255,255,255,0.9)',
+                fontWeight: '500',
+                background: 'rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                display: 'inline-block',
+                backdropFilter: 'blur(10px)'
+              }}>
+                {(() => {
+                  if (!userData || !userData.user) {
+                    return 'Loading...';
+                  }
+                  const timezone = userData.user.timezone || 'Asia/Kolkata';
+                  return new Date().toLocaleString('en-US', { 
+                    timeZone: timezone,
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  });
+                })()}
+              </div>
+            </div>
+          </div>
+          )}
+          
           <button className="edit-profile-button" onClick={() => setIsEditing(true)}>
             Edit Profile
           </button>
@@ -469,6 +607,71 @@ const Profile = () => {
                 onChange={handleEditChange}
                 placeholder="Team Name"
               />
+              <div className="timezone-selector">
+                <label htmlFor="timezone">Timezone</label>
+                <select
+                  id="timezone"
+                  name="timezone"
+                  value={editData.timezone}
+                  onChange={handleEditChange}
+                >
+                  <option value="Asia/Kolkata">Asia/Kolkata (India)</option>
+                  <option value="America/New_York">America/New_York (Eastern Time)</option>
+                  <option value="America/Los_Angeles">America/Los_Angeles (Pacific Time)</option>
+                  <option value="America/Chicago">America/Chicago (Central Time)</option>
+                  <option value="America/Denver">America/Denver (Mountain Time)</option>
+                  <option value="Europe/London">Europe/London (GMT)</option>
+                  <option value="Europe/Paris">Europe/Paris (CET)</option>
+                  <option value="Europe/Berlin">Europe/Berlin (CET)</option>
+                  <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                  <option value="Asia/Shanghai">Asia/Shanghai (CST)</option>
+                  <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                  <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
+                  <option value="Australia/Melbourne">Australia/Melbourne (AEST)</option>
+                  <option value="Pacific/Auckland">Pacific/Auckland (NZST)</option>
+                  <option value="America/Toronto">America/Toronto (Eastern Time)</option>
+                  <option value="America/Vancouver">America/Vancouver (Pacific Time)</option>
+                  <option value="Europe/Moscow">Europe/Moscow (MSK)</option>
+                  <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
+                  <option value="Asia/Bangkok">Asia/Bangkok (ICT)</option>
+                  <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
+                  <option value="Asia/Manila">Asia/Manila (PST)</option>
+                  <option value="Asia/Seoul">Asia/Seoul (KST)</option>
+                  <option value="Asia/Hong_Kong">Asia/Hong_Kong (HKT)</option>
+                  <option value="Asia/Karachi">Asia/Karachi (PKT)</option>
+                  <option value="Asia/Dhaka">Asia/Dhaka (BST)</option>
+                  <option value="Asia/Colombo">Asia/Colombo (SLST)</option>
+                  <option value="Africa/Cairo">Africa/Cairo (EET)</option>
+                  <option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option>
+                  <option value="America/Sao_Paulo">America/Sao_Paulo (BRT)</option>
+                  <option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires (ART)</option>
+                  <option value="America/Mexico_City">America/Mexico_City (CST)</option>
+                </select>
+              </div>
+              <div className="stream-link-input">
+                <label htmlFor="streamLink">Stream Link (Optional)</label>
+                <input
+                  type="url"
+                  id="streamLink"
+                  name="streamLink"
+                  value={editData.streamLink || ''}
+                  onChange={handleEditChange}
+                  placeholder="https://twitch.tv/yourchannel or https://youtube.com/yourchannel"
+                />
+              </div>
+              <div className="abbreviation-input">
+                <label htmlFor="abbreviation">Team Abbreviation (Optional)</label>
+                <input
+                  type="text"
+                  id="abbreviation"
+                  name="abbreviation"
+                  value={editData.abbreviation || ''}
+                  onChange={handleEditChange}
+                  placeholder="e.g., CSK, MI, RCB (max 4 characters)"
+                  maxLength="4"
+                  style={{ textTransform: 'uppercase' }}
+                />
+              </div>
               <div className="file-input">
                 <label htmlFor="image">Upload New Image</label>
                 <input

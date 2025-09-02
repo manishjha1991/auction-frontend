@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import axios from "axios";
 import { API_ENDPOINTS } from "../const";
 import { useMemo } from "react";
@@ -183,10 +183,14 @@ const PointsTable = () => {
       const settings = await axios.get(`${API_ENDPOINTS}/api/settings`);
       const pmode = settings?.data?.pointsMode || 'overall';
       setMode(pmode);
+      
+      // Set default tab based on mode
       if (pmode === 'groups') {
+        setActiveTab('groupA');
         const resp = await axios.get(`${API_ENDPOINTS}/api/users/points-table-grouped`);
         setGroups(resp.data?.groups || { A: [], B: [] });
       } else {
+        setActiveTab('overall');
         const response = await axios.get(`${API_ENDPOINTS}/api/users/points-table`);
         setTeams(response.data);
       }
@@ -243,7 +247,7 @@ const PointsTable = () => {
   // Removed unused currentTopMap
 
   // Mathematical status map (Q/E/NONE) from previous logic (kept for reference, not used when season incomplete)
-  const mathStatusMap = useMemo(() => {
+  const _mathStatusMap = useMemo(() => {
     const result = {};
     const isThirteen = TOTAL_MATCHES === 13;
     if (!isThirteen || loading || filteredTeams.length === 0) return result;
@@ -294,7 +298,7 @@ const PointsTable = () => {
   }, [filteredTeams, TOTAL_MATCHES]);
 
   // Top-N map at completion (used when allCompleted)
-  const completedTopMap = useMemo(() => {
+  const _completedTopMap = useMemo(() => {
     const ids = {};
     if (!allCompleted) return ids;
     const sorted = [...filteredTeams].sort((a, b) => {

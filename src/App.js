@@ -18,6 +18,10 @@ import AdminSettings from './components/AdminSettings';
 import { API_ENDPOINTS } from './const';
 import { FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
+import MatchScheduler from './components/MatchScheduler';
+import GlobalNotification from './components/GlobalNotification';
+import TeamDirectory from './components/TeamDirectory';
+import AdminUserManagement from './components/AdminUserManagement';
 
 import './App.css';
 
@@ -118,6 +122,8 @@ function App() {
                 <li><Link to="/points-table" onClick={toggleSidebar}>Points Table</Link></li>
                 <li><Link to="/player-stats" onClick={toggleSidebar}>Player Stats</Link></li>
                 <li><Link to="/fixtures" onClick={toggleSidebar}>Fixtures</Link></li>
+                <li><Link to="/match-scheduler" onClick={toggleSidebar}>🏏 Match Scheduler</Link></li>
+                <li><Link to="/team-directory" onClick={toggleSidebar}>👥 Team Directory</Link></li>
                 <li><Link to="/sold-playerslist" onClick={toggleSidebar}>Sold Player List</Link></li>
                 
                 {/* NEW: Link to Stats Overview */}
@@ -146,6 +152,7 @@ function App() {
                   </li>
                 )}
                 {user?.isAdmin && <li><Link to="/admin/trades" onClick={toggleSidebar}>Admin Trades</Link></li>}
+                {user?.isAdmin && <li><Link to="/admin/user-management" onClick={toggleSidebar}>👑 User Management</Link></li>}
                 {user?.isAdmin && <li><Link to="/admin/settings" onClick={toggleSidebar}>Admin Settings</Link></li>}
 
                 <li>
@@ -159,6 +166,7 @@ function App() {
         )}
         
         <main className={getContentClass()}>
+          {isAuthenticated && <GlobalNotification />}
           <Routes>
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
             <Route path="/signup" element={<Signup />} />
@@ -170,6 +178,8 @@ function App() {
             <Route path="/points-table" element={<PrivateRoute><PointTable /></PrivateRoute>} />
             <Route path="/sold-playerslist" element={<PrivateRoute><SoldPlayersList /></PrivateRoute>} />
             <Route path="/fixtures" element={<PrivateRoute><Fixtures user={user} /></PrivateRoute>} />
+            <Route path="/match-scheduler" element={<PrivateRoute><MatchScheduler /></PrivateRoute>} />
+            <Route path="/team-directory" element={<PrivateRoute><TeamDirectory /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
             
 
@@ -211,6 +221,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <AdminTrades />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/user-management"
+              element={
+                <PrivateRoute>
+                  <AdminUserManagement />
                 </PrivateRoute>
               }
             />
