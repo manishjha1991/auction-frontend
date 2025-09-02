@@ -47,6 +47,10 @@ const Container = styled.div`
   position: relative;
   overflow: hidden;
 
+  @media (max-width: 768px) {
+    padding: 1rem 0.5rem;
+  }
+
   &::before {
     content: '';
     position: absolute;
@@ -73,6 +77,10 @@ const Header = styled.div`
   margin-bottom: 3rem;
   position: relative;
   z-index: 2;
+
+  @media (max-width: 768px) {
+    margin-bottom: 2rem;
+  }
 `;
 
 const Title = styled.h1`
@@ -118,10 +126,22 @@ const SearchInput = styled.input`
   box-shadow: 0 10px 30px rgba(0,0,0,0.1);
   transition: all 0.3s ease;
 
+  @media (max-width: 480px) {
+    padding: 0.8rem 1.2rem;
+    font-size: 1rem;
+    border-radius: 20px;
+  }
+
   &:focus {
     outline: none;
     box-shadow: 0 15px 40px rgba(0,0,0,0.2);
     transform: translateY(-2px);
+  }
+
+  @media (max-width: 480px) {
+    &:focus {
+      transform: translateY(-1px);
+    }
   }
 
   &::placeholder {
@@ -140,8 +160,13 @@ const UsersGrid = styled.div`
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
-    padding: 0 1rem;
+    gap: 1rem;
+    padding: 0 0.5rem;
+  }
+
+  @media (max-width: 480px) {
+    gap: 0.8rem;
+    padding: 0 0.25rem;
   }
 `;
 
@@ -157,10 +182,26 @@ const UserCard = styled.div`
   overflow: hidden;
   animation: ${fadeIn} 0.6s ease-out;
 
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+    border-radius: 20px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem;
+    border-radius: 15px;
+  }
+
   &:hover {
     transform: translateY(-10px);
     box-shadow: 0 30px 60px rgba(0,0,0,0.2);
     animation: ${pulse} 2s infinite;
+  }
+
+  @media (max-width: 768px) {
+    &:hover {
+      transform: translateY(-5px);
+    }
   }
 
   &::before {
@@ -187,6 +228,13 @@ const UserHeader = styled.div`
   align-items: center;
   margin-bottom: 1.5rem;
   gap: 1rem;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+  }
 `;
 
 const UserAvatar = styled.div`
@@ -201,6 +249,12 @@ const UserAvatar = styled.div`
   font-weight: bold;
   color: white;
   box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+
+  @media (max-width: 480px) {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
 `;
 
 const UserInfo = styled.div`
@@ -216,6 +270,11 @@ const UserName = styled.h3`
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+
+  @media (max-width: 480px) {
+    font-size: 1.3rem;
+    margin: 0 0 0.3rem 0;
+  }
 `;
 
 const UserEmail = styled.p`
@@ -225,12 +284,32 @@ const UserEmail = styled.p`
   font-weight: 500;
 `;
 
+const UserNameContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 480px) {
+    justify-content: center;
+  }
+`;
+
 const FormSection = styled.div`
   margin-bottom: 1.5rem;
+
+  @media (max-width: 480px) {
+    margin-bottom: 1rem;
+  }
 `;
 
 const FormGroup = styled.div`
   margin-bottom: 1rem;
+
+  @media (max-width: 480px) {
+    margin-bottom: 0.8rem;
+  }
 `;
 
 const Label = styled.label`
@@ -239,6 +318,11 @@ const Label = styled.label`
   font-weight: 600;
   color: #333;
   font-size: 0.9rem;
+
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+  }
 `;
 
 const Input = styled.input`
@@ -250,6 +334,12 @@ const Input = styled.input`
   background: white;
   color: #333;
   transition: all 0.3s ease;
+
+  @media (max-width: 480px) {
+    padding: 0.7rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
 
   &:focus {
     outline: none;
@@ -268,6 +358,12 @@ const Select = styled.select`
   color: #333;
   transition: all 0.3s ease;
 
+  @media (max-width: 480px) {
+    padding: 0.7rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
+
   &:focus {
     outline: none;
     border-color: #667eea;
@@ -279,6 +375,11 @@ const ButtonGroup = styled.div`
   display: flex;
   gap: 1rem;
   justify-content: center;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
 `;
 
 const Button = styled.button`
@@ -290,6 +391,13 @@ const Button = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: 120px;
+
+  @media (max-width: 480px) {
+    padding: 0.7rem 1.2rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    min-width: 100px;
+  }
 
   &.save {
     background: linear-gradient(135deg, #28a745, #20c997);
@@ -479,7 +587,7 @@ const AdminUserManagement = () => {
                 {getInitials(user.name)}
               </UserAvatar>
               <UserInfo>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+                <UserNameContainer>
                   <UserName>{user.teamName || user.name}</UserName>
                   {user.abbreviation && (
                     <div style={{
@@ -491,12 +599,13 @@ const AdminUserManagement = () => {
                       fontWeight: '700',
                       textTransform: 'uppercase',
                       letterSpacing: '1px',
-                      boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
+                      boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
+                      whiteSpace: 'nowrap'
                     }}>
                       {user.abbreviation}
                     </div>
                   )}
-                </div>
+                </UserNameContainer>
                 <UserEmail>{user.email}</UserEmail>
               </UserInfo>
             </UserHeader>
