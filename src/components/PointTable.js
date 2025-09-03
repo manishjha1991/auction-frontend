@@ -172,6 +172,8 @@ const PointsTable = () => {
 
   const TOTAL_MATCHES = 12;
   const NUM_QUALIFIERS = 6; // always top-6 qualify
+  const GROUP_MATCHES = 6; // matches per team in group stage
+  const GROUP_QUALIFIERS = 3; // top-3 qualify from each group
 
   useEffect(() => {
     fetchModeAndData();
@@ -297,6 +299,14 @@ const PointsTable = () => {
     return filteredTeams.every(t => Number(t.matchesPlayed) >= TOTAL_MATCHES);
   }, [filteredTeams, TOTAL_MATCHES]);
 
+  // Group completion flag: everyone in groups played all group matches
+  const groupsCompleted = useMemo(() => {
+    if (mode !== 'groups' || Object.keys(groups).length === 0) return false;
+    const allGroupTeams = [...groups.A, ...groups.B];
+    if (allGroupTeams.length === 0) return false;
+    return allGroupTeams.every(t => Number(t.matchesPlayed) >= GROUP_MATCHES);
+  }, [groups, mode, GROUP_MATCHES]);
+
   // Top-N map at completion (used when allCompleted)
   const _completedTopMap = useMemo(() => {
     const ids = {};
@@ -332,25 +342,55 @@ const PointsTable = () => {
           (playedNow >= 9 && points <= 4)
         );
 
-        // Rules:
-        // - During season (not allCompleted):
-        //   Q if points > 20
-        //   E if team meets early thresholds:
-        //       >=12 MP and PTS <= 10
-        //       >=11 MP and PTS <= 8
-        //       >=10 MP and PTS <= 6
-        //       >=9  MP and PTS <= 4
-        // - After season complete: Q for final Top-6; E for non Top-6
-        const earlyEliminated = (
-          (playedNow >= 12 && points <= 10) ||
-          (playedNow >= 11 && points <= 8)  ||
-          (playedNow >= 10 && points <= 6)  ||
-          (playedNow >= 9  && points <= 4)
-        );
-        const showQ = allCompleted ? false : points > 20; // Simplified since completedTopMap removed
-        const showE = allCompleted ? false : earlyEliminated; // Simplified since completedTopMap removed
-        const qTitle = allCompleted ? "Qualified (Final)" : "Qualified (20+ points)";
-        const eTitle = allCompleted ? "Eliminated (Final)" : "Eliminated (early threshold)";
+        // Qualification logic based on mode and completion status
+        let showQ = false;
+        let showE = false;
+        let qTitle = "";
+        let eTitle = "";
+
+        if (mode === 'groups') {
+          // Group mode logic
+          if (groupsCompleted) {
+            // All teams completed 6 matches - show Q for top 3, E for others
+            showQ = index < GROUP_QUALIFIERS;
+            showE = index >= GROUP_QUALIFIERS;
+            qTitle = "Qualified (Top 3)";
+            eTitle = "Eliminated";
+          } else {
+            // During group stage - use early elimination thresholds
+            const earlyEliminated = (
+              (playedNow >= 6 && points <= 4) ||
+              (playedNow >= 5 && points <= 3) ||
+              (playedNow >= 4 && points <= 2) ||
+              (playedNow >= 3 && points <= 1)
+            );
+            showQ = points > 10; // High points during group stage
+            showE = earlyEliminated;
+            qTitle = "Qualified (10+ points)";
+            eTitle = "Eliminated (early threshold)";
+          }
+        } else {
+          // Overall mode logic
+          if (allCompleted) {
+            // All teams completed 12 matches - show Q for top 6, E for bottom teams
+            showQ = index < NUM_QUALIFIERS;
+            showE = index >= NUM_QUALIFIERS; // E badges for teams not in top 6
+            qTitle = "Qualified (Top 6)";
+            eTitle = "Eliminated";
+          } else {
+            // During overall season - use existing early elimination logic
+            const earlyEliminated = (
+              (playedNow >= 12 && points <= 10) ||
+              (playedNow >= 11 && points <= 8)  ||
+              (playedNow >= 10 && points <= 6)  ||
+              (playedNow >= 9  && points <= 4)
+            );
+            showQ = points > 20;
+            showE = earlyEliminated;
+            qTitle = "Qualified (20+ points)";
+            eTitle = "Eliminated (early threshold)";
+          }
+        }
 
         // Variant logic: different for groups vs overall
         let variant;
@@ -358,17 +398,17 @@ const PointsTable = () => {
           // Group mode: Top 3 green, E teams red, others yellow
           if (showE) {
             variant = "eliminated"; // Red
-          } else if (index < 3) {
-            variant = "top"; // Green for top 3
+          } else if (showQ) {
+            variant = "top"; // Green for qualified teams
           } else {
             variant = "middle"; // Yellow for others
           }
         } else {
           // Overall mode: original logic
-          if (isEliminated) {
+          if (showE) {
             variant = "eliminated"; // Red card design
-          } else if (index < 6) {
-            variant = "top";
+          } else if (showQ) {
+            variant = "top"; // Green for qualified teams
           } else if (index >= list.length - 3) {
             variant = "bottom";
           } else {
@@ -471,7 +511,14 @@ const PointsTable = () => {
             )}
             
             {activeTab === 'playoffs' && (
-              <PlayoffFixtures top6Teams={sortedTeams.slice(0, 6)} />
+              <PlayoffFixtures 
+                top6Teams={mode === 'groups' ? 
+                  [...groups.A.slice(0, 3), ...groups.B.slice(0, 3)] : 
+                  sortedTeams.slice(0, 6)
+                } 
+                mode={mode}
+                groups={groups}
+              />
             )}
           </TableWrapper>
         </TabContainer>
@@ -517,7 +564,11 @@ const PointsTable = () => {
             )}
             
             {activeTab === 'playoffs' && (
-              <PlayoffFixtures top6Teams={sortedTeams.slice(0, 6)} />
+              <PlayoffFixtures 
+                top6Teams={sortedTeams.slice(0, 6)} 
+                mode={mode}
+                groups={groups}
+              />
             )}
           </TableWrapper>
         </TabContainer>

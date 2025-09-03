@@ -594,7 +594,7 @@ const CloseButton = styled.button`
   }
 `;
 
-const PlayoffFixtures = ({ top6Teams }) => {
+const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const [playoffFixtures, setPlayoffFixtures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -721,7 +721,13 @@ const PlayoffFixtures = ({ top6Teams }) => {
 
   const areAllTeamsEligible = () => {
     if (!top6Teams || top6Teams.length < 6) return false;
-    return top6Teams.every(team => (team.matchesPlayed || 0) >= requiredGames);
+    if (mode === 'groups') {
+      // In group mode, check if all teams completed 6 matches
+      return top6Teams.every(team => (team.matchesPlayed || 0) >= 6);
+    } else {
+      // In overall mode, check if all teams completed required games (12)
+      return top6Teams.every(team => (team.matchesPlayed || 0) >= requiredGames);
+    }
   };
 
   const getDisplayTeamName = (teamName) => {
@@ -738,7 +744,12 @@ const PlayoffFixtures = ({ top6Teams }) => {
     return (
       <PlayoffContainer>
         <PlayoffHeader>CPL  PLAYOFFS SCENARIO</PlayoffHeader>
-        <PlayoffSubtitle>( TOP 6 TEAMS GOES TO PLAYOFFS )</PlayoffSubtitle>
+        <PlayoffSubtitle>
+          {mode === 'groups' ? 
+            '( TOP 3 FROM EACH GROUP GOES TO PLAYOFFS )' : 
+            '( TOP 6 TEAMS GOES TO PLAYOFFS )'
+          }
+        </PlayoffSubtitle>
         <div style={{ padding: '2rem', textAlign: 'center', color: '#6c757d' }}>
           Loading playoff fixtures...
         </div>
@@ -750,7 +761,12 @@ const PlayoffFixtures = ({ top6Teams }) => {
     return (
       <PlayoffContainer>
         <PlayoffHeader>CPL  PLAYOFFS SCENARIO</PlayoffHeader>
-        <PlayoffSubtitle>( TOP 6 TEAMS GOES TO PLAYOFFS )</PlayoffSubtitle>
+        <PlayoffSubtitle>
+          {mode === 'groups' ? 
+            '( TOP 3 FROM EACH GROUP GOES TO PLAYOFFS )' : 
+            '( TOP 6 TEAMS GOES TO PLAYOFFS )'
+          }
+        </PlayoffSubtitle>
         <div style={{ padding: '2rem', textAlign: 'center', color: '#6c757d' }}>
           {top6Teams && top6Teams.length >= 6 ? (
             <div>
@@ -776,9 +792,9 @@ const PlayoffFixtures = ({ top6Teams }) => {
                 </div>
               ) : (
                 <div>
-                  <p>⏳ Waiting for all teams to complete {requiredGames} games</p>
+                  <p>⏳ Waiting for all teams to complete {mode === 'groups' ? '6' : requiredGames} games</p>
                   <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                    {top6Teams.filter(team => (team.matchesPlayed || 0) < requiredGames).length} teams still need to complete their games
+                    {top6Teams.filter(team => (team.matchesPlayed || 0) < (mode === 'groups' ? 6 : requiredGames)).length} teams still need to complete their games
                   </p>
                 </div>
               )}
@@ -794,7 +810,12 @@ const PlayoffFixtures = ({ top6Teams }) => {
   return (
     <PlayoffContainer>
       <PlayoffHeader>CPL  PLAYOFFS SCENARIO</PlayoffHeader>
-      <PlayoffSubtitle>( TOP 6 TEAMS GOES TO PLAYOFFS )</PlayoffSubtitle>
+      <PlayoffSubtitle>
+        {mode === 'groups' ? 
+          '( TOP 3 FROM EACH GROUP GOES TO PLAYOFFS )' : 
+          '( TOP 6 TEAMS GOES TO PLAYOFFS )'
+        }
+      </PlayoffSubtitle>
       
              {playoffFixtures.map((fixture, index) => {
          const team1Data = getTeamData(fixture.team1);
