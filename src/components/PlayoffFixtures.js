@@ -632,7 +632,7 @@ const PlayoffFixtures = ({ top6Teams }) => {
   const fetchTeams = async () => {
     try {
       const response = await axios.get(`${API_ENDPOINTS}/api/users/teams`);
-      setTeams(response.data?.teams || []);
+      setTeams(response.data || []);
     } catch (error) {
       console.error("Error fetching teams:", error);
     }

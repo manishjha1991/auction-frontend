@@ -106,12 +106,30 @@ const Card = styled.div`
 const FormGroup = styled.div`
   margin-bottom: 1.5rem;
 
+  @media (max-width: 768px) {
+    margin-bottom: 1.2rem;
+  }
+
+  @media (max-width: 480px) {
+    margin-bottom: 1rem;
+  }
+
   label {
     display: block;
     color: #555;
     font-weight: 600;
     margin-bottom: 0.5rem;
     font-size: 0.9rem;
+
+    @media (max-width: 768px) {
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+    }
+
+    @media (max-width: 480px) {
+      font-size: 0.8rem;
+      margin-bottom: 0.3rem;
+    }
   }
 
   select, input {
@@ -122,6 +140,18 @@ const FormGroup = styled.div`
     font-size: 1rem;
     transition: all 0.3s ease;
     background: white;
+
+    @media (max-width: 768px) {
+      padding: 0.7rem;
+      font-size: 0.9rem;
+      border-radius: 8px;
+    }
+
+    @media (max-width: 480px) {
+      padding: 0.6rem;
+      font-size: 0.85rem;
+      border-radius: 6px;
+    }
 
     &:focus {
       outline: none;
@@ -176,6 +206,18 @@ const ScheduleItem = styled.div`
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   overflow: hidden;
 
+  @media (max-width: 768px) {
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 15px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 15px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+
   &::before {
     content: '';
     position: absolute;
@@ -185,12 +227,28 @@ const ScheduleItem = styled.div`
     height: 4px;
     background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     border-radius: 20px 20px 0 0;
+
+    @media (max-width: 768px) {
+      border-radius: 15px 15px 0 0;
+    }
+
+    @media (max-width: 480px) {
+      border-radius: 12px 12px 0 0;
+    }
   }
 
   &:hover {
     transform: translateY(-5px) scale(1.02);
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9);
     border-color: rgba(102, 126, 234, 0.3);
+
+    @media (max-width: 768px) {
+      transform: translateY(-3px) scale(1.01);
+    }
+
+    @media (max-width: 480px) {
+      transform: translateY(-2px) scale(1.005);
+    }
   }
 
   .match-info {
@@ -201,12 +259,34 @@ const ScheduleItem = styled.div`
     padding-bottom: 15px;
     border-bottom: 2px solid rgba(102, 126, 234, 0.1);
 
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+      margin-bottom: 15px;
+      padding-bottom: 12px;
+    }
+
+    @media (max-width: 480px) {
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+    }
+
     .teams {
       font-weight: 700;
       color: #2c3e50;
       font-size: 18px;
       font-family: '"Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif';
       text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+
+      @media (max-width: 768px) {
+        font-size: 16px;
+      }
+
+      @media (max-width: 480px) {
+        font-size: 14px;
+      }
     }
 
     .status {
@@ -218,6 +298,18 @@ const ScheduleItem = styled.div`
       letter-spacing: 1px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       transition: all 0.3s ease;
+
+      @media (max-width: 768px) {
+        padding: 6px 12px;
+        font-size: 11px;
+        border-radius: 20px;
+      }
+
+      @media (max-width: 480px) {
+        padding: 5px 10px;
+        font-size: 10px;
+        border-radius: 15px;
+      }
 
       &.pending {
         background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
@@ -254,6 +346,17 @@ const ScheduleItem = styled.div`
     font-weight: 600;
     font-family: '"Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif';
 
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 480px) {
+      gap: 10px;
+      font-size: 12px;
+    }
+
     .timezone {
       background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
       padding: 12px 15px;
@@ -261,10 +364,28 @@ const ScheduleItem = styled.div`
       border: 2px solid rgba(102, 126, 234, 0.1);
       transition: all 0.3s ease;
 
+      @media (max-width: 768px) {
+        padding: 10px 12px;
+        border-radius: 10px;
+      }
+
+      @media (max-width: 480px) {
+        padding: 8px 10px;
+        border-radius: 8px;
+      }
+
       &:hover {
         background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
         border-color: rgba(102, 126, 234, 0.3);
         transform: translateY(-2px);
+
+        @media (max-width: 768px) {
+          transform: translateY(-1px);
+        }
+
+        @media (max-width: 480px) {
+          transform: none;
+        }
       }
 
       strong {
@@ -285,6 +406,17 @@ const ScheduleItem = styled.div`
     margin-top: 20px;
     justify-content: flex-end;
 
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    @media (max-width: 480px) {
+      gap: 6px;
+      margin-top: 12px;
+    }
+
     button {
       padding: 10px 20px;
       border: none;
@@ -296,6 +428,18 @@ const ScheduleItem = styled.div`
       text-transform: uppercase;
       letter-spacing: 1px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+
+      @media (max-width: 768px) {
+        padding: 8px 16px;
+        font-size: 13px;
+        border-radius: 12px;
+      }
+
+      @media (max-width: 480px) {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 10px;
+      }
 
       &.accept {
         background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
