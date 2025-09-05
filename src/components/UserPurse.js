@@ -203,15 +203,20 @@ const UserPursePage = () => {
                 .map((player, idx) => (
                   <div
                     key={idx}
-                    className="player-card sold"
+                    className={`player-card sold player-type-${player.type.toLowerCase()}`}
                     style={{
                       background: getPlayerColor(player.type),
                     }}
                   >
-                    <h3 className="player-name">{player.name}</h3>
-                    <p className="player-value">
-                      Sold For: <strong>₹{(player.boughtValue / 10000000).toFixed(2)} Cr</strong>
-                    </p>
+                    <div className="player-info">
+                      <h3 className="player-name">{player.name}</h3>
+                      <div className="player-role">{player.role}</div>
+                    </div>
+                    <div className="player-price">
+                      <div className="price-circle">
+                        ₹{(player.boughtValue / 10000000).toFixed(2)} Cr
+                      </div>
+                    </div>
                   </div>
                 ))}
 
@@ -248,16 +253,21 @@ const UserPursePage = () => {
                   return (
                     <div
                       key={idx}
-                      className="player-card bidding"
+                      className={`player-card bidding player-type-${player.type.toLowerCase()}`}
                       style={{
                         animation: "blink 1s infinite",
                         background: getPlayerColor(player.type), // Ensure the player type matches the expected type
                       }}
                     >
-                      <h3 className="player-name">{player.name}</h3>
-                      <p className="player-value">
-                        Current Bid: <strong>₹{(player.biddingPrice / 10000000).toFixed(2)} Cr</strong>
-                      </p>
+                      <div className="player-info">
+                        <h3 className="player-name">{player.name}</h3>
+                        <div className="player-role">{player.role}</div>
+                      </div>
+                      <div className="player-price">
+                        <div className="price-circle bidding">
+                          ₹{(player.biddingPrice / 10000000).toFixed(2)} Cr
+                        </div>
+                      </div>
                       {isCurrentUser && displayInfo.text && (
                         <div className={`bidding-status ${displayInfo.className}`}>
                           {displayInfo.text}

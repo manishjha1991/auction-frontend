@@ -98,7 +98,10 @@ const MatchHeader = styled.div`
   align-items: center;
   font-size: 1rem;
   font-weight: bold;
-  color: #495057;
+  color: #000000;
+  text-shadow: none;
+  letter-spacing: normal;
+  font-family: Arial, sans-serif;
 
   .match-number {
     color: #007bff;
@@ -127,17 +130,31 @@ const TeamBox = styled.div`
   margin: ${(props) => (props.hasMom ? "0.5rem 0" : "0")};
 
   .team-name {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: ${(props) =>
-      props.isWinner ? "green" : props.isLoser ? "red" : "#343a40"};
+    font-size: 1.3rem !important;
+    font-weight: bold !important;
+    color: #000000 !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+    letter-spacing: normal !important;
+    font-family: Arial, sans-serif !important;
+  }
+
+  .fixture-team-name {
+    font-size: 1.3rem !important;
+    font-weight: bold !important;
+    color: #000000 !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+    letter-spacing: normal !important;
+    font-family: Arial, sans-serif !important;
   }
 
   .score {
     font-size: 1rem;
+    font-weight: bold;
     margin-left: ${(props) => (props.hasMom ? "1rem" : "0")};
     color: ${(props) =>
-      props.isWinner ? "white" : props.isLoser ? "white" : "#495057"};
+      props.isWinner ? "white" : props.isLoser ? "white" : "#000000"};
     background-color: ${(props) =>
       props.isWinner ? "green" : props.isLoser ? "red" : "#f8f9fa"};
     padding: 0.5rem;
@@ -145,6 +162,8 @@ const TeamBox = styled.div`
     display: inline-block;
     min-width: 60px;
     text-align: center;
+    text-shadow: none;
+    font-family: Arial, sans-serif;
   }
 `;
 
@@ -161,13 +180,16 @@ const MomDetails = styled.div`
     grid-template-columns: 1fr 1fr 1fr;
     gap: 0.5rem;
     font-size: 0.9rem;
-    color: #6c757d;
+    color: #000000;
     text-align: center;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
   }
 
   .mom-header {
     font-weight: bold;
-    color: #495057;
+    color: #000000;
+    text-shadow: none;
   }
 `;
 
@@ -240,10 +262,18 @@ const CloseButton = styled.button`
 `;
 
 const MarginText = styled.span`
-  font-size: 0.85rem;
-  color: #6c757d;
-  font-weight: 400;
+  font-size: 0.9rem;
+  color: #000000 !important;
+  font-weight: bold !important;
   margin-left: 0.5rem;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  letter-spacing: normal !important;
+  font-family: Arial, sans-serif !important;
+  background: #f8f9fa !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  border: 1px solid #dee2e6 !important;
 `;
 
 // Abbreviation helper for fairness display
@@ -502,12 +532,12 @@ const Fixtures = () => {
     <TabContainer>
       <TabHeader>
         {mode !== 'groups' && (
-          <TabButton 
-            active={activeTab === 'all'} 
-            onClick={() => setActiveTab('all')}
-          >
+        <TabButton 
+          active={activeTab === 'all'} 
+          onClick={() => setActiveTab('all')}
+        >
             All Fixtures ({fixtures.length})
-          </TabButton>
+        </TabButton>
         )}
         {mode === 'groups' && (
           <>
@@ -571,7 +601,7 @@ const Fixtures = () => {
                   isLoser={fixture.winner === fixture.team2}
                   hasMom={!!fixture.mom?.name}
                 >
-                  <div className="team-name">
+                  <div className="team-name fixture-team-name">
                     {fixture.team1}
                     {getGroupForTeam(fixture.team1) ? (
                       <span style={{ marginLeft: '6px', fontSize: '0.72rem', color: '#0d6efd', background: 'rgba(13,110,253,0.08)', border: '1px solid rgba(13,110,253,0.2)', padding: '2px 6px', borderRadius: '999px' }}>
@@ -589,7 +619,7 @@ const Fixtures = () => {
                   isLoser={fixture.winner === fixture.team1}
                   hasMom={!!fixture.mom?.name}
                 >
-                  <div className="team-name">
+                  <div className="team-name fixture-team-name">
                     {fixture.team2}
                     {getGroupForTeam(fixture.team2) ? (
                       <span style={{ marginLeft: '6px', fontSize: '0.72rem', color: '#20c997', background: 'rgba(32,201,151,0.08)', border: '1px solid rgba(32,201,151,0.2)', padding: '2px 6px', borderRadius: '999px' }}>
@@ -610,7 +640,7 @@ const Fixtures = () => {
                   isLoser={fixture.winner === fixture.team1}
                   hasMom={!!fixture.mom?.name}
                 >
-                  <div className="team-name">
+                  <div className="team-name fixture-team-name">
                     {fixture.team2}
                     {getGroupForTeam(fixture.team2) ? (
                       <span style={{ marginLeft: '6px', fontSize: '0.72rem', color: '#20c997', background: 'rgba(32,201,151,0.08)', border: '1px solid rgba(32,201,151,0.2)', padding: '2px 6px', borderRadius: '999px' }}>
@@ -628,7 +658,7 @@ const Fixtures = () => {
                   isLoser={fixture.winner === fixture.team2}
                   hasMom={!!fixture.mom?.name}
                 >
-                  <div className="team-name">
+                  <div className="team-name fixture-team-name">
                     {fixture.team1}
                     {getGroupForTeam(fixture.team1) ? (
                       <span style={{ marginLeft: '6px', fontSize: '0.72rem', color: '#0d6efd', background: 'rgba(13,110,253,0.08)', border: '1px solid rgba(13,110,253,0.2)', padding: '2px 6px', borderRadius: '999px' }}>

@@ -1,15 +1,18 @@
 .user-purse-page {
     padding: 20px;
-    font-family: "Arial", sans-serif;
-    background: #f4f4f9;
-    color: #333;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f8fafc;
+    color: #1a202c;
+    min-height: 100vh;
   }
   
   .page-title {
     text-align: center;
-    font-size: 2rem;
-    color: #444;
-    margin-bottom: 20px;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 30px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
   .user-cards-container {
@@ -20,43 +23,52 @@
   }
   
   .user-card {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 15px;
-    width: 300px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+    width: 350px;
     text-align: center;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05);
   }
   
   .user-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    transform: translateY(-8px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
   }
   
   .user-name {
-    font-size: 1.2rem;
-    color: #444;
-    margin-bottom: 10px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 12px;
   }
   
   .purse-value {
-    font-size: 1rem;
-    color: #666;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #4a5568;
   }
   
   .players-container {
-    margin-top: 15px;
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
   
   .player-card {
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 10px;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 0;
     color: #fff;
-    font-weight: bold;
-    text-align: center;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
   }
   
   .player-card.sold {
@@ -66,6 +78,187 @@
   .player-card.bidding {
     background: linear-gradient(135deg, #56ab2f, #a8e063);
     animation: blink 1s infinite;
+  }
+
+  /* Player Info Section */
+  .player-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+  }
+
+  .player-name {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin: 0 0 4px 0;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Player type specific text colors */
+  .player-card.player-type-silver .player-name {
+    color: #2d3748 !important;
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8);
+  }
+
+  .player-card.player-type-silver .player-role {
+    color: #4a5568 !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  }
+
+  /* Gold players - ensure good contrast */
+  .player-card.player-type-gold .player-name {
+    color: #1a202c !important;
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.6);
+  }
+
+  .player-card.player-type-gold .player-role {
+    color: #2d3748 !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+  }
+
+  /* Emerald players - ensure good contrast */
+  .player-card.player-type-emerald .player-name {
+    color: #1a202c !important;
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.6);
+  }
+
+  .player-card.player-type-emerald .player-role {
+    color: #2d3748 !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+  }
+
+  .player-role {
+    font-size: 0.85rem;
+    font-weight: 700;
+    opacity: 1;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Price Circle */
+  .player-price {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .price-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.2;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .price-circle.bidding {
+    background: rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.8);
+    color: white;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .user-purse-page {
+      padding: 15px;
+    }
+
+    .page-title {
+      font-size: 2rem;
+      margin-bottom: 20px;
+    }
+
+    .user-cards-container {
+      gap: 15px;
+    }
+
+    .user-card {
+      width: 100%;
+      max-width: 320px;
+      padding: 20px;
+    }
+
+    .player-card {
+      padding: 12px;
+    }
+
+    .player-name {
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .player-role {
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .price-circle {
+      width: 50px;
+      height: 50px;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .user-purse-page {
+      padding: 10px;
+    }
+
+    .page-title {
+      font-size: 1.8rem;
+    }
+
+    .user-card {
+      padding: 16px;
+    }
+
+    .player-card {
+      padding: 10px;
+    }
+
+    .player-name {
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+
+    .player-role {
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .price-circle {
+      width: 45px;
+      height: 45px;
+      font-size: 0.7rem;
+      font-weight: 800;
+    }
   }
   
   .divider {
