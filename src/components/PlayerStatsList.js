@@ -7,7 +7,14 @@ import { API_ENDPOINTS } from "../const";
 
 const PlayerStatsList = () => {
   // Initialize current user only once
-  const [currentUser] = useState(() => JSON.parse(localStorage.getItem("user")));
+  const [currentUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user"));
+    } catch (error) {
+      console.error("Error parsing user from localStorage:", error);
+      return null;
+    }
+  });
 
   const [expandedPlayer, setExpandedPlayer] = useState(null);
   const [activeTab, setActiveTab] = useState("batting");
@@ -84,7 +91,10 @@ const PlayerStatsList = () => {
         if (response.ok) {
           const data = await response.json();
           console.log("Teams API Response:", data);
-          setAllTeams(data.teams || []);
+          // The API returns an array directly, not wrapped in a teams property
+          const teamsArray = Array.isArray(data) ? data : [];
+          console.log("Setting teams array:", teamsArray);
+          setAllTeams(teamsArray);
         } else {
           console.error("Failed to fetch teams");
         }
@@ -312,23 +322,31 @@ const PlayerStatsList = () => {
                     required
                   >
                     <option value="">Select Opponent Team</option>
-                    {allTeams
-                      .filter(team => {
+                    {(() => {
+                      console.log("Rendering teams dropdown:");
+                      console.log("allTeams:", allTeams);
+                      console.log("currentUser:", currentUser);
+                      console.log("selectedPlayer:", selectedPlayer);
+                      
+                      const filteredTeams = allTeams.filter(team => {
                         // 1) Exclude the current user's team.
-                        if (team.teamName === currentUser.teamName) return false;
+                        if (currentUser && team.teamName === currentUser.teamName) return false;
 
                         // 2) Exclude the team that actually owns this player.
                         //    (Only if 'ownerTeamName' is different from currentUser.)
-                        //    If the player is owned by the same user, we’re already filtering above.
-                        if (team.teamName === selectedPlayer.ownerTeamName) return false;
+                        //    If the player is owned by the same user, we're already filtering above.
+                        if (selectedPlayer && team.teamName === selectedPlayer.ownerTeamName) return false;
 
                         return true;
-                      })
-                      .map(team => (
+                      });
+                      
+                      console.log("Filtered teams:", filteredTeams);
+                      return filteredTeams.map(team => (
                         <option key={team._id} value={team._id}>
                           {team.teamName}
                         </option>
-                      ))}
+                      ));
+                    })()}
                   </select>
                 </div>
 
