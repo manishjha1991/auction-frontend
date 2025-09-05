@@ -194,9 +194,15 @@ const UserPursePage = () => {
         {usersData.map((user, index) => (
           <div key={index} className="user-card">
             <h2 className="user-name">{user.userName}</h2>
-            <p className="purse-value">
-              Purse Remaining: <strong>₹{(user.purseValue / 10000000).toFixed(2)} Cr</strong>
-            </p>
+            <div className="purse-value-container">
+              <div className={`purse-circle ${
+                (user.purseValue / 10000000) < 5 ? 'low-purse' : 
+                (user.purseValue / 10000000) > 30 ? 'high-purse' : ''
+              }`}>
+                <span className="purse-amount">₹{(user.purseValue / 10000000).toFixed(2)}</span>
+                <span className="purse-unit">Cr</span>
+              </div>
+            </div>
             <div className="players-container">
               {user.players
                 .filter((player) => !player.isBidOn)
@@ -209,9 +215,12 @@ const UserPursePage = () => {
                     }}
                   >
                     <h3 className="player-name">{player.name}</h3>
-                    <p className="player-value">
-                      Sold For: <strong>₹{(player.boughtValue / 10000000).toFixed(2)} Cr</strong>
-                    </p>
+                    <div className="player-value-container">
+                      <div className="player-price-circle sold-price">
+                        <span className="price-amount">₹{(player.boughtValue / 10000000).toFixed(2)}</span>
+                        <span className="price-unit">Cr</span>
+                      </div>
+                    </div>
                   </div>
                 ))}
 
@@ -255,9 +264,12 @@ const UserPursePage = () => {
                       }}
                     >
                       <h3 className="player-name">{player.name}</h3>
-                      <p className="player-value">
-                        Current Bid: <strong>₹{(player.biddingPrice / 10000000).toFixed(2)} Cr</strong>
-                      </p>
+                      <div className="player-value-container">
+                        <div className="player-price-circle bidding-price">
+                          <span className="price-amount">₹{(player.biddingPrice / 10000000).toFixed(2)}</span>
+                          <span className="price-unit">Cr</span>
+                        </div>
+                      </div>
                       {isCurrentUser && displayInfo.text && (
                         <div className={`bidding-status ${displayInfo.className}`}>
                           {displayInfo.text}

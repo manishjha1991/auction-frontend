@@ -159,49 +159,37 @@ const PlayerList = () => {
       ) : (
       <>
       <div className="list-header">
-        <div
-          className="search-wrapper"
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginBottom: "20px",
-            marginLeft: "50px"
-          }}
-        >
+        <div className="search-container">
           {!showSearch && (
             <button
-              className="search-icon"
+              className="search-toggle-btn"
               onClick={() => setShowSearch(true)}
-              style={{
-                padding: "6px 10px",
-                fontSize: "14px",
-                borderRadius: "8px",
-                backgroundColor: "#007bff",
-                color: "#fff",
-                cursor: "pointer",
-                border: "none",
-              }}
             >
-              🔍 Search
+              <span className="search-icon">🔍</span>
+              <span className="search-text">Search Players</span>
             </button>
           )}
           {showSearch && (
-            <input
-              type="text"
-              placeholder="Search players..."
-              className="search-bar-small"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onBlur={() => setShowSearch(false)}
-              autoFocus
-              style={{
-                padding: "6px 10px",
-                borderRadius: "8px",
-                border: "1px solid #ccc",
-                fontSize: "14px",
-
-              }}
-            />
+            <div className="search-input-container">
+              <input
+                type="text"
+                placeholder="Search players by name..."
+                className="modern-search-input"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onBlur={() => setShowSearch(false)}
+                autoFocus
+              />
+              <button 
+                className="search-clear-btn"
+                onClick={() => {
+                  setSearch("");
+                  setShowSearch(false);
+                }}
+              >
+                ✕
+              </button>
+            </div>
           )}
         </div>
 
@@ -266,7 +254,9 @@ const PlayerList = () => {
               <div className="player-cell player-icon">{getRoleIcon(player.role)}</div>
               <div className="player-cell">{player.name}</div>
               <div className="player-cell player-price">
-                {formatBasePrice(player.biddingPrice || player.basePrice || 0)}
+                <div className="player-price-circle">
+                  <span className="price-amount">{formatBasePrice(player.biddingPrice || player.basePrice || 0)}</span>
+                </div>
               </div>
               <div className="player-cell team-sold">{getStatusIcon(player)}</div>
             </div>
