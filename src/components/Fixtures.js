@@ -259,7 +259,6 @@ const Fixtures = () => {
   const [showModal, setShowModal] = useState(false);
   const [currentFixture, setCurrentFixture] = useState(null);
   const [teams, setTeams] = useState([]);
-  const [groupFilter, setGroupFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('all');
   const [mode, setMode] = useState('overall');
   const [top6Teams, setTop6Teams] = useState([]);
@@ -289,6 +288,20 @@ const Fixtures = () => {
           if (!a.winner && b.winner) return 1;
           return new Date(a.date) - new Date(b.date);
         });
+        
+        // Debug logging
+        console.log('📊 Fixtures data:', {
+          total: sortedFixtures.length,
+          groupA: sortedFixtures.filter(fx => fx.group === 'A').length,
+          groupB: sortedFixtures.filter(fx => fx.group === 'B').length,
+          normal: sortedFixtures.filter(fx => fx.matchType === 'normal').length,
+          sample: sortedFixtures.slice(0, 3).map(fx => ({
+            teams: `${fx.team1} vs ${fx.team2}`,
+            group: fx.group,
+            matchType: fx.matchType
+          }))
+        });
+        
         setFixtures(sortedFixtures);
         setFilteredFixtures(sortedFixtures);
       } catch (error) {
@@ -306,6 +319,13 @@ const Fixtures = () => {
         const settings = await axios.get(`${API_ENDPOINTS}/api/settings`);
         const pmode = settings?.data?.pointsMode || 'overall';
         setMode(pmode);
+        
+        // Set default active tab based on mode
+        if (pmode === 'groups') {
+          setActiveTab('groupA'); // Default to Group A when in group mode
+        } else {
+          setActiveTab('all'); // Default to All when in normal mode
+        }
       } catch (error) {
         console.error("Error fetching mode:", error);
       }
@@ -336,13 +356,7 @@ const Fixtures = () => {
   const handleSearch = (e) => {
     const query = e.target.value.toLowerCase();
     setSearchQuery(query);
-
-    const filtered = fixtures.filter(
-      (fixture) =>
-        fixture.team1.toLowerCase().includes(query) ||
-        fixture.team2.toLowerCase().includes(query)
-    );
-    setFilteredFixtures(applyGroupFilter(filtered, groupFilter));
+    // The useEffect will handle the filtering automatically
   };
 
   const getGroupForTeam = (teamName) => {
@@ -350,20 +364,45 @@ const Fixtures = () => {
     return team?.group || null;
   };
 
-  const applyGroupFilter = (list, filter) => {
-    if (filter === 'all') return list;
-    return list.filter(fx => {
-      const g1 = getGroupForTeam(fx.team1);
-      const g2 = getGroupForTeam(fx.team2);
-      if (filter === 'A') return g1 === 'A' && g2 === 'A';
-      if (filter === 'B') return g1 === 'B' && g2 === 'B';
-      return true;
+  const applyFilters = (list) => {
+    let filtered = list;
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (fixture) =>
+          fixture.team1.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          fixture.team2.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply group filter based on active tab
+    if (activeTab === 'groupA') {
+      filtered = filtered.filter(fx => fx.group === 'A');
+    } else if (activeTab === 'groupB') {
+      filtered = filtered.filter(fx => fx.group === 'B');
+    } else if (activeTab === 'all') {
+      // Show all fixtures (only available in normal mode)
+      filtered = filtered;
+    }
+
+    // Debug logging
+    console.log('🔍 Filtering fixtures:', {
+      totalFixtures: list.length,
+      activeTab,
+      searchQuery,
+      filteredCount: filtered.length,
+      groupA: list.filter(fx => fx.group === 'A').length,
+      groupB: list.filter(fx => fx.group === 'B').length,
+      normal: list.filter(fx => fx.matchType === 'normal').length
     });
+
+    return filtered;
   };
 
   useEffect(() => {
-    setFilteredFixtures(applyGroupFilter(fixtures, groupFilter));
-  }, [fixtures, groupFilter]);
+    setFilteredFixtures(applyFilters(fixtures));
+  }, [fixtures, activeTab, searchQuery]);
 
   const handleWinnerChange = (selectedTeam) => {
     setWinner(selectedTeam);
@@ -462,25 +501,27 @@ const Fixtures = () => {
   return (
     <TabContainer>
       <TabHeader>
-        <TabButton 
-          active={activeTab === 'all'} 
-          onClick={() => setActiveTab('all')}
-        >
-          All Fixtures
-        </TabButton>
+        {mode !== 'groups' && (
+          <TabButton 
+            active={activeTab === 'all'} 
+            onClick={() => setActiveTab('all')}
+          >
+            All Fixtures ({fixtures.length})
+          </TabButton>
+        )}
         {mode === 'groups' && (
           <>
             <TabButton 
               active={activeTab === 'groupA'} 
               onClick={() => setActiveTab('groupA')}
             >
-              Group A
+              Group A ({fixtures.filter(fx => fx.group === 'A').length})
             </TabButton>
             <TabButton 
               active={activeTab === 'groupB'} 
               onClick={() => setActiveTab('groupB')}
             >
-              Group B
+              Group B ({fixtures.filter(fx => fx.group === 'B').length})
             </TabButton>
           </>
         )}
@@ -493,7 +534,14 @@ const Fixtures = () => {
       </TabHeader>
       
       <FixtureWrapper>
-        <h2>Fixtures</h2>
+        <h2>Fixtures {mode === 'groups' && <span style={{ fontSize: '0.8rem', color: '#007bff', fontWeight: 'normal' }}>(Group Stage Mode)</span>}</h2>
+        <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#6c757d' }}>
+          Showing {filteredFixtures.length} of {fixtures.length} fixtures
+          {activeTab === 'groupA' && ' (Group A only)'}
+          {activeTab === 'groupB' && ' (Group B only)'}
+          {activeTab === 'all' && ' (All fixtures)'}
+          {activeTab === 'playoffs' && ' (Playoff fixtures)'}
+        </div>
         <SearchBar
           type="text"
           placeholder="Search by team name"
@@ -501,29 +549,6 @@ const Fixtures = () => {
           onChange={handleSearch}
         />
         
-                {/* Show group filter buttons only when in group mode and on specific group tabs */}
-        {mode === 'groups' && (activeTab === 'groupA' || activeTab === 'groupB') && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-            <button 
-              className={`btn ${groupFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`} 
-              onClick={() => setGroupFilter('all')}
-            >
-              All
-            </button>
-            <button 
-              className={`btn ${groupFilter === 'A' ? 'btn-primary' : 'btn-ghost'}`} 
-              onClick={() => setGroupFilter('A')}
-            >
-              Group A
-            </button>
-            <button 
-              className={`btn ${groupFilter === 'B' ? 'btn-primary' : 'btn-ghost'}`} 
-              onClick={() => setGroupFilter('B')}
-            >
-              Group B
-            </button>
-          </div>
-        )}
 
         {/* Show fixtures based on active tab */}
         {activeTab === 'playoffs' ? (
