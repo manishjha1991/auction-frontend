@@ -22,6 +22,7 @@ import MatchScheduler from './components/MatchScheduler';
 import GlobalNotification from './components/GlobalNotification';
 import TeamDirectory from './components/TeamDirectory';
 import AdminUserManagement from './components/AdminUserManagement';
+// AdminDashboard removed - performance dashboard disabled
 
 import './App.css';
 
@@ -151,6 +152,7 @@ function App() {
                     </Link>
                   </li>
                 )}
+                {/* Performance Dashboard removed */}
                 {user?.isAdmin && <li><Link to="/admin/trades" onClick={toggleSidebar}>Admin Trades</Link></li>}
                 {user?.isAdmin && <li><Link to="/admin/user-management" onClick={toggleSidebar}>👑 User Management</Link></li>}
                 {user?.isAdmin && <li><Link to="/admin/settings" onClick={toggleSidebar}>Admin Settings</Link></li>}
@@ -240,6 +242,7 @@ function App() {
                 </PrivateRoute>
               }
             />
+            {/* Admin Dashboard route removed */}
             <Route
               path="/newsletter"
               element={
