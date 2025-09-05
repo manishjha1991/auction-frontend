@@ -22,6 +22,7 @@ import MatchScheduler from './components/MatchScheduler';
 import GlobalNotification from './components/GlobalNotification';
 import TeamDirectory from './components/TeamDirectory';
 import AdminUserManagement from './components/AdminUserManagement';
+import TeamShowcase from './components/TeamShowcase';
 // AdminDashboard removed - performance dashboard disabled
 
 import './App.css';
@@ -122,6 +123,7 @@ function App() {
                 <li><Link to="/user-purses" onClick={toggleSidebar}>User Purses</Link></li>
                 <li><Link to="/points-table" onClick={toggleSidebar}>Points Table</Link></li>
                 <li><Link to="/player-stats" onClick={toggleSidebar}>Player Stats</Link></li>
+                <li><Link to="/team-showcase" onClick={toggleSidebar}>🏆 Team Showcase</Link></li>
                 <li><Link to="/fixtures" onClick={toggleSidebar}>Fixtures</Link></li>
                 <li><Link to="/match-scheduler" onClick={toggleSidebar}>🏏 Match Scheduler</Link></li>
                 <li><Link to="/team-directory" onClick={toggleSidebar}>👥 Team Directory</Link></li>
@@ -183,6 +185,7 @@ function App() {
             <Route path="/match-scheduler" element={<PrivateRoute><MatchScheduler /></PrivateRoute>} />
             <Route path="/team-directory" element={<PrivateRoute><TeamDirectory /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
+            <Route path="/team-showcase" element={<PrivateRoute><TeamShowcase /></PrivateRoute>} />
             
 
             {/* NEW: StatsOverview Route */}

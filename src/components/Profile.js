@@ -28,11 +28,27 @@ const Profile = () => {
   // NEW: State for search inside the multi-sell popup
   const [multiSellSearch, setMultiSellSearch] = useState('');
 
+  // Team showcase state
+  const [teamPlayers, setTeamPlayers] = useState([]);
+
   // Check localStorage for user.isAdmin
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     setIsAdmin(user?.isAdmin === true);
   }, []);
+
+  // Fetch team players for captain/vice-captain selection
+  const fetchTeamPlayers = async (userId) => {
+    try {
+      const response = await fetch(`${API_ENDPOINTS}/api/team-showcase/teams/${userId}/players`);
+      const data = await response.json();
+      if (data.success) {
+        setTeamPlayers(data.players);
+      }
+    } catch (error) {
+      console.error('Error fetching team players:', error);
+    }
+  };
 
   // Fetch user data
   useEffect(() => {
@@ -60,7 +76,16 @@ const Profile = () => {
           timezone: data.user.timezone || 'Asia/Kolkata',
           streamLink: data.user.streamLink || '',
           abbreviation: data.user.abbreviation || '',
+          captain: data.user.captain || '',
+          viceCaptain: data.user.viceCaptain || '',
+          teamColor: data.user.teamColor || '#3B82F6',
+          teamBrief: data.user.teamBrief || 'A formidable team ready to conquer the tournament!',
+          trophiesWon: data.user.trophiesWon || 0,
+          teamMotto: data.user.teamMotto || 'Victory through Unity'
         });
+        
+        // Fetch team players for dropdown
+        fetchTeamPlayers(userId);
       } catch (err) {
         console.error('Failed to fetch user data:', err);
         setError('Failed to load profile. Please try again later.');
@@ -217,6 +242,12 @@ const Profile = () => {
       formData.append('timezone', editData.timezone);
       formData.append('streamLink', editData.streamLink || '');
       formData.append('abbreviation', editData.abbreviation || '');
+      formData.append('captain', editData.captain || '');
+      formData.append('viceCaptain', editData.viceCaptain || '');
+      formData.append('teamColor', editData.teamColor || '#3B82F6');
+      formData.append('teamBrief', editData.teamBrief || '');
+      formData.append('trophiesWon', editData.trophiesWon || 0);
+      formData.append('teamMotto', editData.teamMotto || '');
       if (editData.image) {
         formData.append('teamImage', editData.image);
       }
@@ -672,6 +703,95 @@ const Profile = () => {
                   style={{ textTransform: 'uppercase' }}
                 />
               </div>
+              <div className="team-showcase-section">
+                <h4>Team Showcase Settings</h4>
+                
+                <div className="captain-selection">
+                  <label htmlFor="captain">Captain</label>
+                  <select
+                    id="captain"
+                    name="captain"
+                    value={editData.captain}
+                    onChange={handleEditChange}
+                  >
+                    <option value="">Select Captain</option>
+                    {teamPlayers.map((player) => (
+                      <option key={player.id} value={player.name}>
+                        {player.name} ({player.type} - {player.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="vice-captain-selection">
+                  <label htmlFor="viceCaptain">Vice-Captain</label>
+                  <select
+                    id="viceCaptain"
+                    name="viceCaptain"
+                    value={editData.viceCaptain}
+                    onChange={handleEditChange}
+                  >
+                    <option value="">Select Vice-Captain</option>
+                    {teamPlayers.map((player) => (
+                      <option key={player.id} value={player.name}>
+                        {player.name} ({player.type} - {player.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="team-color-selection">
+                  <label htmlFor="teamColor">Team Color</label>
+                  <input
+                    type="color"
+                    id="teamColor"
+                    name="teamColor"
+                    value={editData.teamColor}
+                    onChange={handleEditChange}
+                  />
+                </div>
+                
+                <div className="team-brief-input">
+                  <label htmlFor="teamBrief">Team Brief (2 lines max)</label>
+                  <textarea
+                    id="teamBrief"
+                    name="teamBrief"
+                    value={editData.teamBrief}
+                    onChange={handleEditChange}
+                    placeholder="A formidable team ready to conquer the tournament!"
+                    rows="2"
+                    maxLength="200"
+                  />
+                </div>
+                
+                <div className="trophies-input">
+                  <label htmlFor="trophiesWon">Trophies Won</label>
+                  <input
+                    type="number"
+                    id="trophiesWon"
+                    name="trophiesWon"
+                    value={editData.trophiesWon}
+                    onChange={handleEditChange}
+                    min="0"
+                    max="100"
+                    placeholder="0"
+                  />
+                </div>
+                
+                <div className="team-motto-input">
+                  <label htmlFor="teamMotto">Team Motto</label>
+                  <input
+                    type="text"
+                    id="teamMotto"
+                    name="teamMotto"
+                    value={editData.teamMotto}
+                    onChange={handleEditChange}
+                    placeholder="Victory through Unity"
+                    maxLength="50"
+                  />
+                </div>
+              </div>
+              
               <div className="file-input">
                 <label htmlFor="image">Upload New Image</label>
                 <input

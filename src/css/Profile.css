@@ -558,3 +558,124 @@
   border-color: #007bff;
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
+
+/* Team Showcase Form Styles */
+.team-showcase-section {
+  margin: 20px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  border-radius: 15px;
+  border: 2px solid #e2e8f0;
+}
+
+.team-showcase-section h4 {
+  color: #1e293b;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-align: center;
+  background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.team-showcase-section .captain-selection,
+.team-showcase-section .vice-captain-selection,
+.team-showcase-section .team-color-selection,
+.team-showcase-section .team-brief-input,
+.team-showcase-section .trophies-input,
+.team-showcase-section .team-motto-input {
+  margin-bottom: 20px;
+}
+
+.team-showcase-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.team-showcase-section input[type="text"],
+.team-showcase-section input[type="number"],
+.team-showcase-section textarea,
+.team-showcase-section select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.team-showcase-section input[type="text"]:focus,
+.team-showcase-section input[type="number"]:focus,
+.team-showcase-section textarea:focus,
+.team-showcase-section select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.team-showcase-section input[type="color"] {
+  width: 60px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.team-showcase-section input[type="color"]:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.team-showcase-section textarea {
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+}
+
+.team-showcase-section input[type="number"] {
+  text-align: center;
+  font-weight: 600;
+}
+
+.team-showcase-section select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.team-showcase-section select option {
+  padding: 8px 12px;
+  background: white;
+  color: #374151;
+}
+
+/* Responsive Design for Team Showcase */
+@media (max-width: 768px) {
+  .team-showcase-section {
+    padding: 15px;
+    margin: 15px 0;
+  }
+  
+  .team-showcase-section h4 {
+    font-size: 1.1rem;
+  }
+  
+  .team-showcase-section input[type="text"],
+  .team-showcase-section input[type="number"],
+  .team-showcase-section textarea,
+  .team-showcase-section select {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
+}

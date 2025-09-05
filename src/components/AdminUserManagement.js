@@ -468,6 +468,8 @@ const AdminUserManagement = () => {
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [teamPlayers, setTeamPlayers] = useState({}); // Store players for each team
+  const [loadingPlayers, setLoadingPlayers] = useState(false); // Loading state for team players
 
   useEffect(() => {
     fetchUsers();
@@ -486,14 +488,40 @@ const AdminUserManagement = () => {
     }
   };
 
+  const fetchTeamPlayers = async (teamId) => {
+    try {
+      setLoadingPlayers(true);
+      const response = await axios.get(`${API_ENDPOINTS}/api/team-showcase/teams/${teamId}/players`);
+      if (response.data.success) {
+        setTeamPlayers(prev => ({
+          ...prev,
+          [teamId]: response.data.players
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching team players:', error);
+    } finally {
+      setLoadingPlayers(false);
+    }
+  };
+
   const handleEdit = (user) => {
     setEditingUser(user._id);
     setEditData({
       timezone: user.timezone || 'Asia/Kolkata',
       streamLink: user.streamLink || '',
-      abbreviation: user.abbreviation || ''
+      abbreviation: user.abbreviation || '',
+      captain: user.captain || '',
+      viceCaptain: user.viceCaptain || '',
+      teamColor: user.teamColor || '#3B82F6',
+      teamBrief: user.teamBrief || '',
+      trophiesWon: user.trophiesWon || 0,
+      teamMotto: user.teamMotto || ''
     });
     setMessage({ type: '', text: '' });
+    
+    // Fetch team players for dropdown
+    fetchTeamPlayers(user._id);
   };
 
   const handleCancel = () => {
@@ -508,7 +536,13 @@ const AdminUserManagement = () => {
       await axios.put(`${API_ENDPOINTS}/api/users/${userId}/admin-update`, {
         timezone: editData.timezone,
         streamLink: editData.streamLink,
-        abbreviation: editData.abbreviation
+        abbreviation: editData.abbreviation,
+        captain: editData.captain,
+        viceCaptain: editData.viceCaptain,
+        teamColor: editData.teamColor,
+        teamBrief: editData.teamBrief,
+        trophiesWon: parseInt(editData.trophiesWon) || 0,
+        teamMotto: editData.teamMotto
       });
       
       setMessage({ type: 'success', text: 'User updated successfully!' });
@@ -682,6 +716,100 @@ const AdminUserManagement = () => {
                   />
                 </FormGroup>
 
+                {/* Team Showcase Fields */}
+                <FormGroup>
+                  <Label>Captain Name</Label>
+                  <Select
+                    value={editData.captain || ''}
+                    onChange={(e) => handleInputChange('captain', e.target.value)}
+                    disabled={loadingPlayers}
+                  >
+                    <option value="">
+                      {loadingPlayers ? 'Loading players...' : 
+                       !teamPlayers[editingUser]?.length ? 'No players found' : 
+                       'Select Captain'}
+                    </option>
+                    {teamPlayers[editingUser]?.map((player) => (
+                      <option key={player.id} value={player.name}>
+                        {player.name} {player.isCaptain ? '(Current)' : ''}
+                      </option>
+                    ))}
+                  </Select>
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Vice Captain Name</Label>
+                  <Select
+                    value={editData.viceCaptain || ''}
+                    onChange={(e) => handleInputChange('viceCaptain', e.target.value)}
+                    disabled={loadingPlayers}
+                  >
+                    <option value="">
+                      {loadingPlayers ? 'Loading players...' : 
+                       !teamPlayers[editingUser]?.length ? 'No players found' : 
+                       'Select Vice Captain'}
+                    </option>
+                    {teamPlayers[editingUser]?.map((player) => (
+                      <option key={player.id} value={player.name}>
+                        {player.name} {player.isViceCaptain ? '(Current)' : ''}
+                      </option>
+                    ))}
+                  </Select>
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Team Color</Label>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <Input
+                      type="color"
+                      value={editData.teamColor || '#3B82F6'}
+                      onChange={(e) => handleInputChange('teamColor', e.target.value)}
+                      style={{ width: '60px', height: '40px', padding: '2px' }}
+                    />
+                    <Input
+                      type="text"
+                      value={editData.teamColor || '#3B82F6'}
+                      onChange={(e) => handleInputChange('teamColor', e.target.value)}
+                      placeholder="#3B82F6"
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Team Brief (2-line description)</Label>
+                  <Input
+                    type="text"
+                    value={editData.teamBrief || ''}
+                    onChange={(e) => handleInputChange('teamBrief', e.target.value)}
+                    placeholder="A formidable team ready to conquer the tournament!"
+                    maxLength="100"
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Trophies Won</Label>
+                  <Input
+                    type="number"
+                    value={editData.trophiesWon || 0}
+                    onChange={(e) => handleInputChange('trophiesWon', e.target.value)}
+                    placeholder="0"
+                    min="0"
+                    max="100"
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Team Motto</Label>
+                  <Input
+                    type="text"
+                    value={editData.teamMotto || ''}
+                    onChange={(e) => handleInputChange('teamMotto', e.target.value)}
+                    placeholder="Victory through Unity"
+                    maxLength="50"
+                  />
+                </FormGroup>
+
                 <ButtonGroup>
                   <Button
                     className="save"
@@ -723,6 +851,67 @@ const AdminUserManagement = () => {
                     value={user.abbreviation ? user.abbreviation : 'Not set'}
                     readOnly
                     style={{ textTransform: 'uppercase' }}
+                  />
+                </FormGroup>
+
+                {/* Team Showcase Display Fields */}
+                <FormGroup>
+                  <Label>Captain</Label>
+                  <Input
+                    value={user.captain ? user.captain : 'Not set'}
+                    readOnly
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Vice Captain</Label>
+                  <Input
+                    value={user.viceCaptain ? user.viceCaptain : 'Not set'}
+                    readOnly
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Team Color</Label>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        backgroundColor: user.teamColor || '#3B82F6',
+                        borderRadius: '8px',
+                        border: '2px solid #e0e0e0'
+                      }}
+                    />
+                    <Input
+                      value={user.teamColor || '#3B82F6'}
+                      readOnly
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Team Brief</Label>
+                  <Input
+                    value={user.teamBrief ? user.teamBrief : 'Not set'}
+                    readOnly
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Trophies Won</Label>
+                  <Input
+                    value={user.trophiesWon ? user.trophiesWon : '0'}
+                    readOnly
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Team Motto</Label>
+                  <Input
+                    value={user.teamMotto ? user.teamMotto : 'Not set'}
+                    readOnly
                   />
                 </FormGroup>
 
