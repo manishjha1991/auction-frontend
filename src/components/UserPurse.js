@@ -8,6 +8,7 @@ import NotificationBell from './NotificationBell';
 const UserPursePage = () => {
   const [usersData, setUsersData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState(null);
   const [biddingStatuses, setBiddingStatuses] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
@@ -22,52 +23,35 @@ const UserPursePage = () => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
+        setLoadingProgress(0);
+        const startTime = Date.now();
+        
+        // Smooth progress updates
+        setLoadingProgress(20);
         const response = await fetch(`${API_ENDPOINTS}/api/users/purses`);
+        setLoadingProgress(60);
+        
         if (!response.ok) {
           throw new Error("Failed to fetch user purse data.");
         }
         const data = await response.json();
         setUsersData(data);
+        setLoadingProgress(80);
         
-        // Extract bidding statuses from the enhanced purse data for ALL players
+        // OPTIMIZATION: Extract bidding statuses efficiently
         if (currentUser) {
-          console.log('🔍 Looking for current user with ID:', currentUser.id);
-          console.log('🔍 Current user object:', currentUser);
-          console.log('🔍 Current user type:', typeof currentUser.id);
-          console.log('🔍 Available users in response:', data.map(u => ({ 
-            id: u.id, 
-            _id: u._id, 
-            userName: u.userName,
-            idType: typeof u.id,
-            _idType: typeof u._id
-          })));
-          
-          // Try to find user by ID, _id, or userName
-          let currentUserData = data.find(user => user.id === currentUser.id);
-          console.log('🔍 Found by ID match?', !!currentUserData);
-          
-          if (!currentUserData) {
-            currentUserData = data.find(user => user._id === currentUser.id);
-            console.log('🔍 Found by _id match?', !!currentUserData);
-          }
-          if (!currentUserData) {
-            currentUserData = data.find(user => user.userName === currentUser.name);
-            console.log('🔍 Found by userName match?', !!currentUserData);
-          }
+          // Try to find user by ID, _id, or userName (optimized lookup)
+          const currentUserData = data.find(user => 
+            user.id === currentUser.id || 
+            user._id === currentUser.id || 
+            user.userName === currentUser.name
+          );
           
           if (currentUserData) {
-            console.log('✅ Found current user data:', currentUserData.userName);
-            console.log('✅ Current user ID in API response:', currentUserData.id);
-            console.log('✅ Current user _id in API response:', currentUserData._id);
-            
-            // Get bidding statuses ONLY for the current user's players
-            const userStatuses = {};
-            
-            currentUserData.players.forEach(player => {
+            // OPTIMIZATION: Use reduce for better performance
+            const userStatuses = currentUserData.players.reduce((acc, player) => {
               if (player.isBidOn && player.biddingStatus) {
-                console.log(`Processing current user's player: ${player.name}`, player.biddingStatus);
-                
-                userStatuses[player.name] = {
+                acc[player.name] = {
                   isHighest: player.biddingStatus.isHighest,
                   isSecondHighest: player.biddingStatus.isSecondHighest,
                   bidAmount: player.biddingPrice,
@@ -77,24 +61,22 @@ const UserPursePage = () => {
                   bidderName: currentUserData.userName,
                   isCurrentUser: true
                 };
-                
-                console.log(`Added status for ${player.name}:`, userStatuses[player.name]);
               }
-            });
+              return acc;
+            }, {});
             
             setBiddingStatuses(userStatuses);
-            console.log('Final extracted bidding statuses for current user only:', userStatuses);
-          } else {
-            console.log('❌ Current user data not found in response');
-            console.log('❌ Current user ID:', currentUser.id);
-            console.log('❌ Current user name:', currentUser.name);
-            console.log('❌ Available user IDs:', data.map(u => u.id));
-            console.log('❌ Available user names:', data.map(u => u.userName));
           }
         }
+        
+        setLoadingProgress(100);
+        const loadTime = Date.now() - startTime;
+        console.log(`⚡ UserPurse loaded in ${loadTime}ms`);
+        
+        // Small delay for smooth transition
+        setTimeout(() => setLoading(false), 200);
       } catch (err) {
         setError(err.message || "Failed to fetch data.");
-      } finally {
         setLoading(false);
       }
     };
@@ -168,7 +150,49 @@ const UserPursePage = () => {
   };
 
   if (loading) {
-    return <LoadingCube animationFile="Purse.json" />;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
+        <LoadingCube animationFile="Purse.json" />
+        <div style={{
+          marginTop: '20px',
+          color: 'white',
+          fontSize: '18px',
+          fontWeight: 'bold'
+        }}>
+          Loading Purse Data...
+        </div>
+        <div style={{
+          width: '300px',
+          height: '6px',
+          backgroundColor: 'rgba(255,255,255,0.3)',
+          borderRadius: '3px',
+          marginTop: '20px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: `${loadingProgress}%`,
+            height: '100%',
+            background: 'linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)',
+            borderRadius: '3px',
+            transition: 'width 0.3s ease-in-out'
+          }} />
+        </div>
+        <div style={{
+          marginTop: '10px',
+          color: 'rgba(255,255,255,0.8)',
+          fontSize: '14px'
+        }}>
+          {loadingProgress}%
+        </div>
+      </div>
+    );
   }
 
   if (error) {

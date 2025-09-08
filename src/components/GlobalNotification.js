@@ -39,6 +39,19 @@ const NotificationOverlay = styled.div`
   justify-content: center;
   align-items: center;
   animation: ${flash} 2s infinite;
+  overflow-y: auto;
+  padding: 10px;
+
+  @media (max-width: 768px) {
+    padding: 5px;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 2px;
+    padding-top: 10px;
+  }
 `;
 
 const NotificationCard = styled.div`
@@ -53,6 +66,8 @@ const NotificationCard = styled.div`
   animation: ${pulse} 2s infinite;
   position: relative;
   overflow: hidden;
+  max-height: 90vh;
+  overflow-y: auto;
 
   &::before {
     content: '';
@@ -71,8 +86,20 @@ const NotificationCard = styled.div`
   }
 
   @media (max-width: 768px) {
-    padding: 2rem;
-    margin: 1rem;
+    padding: 1.5rem;
+    margin: 0.5rem;
+    max-width: 95%;
+    width: 95%;
+    max-height: 95vh;
+    border-radius: 15px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem;
+    margin: 0.25rem;
+    max-width: 98%;
+    width: 98%;
+    border-radius: 12px;
   }
 `;
 
@@ -85,6 +112,16 @@ const NotificationIcon = styled.div`
     0% { transform: translateY(0); }
     100% { transform: translateY(-10px); }
   }
+
+  @media (max-width: 768px) {
+    font-size: 3rem;
+    margin-bottom: 0.8rem;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 2.5rem;
+    margin-bottom: 0.6rem;
+  }
 `;
 
 const NotificationTitle = styled.h2`
@@ -92,6 +129,16 @@ const NotificationTitle = styled.h2`
   margin-bottom: 1rem;
   font-weight: 700;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+
+  @media (max-width: 768px) {
+    font-size: 1.6rem;
+    margin-bottom: 0.8rem;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 1.4rem;
+    margin-bottom: 0.6rem;
+  }
 `;
 
 const NotificationMessage = styled.p`
@@ -99,6 +146,16 @@ const NotificationMessage = styled.p`
   margin-bottom: 2rem;
   line-height: 1.5;
   opacity: 0.9;
+
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 1rem;
+    margin-bottom: 1.2rem;
+  }
 `;
 
 const MatchDetails = styled.div`
@@ -143,9 +200,16 @@ const ButtonGroup = styled.div`
   display: flex;
   gap: 1rem;
   justify-content: center;
+  flex-wrap: wrap;
 
   @media (max-width: 768px) {
     flex-direction: column;
+    gap: 0.8rem;
+    width: 100%;
+  }
+
+  @media (max-width: 480px) {
+    gap: 0.6rem;
   }
 `;
 
@@ -160,6 +224,7 @@ const ActionButton = styled.button`
   min-width: 120px;
   text-transform: uppercase;
   letter-spacing: 1px;
+  width: 100%;
 
   &.accept {
     background: linear-gradient(135deg, #28a745, #20c997);
@@ -186,6 +251,19 @@ const ActionButton = styled.button`
   &:active {
     transform: translateY(0);
   }
+
+  @media (max-width: 768px) {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    min-width: auto;
+    width: 100%;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.7rem 1.2rem;
+    font-size: 0.9rem;
+    border-radius: 12px;
+  }
 `;
 
 const TimeSlotInput = styled.div`
@@ -208,6 +286,154 @@ const TimeSlotInput = styled.div`
     font-size: 1rem;
     background: white;
     color: #333;
+  }
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+  overflow-y: auto;
+
+  @media (max-width: 768px) {
+    padding: 10px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 5px;
+  }
+`;
+
+const ModalContainer = styled.div`
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 25px;
+  padding: 6px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+
+  @media (max-width: 768px) {
+    max-width: 95%;
+    border-radius: 20px;
+    padding: 4px;
+  }
+
+  @media (max-width: 480px) {
+    max-width: 98%;
+    border-radius: 15px;
+    padding: 3px;
+  }
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 19px;
+  padding: 30px;
+  position: relative;
+
+  @media (max-width: 768px) {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 15px;
+    border-radius: 12px;
+  }
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 20px 0;
+  text-align: center;
+
+  @media (max-width: 768px) {
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+`;
+
+const ModalButtonGroup = styled.div`
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  @media (max-width: 480px) {
+    gap: 8px;
+  }
+`;
+
+const ModalButton = styled.button`
+  padding: 12px 25px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: white;
+  color: #666;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 8px 16px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+`;
+
+const ModalSubmitButton = styled.button`
+  padding: 12px 25px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 8px 16px;
+    font-size: 13px;
+    border-radius: 10px;
   }
 `;
 
@@ -663,45 +889,22 @@ const GlobalNotification = () => {
 
       {/* New Time Proposal Modal */}
     {showRejectModal && (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
-        backdropFilter: 'blur(10px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000,
-        padding: '20px'
-      }}>
-        <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '25px',
-          padding: '6px',
-          maxWidth: '500px',
-          width: '100%',
-          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)'
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '19px',
-            padding: '30px',
-            position: 'relative'
-          }}>
-            <h2 style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: '#333',
-              margin: '0 0 20px 0',
-              textAlign: 'center'
-            }}>
+      <ModalOverlay>
+        <ModalContainer>
+          <ModalContent>
+            <ModalTitle>
               🕐 Propose New Time
-            </h2>
+            </ModalTitle>
             
-            <div style={{ marginBottom: '25px' }}>
+            <div style={{ 
+              marginBottom: '25px',
+              '@media (max-width: 768px)': {
+                marginBottom: '20px'
+              },
+              '@media (max-width: 480px)': {
+                marginBottom: '15px'
+              }
+            }}>
               <label style={{
                 display: 'block',
                 marginBottom: '8px',
@@ -723,12 +926,21 @@ const GlobalNotification = () => {
                   borderRadius: '12px',
                   fontSize: '16px',
                   background: 'white',
-                  color: '#333'
+                  color: '#333',
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
             
-            <div style={{ marginBottom: '30px' }}>
+            <div style={{ 
+              marginBottom: '30px',
+              '@media (max-width: 768px)': {
+                marginBottom: '25px'
+              },
+              '@media (max-width: 480px)': {
+                marginBottom: '20px'
+              }
+            }}>
               <label style={{
                 display: 'block',
                 marginBottom: '8px',
@@ -748,7 +960,8 @@ const GlobalNotification = () => {
                   borderRadius: '12px',
                   fontSize: '16px',
                   background: 'white',
-                  color: '#333'
+                  color: '#333',
+                  boxSizing: 'border-box'
                 }}
               >
                 <option value="">
@@ -769,82 +982,28 @@ const GlobalNotification = () => {
               </select>
             </div>
 
-            <div style={{
-              display: 'flex',
-              gap: '15px',
-              justifyContent: 'center'
-            }}>
-              <button
+            <ModalButtonGroup>
+              <ModalButton
                 onClick={() => setShowRejectModal(false)}
-                style={{
-                  padding: '12px 25px',
-                  border: '2px solid #e0e0e0',
-                  borderRadius: '12px',
-                  background: 'white',
-                  color: '#666',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  minWidth: '120px'
-                }}
               >
                 Cancel
-              </button>
-              <button
+              </ModalButton>
+              <ModalSubmitButton
                 onClick={handleSubmitReject}
-                style={{
-                  padding: '12px 25px',
-                  border: 'none',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #ffc107 0%, #fd7e14 100%)',
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  minWidth: '120px',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                }}
               >
                 Propose Time
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+              </ModalSubmitButton>
+            </ModalButtonGroup>
+          </ModalContent>
+        </ModalContainer>
+      </ModalOverlay>
     )}
 
     {/* Beautiful Custom Popup */}
     {showPopup && (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
-        backdropFilter: 'blur(10px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10001,
-        padding: '20px'
-      }}>
-        <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '25px',
-          padding: '6px',
-          maxWidth: '500px',
-          width: '100%',
-          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)'
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '19px',
-            padding: '30px',
-            position: 'relative'
-          }}>
+      <ModalOverlay style={{ zIndex: 10001 }}>
+        <ModalContainer>
+          <ModalContent>
             <div style={{
               textAlign: 'center',
               marginBottom: '20px'
@@ -876,64 +1035,38 @@ const GlobalNotification = () => {
               </p>
             </div>
 
-            <div style={{
-              display: 'flex',
-              gap: '15px',
-              justifyContent: 'center'
-            }}>
+            <ModalButtonGroup>
               {popupData.showCancel && (
-                <button
+                <ModalButton
                   onClick={() => {
                     if (popupData.onCancel) popupData.onCancel();
                     hideCustomPopup();
                   }}
-                  style={{
-                    padding: '12px 25px',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '12px',
-                    background: 'white',
-                    color: '#666',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    minWidth: '120px'
-                  }}
                 >
                   Cancel
-                </button>
+                </ModalButton>
               )}
-              <button
+              <ModalSubmitButton
                 onClick={() => {
                   if (popupData.onConfirm) popupData.onConfirm();
                   else hideCustomPopup();
                 }}
                 style={{
-                  padding: '12px 25px',
-                  border: 'none',
-                  borderRadius: '12px',
                   background: popupData.type === 'success' ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)' :
                              popupData.type === 'error' ? 'linear-gradient(135deg, #dc3545 0%, #fd7e14 100%)' :
                              popupData.type === 'warning' ? 'linear-gradient(135deg, #ffc107 0%, #fd7e14 100%)' :
-                             'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  minWidth: '120px',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                             'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
                 }}
               >
                 {popupData.type === 'success' ? 'Great!' :
                  popupData.type === 'error' ? 'Try Again' :
                  popupData.type === 'warning' ? 'Continue' :
                  'OK'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+              </ModalSubmitButton>
+            </ModalButtonGroup>
+          </ModalContent>
+        </ModalContainer>
+      </ModalOverlay>
     )}
     </>
   );

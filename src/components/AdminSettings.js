@@ -10,6 +10,7 @@ function AdminSettings() {
   const [enableTradeCenter, setEnableTradeCenter] = useState(true);
   const [enableUnsoldPlayers, setEnableUnsoldPlayers] = useState(true);
   const [enablePickButton, setEnablePickButton] = useState(true);
+  const [enablePlayerRetention, setEnablePlayerRetention] = useState(true);
   const [pointsMode, setPointsMode] = useState('overall');
   const [teams, setTeams] = useState([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
@@ -27,6 +28,7 @@ function AdminSettings() {
       if (typeof j.enableTradeCenter === 'boolean') setEnableTradeCenter(j.enableTradeCenter);
       if (typeof j.enableUnsoldPlayers === 'boolean') setEnableUnsoldPlayers(j.enableUnsoldPlayers);
       if (typeof j.enablePickButton === 'boolean') setEnablePickButton(j.enablePickButton);
+      if (typeof j.enablePlayerRetention === 'boolean') setEnablePlayerRetention(j.enablePlayerRetention);
       if (typeof j.pointsMode === 'string') setPointsMode(j.pointsMode);
     } catch (e) {
       setToast('Failed to load settings');
@@ -49,6 +51,7 @@ function AdminSettings() {
       if (typeof j.enableTradeCenter === 'boolean') setEnableTradeCenter(j.enableTradeCenter);
       if (typeof j.enableUnsoldPlayers === 'boolean') setEnableUnsoldPlayers(j.enableUnsoldPlayers);
       if (typeof j.enablePickButton === 'boolean') setEnablePickButton(j.enablePickButton);
+      if (typeof j.enablePlayerRetention === 'boolean') setEnablePlayerRetention(j.enablePlayerRetention);
       if (typeof j.pointsMode === 'string') setPointsMode(j.pointsMode);
       setToast('Saved');
       try { window.dispatchEvent(new Event('settings-updated')); } catch {}
@@ -129,6 +132,16 @@ function AdminSettings() {
             </div>
             <label className="switch">
               <input type="checkbox" checked={enablePickButton} onChange={(e) => save({ enablePickButton: e.target.checked })} disabled={saving} />
+              <span className="slider" />
+            </label>
+          </div>
+          <div className="setting-row">
+            <div className="info">
+              <div className="label">Player Retention</div>
+              <div className="desc">Enable or disable the player retention feature for users to retain their players.</div>
+            </div>
+            <label className="switch">
+              <input type="checkbox" checked={enablePlayerRetention} onChange={(e) => save({ enablePlayerRetention: e.target.checked })} disabled={saving} />
               <span className="slider" />
             </label>
           </div>

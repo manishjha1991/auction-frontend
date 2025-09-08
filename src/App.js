@@ -22,6 +22,8 @@ import MatchScheduler from './components/MatchScheduler';
 import GlobalNotification from './components/GlobalNotification';
 import TeamDirectory from './components/TeamDirectory';
 import AdminUserManagement from './components/AdminUserManagement';
+import AdminRetainedPlayers from './components/AdminRetainedPlayers';
+import AdminTeamLocks from './components/AdminTeamLocks';
 // AdminDashboard removed - performance dashboard disabled
 
 import './App.css';
@@ -155,6 +157,8 @@ function App() {
                 {/* Performance Dashboard removed */}
                 {user?.isAdmin && <li><Link to="/admin/trades" onClick={toggleSidebar}>Admin Trades</Link></li>}
                 {user?.isAdmin && <li><Link to="/admin/user-management" onClick={toggleSidebar}>👑 User Management</Link></li>}
+                {user?.isAdmin && <li><Link to="/admin/retained-players" onClick={toggleSidebar}>💎 Retained Players</Link></li>}
+                {user?.isAdmin && <li><Link to="/admin/team-locks" onClick={toggleSidebar}>🔒 Retention Locks</Link></li>}
                 {user?.isAdmin && <li><Link to="/admin/settings" onClick={toggleSidebar}>Admin Settings</Link></li>}
 
                 <li>
@@ -231,6 +235,22 @@ function App() {
               element={
                 <PrivateRoute>
                   <AdminUserManagement />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/retained-players"
+              element={
+                <PrivateRoute>
+                  <AdminRetainedPlayers />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/team-locks"
+              element={
+                <PrivateRoute>
+                  <AdminTeamLocks />
                 </PrivateRoute>
               }
             />
