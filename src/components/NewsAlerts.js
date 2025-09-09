@@ -4,7 +4,7 @@ import announcementAnimation from './animations/Announcment.json';
 import hittingSixAnimation from './animations/HittingSix.json';
 import '../css/NewsAlerts.css';
 import { API_ENDPOINTS } from '../const';
-import { FaExchangeAlt, FaHandHolding, FaUnlockAlt, FaStar, FaTrophy, FaTimesCircle, FaCheckCircle, FaHeart, FaComment, FaShare, FaEllipsisH, FaReply, FaEdit, FaTrash, FaSmile, FaRegHeart, FaRegComment, FaTimes } from 'react-icons/fa';
+import { FaExchangeAlt, FaHandHolding, FaUnlockAlt, FaStar, FaTrophy, FaClock, FaTimesCircle, FaCheckCircle, FaHeart, FaComment, FaShare, FaEllipsisH, FaReply, FaEdit, FaTrash, FaSmile, FaRegHeart, FaRegComment, FaTimes } from 'react-icons/fa';
 
 function NewsAlerts() {
   const [query, setQuery] = useState('');
@@ -533,12 +533,13 @@ function NewsAlerts() {
       case 'release': return <FaUnlockAlt />;
       case 'stats': return <FaStar />;
       case 'fixture': return <FaTrophy />;
+      case 'schedule': return <FaClock />;
       default: return null;
     }
   };
 
   const counts = useMemo(() => {
-    const acc = { trade: 0, pick: 0, release: 0, stats: 0, fixture: 0 };
+    const acc = { trade: 0, pick: 0, release: 0, stats: 0, fixture: 0, schedule: 0 };
     (feed || []).forEach(n => { if (acc.hasOwnProperty(n.kind)) acc[n.kind] += 1; });
     return acc;
   }, [feed]);
@@ -647,6 +648,7 @@ function NewsAlerts() {
           <button className={filter === 'release' ? 'active' : ''} onClick={() => setFilter('release')}>Releases ({counts.release})</button>
           <button className={filter === 'stats' ? 'active' : ''} onClick={() => setFilter('stats')}>Stats ({counts.stats})</button>
           <button className={filter === 'fixture' ? 'active' : ''} onClick={() => setFilter('fixture')}>Fixtures ({counts.fixture})</button>
+          <button className={filter === 'schedule' ? 'active' : ''} onClick={() => setFilter('schedule')}>Scheduled ({counts.schedule})</button>
         </div>
       </div>
 
