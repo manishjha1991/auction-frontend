@@ -204,6 +204,25 @@
   .past-bid-card {
       grid-template-columns: 1fr;
   }
+
+  /* Tablet popup improvements */
+  .confirm-popup {
+      width: 90%;
+      max-width: 400px;
+      padding: 25px;
+  }
+
+  .popup-buttons {
+      flex-direction: row;
+      gap: 15px;
+  }
+
+  .confirm-button,
+  .cancel-button {
+      flex: 1;
+      padding: 10px 15px;
+      font-size: 14px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -224,8 +243,85 @@
   .additional-info {
       text-align: right;
       font-size: 16px;
-      color: #555;
-      margin-top: -10px;
+  }
+
+  /* Mobile popup improvements */
+  .confirm-overlay {
+      align-items: flex-start; /* Align to top instead of center */
+      padding: 10px;
+      min-height: 100vh;
+  }
+
+  .confirm-popup {
+      width: 95%;
+      max-width: 350px;
+      padding: 20px;
+      margin: 20px auto; /* Center with auto margins */
+      max-height: 90vh; /* Limit height to 90% of viewport */
+      overflow-y: auto; /* Allow scrolling if content is too tall */
+      position: relative; /* Ensure proper positioning */
+  }
+
+  .confirm-popup h2 {
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+  }
+
+  .confirm-popup h3 {
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+  }
+
+  .popup-buttons {
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+      position: sticky; /* Keep buttons visible */
+      bottom: 0;
+      background: linear-gradient(135deg, #ff6ec4, #7873f5);
+      padding-top: 10px;
+  }
+
+  .confirm-button,
+  .cancel-button {
+      width: 100%;
+      padding: 12px 20px;
+      font-size: 16px;
+      margin: 0;
+      min-height: 44px; /* Minimum touch target size */
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+  }
+
+  /* Ensure popup is always visible on very small screens */
+  @media (max-height: 600px) {
+    .confirm-popup {
+        max-height: 95vh;
+        margin: 10px auto;
+    }
+    
+    .popup-buttons {
+        position: sticky;
+        bottom: 0;
+        background: linear-gradient(135deg, #ff6ec4, #7873f5);
+        margin-top: 15px;
+    }
+  }
+
+  /* Handle landscape orientation on mobile */
+  @media (max-width: 480px) and (orientation: landscape) {
+    .confirm-overlay {
+        align-items: flex-start;
+        padding: 5px;
+    }
+    
+    .confirm-popup {
+        max-height: 95vh;
+        margin: 5px auto;
+    }
   }
 
   .additional-info p {
@@ -400,6 +496,8 @@
   justify-content: center;
   align-items: center;
   z-index: 2000; /* Above other modals */
+  overflow-y: auto; /* Allow scrolling if content is too tall */
+  padding: 20px; /* Add padding to prevent content from touching edges */
 }
 
 .confirm-popup {
