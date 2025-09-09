@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import "../css/UserPurse.css"; // Custom CSS file
 import { API_ENDPOINTS } from "../const";
-import { FaWallet } from "react-icons/fa"; // Import Wallet Icon
 import LoadingCube from "./CricketAnimation"; // Import the reusable component
 import NotificationBell from './NotificationBell';
+import PlayerPopup from './PlayerPopup';
 
 const UserPursePage = () => {
   const [usersData, setUsersData] = useState([]);
@@ -12,12 +12,104 @@ const UserPursePage = () => {
   const [error, setError] = useState(null);
   const [biddingStatuses, setBiddingStatuses] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [lastBidders, setLastBidders] = useState({});
+  const [userBidPositions, setUserBidPositions] = useState({});
 
   useEffect(() => {
     // Get current user from localStorage
     const user = JSON.parse(localStorage.getItem("user"));
     setCurrentUser(user);
+    setIsAdmin(user?.isAdmin === true);
   }, []);
+
+  const handlePlayerClick = (player) => {
+    console.log('Player clicked:', player);
+    setSelectedPlayer(player);
+  };
+
+  const handleClosePopup = () => {
+    setSelectedPlayer(null);
+  };
+
+  const fetchCompetitorBidder = async (playerId, playerName) => {
+    if (lastBidders[playerId]) {
+      return; // Already fetched
+    }
+    
+    try {
+      const response = await fetch(`${API_ENDPOINTS}/api/player/${playerId}/bids`, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const allBids = data.allBids || [];
+      
+      if (allBids.length === 0) {
+        setLastBidders(prev => ({
+          ...prev,
+          [playerId]: null
+        }));
+        setUserBidPositions(prev => ({
+          ...prev,
+          [playerId]: null
+        }));
+        return;
+      }
+
+      // Get current user info
+      const currentUserId = currentUser?.id || currentUser?._id;
+      
+      // Sort bids by amount (highest first)
+      const sortedBids = allBids.sort((a, b) => b.bidAmount - a.bidAmount);
+      
+      // Find current user's position
+      const userBidIndex = sortedBids.findIndex(bid => 
+        bid.bidder?.toString() === currentUserId?.toString() || 
+        bid.bidder?._id?.toString() === currentUserId?.toString()
+      );
+      
+      let competitorName = null;
+      
+      if (userBidIndex === 0) {
+        // User is highest bidder, show second highest
+        if (sortedBids.length > 1) {
+          competitorName = sortedBids[1].bidder?.name || sortedBids[1].bidderName || 'Unknown';
+        }
+      } else if (userBidIndex === 1) {
+        // User is second highest, show highest bidder
+        competitorName = sortedBids[0].bidder?.name || sortedBids[0].bidderName || 'Unknown';
+      } else if (userBidIndex > 1) {
+        // User is lower, show highest bidder
+        competitorName = sortedBids[0].bidder?.name || sortedBids[0].bidderName || 'Unknown';
+      }
+      
+      setLastBidders(prev => ({
+        ...prev,
+        [playerId]: competitorName
+      }));
+      
+      setUserBidPositions(prev => ({
+        ...prev,
+        [playerId]: userBidIndex
+      }));
+    } catch (err) {
+      console.error(`Failed to fetch competitor for ${playerName}:`, err);
+      setLastBidders(prev => ({
+        ...prev,
+        [playerId]: null
+      }));
+      setUserBidPositions(prev => ({
+        ...prev,
+        [playerId]: null
+      }));
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -84,6 +176,27 @@ const UserPursePage = () => {
     fetchUserData();
   }, [currentUser]);
 
+  // Auto-fetch competitor info for current user's bidding players
+  useEffect(() => {
+    if (currentUser && usersData.length > 0) {
+      const currentUserData = usersData.find(user => 
+        user.id === currentUser.id || 
+        user._id === currentUser.id || 
+        user.userName === currentUser.name
+      );
+      
+      if (currentUserData) {
+        const biddingPlayers = currentUserData.players.filter(p => p.isBidOn);
+        biddingPlayers.forEach(player => {
+          if (player.id && !lastBidders[player.id]) {
+            fetchCompetitorBidder(player.id, player.name);
+          }
+        });
+      }
+    }
+  }, [currentUser, usersData, lastBidders]);
+
+
   // Get bidding status for a specific player
   const getBiddingStatus = (playerName) => {
     console.log('=== getBiddingStatus called ===');
@@ -143,7 +256,7 @@ const UserPursePage = () => {
       case "Emerald":
         return "linear-gradient(135deg, #56ab2f, #a8e063)";
       case "Silver":
-        return "linear-gradient(135deg, #ffffff, #e0e0e0)";
+        return "linear-gradient(135deg, #6c757d, #495057)";
       default:
         return "linear-gradient(135deg, #d3d3d3, #8c8c8c)";
     }
@@ -199,45 +312,160 @@ const UserPursePage = () => {
     return <div className="error">{error}</div>;
   }
 
+  // Sort users to put current user first
+  const sortedUsersData = [...usersData].sort((a, b) => {
+    const aIsCurrentUser = a.id === currentUser?.id || a._id === currentUser?.id || a.userName === currentUser?.name;
+    const bIsCurrentUser = b.id === currentUser?.id || b._id === currentUser?.id || b.userName === currentUser?.name;
+    
+    if (aIsCurrentUser && !bIsCurrentUser) return -1;
+    if (!aIsCurrentUser && bIsCurrentUser) return 1;
+    return 0;
+  });
+
   return (
     <div className="user-purse-page">
        {/* Include the NotificationBell component */}
        <NotificationBell />
-      <div className="page-header" style={{ textAlign: "center", marginTop: "20px" }}>
-        <FaWallet
-          style={{
-            fontSize: "50px", // Make it bigger
-            color: "#16a085", // Cool greenish color
-            textShadow: "0px 4px 6px rgba(0, 0, 0, 0.3)", // Subtle shadow
-            animation: "pop-in 0.5s ease-out", // Animation
-          }}
-        />
-        {/* Removed refresh button */}
-      </div>
+      
+
+
       <div className="user-cards-container">
-        {usersData.map((user, index) => (
-          <div key={index} className="user-card">
+        {sortedUsersData.map((user, index) => {
+          const isCurrentUser = user.id === currentUser?.id || user._id === currentUser?.id || user.userName === currentUser?.name;
+          const isFirstTeam = index === 0;
+          const isLastTeam = index === sortedUsersData.length - 1;
+          
+          // Calculate player type breakdown
+          const playerTypeCounts = user.players.reduce((acc, player) => {
+            const type = player.type || 'Unknown';
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+          }, {});
+          
+          // Fix player filtering - check actual data structure
+          console.log('User data for', user.userName, ':', {
+            totalPlayers: user.players.length,
+            players: user.players.map(p => ({
+              name: p.name,
+              isBidOn: p.isBidOn,
+              status: p.status,
+              type: p.type
+            }))
+          });
+          
+          const ownedPlayers = user.players.filter(p => !p.isBidOn);
+          const biddingPlayers = user.players.filter(p => p.isBidOn);
+          
+          console.log('Filtered players:', {
+            owned: ownedPlayers.length,
+            bidding: biddingPlayers.length
+          });
+          
+          return (
+            <div key={index}>
+              {/* Team Separator */}
+              {!isFirstTeam && (
+                <div className="team-separator">
+                  <div className="separator-line"></div>
+                  <div className="separator-text">VS</div>
+                  <div className="separator-line"></div>
+                </div>
+              )}
+              
+              <div className={`user-card ${isCurrentUser ? 'current-user' : ''}`}>
+                {/* User Card Header */}
+                <div className="user-card-header">
+                  <div className="user-avatar">
+                    <span className="user-initial">{user.userName.charAt(0).toUpperCase()}</span>
+                    {isCurrentUser && <div className="current-user-badge">YOU</div>}
+                  </div>
+                  <div className="user-info">
             <h2 className="user-name">{user.userName}</h2>
+                    <div className="user-stats">
+                      <div className="stat-item">
+                        <span className="stat-number">{ownedPlayers.length}</span>
+                        <span className="stat-label">Owned</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-number">{biddingPlayers.length}</span>
+                        <span className="stat-label">Bidding</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-number">{user.players.length}</span>
+                        <span className="stat-label">Total</span>
+                      </div>
+                    </div>
+                  </div>
+            </div>
+
+            {/* Purse Value with Modern Design */}
             <div className="purse-value-container">
               <div className={`purse-circle ${
                 (user.purseValue / 10000000) < 5 ? 'low-purse' : 
                 (user.purseValue / 10000000) > 30 ? 'high-purse' : ''
               }`}>
+                <div className="purse-inner">
                 <span className="purse-amount">₹{(user.purseValue / 10000000).toFixed(2)}</span>
                 <span className="purse-unit">Cr</span>
+                </div>
+                <div className="purse-ring"></div>
               </div>
+              <div className="purse-status">
+                {(user.purseValue / 10000000) < 5 ? 'Low Funds' : 
+                 (user.purseValue / 10000000) > 30 ? 'Rich' : 'Good'}
+              </div>
+            </div>
+
+            {/* Player Type Breakdown */}
+            <div className="player-type-breakdown">
+              <h3 className="breakdown-title">Player Types</h3>
+              <div className="type-stats-grid">
+                {Object.entries(playerTypeCounts).map(([type, count]) => (
+                  <div key={type} className={`type-stat-item ${type.toLowerCase()}`}>
+                    <span className="type-count">{count}</span>
+                    <span className="type-name">{type}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Players Section */}
+            <div className="players-section">
+              <div className="section-header">
+                <h3 className="section-title">Owned Players</h3>
+                <div className="section-count">{user.players.filter(p => !p.isBidOn).length}</div>
             </div>
             <div className="players-container">
               {user.players
                 .filter((player) => !player.isBidOn)
+                  .sort((a, b) => {
+                    // Normalize type to handle any casing issues
+                    const typeA = (a.type || '').toString().trim();
+                    const typeB = (b.type || '').toString().trim();
+                    
+                    const typeOrder = { 
+                      'Sapphire': 0, 'sapphire': 0, 'SAPPHIRE': 0,
+                      'Emerald': 1, 'emerald': 1, 'EMERALD': 1,
+                      'Gold': 2, 'gold': 2, 'GOLD': 2,
+                      'Silver': 3, 'silver': 3, 'SILVER': 3
+                    };
+                    
+                    const orderA = typeOrder[typeA] !== undefined ? typeOrder[typeA] : 4;
+                    const orderB = typeOrder[typeB] !== undefined ? typeOrder[typeB] : 4;
+                    
+                    return orderA - orderB;
+                  })
                 .map((player, idx) => (
                   <div
                     key={idx}
-                    className="player-card sold"
+                      className={`player-card sold ${player.type.toLowerCase()}`}
                     style={{
                       background: getPlayerColor(player.type),
+                        cursor: 'pointer'
                     }}
+                      onClick={() => handlePlayerClick(player)}
                   >
+                      <div className="player-type-badge">{player.type}</div>
                     <h3 className="player-name">{player.name}</h3>
                     <div className="player-value-container">
                       <div className="player-price-circle sold-price">
@@ -247,9 +475,23 @@ const UserPursePage = () => {
                     </div>
                   </div>
                 ))}
+              </div>
 
-              {user.players.some((player) => player.isBidOn) && <hr className="divider" />}
+              {user.players.some((player) => player.isBidOn) && (
+                <div className="section-divider">
+                  <div className="divider-line"></div>
+                  <div className="divider-text">Bidding</div>
+                  <div className="divider-line"></div>
+                </div>
+              )}
 
+              {user.players.some((player) => player.isBidOn) && (
+                <div className="section-header">
+                  <h3 className="section-title">Bidding Players</h3>
+                  <div className="section-count">{user.players.filter(p => p.isBidOn).length}</div>
+                </div>
+              )}
+              <div className="players-container bidding-players">
               {user.players
                 .filter((player) => player.isBidOn)
                 .map((player, idx) => {
@@ -281,11 +523,13 @@ const UserPursePage = () => {
                   return (
                     <div
                       key={idx}
-                      className="player-card bidding"
+                        className={`player-card bidding ${player.type.toLowerCase()} ${isCurrentUser ? 'current-user-bidding' : ''}`}
                       style={{
-                        animation: "blink 1s infinite",
-                        background: getPlayerColor(player.type), // Ensure the player type matches the expected type
+                          animation: "biddingPulse 2s ease-in-out infinite",
+                          background: getPlayerColor(player.type),
+                          cursor: 'pointer'
                       }}
+                        onClick={() => handlePlayerClick(player)}
                     >
                       <h3 className="player-name">{player.name}</h3>
                       <div className="player-value-container">
@@ -296,17 +540,53 @@ const UserPursePage = () => {
                       </div>
                       {isCurrentUser && displayInfo.text && (
                         <div className={`bidding-status ${displayInfo.className}`}>
-                          {displayInfo.text}
+                            <span className="status-icon">{displayInfo.icon}</span>
+                            <span className="status-text">{displayInfo.text}</span>
                         </div>
                       )}
+                      
+                      {/* Competitor Display for Current User */}
+                      {isCurrentUser && (
+                        <div className="last-bidder-section">
+                          {lastBidders[player.id] ? (
+                            <div className="last-bidder-info">
+                              <span className={`competitor-arrow ${
+                                userBidPositions[player.id] === 0 ? 'arrow-down' : 'arrow-up'
+                              }`}>
+                                {userBidPositions[player.id] === 0 ? '↓' : '↑'}
+                              </span>
+                              <span className="last-bidder-name">
+                                {lastBidders[player.id]}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="last-bidder-loading">
+                              <span className="last-bidder-label">Loading...</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                        <div className="player-status bidding-status-text">🔥 Bidding</div>
                     </div>
                   );
                 })}
-
+              </div>
             </div>
           </div>
-        ))}
+            </div>
+        );
+        })}
       </div>
+
+      {/* Player Popup */}
+      {selectedPlayer && (
+        <PlayerPopup
+          player={selectedPlayer}
+          onClose={handleClosePopup}
+          isAdmin={isAdmin}
+        />
+      )}
     </div>
   );
 };

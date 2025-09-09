@@ -188,7 +188,8 @@ const PlayerPopup = ({ player, onClose }) => {
       const bidIncrement = determineBidIncrement(playerDetails?.type, lastBidAmount);
 
       // Calculate the bid amount
-      const bidAmount = lastBidAmount + bidIncrement;
+      // For first bidder, bid amount should be base price, not base price + increment
+      const bidAmount = topTwoBids.length > 0 ? lastBidAmount + bidIncrement : playerDetails?.basePrice || 0;
       console.log("Calculated Bid Amount:", bidAmount);
 
       const payload = {
@@ -211,8 +212,13 @@ const PlayerPopup = ({ player, onClose }) => {
       }
 
       // On success, update the message and state
+      const isFirstBid = topTwoBids.length === 0;
+      const message = isFirstBid 
+        ? `₹${formatHumanReadableAmount(bidAmount)} bid placed on ${playerDetails.name}!`
+        : `₹${formatHumanReadableAmount(bidAmount)} bid placed on ${playerDetails.name}!`;
+      
       setBidAlert({
-        message: result.message || "Bid placed successfully!",
+        message: message,
         amount: bidAmount,
         playerName: playerDetails.name,
         isSuccess: true
