@@ -42,9 +42,9 @@
 
 .player-row {
   display: grid;
-  grid-template-columns: 60px 3fr 1.5fr 2fr;
+  grid-template-columns: 50px 2fr 1fr 1fr;
   align-items: center;
-  padding: 18px 25px;
+  padding: 15px 20px;
   border-radius: 10px;
   background: #ffffff;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -190,6 +190,46 @@
 .modern-search-input::placeholder {
   color: #999;
   font-weight: 400;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .player-grid {
+    padding: 0 10px;
+    max-width: 100%;
+  }
+  
+  .player-row {
+    grid-template-columns: 40px 1.5fr 0.8fr 0.8fr;
+    padding: 12px 15px;
+    font-size: 14px;
+  }
+  
+  .player-cell {
+    font-size: 14px;
+    padding: 0 4px;
+  }
+  
+  .player-icon {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .player-row {
+    grid-template-columns: 35px 1.2fr 0.7fr 0.7fr;
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  
+  .player-cell {
+    font-size: 12px;
+    padding: 0 2px;
+  }
+  
+  .player-icon {
+    font-size: 18px;
+  }
 }
 
 .search-clear-btn {
