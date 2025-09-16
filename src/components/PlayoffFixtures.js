@@ -641,6 +641,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const fetchPlayoffFixtures = async () => {
     try {
       const response = await axios.get(`${API_ENDPOINTS}/api/playoff-fixtures`);
+      console.log('Fetched playoff fixtures:', response.data.map(f => `${f.matchId}: ${f.team1} vs ${f.team2}`));
       setPlayoffFixtures(response.data);
       setLoading(false);
     } catch (error) {
@@ -651,7 +652,9 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
 
   const initializePlayoffs = async () => {
     try {
-      await axios.post(`${API_ENDPOINTS}/api/playoff-fixtures/initialize`);
+      await axios.post(`${API_ENDPOINTS}/api/playoff-fixtures/initialize`, {
+        mode: mode // Pass the current mode (groups or normal)
+      });
       fetchPlayoffFixtures();
       alert("Playoff fixtures initialized successfully!");
     } catch (error) {
@@ -661,6 +664,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   };
 
   const handleEditFixture = (fixture) => {
+    console.log('Opening edit modal for fixture:', fixture);
     setCurrentFixture(fixture);
     setWinner(fixture.winner || "");
     setMargin(fixture.margin || "");
@@ -693,6 +697,13 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
         isCompleted: !!winner
       };
 
+      console.log('Sending playoff fixture update:', {
+        matchId: currentFixture.matchId,
+        winner: winner,
+        isCompleted: !!winner,
+        data: updatedFixture
+      });
+
       await axios.post(`${API_ENDPOINTS}/api/playoff-fixtures/update/${currentFixture.matchId}`, updatedFixture);
       fetchPlayoffFixtures();
       setShowModal(false);
@@ -716,13 +727,22 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
     // Check if both teams are actual team names (not placeholder text)
     const isTeam1Placeholder = fixture.team1.includes('Winner of') || fixture.team1.includes('Loser of');
     const isTeam2Placeholder = fixture.team2.includes('Winner of') || fixture.team2.includes('Loser of');
-    return isTeam1Placeholder || isTeam2Placeholder;
+    const isDisabled = isTeam1Placeholder || isTeam2Placeholder;
+    console.log(`Match ${fixture.matchId} disabled check:`, { 
+      team1: fixture.team1, 
+      team2: fixture.team2, 
+      isTeam1Placeholder, 
+      isTeam2Placeholder, 
+      isDisabled 
+    });
+    return isDisabled;
   };
 
   const areAllTeamsEligible = () => {
     if (!top6Teams || top6Teams.length < 6) return false;
     if (mode === 'groups') {
-      // In group mode, check if all teams completed 6 matches
+      // In group mode, check if top 3 from each group completed 6 matches
+      // top6Teams should be [A1, A2, A3, B1, B2, B3] when in groups mode
       return top6Teams.every(team => (team.matchesPlayed || 0) >= 6);
     } else {
       // In overall mode, check if all teams completed required games (12)
@@ -731,11 +751,9 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   };
 
   const getDisplayTeamName = (teamName) => {
-    // If teams haven't completed required games, show TBA for placeholder teams
-    if (!areAllTeamsEligible()) {
-      if (teamName.includes('Winner of') || teamName.includes('Loser of')) {
-        return 'TBA';
-      }
+    // For placeholder teams, show TBA until they're replaced with actual team names
+    if (teamName.includes('Winner of') || teamName.includes('Loser of')) {
+      return 'TBA';
     }
     return teamName;
   };
@@ -821,7 +839,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
          const team1Data = getTeamData(fixture.team1);
          const team2Data = getTeamData(fixture.team2);
          const isFinal = fixture.matchId === 'F';
-         const isSemi = fixture.matchId === 'C' || fixture.matchId === 'E';
+         const isSemi = fixture.matchId === 'C' || fixture.matchId === 'E' || fixture.matchId === 'SF1' || fixture.matchId === 'SF2';
          const isDisabled = isMatchDisabled(fixture);
          const displayTeam1Name = getDisplayTeamName(fixture.team1);
          const displayTeam2Name = getDisplayTeamName(fixture.team2);
@@ -886,6 +904,13 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
                  (fixture.winner ? `${fixture.winner === fixture.team1 ? fixture.team2 : fixture.team1} ELIMINATED` : 'LOOSER ELIMINATED') :
                 fixture.matchId === 'E' ? 
                  (fixture.winner ? `${fixture.winner} GOES FINAL` : 'WINNER GOES FINAL') :
+                // Group mode descriptions
+                fixture.matchId === 'Q1' || fixture.matchId === 'Q2' ?
+                 (fixture.winner ? `${fixture.winner} ADVANCES TO SEMI-FINAL` : 'WINNER ADVANCES TO SEMI-FINAL') :
+                fixture.matchId === 'SF1' || fixture.matchId === 'SF2' ?
+                 (fixture.winner ? `${fixture.winner} GOES TO FINAL` : 'WINNER GOES TO FINAL') :
+                fixture.matchId === 'F' ?
+                 (fixture.winner ? `${fixture.winner} IS THE CHAMPION!` : 'CHAMPIONSHIP MATCH') :
                 'CHAMPIONSHIP MATCH'}
              </MatchDescription>
 
@@ -942,7 +967,10 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
 
              <select
                value={winner}
-               onChange={(e) => setWinner(e.target.value)}
+               onChange={(e) => {
+                 console.log('Winner selected:', e.target.value);
+                 setWinner(e.target.value);
+               }}
                style={{ 
                  width: '90%', 
                  margin: '0.5rem 0', 

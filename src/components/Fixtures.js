@@ -552,7 +552,7 @@ const Fixtures = () => {
 
         {/* Show fixtures based on active tab */}
         {activeTab === 'playoffs' ? (
-          <PlayoffFixtures top6Teams={top6Teams} />
+          <PlayoffFixtures top6Teams={top6Teams} mode={mode} />
         ) : (
           filteredFixtures.map((fixture, index) => (
         <FixtureCard key={fixture._id} hasMom={!!fixture.mom?.name}>
