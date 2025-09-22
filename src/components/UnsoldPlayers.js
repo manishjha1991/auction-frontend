@@ -170,10 +170,13 @@ function UnsoldPlayers() {
           )}
           <div className="grid">
             {items.map(p => (
-              <div className="card" key={p._id}>
+              <div className={`card ${p.hasPendingRequest ? 'card-disabled' : ''}`} key={p._id}>
                 <div className="card-top">
                   <div className="name">{p.name}</div>
-                  {p.type && <span className={`type-badge ${String(p.type).toLowerCase()}`}>{p.type}</span>}
+                  <div className="badges">
+                    {p.hasPendingRequest && <span className="request-icon" title="Request already raised">📋</span>}
+                    {p.type && <span className={`type-badge ${String(p.type).toLowerCase()}`}>{p.type}</span>}
+                  </div>
                 </div>
                 <div className="meta">{p.role} • ₹{Number(p.basePrice || 0).toLocaleString('en-IN')}</div>
                 <div className="actions">
@@ -184,6 +187,9 @@ function UnsoldPlayers() {
                     }
                     if (st === 'completed') {
                       return <span className="picked-badge" title="Approved by admin">Picked</span>;
+                    }
+                    if (p.hasPendingRequest) {
+                      return <span className="request-raised-badge" title="Request already raised">Request Raised</span>;
                     }
                     return (
                       <button 
