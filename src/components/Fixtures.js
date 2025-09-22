@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import styled from "styled-components";
 import axios from "axios";
 import ReactSelect from "react-select"; // <-- 1) Import react-select
@@ -276,44 +276,47 @@ const Fixtures = () => {
   const [team1Fairness, setTeam1Fairness] = useState("");
   const [team2Fairness, setTeam2Fairness] = useState("");
 
+  // Define fetchFixtures function with useCallback to prevent infinite loops
+  const fetchFixtures = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API_ENDPOINTS}/api/fixtures?mode=${mode}`);
+      const sortedFixtures = response.data.sort((a, b) => {
+        if (a.winner && !b.winner) return -1;
+        if (!a.winner && b.winner) return 1;
+        return new Date(a.date) - new Date(b.date);
+      });
+      
+      // Debug logging
+      console.log('📊 Fixtures data:', {
+        total: sortedFixtures.length,
+        groupA: sortedFixtures.filter(fx => fx.group === 'A').length,
+        groupB: sortedFixtures.filter(fx => fx.group === 'B').length,
+        normal: sortedFixtures.filter(fx => fx.matchType === 'normal').length,
+        sample: sortedFixtures.slice(0, 3).map(fx => ({
+          teams: `${fx.team1} vs ${fx.team2}`,
+          group: fx.group,
+          matchType: fx.matchType
+        }))
+      });
+      
+      setFixtures(sortedFixtures);
+      setFilteredFixtures(sortedFixtures);
+    } catch (error) {
+      console.error("Error fetching fixtures:", error);
+    }
+  }, [mode]);
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     setIsAdmin(user?.isAdmin === true);
-
-    const fetchFixtures = async () => {
-      try {
-        const response = await axios.get(`${API_ENDPOINTS}/api/fixtures`);
-        const sortedFixtures = response.data.sort((a, b) => {
-          if (a.winner && !b.winner) return -1;
-          if (!a.winner && b.winner) return 1;
-          return new Date(a.date) - new Date(b.date);
-        });
-        
-        // Debug logging
-        console.log('📊 Fixtures data:', {
-          total: sortedFixtures.length,
-          groupA: sortedFixtures.filter(fx => fx.group === 'A').length,
-          groupB: sortedFixtures.filter(fx => fx.group === 'B').length,
-          normal: sortedFixtures.filter(fx => fx.matchType === 'normal').length,
-          sample: sortedFixtures.slice(0, 3).map(fx => ({
-            teams: `${fx.team1} vs ${fx.team2}`,
-            group: fx.group,
-            matchType: fx.matchType
-          }))
-        });
-        
-        setFixtures(sortedFixtures);
-        setFilteredFixtures(sortedFixtures);
-      } catch (error) {
-        console.error("Error fetching fixtures:", error);
-      }
-    };
+    
     const fetchTeams = async () => {
       try {
         const t = await axios.get(`${API_ENDPOINTS}/api/users/teams`);
         setTeams(t.data?.teams || []);
       } catch {}
     };
+    
     const fetchMode = async () => {
       try {
         const settings = await axios.get(`${API_ENDPOINTS}/api/settings`);
@@ -330,6 +333,7 @@ const Fixtures = () => {
         console.error("Error fetching mode:", error);
       }
     };
+    
     const fetchTop6Teams = async () => {
       try {
         const response = await axios.get(`${API_ENDPOINTS}/api/users/points-table`);
@@ -347,11 +351,19 @@ const Fixtures = () => {
         console.error("Error fetching top 6 teams:", error);
       }
     };
+    
     fetchFixtures();
     fetchTeams();
     fetchMode();
     fetchTop6Teams();
   }, []);
+
+  // Refetch fixtures when mode changes
+  useEffect(() => {
+    if (mode) {
+      fetchFixtures();
+    }
+  }, [mode, fetchFixtures]);
 
   const handleSearch = (e) => {
     const query = e.target.value.toLowerCase();
