@@ -340,8 +340,18 @@ const PointsTable = () => {
         fixture.team1 === teamName || fixture.team2 === teamName
       );
       
-      // Sort by creation date (most recent first)
-      teamMatches.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      // Sort: completed matches first (by creation date), then pending matches
+      teamMatches.sort((a, b) => {
+        const aHasResult = !!a.winner;
+        const bHasResult = !!b.winner;
+        
+        // If one has result and other doesn't, prioritize the one with result
+        if (aHasResult && !bHasResult) return -1;
+        if (!aHasResult && bHasResult) return 1;
+        
+        // If both have same status, sort by creation date (most recent first)
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
       
       setTeamFixtures(teamMatches);
     } catch (error) {
