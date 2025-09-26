@@ -1,9 +1,1014 @@
 import React, { useEffect, useState } from "react";
-import "../css/UserPurse.css"; // Custom CSS file
+import styled from "styled-components";
 import { API_ENDPOINTS } from "../const";
-import LoadingCube from "./CricketAnimation"; // Import the reusable component
+import LoadingCube from "./CricketAnimation";
 import NotificationBell from './NotificationBell';
 import PlayerPopup from './PlayerPopup';
+
+// Modern Styled Components - Fresh Design
+const PageContainer = styled.div`
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%);
+  background-attachment: fixed;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+  
+  @media (max-width: 768px) {
+    padding: 0;
+  }
+`;
+
+const Header = styled.div`
+  position: relative;
+  padding: 60px 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 40px;
+  overflow: hidden;
+  
+  @media (max-width: 768px) {
+    padding: 40px 15px;
+    margin-bottom: 30px;
+  }
+`;
+
+const HeaderContent = styled.div`
+  position: relative;
+  z-index: 2;
+`;
+
+const WalletIcon = styled.div`
+  font-size: 80px;
+  color: #00d4ff;
+  filter: drop-shadow(0 10px 20px rgba(0, 212, 255, 0.4));
+  animation: float 4s ease-in-out infinite;
+  margin-bottom: 20px;
+  
+  @media (max-width: 768px) {
+    font-size: 60px;
+    margin-bottom: 15px;
+  }
+`;
+
+const PageTitle = styled.h1`
+  font-size: 3rem;
+  font-weight: 900;
+  color: #fff;
+  margin: 0 0 15px 0;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(45deg, #00d4ff, #ff6b9d, #c44569);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 2px;
+  
+  @media (max-width: 768px) {
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+  }
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    letter-spacing: 0.3px;
+  }
+`;
+
+const CardsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 20px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+  
+  @media (max-width: 768px) {
+    padding: 0 15px 30px;
+  }
+`;
+
+const TeamSeparator = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 40px 0;
+  position: relative;
+  
+  @media (max-width: 768px) {
+    margin: 30px 0;
+  }
+`;
+
+const SeparatorLine = styled.div`
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00d4ff, #ff6b9d, #c44569, #ff6b9d, #00d4ff, transparent);
+  position: relative;
+  border-radius: 1px;
+`;
+
+const SeparatorText = styled.div`
+  background: linear-gradient(135deg, #00d4ff 0%, #ff6b9d 100%);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 2;
+  animation: separatorPulse 3s ease-in-out infinite;
+  
+  @media (max-width: 768px) {
+    padding: 10px 20px;
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+`;
+
+const UserCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #00d4ff, #ff6b9d, #c44569, #00d4ff);
+    background-size: 200% 200%;
+    border-radius: 24px 24px 0 0;
+    animation: shimmer 3s linear infinite;
+  }
+  
+  &:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 
+      0 30px 60px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  ${props => props.isCurrentUser && `
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(0, 212, 255, 0.3);
+    box-shadow: 
+      0 25px 50px rgba(0, 0, 0, 0.25),
+      0 0 0 1px rgba(0, 212, 255, 0.2);
+    animation: currentUserGlow 4s ease-in-out infinite;
+    
+    &::before {
+      height: 6px;
+      background: linear-gradient(90deg, #00d4ff, #ff6b9d, #c44569, #00d4ff);
+      animation: shimmer 2s linear infinite;
+    }
+  `}
+  
+  @media (max-width: 768px) {
+    padding: 20px;
+    border-radius: 20px;
+    margin: 0 5px;
+    
+    &:hover {
+      transform: translateY(-5px) scale(1.01);
+    }
+  }
+`;
+
+const UserCardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 25px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  backdrop-filter: blur(15px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+`;
+
+const UserAvatar = styled.div`
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d4ff, #ff6b9d, #c44569);
+  background-size: 200% 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 10px 30px rgba(0, 212, 255, 0.4),
+    0 0 0 4px rgba(255, 255, 255, 0.1),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  animation: avatarGlow 5s ease-in-out infinite;
+  overflow: visible;
+  
+  @media (max-width: 768px) {
+    width: 70px;
+    height: 70px;
+  }
+`;
+
+const UserInitial = styled.span`
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 
+    0 0 10px rgba(255, 255, 255, 0.8),
+    0 0 20px rgba(255, 255, 255, 0.6),
+    0 0 30px rgba(255, 255, 255, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 1px;
+  animation: initialPulse 3s ease-in-out infinite;
+  
+  @media (max-width: 768px) {
+    font-size: 1.8rem;
+  }
+`;
+
+const CurrentUserBadge = styled.div`
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: linear-gradient(45deg, #ff6b9d, #c44569);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 900;
+  padding: 6px 10px;
+  border-radius: 15px;
+  box-shadow: 
+    0 4px 15px rgba(255, 107, 157, 0.6),
+    0 0 0 2px rgba(255, 255, 255, 0.3);
+  animation: bounce 2s infinite;
+  z-index: 10;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  
+  @media (max-width: 768px) {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    top: -3px;
+    right: -3px;
+  }
+`;
+
+const UserInfo = styled.div`
+  flex: 1;
+`;
+
+const UserName = styled.h2`
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0 0 12px 0;
+  text-shadow: 
+    0 0 10px rgba(0, 212, 255, 0.8),
+    0 0 20px rgba(0, 212, 255, 0.6),
+    0 0 30px rgba(0, 212, 255, 0.4),
+    0 3px 6px rgba(0, 0, 0, 0.3);
+  letter-spacing: 2px;
+  position: relative;
+  animation: nameGlow 4s ease-in-out infinite, nameFloat 5s ease-in-out infinite;
+  text-transform: uppercase;
+  font-family: 'Arial Black', sans-serif;
+  
+  @media (max-width: 768px) {
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+`;
+
+const UserStats = styled.div`
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    gap: 10px;
+    justify-content: center;
+  }
+`;
+
+const StatItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 8px 12px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  min-width: 60px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  }
+  
+  @media (max-width: 768px) {
+    padding: 6px 10px;
+    min-width: 50px;
+  }
+`;
+
+const StatNumber = styled.span`
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  
+  @media (max-width: 768px) {
+    font-size: 1.2rem;
+  }
+`;
+
+const StatLabel = styled.span`
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+  font-weight: 600;
+  
+  @media (max-width: 768px) {
+    font-size: 0.7rem;
+  }
+`;
+
+const PurseContainer = styled.div`
+  text-align: center;
+  margin-bottom: 25px;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 20px;
+  }
+`;
+
+const PurseCircle = styled.div`
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 15px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d4ff 0%, #ff6b9d 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 15px 35px rgba(0, 212, 255, 0.4),
+    0 0 0 4px rgba(255, 255, 255, 0.1);
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  animation: pursePulse 4s ease-in-out infinite;
+  
+  ${props => props.isLow && `
+    background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
+    animation: lowPursePulse 2s ease-in-out infinite;
+    box-shadow: 
+      0 15px 35px rgba(255, 107, 157, 0.5),
+      0 0 0 4px rgba(255, 255, 255, 0.1);
+  `}
+  
+  ${props => props.isHigh && `
+    background: linear-gradient(135deg, #00d4ff 0%, #00a8cc 100%);
+    animation: highPursePulse 3s ease-in-out infinite;
+    box-shadow: 
+      0 15px 35px rgba(0, 212, 255, 0.6),
+      0 0 0 4px rgba(255, 255, 255, 0.1);
+  `}
+  
+  @media (max-width: 768px) {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 12px;
+  }
+`;
+
+const PurseAmount = styled.span`
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+  
+  @media (max-width: 768px) {
+    font-size: 1.8rem;
+  }
+`;
+
+const PurseUnit = styled.span`
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 2px;
+  
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+  }
+`;
+
+const PurseStatus = styled.div`
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+  }
+`;
+
+const PlayersSection = styled.div`
+  margin-top: 20px;
+  
+  @media (max-width: 768px) {
+    margin-top: 15px;
+  }
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+  
+  @media (max-width: 768px) {
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+  }
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  letter-spacing: 1px;
+  
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+  }
+`;
+
+const SectionCount = styled.div`
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  
+  @media (max-width: 768px) {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+`;
+
+const PlayersGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 15px;
+  }
+`;
+
+const PlayerCard = styled.div`
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(15px);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  
+  &:hover {
+    transform: translateY(-5px) scale(1.03);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  ${props => props.isBidding && `
+    animation: biddingPulse 2.5s ease-in-out infinite;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  `}
+  
+  ${props => props.isCurrentUserBidding && `
+    border: 2px solid rgba(0, 212, 255, 0.5);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  `}
+  
+  ${props => props.playerType === 'sapphire' && `
+    background: linear-gradient(135deg, rgba(0, 100, 150, 0.4), rgba(0, 80, 120, 0.3));
+    border: 2px solid rgba(0, 212, 255, 0.5);
+    box-shadow: 0 8px 20px rgba(0, 100, 150, 0.4);
+    
+    &:hover {
+      box-shadow: 0 15px 30px rgba(0, 100, 150, 0.5);
+    }
+  `}
+  
+  ${props => props.playerType === 'emerald' && `
+    background: linear-gradient(135deg, rgba(0, 120, 60, 0.4), rgba(0, 100, 50, 0.3));
+    border: 2px solid rgba(0, 255, 136, 0.5);
+    box-shadow: 0 8px 20px rgba(0, 120, 60, 0.4);
+    
+    &:hover {
+      box-shadow: 0 15px 30px rgba(0, 120, 60, 0.5);
+    }
+  `}
+  
+  ${props => props.playerType === 'gold' && `
+    background: linear-gradient(135deg, rgba(180, 140, 0, 0.4), rgba(160, 120, 0, 0.3));
+    border: 2px solid rgba(255, 215, 0, 0.5);
+    box-shadow: 0 8px 20px rgba(180, 140, 0, 0.4);
+    
+    &:hover {
+      box-shadow: 0 15px 30px rgba(180, 140, 0, 0.5);
+    }
+  `}
+  
+  ${props => props.playerType === 'silver' && `
+    background: linear-gradient(135deg, rgba(120, 120, 120, 0.4), rgba(100, 100, 100, 0.3));
+    border: 2px solid rgba(192, 192, 192, 0.5);
+    box-shadow: 0 8px 20px rgba(120, 120, 120, 0.4);
+    
+    &:hover {
+      box-shadow: 0 15px 30px rgba(120, 120, 120, 0.5);
+    }
+  `}
+  
+  @media (max-width: 768px) {
+    padding: 15px;
+    border-radius: 12px;
+    
+    &:hover {
+      transform: translateY(-3px) scale(1.02);
+    }
+  }
+`;
+
+const PlayerName = styled.h3`
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 20px 50px 15px 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  line-height: 1.2;
+  letter-spacing: 0.5px;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    margin: 15px 45px 12px 0;
+  }
+`;
+
+const PlayerPriceCircle = styled.div`
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  
+  @media (max-width: 768px) {
+    width: 70px;
+    height: 70px;
+  }
+`;
+
+const PriceAmount = styled.span`
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+  
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+  }
+`;
+
+const PriceUnit = styled.span`
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 2px;
+  
+  @media (max-width: 768px) {
+    font-size: 0.7rem;
+  }
+`;
+
+const PlayerStatus = styled.div`
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 12px;
+  
+  @media (max-width: 768px) {
+    font-size: 0.7rem;
+    margin-top: 10px;
+  }
+`;
+
+const BiddingStatus = styled.div`
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 6px 10px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  
+  ${props => props.isWinning && `
+    background: linear-gradient(45deg, #00d4ff, #00a8cc);
+    color: #fff;
+    animation: winningGlow 2.5s ease-in-out infinite;
+  `}
+  
+  ${props => props.isSecond && `
+    background: linear-gradient(45deg, #ff6b9d, #c44569);
+    color: #fff;
+    animation: secondGlow 2.5s ease-in-out infinite;
+  `}
+  
+  ${props => props.isLosing && `
+    background: linear-gradient(45deg, #ff6b9d, #c44569);
+    color: #fff;
+    animation: losingGlow 2.5s ease-in-out infinite;
+  `}
+  
+  @media (max-width: 768px) {
+    top: 8px;
+    left: 8px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+`;
+
+const LastBidderSection = styled.div`
+  margin-top: 8px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  
+  @media (max-width: 768px) {
+    margin-top: 6px;
+    padding: 4px;
+  }
+`;
+
+const LastBidderInfo = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  
+  @media (max-width: 768px) {
+    gap: 3px;
+  }
+`;
+
+const LastBidderName = styled.span`
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-align: center;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 100%;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  
+  @media (max-width: 768px) {
+    font-size: 0.7rem;
+  }
+`;
+
+const CompetitorArrow = styled.span`
+  font-size: 1rem;
+  font-weight: 900;
+  margin-right: 6px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  
+  ${props => props.isUp && `color: #00d4ff;`}
+  ${props => props.isDown && `color: #ff6b9d;`}
+  
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+    margin-right: 4px;
+  }
+`;
+
+const PlayerRole = styled.div`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  z-index: 10;
+  
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  }
+  
+  @media (max-width: 768px) {
+    top: 6px;
+    right: 6px;
+    width: 36px;
+    height: 36px;
+  }
+`;
+
+const RoleIcon = styled.img`
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: brightness(1.2) contrast(1.1);
+  
+  @media (max-width: 768px) {
+    width: 24px;
+    height: 24px;
+  }
+`;
+
+// Keyframe animations
+const keyframes = `
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  @keyframes separatorPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3); }
+    50% { transform: scale(1.05); box-shadow: 0 12px 40px rgba(102, 126, 234, 0.5); }
+  }
+  
+  @keyframes currentUserGlow {
+    0%, 100% { box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15); }
+    50% { box-shadow: 0 30px 60px rgba(79, 172, 254, 0.3); }
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  
+  @keyframes avatarGlow {
+    0%, 100% { 
+      box-shadow: 
+        0 10px 40px rgba(102, 126, 234, 0.4),
+        0 0 0 4px rgba(255, 255, 255, 0.1),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+    }
+    50% { 
+      box-shadow: 
+        0 15px 50px rgba(102, 126, 234, 0.6),
+        0 0 0 6px rgba(255, 255, 255, 0.2),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+    }
+  }
+  
+  @keyframes initialPulse {
+    0%, 100% { 
+      transform: scale(1);
+      text-shadow: 
+        0 0 10px rgba(255, 255, 255, 0.8),
+        0 0 20px rgba(255, 255, 255, 0.6),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    50% { 
+      transform: scale(1.05);
+      text-shadow: 
+        0 0 15px rgba(255, 255, 255, 1),
+        0 0 30px rgba(255, 255, 255, 0.8),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+  }
+  
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+  }
+  
+  @keyframes nameGlow {
+    0%, 100% { text-shadow: 0 0 10px rgba(102, 126, 234, 0.8), 0 0 20px rgba(102, 126, 234, 0.6), 0 0 30px rgba(102, 126, 234, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3); }
+    50% { text-shadow: 0 0 15px rgba(102, 126, 234, 1), 0 0 25px rgba(102, 126, 234, 0.8), 0 0 35px rgba(102, 126, 234, 0.6), 0 4px 8px rgba(0, 0, 0, 0.3); }
+  }
+  
+  @keyframes nameFloat {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    25% { transform: translateY(-3px) rotate(1deg); }
+    75% { transform: translateY(3px) rotate(-1deg); }
+  }
+  
+  @keyframes pursePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  
+  @keyframes lowPursePulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 15px 35px rgba(255, 107, 107, 0.4); }
+    50% { transform: scale(1.1); box-shadow: 0 20px 40px rgba(255, 107, 107, 0.6); }
+  }
+  
+  @keyframes highPursePulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 15px 35px rgba(76, 175, 80, 0.4); }
+    50% { transform: scale(1.08); box-shadow: 0 20px 40px rgba(76, 175, 80, 0.6); }
+  }
+  
+  @keyframes biddingPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.02); opacity: 0.9; }
+  }
+  
+  @keyframes winningGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(76, 175, 80, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.8); }
+  }
+  
+  @keyframes secondGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(255, 152, 0, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(255, 152, 0, 0.8); }
+  }
+  
+  @keyframes losingGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(244, 67, 54, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(244, 67, 54, 0.8); }
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .user-cards-container {
+      padding: 0 15px 30px;
+    }
+    
+    .user-card {
+      padding: 20px;
+    }
+    
+    .user-card-header {
+      padding: 20px;
+      gap: 20px;
+    }
+    
+    .user-avatar {
+      width: 70px;
+      height: 70px;
+    }
+    
+    .user-initial {
+      font-size: 1.8rem;
+    }
+    
+    .user-name {
+      font-size: 1.6rem;
+    }
+    
+    .user-stats {
+      gap: 15px;
+    }
+    
+    .stat-item {
+      min-width: 50px;
+      padding: 6px 12px;
+    }
+    
+    .stat-number {
+      font-size: 1.2rem;
+    }
+    
+    .purse-circle {
+      width: 120px;
+      height: 120px;
+    }
+    
+    .purse-amount {
+      font-size: 1.5rem;
+    }
+    
+    .players-grid {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    
+    .player-card {
+      padding: 15px;
+    }
+    
+    .team-separator {
+      margin: 30px 0;
+    }
+    
+    .separator-text {
+      padding: 10px 20px;
+      font-size: 12px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .user-card-header {
+      flex-direction: column;
+      text-align: center;
+      gap: 15px;
+    }
+    
+    .players-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .purse-circle {
+      width: 100px;
+      height: 100px;
+    }
+    
+    .purse-amount {
+      font-size: 1.2rem;
+    }
+  }
+`;
 
 const UserPursePage = () => {
   const [usersData, setUsersData] = useState([]);
@@ -262,15 +1267,30 @@ const UserPursePage = () => {
     }
   };
 
+  const getRoleIcon = (role) => {
+    switch (role) {
+      case 'Batsman':
+        return '/images/batsman copy.png';
+      case 'Bowler':
+        return '/images/bowl copy.png';
+      case 'Allrounder':
+        return '/images/allrounder copy.png';
+      case 'WicketKeeper':
+        return '/images/wicket copy.png';
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
+      <PageContainer>
       <div style={{ 
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center', 
         justifyContent: 'center', 
-        height: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+          height: '100vh'
       }}>
         <LoadingCube animationFile="Purse.json" />
         <div style={{
@@ -305,11 +1325,28 @@ const UserPursePage = () => {
           {loadingProgress}%
         </div>
       </div>
+      </PageContainer>
     );
   }
 
   if (error) {
-    return <div className="error">{error}</div>;
+    return (
+      <PageContainer>
+        <div style={{
+          textAlign: 'center',
+          padding: '40px',
+          color: '#fff',
+          fontSize: '1.2rem',
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          margin: '20px',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          {error}
+        </div>
+      </PageContainer>
+    );
   }
 
   // Sort users to put current user first
@@ -323,13 +1360,19 @@ const UserPursePage = () => {
   });
 
   return (
-    <div className="user-purse-page">
-       {/* Include the NotificationBell component */}
+    <PageContainer>
+      <style>{keyframes}</style>
        <NotificationBell />
       
+      <Header>
+        <HeaderContent>
+          <WalletIcon>💰</WalletIcon>
+          <PageTitle>Team Purses</PageTitle>
+          <PageSubtitle>Track your team's financial status and player investments</PageSubtitle>
+        </HeaderContent>
+      </Header>
 
-
-      <div className="user-cards-container">
+      <CardsContainer>
         {sortedUsersData.map((user, index) => {
           const isCurrentUser = user.id === currentUser?.id || user._id === currentUser?.id || user.userName === currentUser?.name;
           const isFirstTeam = index === 0;
@@ -365,77 +1408,139 @@ const UserPursePage = () => {
             <div key={index}>
               {/* Team Separator */}
               {!isFirstTeam && (
-                <div className="team-separator">
-                  <div className="separator-line"></div>
-                  <div className="separator-text">VS</div>
-                  <div className="separator-line"></div>
-                </div>
+                <TeamSeparator>
+                  <SeparatorLine />
+                  <SeparatorText>VS</SeparatorText>
+                  <SeparatorLine />
+                </TeamSeparator>
               )}
               
-              <div className={`user-card ${isCurrentUser ? 'current-user' : ''}`}>
+              <UserCard isCurrentUser={isCurrentUser}>
                 {/* User Card Header */}
-                <div className="user-card-header">
-                  <div className="user-avatar">
-                    <span className="user-initial">{user.userName.charAt(0).toUpperCase()}</span>
-                    {isCurrentUser && <div className="current-user-badge">YOU</div>}
-                  </div>
-                  <div className="user-info">
-            <h2 className="user-name">{user.userName}</h2>
-                    <div className="user-stats">
-                      <div className="stat-item">
-                        <span className="stat-number">{ownedPlayers.length}</span>
-                        <span className="stat-label">Owned</span>
-                      </div>
-                      <div className="stat-item">
-                        <span className="stat-number">{biddingPlayers.length}</span>
-                        <span className="stat-label">Bidding</span>
-                      </div>
-                      <div className="stat-item">
-                        <span className="stat-number">{user.players.length}</span>
-                        <span className="stat-label">Total</span>
-                      </div>
-                    </div>
-                  </div>
-            </div>
+                <UserCardHeader>
+                  <UserAvatar>
+                    <UserInitial>{user.userName.charAt(0).toUpperCase()}</UserInitial>
+                    {isCurrentUser && <CurrentUserBadge>YOU</CurrentUserBadge>}
+                  </UserAvatar>
+                  <UserInfo>
+                    <UserName>{user.userName}</UserName>
+                    <UserStats>
+                      <StatItem>
+                        <StatNumber>{ownedPlayers.length}</StatNumber>
+                        <StatLabel>Owned</StatLabel>
+                      </StatItem>
+                      <StatItem>
+                        <StatNumber>{biddingPlayers.length}</StatNumber>
+                        <StatLabel>Bidding</StatLabel>
+                      </StatItem>
+                      <StatItem>
+                        <StatNumber>{user.players.length}</StatNumber>
+                        <StatLabel>Total</StatLabel>
+                      </StatItem>
+                    </UserStats>
+                  </UserInfo>
+                </UserCardHeader>
 
-            {/* Purse Value with Modern Design */}
-            <div className="purse-value-container">
-              <div className={`purse-circle ${
-                (user.purseValue / 10000000) < 5 ? 'low-purse' : 
-                (user.purseValue / 10000000) > 30 ? 'high-purse' : ''
-              }`}>
-                <div className="purse-inner">
-                <span className="purse-amount">₹{(user.purseValue / 10000000).toFixed(2)}</span>
-                <span className="purse-unit">Cr</span>
-                </div>
-                <div className="purse-ring"></div>
-              </div>
-              <div className="purse-status">
+                {/* Purse Value */}
+                <PurseContainer>
+                  <PurseCircle 
+                    isLow={(user.purseValue / 10000000) < 5}
+                    isHigh={(user.purseValue / 10000000) > 30}
+                  >
+                    <PurseAmount>₹{(user.purseValue / 10000000).toFixed(2)}</PurseAmount>
+                    <PurseUnit>Cr</PurseUnit>
+                  </PurseCircle>
+                  <PurseStatus>
                 {(user.purseValue / 10000000) < 5 ? 'Low Funds' : 
                  (user.purseValue / 10000000) > 30 ? 'Rich' : 'Good'}
-              </div>
-            </div>
+                  </PurseStatus>
+                </PurseContainer>
 
             {/* Player Type Breakdown */}
-            <div className="player-type-breakdown">
-              <h3 className="breakdown-title">Player Types</h3>
-              <div className="type-stats-grid">
-                {Object.entries(playerTypeCounts).map(([type, count]) => (
-                  <div key={type} className={`type-stat-item ${type.toLowerCase()}`}>
-                    <span className="type-count">{count}</span>
-                    <span className="type-name">{type}</span>
+            <div style={{ 
+              marginBottom: '25px',
+              padding: '20px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '16px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <h3 style={{
+                fontSize: '1.2rem',
+                fontWeight: '800',
+                color: '#fff',
+                margin: '0 0 15px 0',
+                textShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
+                letterSpacing: '1px'
+              }}>Player Types</h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                gap: '12px',
+                '@media (max-width: 768px)': {
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                  gap: '8px'
+                }
+              }}>
+                {Object.entries(playerTypeCounts).map(([type, count]) => {
+                  const getTypeColor = (type) => {
+                    switch(type.toLowerCase()) {
+                      case 'sapphire': return '#00d4ff';
+                      case 'emerald': return '#00ff88';
+                      case 'gold': return '#ffd700';
+                      case 'silver': return '#c0c0c0';
+                      default: return '#ff6b9d';
+                    }
+                  };
+                  
+                  const getTypeGradient = (type) => {
+                    switch(type.toLowerCase()) {
+                      case 'sapphire': return 'linear-gradient(135deg, #00d4ff, #0099cc)';
+                      case 'emerald': return 'linear-gradient(135deg, #00ff88, #00cc66)';
+                      case 'gold': return 'linear-gradient(135deg, #ffd700, #ffb300)';
+                      case 'silver': return 'linear-gradient(135deg, #c0c0c0, #999999)';
+                      default: return 'linear-gradient(135deg, #ff6b9d, #c44569)';
+                    }
+                  };
+                  
+                  return (
+                    <div key={type} style={{
+                      background: getTypeGradient(type),
+                      padding: window.innerWidth <= 768 ? '10px 12px' : '12px 16px',
+                      borderRadius: '12px',
+                      textAlign: 'center',
+                      border: `2px solid ${getTypeColor(type)}40`,
+                      boxShadow: `0 4px 15px ${getTypeColor(type)}30`,
+                      transition: 'all 0.3s ease'
+                    }}>
+                      <div style={{
+                        fontSize: window.innerWidth <= 768 ? '1.2rem' : '1.5rem',
+                        fontWeight: '900',
+                        color: '#fff',
+                        textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+                        marginBottom: '4px'
+                      }}>{count}</div>
+                      <div style={{
+                        fontSize: window.innerWidth <= 768 ? '0.7rem' : '0.8rem',
+                        fontWeight: '700',
+                        color: '#fff',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                      }}>{type}</div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             {/* Players Section */}
-            <div className="players-section">
-              <div className="section-header">
-                <h3 className="section-title">Owned Players</h3>
-                <div className="section-count">{user.players.filter(p => !p.isBidOn).length}</div>
-            </div>
-            <div className="players-container">
+                <PlayersSection>
+                  <SectionHeader>
+                    <SectionTitle>Owned Players</SectionTitle>
+                    <SectionCount>{user.players.filter(p => !p.isBidOn).length}</SectionCount>
+                  </SectionHeader>
+                  <PlayersGrid>
               {user.players
                 .filter((player) => !player.isBidOn)
                   .sort((a, b) => {
@@ -456,128 +1561,118 @@ const UserPursePage = () => {
                     return orderA - orderB;
                   })
                 .map((player, idx) => (
-                  <div
+                  <PlayerCard
                     key={idx}
-                      className={`player-card sold ${player.type.toLowerCase()}`}
-                    style={{
-                      background: getPlayerColor(player.type),
-                        cursor: 'pointer'
-                    }}
+                    playerType={player.type?.toLowerCase()}
                       onClick={() => handlePlayerClick(player)}
                   >
-                      <div className="player-type-badge">{player.type}</div>
-                    <h3 className="player-name">{player.name}</h3>
-                    <div className="player-value-container">
-                      <div className="player-price-circle sold-price">
-                        <span className="price-amount">₹{(player.boughtValue / 10000000).toFixed(2)}</span>
-                        <span className="price-unit">Cr</span>
-                      </div>
-                    </div>
-                  </div>
+                    {player.role && getRoleIcon(player.role) && (
+                      <PlayerRole>
+                        <RoleIcon 
+                          src={getRoleIcon(player.role)} 
+                          alt={player.role}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      </PlayerRole>
+                    )}
+                    <PlayerName>{player.name}</PlayerName>
+                    <PlayerPriceCircle>
+                      <PriceAmount>₹{(player.boughtValue / 10000000).toFixed(2)}</PriceAmount>
+                      <PriceUnit>Cr</PriceUnit>
+                    </PlayerPriceCircle>
+                  </PlayerCard>
                 ))}
-              </div>
+                  </PlayersGrid>
 
               {user.players.some((player) => player.isBidOn) && (
-                <div className="section-divider">
-                  <div className="divider-line"></div>
-                  <div className="divider-text">Bidding</div>
-                  <div className="divider-line"></div>
-                </div>
-              )}
-
-              {user.players.some((player) => player.isBidOn) && (
-                <div className="section-header">
-                  <h3 className="section-title">Bidding Players</h3>
-                  <div className="section-count">{user.players.filter(p => p.isBidOn).length}</div>
-                </div>
-              )}
-              <div className="players-container bidding-players">
+                    <>
+                      <SectionHeader>
+                        <SectionTitle>Bidding Players</SectionTitle>
+                        <SectionCount>{user.players.filter(p => p.isBidOn).length}</SectionCount>
+                      </SectionHeader>
+                      <PlayersGrid>
               {user.players
                 .filter((player) => player.isBidOn)
                 .map((player, idx) => {
-                  console.log('Processing player:', player.name, 'for user:', user.userName);
-                  console.log('Complete player object:', player);
-                  
-                  // Only show status indicators for the current logged-in user's players
                   const isCurrentUser = user.id === currentUser?.id || user._id === currentUser?.id || user.userName === currentUser?.name;
-                  console.log('Is current user?', isCurrentUser);
-                  console.log('  - User ID from API:', user.id);
-                  console.log('  - User _id from API:', user._id);
-                  console.log('  - User name from API:', user.userName);
-                  console.log('  - Current user ID from localStorage:', currentUser?.id);
-                  console.log('  - Current user name from localStorage:', currentUser?.name);
                   
                   let status = null;
                   let displayInfo = { text: '', icon: '', className: '' };
                   
                   if (isCurrentUser) {
-                    // Only get status for current user's players
                     status = getBiddingStatus(player.name);
-                    console.log('Bidding status result:', status);
                     displayInfo = getStatusDisplay(status);
-                    console.log('Display info:', displayInfo);
-                  } else {
-                    console.log('Not current user, no status indicator shown');
                   }
                   
                   return (
-                    <div
+                              <PlayerCard
                       key={idx}
-                        className={`player-card bidding ${player.type.toLowerCase()} ${isCurrentUser ? 'current-user-bidding' : ''}`}
-                      style={{
-                          animation: "biddingPulse 2s ease-in-out infinite",
-                          background: getPlayerColor(player.type),
-                          cursor: 'pointer'
-                      }}
+                                playerType={player.type?.toLowerCase()}
+                                isBidding={true}
+                                isCurrentUserBidding={isCurrentUser}
                         onClick={() => handlePlayerClick(player)}
                     >
-                      <h3 className="player-name">{player.name}</h3>
-                      <div className="player-value-container">
-                        <div className="player-price-circle bidding-price">
-                          <span className="price-amount">₹{(player.biddingPrice / 10000000).toFixed(2)}</span>
-                          <span className="price-unit">Cr</span>
-                        </div>
-                      </div>
+                                {player.role && getRoleIcon(player.role) && (
+                                  <PlayerRole>
+                                    <RoleIcon 
+                                      src={getRoleIcon(player.role)} 
+                                      alt={player.role}
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                      }}
+                                    />
+                                  </PlayerRole>
+                                )}
+                                <PlayerName>{player.name}</PlayerName>
+                                <PlayerPriceCircle>
+                                  <PriceAmount>₹{(player.biddingPrice / 10000000).toFixed(2)}</PriceAmount>
+                                  <PriceUnit>Cr</PriceUnit>
+                                </PlayerPriceCircle>
+                                
                       {isCurrentUser && displayInfo.text && (
-                        <div className={`bidding-status ${displayInfo.className}`}>
+                                  <BiddingStatus 
+                                    isWinning={status === 'winning'}
+                                    isSecond={status === 'second'}
+                                    isLosing={status === 'losing'}
+                                  >
                             <span className="status-icon">{displayInfo.icon}</span>
                             <span className="status-text">{displayInfo.text}</span>
-                        </div>
+                                  </BiddingStatus>
                       )}
                       
-                      {/* Competitor Display for Current User */}
                       {isCurrentUser && (
-                        <div className="last-bidder-section">
+                                  <LastBidderSection>
                           {lastBidders[player.id] ? (
-                            <div className="last-bidder-info">
-                              <span className={`competitor-arrow ${
-                                userBidPositions[player.id] === 0 ? 'arrow-down' : 'arrow-up'
-                              }`}>
+                                      <LastBidderInfo>
+                                        <CompetitorArrow 
+                                          isUp={userBidPositions[player.id] !== 0}
+                                          isDown={userBidPositions[player.id] === 0}
+                                        >
                                 {userBidPositions[player.id] === 0 ? '↓' : '↑'}
-                              </span>
-                              <span className="last-bidder-name">
+                                        </CompetitorArrow>
+                                        <LastBidderName>
                                 {lastBidders[player.id]}
-                              </span>
-                            </div>
+                                        </LastBidderName>
+                                      </LastBidderInfo>
                           ) : (
-                            <div className="last-bidder-loading">
-                              <span className="last-bidder-label">Loading...</span>
-                            </div>
+                                      <div>Loading...</div>
                           )}
-                        </div>
+                                  </LastBidderSection>
                       )}
-                      
-                        <div className="player-status bidding-status-text">🔥 Bidding</div>
-                    </div>
+                              </PlayerCard>
                   );
                 })}
-              </div>
-            </div>
-          </div>
+                      </PlayersGrid>
+                    </>
+                  )}
+                </PlayersSection>
+              </UserCard>
             </div>
         );
         })}
-      </div>
+      </CardsContainer>
 
       {/* Player Popup */}
       {selectedPlayer && (
@@ -587,7 +1682,7 @@ const UserPursePage = () => {
           isAdmin={isAdmin}
         />
       )}
-    </div>
+    </PageContainer>
   );
 };
 
