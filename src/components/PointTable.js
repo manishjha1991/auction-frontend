@@ -113,7 +113,12 @@ const HighlightCell = styled(TableCell)`
   padding-left: 1rem;
   display: flex;
   align-items: center;
-  cursor: default;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #e9ecef;
+  }
 
   img {
     margin-right: 8px;
@@ -163,12 +168,158 @@ const RankCell = styled(TableCell)`
   color: #000;
 `;
 
+// Team Details Modal Styles
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 10px;
+  padding: 2rem;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #dee2e6;
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0;
+  color: #343a40;
+  display: flex;
+  align-items: center;
+  
+  img {
+    margin-right: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+`;
+
+const CloseButton = styled.button`
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background: #c82333;
+  }
+`;
+
+const TeamStats = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+`;
+
+const StatCard = styled.div`
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  border-left: 4px solid ${props => props.color || '#007bff'};
+`;
+
+const StatValue = styled.div`
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #343a40;
+`;
+
+const StatLabel = styled.div`
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+`;
+
+const MatchTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+`;
+
+const MatchTableHead = styled.thead`
+  background-color: #f8f9fa;
+  font-weight: 600;
+`;
+
+const MatchTableRow = styled.tr`
+  border-bottom: 1px solid #dee2e6;
+  
+  &:hover {
+    background-color: #f8f9fa;
+  }
+`;
+
+const MatchTableCell = styled.td`
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  
+  &:first-child {
+    font-weight: 500;
+  }
+`;
+
+const MatchTableHeader = styled.th`
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  color: #343a40;
+`;
+
+const ResultCell = styled(MatchTableCell)`
+  color: ${props => 
+    props.result === 'win' ? '#28a745' : 
+    props.result === 'loss' ? '#dc3545' : '#6c757d'
+  };
+  font-weight: bold;
+`;
+
+const FairnessCell = styled(MatchTableCell)`
+  text-align: center;
+  font-weight: 500;
+`;
+
 const PointsTable = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState('overall');
   const [groups, setGroups] = useState({ A: [], B: [] });
   const [activeTab, setActiveTab] = useState('overall');
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [teamFixtures, setTeamFixtures] = useState([]);
+  const [showTeamDetails, setShowTeamDetails] = useState(false);
 
   const TOTAL_MATCHES = 12;
   const NUM_QUALIFIERS = 6; // always top-6 qualify
@@ -178,6 +329,42 @@ const PointsTable = () => {
   useEffect(() => {
     fetchModeAndData();
   }, []);
+
+  const fetchTeamFixtures = async (teamName) => {
+    try {
+      const response = await axios.get(`${API_ENDPOINTS}/api/fixtures`);
+      const allFixtures = response.data;
+      
+      // Filter fixtures where the team is either team1 or team2
+      const teamMatches = allFixtures.filter(fixture => 
+        fixture.team1 === teamName || fixture.team2 === teamName
+      );
+      
+      // Sort by creation date (most recent first)
+      teamMatches.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      setTeamFixtures(teamMatches);
+    } catch (error) {
+      console.error("Error fetching team fixtures:", error);
+      setTeamFixtures([]);
+    }
+  };
+
+  const handleTeamClick = async (team) => {
+    setSelectedTeam(team);
+    
+    // Use the original team name for fixture matching (not the abbreviation)
+    const teamNameForFixtures = team.originalTeamName || team.teamName;
+    
+    await fetchTeamFixtures(teamNameForFixtures);
+    setShowTeamDetails(true);
+  };
+
+  const closeTeamDetails = () => {
+    setShowTeamDetails(false);
+    setSelectedTeam(null);
+    setTeamFixtures([]);
+  };
 
   const fetchModeAndData = async () => {
     try {
@@ -419,7 +606,7 @@ const PointsTable = () => {
         return (
           <TableRow key={team._id} index={index} variant={variant}>
             <RankCell>{`${index + 1} -`}</RankCell>
-            <HighlightCell>
+            <HighlightCell onClick={() => handleTeamClick(team)}>
               <img src={teamImage} alt={team.teamName} />
               {team.teamName}
               {showQ ? (
@@ -572,6 +759,108 @@ const PointsTable = () => {
             )}
           </TableWrapper>
         </TabContainer>
+      )}
+
+      {/* Team Details Modal */}
+      {showTeamDetails && selectedTeam && (
+        <ModalOverlay onClick={closeTeamDetails}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>
+                <img 
+                  src={selectedTeam.teamImage ? `${API_ENDPOINTS}${selectedTeam.teamImage}` : "https://via.placeholder.com/100"} 
+                  alt={selectedTeam.teamName} 
+                />
+                {selectedTeam.teamName} - Match Details
+              </ModalTitle>
+              <CloseButton onClick={closeTeamDetails}>×</CloseButton>
+            </ModalHeader>
+
+            <TeamStats>
+              <StatCard color="#28a745">
+                <StatValue>{selectedTeam.wins}</StatValue>
+                <StatLabel>Wins</StatLabel>
+              </StatCard>
+              <StatCard color="#dc3545">
+                <StatValue>{selectedTeam.losses}</StatValue>
+                <StatLabel>Losses</StatLabel>
+              </StatCard>
+              <StatCard color="#007bff">
+                <StatValue>{selectedTeam.points}</StatValue>
+                <StatLabel>Points</StatLabel>
+              </StatCard>
+              <StatCard color="#ffc107">
+                <StatValue>{selectedTeam.fairness}</StatValue>
+                <StatLabel>Fairness</StatLabel>
+              </StatCard>
+              <StatCard color="#6c757d">
+                <StatValue>{selectedTeam.matchesPlayed}</StatValue>
+                <StatLabel>Matches Played</StatLabel>
+              </StatCard>
+            </TeamStats>
+
+            <h3 style={{ color: '#343a40', marginBottom: '1rem' }}>Match History</h3>
+            {teamFixtures.length > 0 ? (
+              <MatchTable>
+                <MatchTableHead>
+                  <tr>
+                    <MatchTableHeader>Opponent</MatchTableHeader>
+                    <MatchTableHeader>Result</MatchTableHeader>
+                    <MatchTableHeader>Date</MatchTableHeader>
+                    <MatchTableHeader>Fairness</MatchTableHeader>
+                  </tr>
+                </MatchTableHead>
+                <tbody>
+                  {teamFixtures.map((fixture, index) => {
+                    const isTeam1 = fixture.team1 === selectedTeam.originalTeamName;
+                    const opponent = isTeam1 ? fixture.team2 : fixture.team1;
+                    
+                    let result = 'vs';
+                    let resultText = 'vs';
+                    
+                    if (fixture.winner) {
+                      if (fixture.winner === selectedTeam.originalTeamName) {
+                        result = 'win';
+                        resultText = 'Won';
+                        if (fixture.margin) {
+                          resultText += ` by ${fixture.margin}`;
+                        }
+                      } else {
+                        result = 'loss';
+                        resultText = 'Lost';
+                        if (fixture.margin) {
+                          resultText += ` by ${fixture.margin}`;
+                        }
+                      }
+                    }
+
+                    // Format date
+                    const matchDate = new Date(fixture.createdAt).toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: 'short'
+                    });
+
+                    // Get fairness for this team
+                    const teamFairness = isTeam1 ? fixture.team1Fairness : fixture.team2Fairness;
+
+                    return (
+                      <MatchTableRow key={index}>
+                        <MatchTableCell>{opponent}</MatchTableCell>
+                        <ResultCell result={result}>{resultText}</ResultCell>
+                        <MatchTableCell>{matchDate}</MatchTableCell>
+                        <FairnessCell>{teamFairness || '-'}</FairnessCell>
+                      </MatchTableRow>
+                    );
+                  })}
+                </tbody>
+              </MatchTable>
+            ) : (
+              <div style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>
+                No matches found for this team.
+              </div>
+            )}
+          </ModalContent>
+        </ModalOverlay>
       )}
     </>
   );
