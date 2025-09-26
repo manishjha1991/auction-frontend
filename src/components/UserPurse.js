@@ -607,14 +607,15 @@ const PlayerName = styled.h3`
   font-size: 1.1rem;
   font-weight: 800;
   color: #fff;
-  margin: 20px 50px 15px 0;
+  margin: 20px 0 15px 0;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   line-height: 1.2;
   letter-spacing: 0.5px;
+  text-align: center;
   
   @media (max-width: 768px) {
     font-size: 1rem;
-    margin: 15px 45px 12px 0;
+    margin: 15px 0 12px 0;
   }
 `;
 
@@ -773,8 +774,8 @@ const CompetitorArrow = styled.span`
 
 const PlayerRole = styled.div`
   position: absolute;
-  top: 8px;
-  right: 8px;
+  bottom: 20px;
+  left: 20px;
   width: 40px;
   height: 40px;
   background: rgba(0, 0, 0, 0.8);
@@ -794,8 +795,8 @@ const PlayerRole = styled.div`
   }
   
   @media (max-width: 768px) {
-    top: 6px;
-    right: 6px;
+    bottom: 15px;
+    left: 15px;
     width: 36px;
     height: 36px;
   }
