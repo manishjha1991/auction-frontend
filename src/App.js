@@ -16,7 +16,7 @@ import TradeCenter from './components/TradeCenter';
 import UnsoldPlayers from './components/UnsoldPlayers';
 import AdminSettings from './components/AdminSettings';
 import { API_ENDPOINTS } from './const';
-import { FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen } from 'react-icons/fa';
+import { FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen, FaTrophy } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
 import GlobalNotification from './components/GlobalNotification';
@@ -24,6 +24,7 @@ import TeamDirectory from './components/TeamDirectory';
 import AdminUserManagement from './components/AdminUserManagement';
 import AdminRetainedPlayers from './components/AdminRetainedPlayers';
 import AdminTeamLocks from './components/AdminTeamLocks';
+import TournamentList from './components/TournamentList';
 // AdminDashboard removed - performance dashboard disabled
 
 import './App.css';
@@ -127,6 +128,7 @@ function App() {
                 <li><Link to="/fixtures" onClick={toggleSidebar}>Fixtures</Link></li>
                 <li><Link to="/match-scheduler" onClick={toggleSidebar}>🏏 Match Scheduler</Link></li>
                 <li><Link to="/team-directory" onClick={toggleSidebar}>👥 Team Directory</Link></li>
+                <li><Link to="/tournaments" onClick={toggleSidebar}>🏆 Tournaments</Link></li>
                 <li><Link to="/sold-playerslist" onClick={toggleSidebar}>Sold Player List</Link></li>
                 
                 {/* NEW: Link to Stats Overview */}
@@ -186,6 +188,7 @@ function App() {
             <Route path="/fixtures" element={<PrivateRoute><Fixtures user={user} /></PrivateRoute>} />
             <Route path="/match-scheduler" element={<PrivateRoute><MatchScheduler /></PrivateRoute>} />
             <Route path="/team-directory" element={<PrivateRoute><TeamDirectory /></PrivateRoute>} />
+            <Route path="/tournaments" element={<PrivateRoute><TournamentList /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
             
 
