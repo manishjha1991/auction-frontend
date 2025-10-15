@@ -236,10 +236,8 @@
   font-size: 0.85rem;
   font-weight: 500;
   color: #374151;
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-wrap: break-word;
+  hyphens: auto;
 }
 
 .remove-team-btn {
@@ -677,7 +675,8 @@
 
   .team-name {
     font-size: 0.8rem;
-    max-width: 80px;
+    word-wrap: break-word;
+    hyphens: auto;
   }
 
   .subscribe-btn, .withdraw-btn {
@@ -808,7 +807,8 @@
 
   .team-name {
     font-size: 0.75rem;
-    max-width: 70px;
+    word-wrap: break-word;
+    hyphens: auto;
   }
 
   .modal-content {

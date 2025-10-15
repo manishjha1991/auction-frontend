@@ -129,6 +129,7 @@ const TournamentList = () => {
 
   const filteredTournaments = tournaments.filter(tournament => {
     if (filter === 'all') return true;
+    if (filter === 'my') return tournament.isUserSubscribed;
     return getTournamentStatus(tournament) === filter;
   });
 
@@ -297,6 +298,12 @@ const TournamentList = () => {
           onClick={() => setFilter('all')}
         >
           All Tournaments
+        </button>
+        <button 
+          className={filter === 'my' ? 'active' : ''}
+          onClick={() => setFilter('my')}
+        >
+          My Tournaments
         </button>
         <button 
           className={filter === 'upcoming' ? 'active' : ''}
@@ -1070,14 +1077,14 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
             >
               <FaTable /> Points Table
             </button>
-            {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin && (
+            {(localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin) || isSubscribed ? (
               <button 
                 className={activeTab === 'manage' ? 'active' : ''}
                 onClick={() => setActiveTab('manage')}
               >
-                <FaEdit /> Manage
+                <FaEdit /> {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin ? 'Manage' : 'My Fixtures'}
               </button>
-            )}
+            ) : null}
           </div>
 
           <div className="tournament-detail-tab-content">
@@ -1117,17 +1124,28 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                       <div key={index} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`}>
                         <div className="fixture-header">
                           <span className="match-number">Match #{index + 1}</span>
-                          {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin && (
-                            <button 
-                              className="edit-fixture-btn"
-                              onClick={() => {
-                                setEditingFixture({ ...fixture, fixtureIndex: index });
-                                setShowEditFixtureModal(true);
-                              }}
-                            >
-                              <FaEdit /> Edit
-                            </button>
-                          )}
+                          {(() => {
+                            const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+                            const isAdmin = currentUser?.isAdmin;
+                            const userTeamName = currentUser?.teamName;
+                            const isUserInMatch = userTeamName && (fixture.team1 === userTeamName || fixture.team2 === userTeamName);
+                            
+                            // Show edit button if admin OR if user is enrolled and this match involves their team
+                            if (isAdmin || (isSubscribed && isUserInMatch)) {
+                              return (
+                                <button 
+                                  className="edit-fixture-btn"
+                                  onClick={() => {
+                                    setEditingFixture({ ...fixture, fixtureIndex: index });
+                                    setShowEditFixtureModal(true);
+                                  }}
+                                >
+                                  <FaEdit /> Edit
+                                </button>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                         <div className="fixture-body">
                           <div className={`team-section ${fixture.winner === fixture.team1 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
@@ -1213,21 +1231,28 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
 
             {activeTab === 'manage' && (
               <div className="manage-content">
-                <h3>Tournament Management</h3>
+                <h3>{localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin ? 'Tournament Management' : 'My Tournament Fixtures'}</h3>
                 <div className="admin-management">
-                  <div className="management-section">
-                    <h4>Fixture Management</h4>
-                    {tournament.tournamentFixtures && tournament.tournamentFixtures.length > 0 ? (
-                      <>
-                        <p>✅ Fixtures have been generated. You can view and edit fixtures in the Fixtures tab.</p>
-                        <div className="fixtures-info">
-                          <span>Total Fixtures: <strong>{tournament.tournamentFixtures.length}</strong></span>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <p>Generate round-robin fixtures where each team plays with every other team. Point table will be automatically initialized.</p>
-                        <button 
+                  {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin && (
+                    <div className="management-section">
+                      <h4>Fixture Management</h4>
+                      {tournament.tournamentFixtures && tournament.tournamentFixtures.length > 0 ? (
+                        <>
+                          <p>✅ Fixtures have been generated. Click below to view and edit fixtures.</p>
+                          <div className="fixtures-info">
+                            <span>Total Fixtures: <strong>{tournament.tournamentFixtures.length}</strong></span>
+                          </div>
+                          <button 
+                            className="manage-btn" 
+                            onClick={() => setActiveTab('fixtures')}
+                          >
+                            <FaList /> View & Edit Fixtures
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p>Generate round-robin fixtures where each team plays with every other team. Point table will be automatically initialized.</p>
+                          <button 
                           className="manage-btn generate-fixtures-btn" 
                           onClick={async () => {
                             if (!window.confirm('Generate round-robin fixtures for all subscribed teams? This will create a match between every pair of teams.')) {
@@ -1264,20 +1289,21 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                         </button>
                       </>
                     )}
-                  </div>
+                    </div>
+                  )}
                   
-                  <div className="management-section">
-                    <h4>Point Table Management</h4>
+                  {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin && (
+                    <div className="management-section">
+                    <h4>Point Table</h4>
                     <p>Point table shows all subscribed teams and updates automatically when match results are entered.</p>
-                    <button className="manage-btn" onClick={() => {
-                      // Refresh point table
-                      alert('Point table is automatically managed. Update fixture results to see changes.');
-                    }}>
+                    <button className="manage-btn" onClick={() => setActiveTab('points')}>
                       <FaTable /> View Point Table
                     </button>
-                  </div>
+                    </div>
+                  )}
                   
-                  <div className="management-section">
+                  {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin && (
+                    <div className="management-section">
                     <h4>Tournament Lock</h4>
                     <p>Lock tournament to prevent team withdrawals. Once locked, teams cannot withdraw from the tournament.</p>
                     <button 
@@ -1310,18 +1336,42 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                     >
                       {tournament.isLocked ? '🔓 Unlock Tournament' : '🔒 Lock Tournament'}
                     </button>
-                  </div>
+                    </div>
+                  )}
                   
-                  <div className="management-section">
+                  {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin && (
+                    <div className="management-section">
                     <h4>Tournament Settings</h4>
-                    <p>Update tournament details, dates, and other settings.</p>
-                    <button className="manage-btn" onClick={() => {
-                      // TODO: Open tournament settings modal
-                      alert('Tournament settings will be implemented here');
-                    }}>
-                      <FaEdit /> Tournament Settings
+                    <p>Update tournament details, dates, and other settings by clicking the Edit button on the tournament card.</p>
+                    <button className="manage-btn" onClick={onClose}>
+                      <FaEdit /> Close & Edit Tournament
                     </button>
-                  </div>
+                    </div>
+                  )}
+                  
+                  {/* For enrolled users (non-admin) - show fixture editing options */}
+                  {!localStorage.getItem('user') || !JSON.parse(localStorage.getItem('user')).isAdmin ? (
+                    <>
+                      <div className="management-section">
+                        <h4>My Fixtures</h4>
+                        <p>You can edit fixture results for matches involving your team. Click below to view and edit your matches.</p>
+                        <div className="fixtures-info">
+                          <span>Your Team: <strong>{localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).teamName}</strong></span>
+                        </div>
+                        <button className="manage-btn" onClick={() => setActiveTab('fixtures')}>
+                          <FaList /> View & Edit My Fixtures
+                        </button>
+                      </div>
+                      
+                      <div className="management-section">
+                        <h4>Point Table</h4>
+                        <p>View tournament standings. Point table updates automatically when match results are entered.</p>
+                        <button className="manage-btn" onClick={() => setActiveTab('points')}>
+                          <FaTable /> View Point Table
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               </div>
             )}

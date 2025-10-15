@@ -8,25 +8,34 @@ import PlayoffFixtures from "./PlayoffFixtures";
 // We rename the existing styled Select component to StyledSelect:
 const StyledSelect = styled.select`
   width: 90%;
-  margin: 0.5rem 0;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  margin: 0.4rem 0;
+  padding: 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+  background: white;
+  cursor: pointer;
+  
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+  }
 `;
 
 const FairnessTag = styled.div`
   display: inline-block;
   margin-left: 0.5rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: 5px;
-  font-size: 0.85rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #fff;
   background: ${(props) => {
-    if (!props.fairness) return "#6c757d"; // default if no fairness
-    if (props.fairness > 7) return "#28a745"; // greenish
-    if (props.fairness > 4) return "#ffc107"; // yellowish
-    return "#dc3545"; // red
+    if (!props.fairness) return "#6b7280";
+    if (props.fairness > 7) return "#10b981";
+    if (props.fairness > 4) return "#f59e0b";
+    return "#ef4444";
   }};
 `;
 
@@ -48,22 +57,23 @@ const TabHeader = styled.div`
 
 const TabButton = styled.button`
   flex: 1;
-  padding: 1rem;
-  background: ${props => props.active ? '#007bff' : 'transparent'};
-  color: ${props => props.active ? '#ffffff' : '#6c757d'};
+  padding: 0.9rem;
+  background: ${props => props.active ? '#667eea' : 'transparent'};
+  color: ${props => props.active ? '#ffffff' : '#6b7280'};
   border: none;
-  font-weight: ${props => props.active ? 'bold' : 'normal'};
+  font-weight: ${props => props.active ? '600' : '500'};
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   font-size: 0.9rem;
   
   &:hover {
-    background: ${props => props.active ? '#007bff' : '#e9ecef'};
+    background: ${props => props.active ? '#667eea' : '#f3f4f6'};
+    color: ${props => props.active ? '#ffffff' : '#374151'};
   }
   
   @media (max-width: 600px) {
-    padding: 0.8rem 0.5rem;
-    font-size: 0.8rem;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
   }
 `;
 
@@ -74,34 +84,58 @@ const FixtureWrapper = styled.div`
 
 const SearchBar = styled.input`
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.65rem;
   margin-bottom: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+  background: white;
+  
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+  
+  &::placeholder {
+    color: #9ca3af;
+  }
 `;
 
 const FixtureCard = styled.div`
   display: flex;
   flex-direction: column;
   background: #ffffff;
-  border: 1px solid #dee2e6;
+  border-left: 4px solid ${(props) => (props.hasMom ? "#10b981" : "#667eea")};
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid ${(props) => (props.hasMom ? "#10b981" : "#667eea")};
   border-radius: 8px;
   margin-bottom: 1rem;
-  padding: ${(props) => (props.hasMom ? "1rem" : "0.5rem")};
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: ${(props) => (props.hasMom ? "#10b981" : "#667eea")};
+  }
 `;
 
 const MatchHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 1rem;
-  font-weight: bold;
-  color: #495057;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
 
   .match-number {
-    color: #007bff;
+    color: #667eea;
+    font-weight: 700;
+    font-size: 0.95rem;
   }
 `;
 
@@ -122,65 +156,83 @@ const TeamBox = styled.div`
   flex: 1;
   text-align: ${(props) => (props.hasMom ? "left" : "center")};
   display: flex;
-  align-items: center;
-  justify-content: ${(props) => (props.hasMom ? "flex-start" : "center")};
-  margin: ${(props) => (props.hasMom ? "0.5rem 0" : "0")};
+  flex-direction: column;
+  align-items: ${(props) => (props.hasMom ? "flex-start" : "center")};
+  justify-content: center;
+  margin: ${(props) => (props.hasMom ? "0.25rem 0" : "0")};
+  padding: 0.75rem;
+  gap: 0.5rem;
 
   .team-name {
-    font-size: 1.2rem;
-    font-weight: bold;
+    font-size: 0.95rem;
+    font-weight: 700;
     color: ${(props) =>
-      props.isWinner ? "green" : props.isLoser ? "red" : "#343a40"};
+      props.isWinner ? "#10b981" : props.isLoser ? "#ef4444" : "#374151"};
+    word-wrap: break-word;
+    max-width: 100%;
   }
 
   .score {
-    font-size: 1rem;
-    margin-left: ${(props) => (props.hasMom ? "1rem" : "0")};
-    color: ${(props) =>
-      props.isWinner ? "white" : props.isLoser ? "white" : "#495057"};
-    background-color: ${(props) =>
-      props.isWinner ? "green" : props.isLoser ? "red" : "#f8f9fa"};
-    padding: 0.5rem;
-    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: white;
+    background: ${(props) =>
+      props.isWinner ? "#10b981" : props.isLoser ? "#ef4444" : "#6b7280"};
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
     display: inline-block;
-    min-width: 60px;
+    min-width: 50px;
     text-align: center;
   }
 `;
 
 const MomDetails = styled.div`
-  margin-top: 0.5rem;
-  padding: 0.8rem;
-  background: #e9ecef;
-  border-radius: 8px;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #fffbeb;
+  border-radius: 6px;
   text-align: center;
+  border: 1px solid #fde68a;
 
   .mom-header,
   .mom-info {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 0.5rem;
-    font-size: 0.9rem;
-    color: #6c757d;
+    font-size: 0.85rem;
+    color: #92400e;
     text-align: center;
   }
 
   .mom-header {
-    font-weight: bold;
-    color: #495057;
+    font-weight: 700;
+    color: #78350f;
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
+  }
+  
+  .mom-info {
+    font-weight: 600;
   }
 `;
 
 const EditButton = styled.button`
-  background: #007bff;
+  background: #3b82f6;
   color: #fff;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   padding: 0.5rem 1rem;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: #0056b3;
+    background: #2563eb;
+  }
+  
+  &:active {
+    transform: scale(0.98);
   }
 `;
 
@@ -198,52 +250,97 @@ const ModalWrapper = styled.div`
 
 const ModalContent = styled.div`
   background: #fff;
-  padding: 2rem;
-  border-radius: 10px;
-  width: 400px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+  border-radius: 12px;
+  width: 420px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   text-align: center;
+  
+  h3 {
+    color: #1f2937;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+  }
 `;
 
 const Input = styled.input`
   width: 90%;
-  margin: 0.5rem 0;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  margin: 0.4rem 0;
+  padding: 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+  
+  &::placeholder {
+    color: #9ca3af;
+  }
 `;
 
 const SubmitButton = styled.button`
-  background: #28a745;
+  background: #10b981;
   color: #fff;
   border: none;
-  border-radius: 5px;
-  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  padding: 0.6rem 1.25rem;
   margin-top: 1rem;
+  margin-right: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: #218838;
+    background: #059669;
+  }
+  
+  &:active {
+    transform: scale(0.98);
   }
 `;
 
 const CloseButton = styled.button`
-  background: #dc3545;
+  background: #6b7280;
   color: #fff;
   border: none;
-  border-radius: 5px;
-  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  padding: 0.6rem 1.25rem;
   margin-top: 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: #c82333;
+    background: #4b5563;
+  }
+  
+  &:active {
+    transform: scale(0.98);
   }
 `;
 
 const MarginText = styled.span`
-  font-size: 0.85rem;
-  color: #6c757d;
-  font-weight: 400;
-  margin-left: 0.5rem;
+  display: block;
+  font-size: 0.8rem;
+  color: #78350f;
+  font-weight: 600;
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  background: #fef3c7;
+  border-radius: 12px;
+  border: 1px solid #fde68a;
+  width: fit-content;
+  align-self: ${(props) => (props.hasMom ? "flex-start" : "center")};
 `;
 
 // Abbreviation helper for fairness display
