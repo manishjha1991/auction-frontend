@@ -101,9 +101,90 @@
     border-radius: 5px;
     cursor: pointer;
     transition: background 0.3s ease;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 20px;
   }
   
   .submit-button:hover {
     background: #45a049;
+  }
+
+  /* Mobile responsive styles */
+  @media (max-width: 768px) {
+    .player-list-container {
+      padding: 15px;
+    }
+    
+    .details-container {
+      margin-top: 15px;
+      padding: 15px;
+      position: relative;
+      padding-bottom: 80px; /* Add space for sticky button */
+    }
+    
+    .submit-button {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      z-index: 1000;
+      margin: 0;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      font-size: 18px;
+    }
+    
+    .form {
+      margin-bottom: 20px;
+    }
+    
+    .form-group input,
+    .form-group select {
+      padding: 12px;
+      font-size: 16px; /* Prevent zoom on iOS */
+      border-radius: 8px;
+    }
+    
+    .player-item {
+      padding: 12px 16px;
+      font-size: 16px;
+    }
+    
+    .tab-button {
+      padding: 12px 16px;
+      font-size: 16px;
+      flex: 1;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .player-list-container {
+      padding: 10px;
+    }
+    
+    .details-container {
+      padding: 12px;
+      padding-bottom: 80px;
+    }
+    
+    .submit-button {
+      bottom: 15px;
+      left: 15px;
+      right: 15px;
+      padding: 12px;
+      font-size: 16px;
+    }
+    
+    .player-list {
+      gap: 8px;
+    }
+    
+    .player-item {
+      padding: 10px 12px;
+      font-size: 14px;
+    }
   }
   
