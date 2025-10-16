@@ -22,17 +22,17 @@ const PageContainer = styled.div`
 
 const Header = styled.div`
   position: relative;
-  padding: 60px 20px;
+  padding: 30px 20px;
   text-align: center;
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 40px;
+  margin-bottom: 20px;
   overflow: hidden;
   
   @media (max-width: 768px) {
-    padding: 40px 15px;
-    margin-bottom: 30px;
+    padding: 20px 15px;
+    margin-bottom: 15px;
   }
 `;
 
@@ -42,47 +42,47 @@ const HeaderContent = styled.div`
 `;
 
 const WalletIcon = styled.div`
-  font-size: 80px;
+  font-size: 40px;
   color: #00d4ff;
-  filter: drop-shadow(0 10px 20px rgba(0, 212, 255, 0.4));
+  filter: drop-shadow(0 5px 10px rgba(0, 212, 255, 0.4));
   animation: float 4s ease-in-out infinite;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   
   @media (max-width: 768px) {
-    font-size: 60px;
-    margin-bottom: 15px;
+    font-size: 30px;
+    margin-bottom: 8px;
   }
 `;
 
 const PageTitle = styled.h1`
-  font-size: 3rem;
+  font-size: 1.8rem;
   font-weight: 900;
   color: #fff;
-  margin: 0 0 15px 0;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
   background: linear-gradient(45deg, #00d4ff, #ff6b9d, #c44569);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   
   @media (max-width: 768px) {
-    font-size: 2.2rem;
-    margin-bottom: 10px;
-    letter-spacing: 1px;
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
   }
 `;
 
 const PageSubtitle = styled.p`
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.8);
   margin: 0;
   font-weight: 400;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   
   @media (max-width: 768px) {
-    font-size: 1rem;
-    letter-spacing: 0.3px;
+    font-size: 0.8rem;
+    letter-spacing: 0.2px;
   }
 `;
 
@@ -90,12 +90,12 @@ const CardsContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 0 20px 40px;
+  padding: 0 20px 20px;
   max-width: 1400px;
   margin: 0 auto;
   
   @media (max-width: 768px) {
-    padding: 0 15px 30px;
+    padding: 0 15px 15px;
   }
 `;
 
@@ -103,11 +103,11 @@ const TeamSeparator = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 40px 0;
+  margin: 20px 0;
   position: relative;
   
   @media (max-width: 768px) {
-    margin: 30px 0;
+    margin: 15px 0;
   }
 `;
 
@@ -122,33 +122,33 @@ const SeparatorLine = styled.div`
 const SeparatorText = styled.div`
   background: linear-gradient(135deg, #00d4ff 0%, #ff6b9d 100%);
   color: white;
-  padding: 12px 24px;
-  border-radius: 50px;
+  padding: 8px 16px;
+  border-radius: 25px;
   font-weight: 800;
-  font-size: 14px;
-  letter-spacing: 2px;
+  font-size: 12px;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
   z-index: 2;
   animation: separatorPulse 3s ease-in-out infinite;
   
   @media (max-width: 768px) {
-    padding: 10px 20px;
-    font-size: 12px;
-    letter-spacing: 1px;
+    padding: 6px 12px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
   }
 `;
 
 const UserCard = styled.div`
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
-  border-radius: 24px;
-  padding: 30px;
+  border-radius: 16px;
+  padding: 15px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.2),
+    0 10px 20px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.05);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
@@ -168,9 +168,9 @@ const UserCard = styled.div`
   }
   
   &:hover {
-    transform: translateY(-10px) scale(1.02);
+    transform: translateY(-5px) scale(1.01);
     box-shadow: 
-      0 30px 60px rgba(0, 0, 0, 0.3),
+      0 15px 30px rgba(0, 0, 0, 0.3),
       0 0 0 1px rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.2);
   }
@@ -179,24 +179,24 @@ const UserCard = styled.div`
     background: rgba(255, 255, 255, 0.08);
     border: 2px solid rgba(0, 212, 255, 0.3);
     box-shadow: 
-      0 25px 50px rgba(0, 0, 0, 0.25),
+      0 15px 30px rgba(0, 0, 0, 0.25),
       0 0 0 1px rgba(0, 212, 255, 0.2);
     animation: currentUserGlow 4s ease-in-out infinite;
     
     &::before {
-      height: 6px;
+      height: 3px;
       background: linear-gradient(90deg, #00d4ff, #ff6b9d, #c44569, #00d4ff);
       animation: shimmer 2s linear infinite;
     }
   `}
   
   @media (max-width: 768px) {
-    padding: 20px;
-    border-radius: 20px;
-    margin: 0 5px;
+    padding: 12px;
+    border-radius: 12px;
+    margin: 0 3px;
     
     &:hover {
-      transform: translateY(-5px) scale(1.01);
+      transform: translateY(-3px) scale(1.005);
     }
   }
 `;
@@ -204,12 +204,12 @@ const UserCard = styled.div`
 const UserCardHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 25px;
-  padding: 20px;
+  gap: 12px;
+  margin-bottom: 15px;
+  padding: 12px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
   backdrop-filter: blur(15px);
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
@@ -217,16 +217,16 @@ const UserCardHeader = styled.div`
   @media (max-width: 768px) {
     flex-direction: column;
     text-align: center;
-    gap: 15px;
-    padding: 15px;
-    margin-bottom: 20px;
+    gap: 8px;
+    padding: 10px;
+    margin-bottom: 12px;
   }
 `;
 
 const UserAvatar = styled.div`
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background: linear-gradient(135deg, #00d4ff, #ff6b9d, #c44569);
   background-size: 200% 200%;
@@ -234,60 +234,60 @@ const UserAvatar = styled.div`
   align-items: center;
   justify-content: center;
   box-shadow: 
-    0 10px 30px rgba(0, 212, 255, 0.4),
-    0 0 0 4px rgba(255, 255, 255, 0.1),
-    inset 0 0 0 2px rgba(255, 255, 255, 0.2);
-  border: 3px solid rgba(255, 255, 255, 0.3);
+    0 5px 15px rgba(0, 212, 255, 0.4),
+    0 0 0 2px rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   animation: avatarGlow 5s ease-in-out infinite;
   overflow: visible;
   
   @media (max-width: 768px) {
-    width: 70px;
-    height: 70px;
+    width: 45px;
+    height: 45px;
   }
 `;
 
 const UserInitial = styled.span`
-  font-size: 2.2rem;
+  font-size: 1.4rem;
   font-weight: 900;
   color: #ffffff;
   text-shadow: 
-    0 0 10px rgba(255, 255, 255, 0.8),
-    0 0 20px rgba(255, 255, 255, 0.6),
-    0 0 30px rgba(255, 255, 255, 0.4),
-    0 2px 4px rgba(0, 0, 0, 0.3);
-  letter-spacing: 1px;
+    0 0 5px rgba(255, 255, 255, 0.8),
+    0 0 10px rgba(255, 255, 255, 0.6),
+    0 0 15px rgba(255, 255, 255, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
   animation: initialPulse 3s ease-in-out infinite;
   
   @media (max-width: 768px) {
-    font-size: 1.8rem;
+    font-size: 1.2rem;
   }
 `;
 
 const CurrentUserBadge = styled.div`
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -3px;
+  right: -3px;
   background: linear-gradient(45deg, #ff6b9d, #c44569);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.6rem;
   font-weight: 900;
-  padding: 6px 10px;
-  border-radius: 15px;
+  padding: 3px 6px;
+  border-radius: 10px;
   box-shadow: 
-    0 4px 15px rgba(255, 107, 157, 0.6),
-    0 0 0 2px rgba(255, 255, 255, 0.3);
+    0 2px 8px rgba(255, 107, 157, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
   animation: bounce 2s infinite;
   z-index: 10;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   
   @media (max-width: 768px) {
-    font-size: 0.7rem;
-    padding: 4px 8px;
-    top: -3px;
-    right: -3px;
+    font-size: 0.5rem;
+    padding: 2px 4px;
+    top: -2px;
+    right: -2px;
   }
 `;
 
@@ -296,36 +296,36 @@ const UserInfo = styled.div`
 `;
 
 const UserName = styled.h2`
-  font-size: 2.2rem;
+  font-size: 1.3rem;
   font-weight: 900;
   color: #ffffff;
-  margin: 0 0 12px 0;
+  margin: 0 0 6px 0;
   text-shadow: 
-    0 0 10px rgba(0, 212, 255, 0.8),
-    0 0 20px rgba(0, 212, 255, 0.6),
-    0 0 30px rgba(0, 212, 255, 0.4),
-    0 3px 6px rgba(0, 0, 0, 0.3);
-  letter-spacing: 2px;
+    0 0 5px rgba(0, 212, 255, 0.8),
+    0 0 10px rgba(0, 212, 255, 0.6),
+    0 0 15px rgba(0, 212, 255, 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  letter-spacing: 1px;
   position: relative;
   animation: nameGlow 4s ease-in-out infinite, nameFloat 5s ease-in-out infinite;
   text-transform: uppercase;
   font-family: 'Arial Black', sans-serif;
   
   @media (max-width: 768px) {
-    font-size: 1.6rem;
-    margin-bottom: 8px;
-    letter-spacing: 1px;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
   }
 `;
 
 const UserStats = styled.div`
   display: flex;
-  gap: 15px;
+  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
   
   @media (max-width: 768px) {
-    gap: 10px;
+    gap: 6px;
     justify-content: center;
   }
 `;
@@ -335,62 +335,62 @@ const StatItem = styled.div`
   flex-direction: column;
   align-items: center;
   background: rgba(255, 255, 255, 0.08);
-  padding: 8px 12px;
-  border-radius: 12px;
+  padding: 4px 8px;
+  border-radius: 8px;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  min-width: 60px;
+  min-width: 45px;
   transition: all 0.3s ease;
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   }
   
   @media (max-width: 768px) {
-    padding: 6px 10px;
-    min-width: 50px;
+    padding: 3px 6px;
+    min-width: 40px;
   }
 `;
 
 const StatNumber = styled.span`
-  font-size: 1.4rem;
+  font-size: 1rem;
   font-weight: 900;
   color: #fff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   
   @media (max-width: 768px) {
-    font-size: 1.2rem;
+    font-size: 0.9rem;
   }
 `;
 
 const StatLabel = styled.span`
-  font-size: 0.8rem;
+  font-size: 0.6rem;
   color: rgba(255, 255, 255, 0.8);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 2px;
+  letter-spacing: 0.3px;
+  margin-top: 1px;
   font-weight: 600;
   
   @media (max-width: 768px) {
-    font-size: 0.7rem;
+    font-size: 0.5rem;
   }
 `;
 
 const PurseContainer = styled.div`
   text-align: center;
-  margin-bottom: 25px;
+  margin-bottom: 15px;
   
   @media (max-width: 768px) {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
   }
 `;
 
 const PurseCircle = styled.div`
   position: relative;
-  width: 140px;
-  height: 140px;
-  margin: 0 auto 15px;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 8px;
   border-radius: 50%;
   background: linear-gradient(135deg, #00d4ff 0%, #ff6b9d 100%);
   display: flex;
@@ -398,74 +398,74 @@ const PurseCircle = styled.div`
   align-items: center;
   justify-content: center;
   box-shadow: 
-    0 15px 35px rgba(0, 212, 255, 0.4),
-    0 0 0 4px rgba(255, 255, 255, 0.1);
-  border: 4px solid rgba(255, 255, 255, 0.2);
+    0 8px 20px rgba(0, 212, 255, 0.4),
+    0 0 0 2px rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   animation: pursePulse 4s ease-in-out infinite;
   
   ${props => props.isLow && `
     background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
     animation: lowPursePulse 2s ease-in-out infinite;
     box-shadow: 
-      0 15px 35px rgba(255, 107, 157, 0.5),
-      0 0 0 4px rgba(255, 255, 255, 0.1);
+      0 8px 20px rgba(255, 107, 157, 0.5),
+      0 0 0 2px rgba(255, 255, 255, 0.1);
   `}
   
   ${props => props.isHigh && `
     background: linear-gradient(135deg, #00d4ff 0%, #00a8cc 100%);
     animation: highPursePulse 3s ease-in-out infinite;
     box-shadow: 
-      0 15px 35px rgba(0, 212, 255, 0.6),
-      0 0 0 4px rgba(255, 255, 255, 0.1);
+      0 8px 20px rgba(0, 212, 255, 0.6),
+      0 0 0 2px rgba(255, 255, 255, 0.1);
   `}
   
   @media (max-width: 768px) {
-    width: 120px;
-    height: 120px;
-    margin-bottom: 12px;
+    width: 70px;
+    height: 70px;
+    margin-bottom: 6px;
   }
 `;
 
 const PurseAmount = styled.span`
-  font-size: 2.2rem;
+  font-size: 1.2rem;
   font-weight: 900;
   color: #fff;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
   line-height: 1;
   
   @media (max-width: 768px) {
-    font-size: 1.8rem;
+    font-size: 1rem;
   }
 `;
 
 const PurseUnit = styled.span`
-  font-size: 1rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.9);
-  margin-top: 2px;
+  margin-top: 1px;
   
   @media (max-width: 768px) {
-    font-size: 0.9rem;
+    font-size: 0.6rem;
   }
 `;
 
 const PurseStatus = styled.div`
-  font-size: 1rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   
   @media (max-width: 768px) {
-    font-size: 0.9rem;
+    font-size: 0.6rem;
   }
 `;
 
 const PlayersSection = styled.div`
-  margin-top: 20px;
+  margin-top: 12px;
   
   @media (max-width: 768px) {
-    margin-top: 15px;
+    margin-top: 10px;
   }
 `;
 
@@ -473,73 +473,80 @@ const SectionHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   
   @media (max-width: 768px) {
-    margin-bottom: 15px;
-    padding-bottom: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 4px;
   }
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 1.3rem;
+  font-size: 1rem;
   font-weight: 800;
   color: #fff;
   margin: 0;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  letter-spacing: 1px;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
   
   @media (max-width: 768px) {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
   }
 `;
 
 const SectionCount = styled.div`
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.9rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
   font-weight: 700;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   
   @media (max-width: 768px) {
-    padding: 4px 10px;
-    font-size: 0.8rem;
+    padding: 2px 6px;
+    font-size: 0.6rem;
   }
 `;
 
 const PlayersGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+  width: 100%;
   
   @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
-    margin-bottom: 15px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px;
+    margin-bottom: 6px;
+  }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
   }
 `;
 
 const PlayerCard = styled.div`
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(15px);
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 4px;
+  padding: 4px;
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.15);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: hidden;
   cursor: pointer;
+  min-width: 0;
   
   &:hover {
-    transform: translateY(-5px) scale(1.03);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     border-color: rgba(255, 255, 255, 0.3);
   }
   
@@ -594,34 +601,34 @@ const PlayerCard = styled.div`
   `}
   
   @media (max-width: 768px) {
-    padding: 15px;
-    border-radius: 12px;
+    padding: 2px;
+    border-radius: 3px;
     
     &:hover {
-      transform: translateY(-3px) scale(1.02);
+      transform: translateY(-1px) scale(1.01);
     }
   }
 `;
 
 const PlayerName = styled.h3`
-  font-size: 1.1rem;
+  font-size: 0.5rem;
   font-weight: 800;
   color: #fff;
-  margin: 20px 0 15px 0;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  line-height: 1.2;
-  letter-spacing: 0.5px;
+  margin: 1px 0 2px 0;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+  line-height: 1.1;
+  letter-spacing: 0.1px;
   text-align: center;
   
   @media (max-width: 768px) {
-    font-size: 1rem;
-    margin: 15px 0 12px 0;
+    font-size: 0.35rem;
+    margin: 0px 0 1px 0;
   }
 `;
 
 const PlayerPriceCircle = styled.div`
-  width: 80px;
-  height: 80px;
+  width: 25px;
+  height: 25px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
   display: flex;
@@ -629,67 +636,67 @@ const PlayerPriceCircle = styled.div`
   align-items: center;
   justify-content: center;
   margin: 0 auto;
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   
   @media (max-width: 768px) {
-    width: 70px;
-    height: 70px;
+    width: 18px;
+    height: 18px;
   }
 `;
 
 const PriceAmount = styled.span`
-  font-size: 1.2rem;
+  font-size: 0.4rem;
   font-weight: 900;
   color: #fff;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
   line-height: 1;
   
   @media (max-width: 768px) {
-    font-size: 1.1rem;
+    font-size: 0.25rem;
   }
 `;
 
 const PriceUnit = styled.span`
-  font-size: 0.8rem;
+  font-size: 0.25rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.9);
-  margin-top: 2px;
+  margin-top: 1px;
   
   @media (max-width: 768px) {
-    font-size: 0.7rem;
+    font-size: 0.15rem;
   }
 `;
 
 const PlayerStatus = styled.div`
-  font-size: 0.8rem;
+  font-size: 0.5rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 12px;
+  letter-spacing: 0.3px;
+  margin-top: 6px;
   
   @media (max-width: 768px) {
-    font-size: 0.7rem;
-    margin-top: 10px;
+    font-size: 0.4rem;
+    margin-top: 4px;
   }
 `;
 
 const BiddingStatus = styled.div`
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 5px;
+  left: 5px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   background: rgba(0, 0, 0, 0.8);
-  padding: 6px 10px;
-  border-radius: 15px;
-  font-size: 0.8rem;
+  padding: 3px 6px;
+  border-radius: 8px;
+  font-size: 0.5rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   
   ${props => props.isWinning && `
     background: linear-gradient(45deg, #00d4ff, #00a8cc);
@@ -710,23 +717,23 @@ const BiddingStatus = styled.div`
   `}
   
   @media (max-width: 768px) {
-    top: 8px;
-    left: 8px;
-    padding: 4px 8px;
-    font-size: 0.7rem;
+    top: 4px;
+    left: 4px;
+    padding: 2px 4px;
+    font-size: 0.4rem;
   }
 `;
 
 const LastBidderSection = styled.div`
-  margin-top: 8px;
-  padding: 6px;
+  margin-top: 4px;
+  padding: 3px;
   background: rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
+  border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   
   @media (max-width: 768px) {
-    margin-top: 6px;
-    padding: 4px;
+    margin-top: 3px;
+    padding: 2px;
   }
 `;
 
@@ -734,15 +741,15 @@ const LastBidderInfo = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   
   @media (max-width: 768px) {
-    gap: 3px;
+    gap: 1px;
   }
 `;
 
 const LastBidderName = styled.span`
-  font-size: 0.8rem;
+  font-size: 0.5rem;
   font-weight: 800;
   color: #ffffff;
   text-align: center;
@@ -753,64 +760,64 @@ const LastBidderName = styled.span`
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
   
   @media (max-width: 768px) {
-    font-size: 0.7rem;
+    font-size: 0.4rem;
   }
 `;
 
 const CompetitorArrow = styled.span`
-  font-size: 1rem;
+  font-size: 0.6rem;
   font-weight: 900;
-  margin-right: 6px;
+  margin-right: 3px;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
   
   ${props => props.isUp && `color: #00d4ff;`}
   ${props => props.isDown && `color: #ff6b9d;`}
   
   @media (max-width: 768px) {
-    font-size: 0.9rem;
-    margin-right: 4px;
+    font-size: 0.5rem;
+    margin-right: 2px;
   }
 `;
 
 const PlayerRole = styled.div`
   position: absolute;
-  bottom: 20px;
-  left: 20px;
-  width: 40px;
-  height: 40px;
+  bottom: 10px;
+  left: 10px;
+  width: 25px;
+  height: 25px;
   background: rgba(0, 0, 0, 0.8);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
   z-index: 10;
   
   &:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
   }
   
   @media (max-width: 768px) {
-    bottom: 15px;
-    left: 15px;
-    width: 36px;
-    height: 36px;
+    bottom: 8px;
+    left: 8px;
+    width: 22px;
+    height: 22px;
   }
 `;
 
 const RoleIcon = styled.img`
-  width: 28px;
-  height: 28px;
+  width: 18px;
+  height: 18px;
   object-fit: contain;
   filter: brightness(1.2) contrast(1.1);
   
   @media (max-width: 768px) {
-    width: 24px;
-    height: 24px;
+    width: 16px;
+    height: 16px;
   }
 `;
 
@@ -1459,28 +1466,28 @@ const UserPursePage = () => {
 
             {/* Player Type Breakdown */}
             <div style={{ 
-              marginBottom: '25px',
-              padding: '20px',
+              marginBottom: '15px',
+              padding: '12px',
               background: 'rgba(255, 255, 255, 0.05)',
-              borderRadius: '16px',
+              borderRadius: '10px',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               backdropFilter: 'blur(10px)'
             }}>
               <h3 style={{
-                fontSize: '1.2rem',
+                fontSize: '0.9rem',
                 fontWeight: '800',
                 color: '#fff',
-                margin: '0 0 15px 0',
-                textShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
-                letterSpacing: '1px'
+                margin: '0 0 8px 0',
+                textShadow: '0 1px 5px rgba(0, 0, 0, 0.3)',
+                letterSpacing: '0.5px'
               }}>Player Types</h3>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                gap: '12px',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
+                gap: '6px',
                 '@media (max-width: 768px)': {
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-                  gap: '8px'
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))',
+                  gap: '4px'
                 }
               }}>
                 {Object.entries(playerTypeCounts).map(([type, count]) => {
@@ -1507,26 +1514,26 @@ const UserPursePage = () => {
                   return (
                     <div key={type} style={{
                       background: getTypeGradient(type),
-                      padding: window.innerWidth <= 768 ? '10px 12px' : '12px 16px',
-                      borderRadius: '12px',
+                      padding: window.innerWidth <= 768 ? '6px 8px' : '8px 10px',
+                      borderRadius: '8px',
                       textAlign: 'center',
-                      border: `2px solid ${getTypeColor(type)}40`,
-                      boxShadow: `0 4px 15px ${getTypeColor(type)}30`,
+                      border: `1px solid ${getTypeColor(type)}40`,
+                      boxShadow: `0 2px 8px ${getTypeColor(type)}30`,
                       transition: 'all 0.3s ease'
                     }}>
                       <div style={{
-                        fontSize: window.innerWidth <= 768 ? '1.2rem' : '1.5rem',
+                        fontSize: window.innerWidth <= 768 ? '0.9rem' : '1rem',
                         fontWeight: '900',
                         color: '#fff',
-                        textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
-                        marginBottom: '4px'
+                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+                        marginBottom: '2px'
                       }}>{count}</div>
                       <div style={{
-                        fontSize: window.innerWidth <= 768 ? '0.7rem' : '0.8rem',
+                        fontSize: window.innerWidth <= 768 ? '0.5rem' : '0.6rem',
                         fontWeight: '700',
                         color: '#fff',
                         textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
+                        letterSpacing: '0.3px',
                         textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
                       }}>{type}</div>
                   </div>
@@ -1561,23 +1568,12 @@ const UserPursePage = () => {
                     
                     return orderA - orderB;
                   })
-                .map((player, idx) => (
+                  .map((player, idx) => (
                   <PlayerCard
                     key={idx}
                     playerType={player.type?.toLowerCase()}
                       onClick={() => handlePlayerClick(player)}
                   >
-                    {player.role && getRoleIcon(player.role) && (
-                      <PlayerRole>
-                        <RoleIcon 
-                          src={getRoleIcon(player.role)} 
-                          alt={player.role}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      </PlayerRole>
-                    )}
                     <PlayerName>{player.name}</PlayerName>
                     <PlayerPriceCircle>
                       <PriceAmount>₹{(player.boughtValue / 10000000).toFixed(2)}</PriceAmount>
@@ -1615,17 +1611,6 @@ const UserPursePage = () => {
                                 isCurrentUserBidding={isCurrentUser}
                         onClick={() => handlePlayerClick(player)}
                     >
-                                {player.role && getRoleIcon(player.role) && (
-                                  <PlayerRole>
-                                    <RoleIcon 
-                                      src={getRoleIcon(player.role)} 
-                                      alt={player.role}
-                                      onError={(e) => {
-                                        e.target.style.display = 'none';
-                                      }}
-                                    />
-                                  </PlayerRole>
-                                )}
                                 <PlayerName>{player.name}</PlayerName>
                                 <PlayerPriceCircle>
                                   <PriceAmount>₹{(player.biddingPrice / 10000000).toFixed(2)}</PriceAmount>
