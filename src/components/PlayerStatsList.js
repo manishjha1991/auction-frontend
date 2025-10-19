@@ -248,17 +248,21 @@ const PlayerStatsList = () => {
       {expandedPlayer && selectedPlayer && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="modal-edit-btn"
-              onClick={() => setIsEditing(true)}
-            >
-              ✎ Edit Stats
-            </button>
-            <button className="modal-close-btn" onClick={closeModal}>
-              &times;
-            </button>
-
-            <h2>{selectedPlayer.name}</h2>
+            <div className="modal-header">
+              <h2 className="modal-title">{selectedPlayer.name}</h2>
+              <button className="modal-close-btn" onClick={closeModal}>
+                &times;
+              </button>
+            </div>
+            
+            {!isEditing && (
+              <button
+                className="modal-edit-btn"
+                onClick={() => setIsEditing(true)}
+              >
+                ✎ Edit Stats
+              </button>
+            )}
             {isEditing ? (
               <form onSubmit={handleFormSubmit} className="stats-form">
                 <div className="form-group">
@@ -373,9 +377,18 @@ const PlayerStatsList = () => {
                   </label>
                 </div>
 
-                <button type="submit" className="form-submit-btn">
-                  Save Stats
-                </button>
+                <div className="form-buttons">
+                  <button 
+                    type="button" 
+                    className="form-cancel-btn"
+                    onClick={() => setIsEditing(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="form-submit-btn">
+                    Save Stats
+                  </button>
+                </div>
                 {submitMessage && <p className="submit-message">{submitMessage}</p>}
               </form>
             ) : (

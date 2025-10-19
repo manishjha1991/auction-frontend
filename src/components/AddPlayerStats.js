@@ -62,19 +62,28 @@ const AddPlayerStats = ({ players, teams }) => {
 
       {selectedPlayer && (
         <div className="details-container">
-          <h2 className="player-name">{selectedPlayer.name}</h2>
+          <div className="player-header">
+            <h2 className="player-name">{selectedPlayer.name}</h2>
+            <button 
+              className="close-button"
+              onClick={() => setSelectedPlayer(null)}
+              aria-label="Close player details"
+            >
+              ✕
+            </button>
+          </div>
           <div className="tab-buttons">
             <button
               className={`tab-button ${activeTab === 'bat' ? 'active' : ''}`}
               onClick={() => handleTabChange('bat')}
             >
-              Bat
+              🏏 Batting Stats
             </button>
             <button
               className={`tab-button ${activeTab === 'ball' ? 'active' : ''}`}
               onClick={() => handleTabChange('ball')}
             >
-              Ball
+              🎯 Bowling Stats
             </button>
           </div>
 

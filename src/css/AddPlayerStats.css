@@ -42,10 +42,40 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
+  .player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
   .player-name {
     font-size: 20px;
-    margin-bottom: 10px;
+    margin: 0;
     color: #333;
+    flex: 1;
+  }
+  
+  .close-button {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    margin-left: 10px;
+  }
+  
+  .close-button:hover {
+    background: #c82333;
+    transform: scale(1.1);
   }
   
   .tab-buttons {
@@ -115,67 +145,155 @@
   @media (max-width: 768px) {
     .player-list-container {
       padding: 15px;
+      position: relative;
+      min-height: 100vh;
+      padding-bottom: 100px; /* Space for sticky button */
     }
     
     .details-container {
       margin-top: 15px;
-      padding: 15px;
+      padding: 20px;
       position: relative;
-      padding-bottom: 80px; /* Add space for sticky button */
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      margin-bottom: 20px;
     }
     
     .submit-button {
       position: fixed;
-      bottom: 20px;
-      left: 20px;
-      right: 20px;
-      z-index: 1000;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
       margin: 0;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      padding: 15px;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+      border-radius: 0;
+      padding: 18px;
       font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #4caf50, #45a049);
+      border: none;
+      color: white;
+      width: 100%;
+      min-height: 60px;
+    }
+    
+    .submit-button:hover {
+      background: linear-gradient(135deg, #45a049, #3d8b40);
+      transform: none; /* Disable hover transform on mobile */
     }
     
     .form {
       margin-bottom: 20px;
     }
     
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    
     .form-group input,
     .form-group select {
-      padding: 12px;
+      padding: 14px;
       font-size: 16px; /* Prevent zoom on iOS */
       border-radius: 8px;
+      border: 2px solid #e0e0e0;
+      background: #fafafa;
+      transition: all 0.3s ease;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #4caf50;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+      outline: none;
     }
     
     .player-item {
-      padding: 12px 16px;
+      padding: 14px 18px;
       font-size: 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
     
     .tab-button {
-      padding: 12px 16px;
+      padding: 14px 20px;
       font-size: 16px;
       flex: 1;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+    
+    .tab-buttons {
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .player-header {
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+    
+    .player-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #333;
+      text-align: center;
+      padding: 15px;
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-radius: 12px;
+      width: 100%;
+      margin: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .close-button {
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+      background: linear-gradient(135deg, #dc3545, #c82333);
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    }
+    
+    .close-button:hover {
+      transform: scale(1.05);
+    }
+    
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 25px;
+      text-align: center;
     }
   }
   
   @media (max-width: 480px) {
     .player-list-container {
-      padding: 10px;
+      padding: 12px;
+      padding-bottom: 100px;
     }
     
     .details-container {
-      padding: 12px;
-      padding-bottom: 80px;
+      padding: 16px;
+      margin-bottom: 20px;
     }
     
     .submit-button {
-      bottom: 15px;
-      left: 15px;
-      right: 15px;
-      padding: 12px;
+      padding: 16px;
       font-size: 16px;
+      min-height: 56px;
     }
     
     .player-list {
@@ -183,8 +301,34 @@
     }
     
     .player-item {
-      padding: 10px 12px;
-      font-size: 14px;
+      padding: 12px 16px;
+      font-size: 15px;
+    }
+    
+    .form-group input,
+    .form-group select {
+      padding: 12px;
+      font-size: 16px;
+    }
+    
+    .tab-button {
+      padding: 12px 16px;
+      font-size: 15px;
+    }
+    
+    .player-name {
+      font-size: 20px;
+      padding: 12px;
+    }
+    
+    .close-button {
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+    }
+    
+    .title {
+      font-size: 24px;
     }
   }
   
