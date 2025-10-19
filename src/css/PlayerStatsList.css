@@ -136,6 +136,9 @@
   justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.3s ease-out;
+  /* Prevent zoom on mobile */
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
 }
 
 .modal-content {
@@ -485,9 +488,12 @@
 @media (max-width: 480px) {
   .modal-content {
     padding: 1.25rem;
-    margin: 0.5rem;
-    width: calc(100% - 1rem);
+    margin: 1rem;
+    width: calc(100% - 2rem);
     border-radius: 16px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
   }
   
   .modal-title {
@@ -496,15 +502,227 @@
   
   .stats-form {
     padding: 1.25rem;
+    position: relative;
   }
   
   .form-group input {
     padding: 0.75rem 0.875rem;
-    font-size: 0.9rem;
+    font-size: 16px !important; /* Prevent iOS zoom */
+    min-height: 44px !important; /* Prevent iOS zoom */
+    -webkit-appearance: none !important;
+    border-radius: 8px !important;
   }
   
   .form-group label {
     font-size: 0.9rem;
+  }
+  
+  .form-buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 1rem !important;
+    margin-top: 2rem !important;
+    margin-bottom: 2rem !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    position: static !important;
+    width: 100% !important;
+  }
+  
+  .form-submit-btn,
+  .form-cancel-btn {
+    padding: 0.8rem 1.2rem !important;
+    font-size: 16px !important; /* Prevent iOS zoom */
+    font-weight: 600 !important;
+    height: 48px !important; /* Larger touch target */
+    flex: 1 !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    max-width: 48% !important;
+    min-height: 48px !important; /* Prevent iOS zoom */
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 360px) {
+  .form-buttons {
+    gap: 0.8rem !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .form-submit-btn,
+  .form-cancel-btn {
+    padding: 0.7rem 1rem !important;
+    font-size: 16px !important; /* Prevent iOS zoom */
+    height: 44px !important;
+    min-height: 44px !important; /* Prevent iOS zoom */
+  }
+  
+  .modal-content {
+    margin: 0.5rem !important;
+    width: calc(100% - 1rem) !important;
+    max-height: 85vh !important;
+  }
+}
+
+/* General mobile styling */
+@media (max-width: 768px) {
+  /* Prevent zoom on mobile */
+  * {
+    -webkit-text-size-adjust: 100% !important;
+    -ms-text-size-adjust: 100% !important;
+  }
+  
+  .form-buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 1rem !important;
+    margin-top: 2rem !important;
+    margin-bottom: 2rem !important;
+    width: 100% !important;
+  }
+  
+  .form-submit-btn,
+  .form-cancel-btn {
+    flex: 1 !important;
+    max-width: 48% !important;
+    font-size: 16px !important; /* Prevent iOS zoom */
+    min-height: 44px !important; /* Prevent iOS zoom */
+  }
+  
+  /* Ensure all inputs prevent zoom */
+  input:not([type="checkbox"]), select, textarea {
+    font-size: 16px !important;
+    min-height: 44px !important;
+  }
+  
+  /* Ensure checkboxes remain clickable */
+  input[type="checkbox"] {
+    width: 20px !important;
+    height: 20px !important;
+    min-height: 20px !important;
+    cursor: pointer !important;
+    accent-color: #1565c0 !important;
+    pointer-events: auto !important;
+    -webkit-appearance: checkbox !important;
+    appearance: checkbox !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+  }
+  
+  /* Ensure checkbox groups are properly styled */
+  .checkbox-group {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0.5rem !important;
+  }
+  
+  .checkbox-group label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    cursor: pointer !important;
+    margin: 0 !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+  }
+  
+  /* iOS Safari specific fixes */
+  .checkbox-group input[type="checkbox"] {
+    position: relative !important;
+    z-index: 1 !important;
+    opacity: 1 !important;
+    margin: 0 !important;
+    vertical-align: middle !important;
+  }
+  
+  /* Ensure label is clickable on iOS */
+  .checkbox-group label {
+    position: relative !important;
+    z-index: 2 !important;
+    padding: 10px !important;
+    margin: -10px !important;
+  }
+}
+
+/* Success popup styles */
+.success-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(40, 167, 69, 0.4);
+  z-index: 2000;
+  animation: successPopup 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+  min-width: 250px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.success-popup::before {
+  content: "✅";
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+@keyframes successPopup {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Success popup overlay */
+.success-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Mobile success popup */
+@media (max-width: 480px) {
+  .success-popup {
+    padding: 1.25rem 1.5rem;
+    font-size: 1rem;
+    min-width: 200px;
+    margin: 1rem;
+  }
+  
+  .success-popup::before {
+    font-size: 1.5rem;
   }
 }
 

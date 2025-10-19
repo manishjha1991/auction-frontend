@@ -25,6 +25,8 @@ import AdminUserManagement from './components/AdminUserManagement';
 import AdminRetainedPlayers from './components/AdminRetainedPlayers';
 import AdminTeamLocks from './components/AdminTeamLocks';
 import TournamentList from './components/TournamentList';
+import TrophyHall from './components/TrophyHall';
+import AdminMatchResults from './components/AdminMatchResults';
 // AdminDashboard removed - performance dashboard disabled
 
 import './App.css';
@@ -129,6 +131,10 @@ function App() {
                 <li><Link to="/match-scheduler" onClick={toggleSidebar}>🏏 Match Scheduler</Link></li>
                 <li><Link to="/team-directory" onClick={toggleSidebar}>👥 Team Directory</Link></li>
                 <li><Link to="/tournaments" onClick={toggleSidebar}>🏆 Tournaments</Link></li>
+                <li><Link to="/trophy-hall" onClick={toggleSidebar}>🏆 Trophy Hall</Link></li>
+                {user && user.isAdmin && (
+                  <li><Link to="/admin-match-results" onClick={toggleSidebar}>📊 Match Results</Link></li>
+                )}
                 <li><Link to="/sold-playerslist" onClick={toggleSidebar}>Sold Player List</Link></li>
                 
                 {/* NEW: Link to Stats Overview */}
@@ -189,6 +195,8 @@ function App() {
             <Route path="/match-scheduler" element={<PrivateRoute><MatchScheduler /></PrivateRoute>} />
             <Route path="/team-directory" element={<PrivateRoute><TeamDirectory /></PrivateRoute>} />
             <Route path="/tournaments" element={<PrivateRoute><TournamentList /></PrivateRoute>} />
+            <Route path="/trophy-hall" element={<PrivateRoute><TrophyHall /></PrivateRoute>} />
+            <Route path="/admin-match-results" element={<PrivateRoute><AdminMatchResults /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
             
 

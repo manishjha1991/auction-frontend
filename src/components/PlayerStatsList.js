@@ -22,6 +22,8 @@ const PlayerStatsList = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [allTeams, setAllTeams] = useState([]);
   const [submitMessage, setSubmitMessage] = useState('');
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // NEW: Local state for the search term
   const [searchTerm, setSearchTerm] = useState("");
@@ -146,6 +148,23 @@ const PlayerStatsList = () => {
     }));
   };
 
+  // Specific handler for checkbox clicks (iOS Safari fix)
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: checked,
+    }));
+    
+    // Force a re-render by toggling state
+    setTimeout(() => {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: checked,
+      }));
+    }, 10);
+  };
+
   // Handle form submission that calls the store API.
   const handleFormSubmit = async (e) => {
     e.preventDefault();
@@ -183,6 +202,16 @@ const PlayerStatsList = () => {
       if (res.ok) {
         const result = await res.json();
         setSubmitMessage("Stats saved successfully!");
+        
+        // Show success popup
+        setSuccessMessage(`Stats saved for ${selectedPlayer.name}`);
+        setShowSuccessPopup(true);
+        
+        // Auto-hide success popup after 3 seconds
+        setTimeout(() => {
+          setShowSuccessPopup(false);
+          setSuccessMessage('');
+        }, 3000);
       } else {
         setSubmitMessage("Error saving stats.");
       }
@@ -360,7 +389,8 @@ const PlayerStatsList = () => {
                       type="checkbox"
                       name="isMom"
                       checked={formData.isMom}
-                      onChange={handleInputChange}
+                      onChange={handleCheckboxChange}
+                      onClick={(e) => e.stopPropagation()}
                     />{" "}
                     Man of the Match?
                   </label>
@@ -371,7 +401,8 @@ const PlayerStatsList = () => {
                       type="checkbox"
                       name="isPlayoffScore"
                       checked={formData.isPlayoffScore}
-                      onChange={handleInputChange}
+                      onChange={handleCheckboxChange}
+                      onClick={(e) => e.stopPropagation()}
                     />{' '}
                     Playoff Score
                   </label>
@@ -448,6 +479,16 @@ const PlayerStatsList = () => {
             )}
           </div>
         </div>
+      )}
+      
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <>
+          <div className="success-popup-overlay" onClick={() => setShowSuccessPopup(false)}></div>
+          <div className="success-popup">
+            {successMessage}
+          </div>
+        </>
       )}
     </div>
   );
