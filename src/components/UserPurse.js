@@ -310,11 +310,18 @@ const UserName = styled.h2`
   animation: nameGlow 4s ease-in-out infinite, nameFloat 5s ease-in-out infinite;
   text-transform: uppercase;
   font-family: 'Arial Black', sans-serif;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   
   @media (max-width: 768px) {
     font-size: 1.1rem;
     margin-bottom: 4px;
     letter-spacing: 0.5px;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
   }
 `;
 
@@ -1375,8 +1382,8 @@ const UserPursePage = () => {
       <Header>
         <HeaderContent>
           <WalletIcon>💰</WalletIcon>
-          <PageTitle>Team Purses</PageTitle>
-          <PageSubtitle>Track your team's financial status and player investments</PageSubtitle>
+          <PageTitle>Teams</PageTitle>
+          <PageSubtitle>Track team performance, finances, and player investments</PageSubtitle>
         </HeaderContent>
       </Header>
 
@@ -1427,11 +1434,25 @@ const UserPursePage = () => {
                 {/* User Card Header */}
                 <UserCardHeader>
                   <UserAvatar>
-                    <UserInitial>{user.userName.charAt(0).toUpperCase()}</UserInitial>
+                    <UserInitial>{user.userName.split(' ')[0].charAt(0).toUpperCase()}</UserInitial>
                     {isCurrentUser && <CurrentUserBadge>YOU</CurrentUserBadge>}
                   </UserAvatar>
                   <UserInfo>
-                    <UserName>{user.userName}</UserName>
+                    <UserName>
+                      {user.userName.split(' ')[0]}
+                      {user.teamName && (
+                        <span style={{
+                          fontSize: '0.7rem',
+                          color: 'rgba(255, 255, 255, 0.7)',
+                          fontWeight: '600',
+                          textShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+                          letterSpacing: '0.3px',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          ({user.teamName})
+                        </span>
+                      )}
+                    </UserName>
                     <UserStats>
                       <StatItem>
                         <StatNumber>{ownedPlayers.length}</StatNumber>
@@ -1463,6 +1484,70 @@ const UserPursePage = () => {
                  (user.purseValue / 10000000) > 30 ? 'Rich' : 'Good'}
                   </PurseStatus>
                 </PurseContainer>
+
+            {/* Trophy Display */}
+            {(user.trophyCount > 0 || user.runnerUpCount > 0) && (
+              <div style={{ 
+                marginBottom: '15px',
+                padding: '12px',
+                background: 'rgba(255, 215, 0, 0.1)',
+                borderRadius: '10px',
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <h3 style={{
+                  fontSize: '0.9rem',
+                  fontWeight: '800',
+                  color: '#ffd700',
+                  margin: '0 0 8px 0',
+                  textShadow: '0 1px 5px rgba(0, 0, 0, 0.3)',
+                  letterSpacing: '0.5px'
+                }}>🏆 Achievements</h3>
+                <div style={{
+                  display: 'flex',
+                  gap: '10px',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {user.trophyCount > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: 'rgba(255, 215, 0, 0.2)',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 215, 0, 0.4)'
+                    }}>
+                      <span style={{ fontSize: '1.2rem' }}>🏆</span>
+                      <span style={{ 
+                        fontSize: '0.9rem', 
+                        fontWeight: '700', 
+                        color: '#ffd700' 
+                      }}>{user.trophyCount}</span>
+                    </div>
+                  )}
+                  {user.runnerUpCount > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: 'rgba(192, 192, 192, 0.2)',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(192, 192, 192, 0.4)'
+                    }}>
+                      <span style={{ fontSize: '1.2rem' }}>🥈</span>
+                      <span style={{ 
+                        fontSize: '0.9rem', 
+                        fontWeight: '700', 
+                        color: '#c0c0c0' 
+                      }}>{user.runnerUpCount}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Player Type Breakdown */}
             <div style={{ 

@@ -124,7 +124,7 @@ function App() {
                 <li><Link to="/profile" onClick={toggleSidebar}>Profile</Link></li>
                 {user?.isAdmin && <li><Link to="/add-player" onClick={toggleSidebar}>Add Player</Link></li>}
                 
-                <li><Link to="/user-purses" onClick={toggleSidebar}>User Purses</Link></li>
+                <li><Link to="/user-purses" onClick={toggleSidebar}>Teams</Link></li>
                 <li><Link to="/points-table" onClick={toggleSidebar}>Points Table</Link></li>
                 <li><Link to="/player-stats" onClick={toggleSidebar}>Player Stats</Link></li>
                 <li><Link to="/fixtures" onClick={toggleSidebar}>Fixtures</Link></li>
