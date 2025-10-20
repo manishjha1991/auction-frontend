@@ -162,6 +162,7 @@
   font-size: 1rem;
   opacity: 0.9;
   font-weight: 500;
+  color: rgb(6, 25, 42);
 }
 
 /* Matches Table */
@@ -222,11 +223,11 @@
 
 .team {
   font-weight: 600;
-  color: white;
+  /* color: white; */
 }
 
 .vs {
-  color: #ffd700;
+  color: #0e0e0d;
   font-weight: 700;
   font-size: 0.9rem;
 }

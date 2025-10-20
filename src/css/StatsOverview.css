@@ -97,6 +97,186 @@ margin-bottom: 2rem;
 }
 }
 
+/* Performance Cards - Professional Design */
+.performance-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 0;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.performance-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.performance-card .card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.performance-card .card-icon {
+  font-size: 1.2rem;
+  color: white;
+}
+
+.performance-card .card-header h3 {
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.performance-card .card-content {
+  padding: 1.5rem;
+}
+
+.performance-card .player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.performance-card .player-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.performance-card .team-name {
+  font-size: 0.9rem;
+  color: #374151;
+  font-weight: 600;
+  background: rgba(102, 126, 234, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.performance-card .stat-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #667eea;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.performance-card .opponent-info {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Mobile Responsive for Performance Cards */
+@media (max-width: 768px) {
+  .stats-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0 0.5rem;
+  }
+  
+  .performance-card {
+    border-radius: 12px;
+  }
+  
+  .performance-card .card-header {
+    padding: 0.6rem 0.8rem;
+  }
+  
+  .performance-card .card-header h3 {
+    font-size: 0.85rem;
+  }
+  
+  .performance-card .card-icon {
+    font-size: 1rem;
+  }
+  
+  .performance-card .card-content {
+    padding: 0.8rem;
+  }
+  
+  .performance-card .player-info {
+    margin-bottom: 0.75rem;
+    gap: 0.2rem;
+  }
+  
+  .performance-card .player-name {
+    font-size: 0.95rem;
+  }
+  
+  .performance-card .team-name {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .performance-card .stat-value {
+    font-size: 1.8rem;
+    margin-bottom: 0.3rem;
+  }
+  
+  .performance-card .opponent-info {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-cards-grid {
+    gap: 0.5rem;
+    padding: 0 0.25rem;
+  }
+  
+  .performance-card .card-header {
+    padding: 0.5rem 0.6rem;
+  }
+  
+  .performance-card .card-header h3 {
+    font-size: 0.8rem;
+  }
+  
+  .performance-card .card-icon {
+    font-size: 0.9rem;
+  }
+  
+  .performance-card .card-content {
+    padding: 0.6rem;
+  }
+  
+  .performance-card .player-info {
+    margin-bottom: 0.5rem;
+  }
+  
+  .performance-card .player-name {
+    font-size: 0.9rem;
+  }
+  
+  .performance-card .team-name {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.3rem;
+  }
+  
+  .performance-card .stat-value {
+    font-size: 1.6rem;
+  }
+  
+  .performance-card .opponent-info {
+    font-size: 0.7rem;
+  }
+}
+
 .stats-card {
 background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
 backdrop-filter: blur(10px);
@@ -386,8 +566,21 @@ margin-bottom: 4px;
 }
 .team-name {
 font-size: 0.85rem;
-color: #4a5568;
-font-weight: 500;
+color: #1f2937 !important;
+font-weight: 600;
+background: rgba(102, 126, 234, 0.1);
+padding: 0.2rem 0.5rem;
+border-radius: 6px;
+display: inline-block;
+}
+
+/* Override any conflicting team-name styles */
+.team-name,
+.top5-list-item .team-name,
+.modal .team-name,
+.player-details-modal .team-name {
+color: #1f2937 !important;
+font-weight: 600 !important;
 }
 
 /* The stat highlight (runs, wickets, etc.) to the right */
@@ -818,9 +1011,13 @@ border: 1px solid rgba(0, 132, 255, 0.2);
 }
 
 .vs {
-  color: #6b7280;
-  font-size: 0.9rem;
-  font-weight: 400;
+color: #374151;
+font-size: 0.9rem;
+font-weight: 600;
+background: rgba(107, 114, 128, 0.1);
+padding: 0.2rem 0.5rem;
+border-radius: 6px;
+display: inline-block;
 }
 
 .batting-stats,

@@ -4,10 +4,7 @@ import {
   FaFireAlt,
   FaShieldAlt,
   FaBowlingBall,
-  FaRunning,
-  FaMedal,
   FaStar,
-  FaHatCowboy,  // <-- NEW icon import for the cap
   FaTimes,
   FaEye,
   FaTrophy,
@@ -132,37 +129,65 @@ const StatsOverview = () => {
       {/* Cards: Single-Match / Overall Summaries */}
       <div className="stats-cards-grid fade-in-up">
         {/* Highest Strike Rate */}
-        <div className="stats-card">
-          <h2><FaFireAlt className="icon" /> Highest Strike Rate</h2>
-          <p><strong>Player:</strong> {highestStrikeRate.playerName || 'N/A'}</p>
-          <p><strong>Team:</strong> {highestStrikeRate.teamName || 'N/A'}</p>
-          <p className="highlight-stat">{highestStrikeRate.strikeRate || 0}</p>
+        <div className="stats-card performance-card">
+          <div className="card-header">
+            <FaFireAlt className="card-icon" />
+            <h3>Highest Strike Rate</h3>
+          </div>
+          <div className="card-content">
+            <div className="player-info">
+              <span className="player-name">{highestStrikeRate.playerName || 'N/A'}</span>
+              <span className="team-name">{highestStrikeRate.teamName || 'N/A'}</span>
+            </div>
+            <div className="stat-value">{highestStrikeRate.strikeRate || 0}</div>
+          </div>
         </div>
 
         {/* Best Economy */}
-        <div className="stats-card">
-          <h2><FaShieldAlt className="icon" /> Best Economy</h2>
-          <p><strong>Player:</strong> {bestEconomicalBowler.playerName || 'N/A'}</p>
-          <p><strong>Team:</strong> {bestEconomicalBowler.teamName || 'N/A'}</p>
-          <p className="highlight-stat">{bestEconomicalBowler.economy || 0}</p>
+        <div className="stats-card performance-card">
+          <div className="card-header">
+            <FaShieldAlt className="card-icon" />
+            <h3>Best Economy</h3>
+          </div>
+          <div className="card-content">
+            <div className="player-info">
+              <span className="player-name">{bestEconomicalBowler.playerName || 'N/A'}</span>
+              <span className="team-name">{bestEconomicalBowler.teamName || 'N/A'}</span>
+            </div>
+            <div className="stat-value">{bestEconomicalBowler.economy || 0}</div>
+          </div>
         </div>
 
         {/* Highest Wickets (Single Match) */}
-        <div className="stats-card">
-          <h2><FaBowlingBall className="icon" /> Highest Wickets (Match)</h2>
-          <p><strong>Player:</strong> {highestWicketTakerInMatch.playerName || 'N/A'}</p>
-          <p><strong>Team:</strong> {highestWicketTakerInMatch.teamName || 'N/A'}</p>
-          <p><strong>Against:</strong> {highestWicketTakerInMatch.opponentTeam || 'N/A'}</p>
-          <p className="highlight-stat">{highestWicketTakerInMatch.wickets || 0}</p>
+        <div className="stats-card performance-card">
+          <div className="card-header">
+            <FaBowlingBall className="card-icon" />
+            <h3>Highest Wickets</h3>
+          </div>
+          <div className="card-content">
+            <div className="player-info">
+              <span className="player-name">{highestWicketTakerInMatch.playerName || 'N/A'}</span>
+              <span className="team-name">{highestWicketTakerInMatch.teamName || 'N/A'}</span>
+            </div>
+            <div className="stat-value">{highestWicketTakerInMatch.wickets || 0}</div>
+            <div className="opponent-info">vs {highestWicketTakerInMatch.opponentTeam || 'N/A'}</div>
+          </div>
         </div>
 
         {/* Highest Score */}
-        <div className="stats-card">
-          <h2><FaFireAlt className="icon" /> Highest Score</h2>
-          <p><strong>Player:</strong> {highestScore.playerName || 'N/A'}</p>
-          <p><strong>Team:</strong> {highestScore.teamName || 'N/A'}</p>
-          <p><strong>Against:</strong> {highestScore.opponentTeam || 'N/A'}</p>
-          <p className="highlight-stat">{highestScore.score || 0}</p>
+        <div className="stats-card performance-card">
+          <div className="card-header">
+            <FaFireAlt className="card-icon" />
+            <h3>Highest Score</h3>
+          </div>
+          <div className="card-content">
+            <div className="player-info">
+              <span className="player-name">{highestScore.playerName || 'N/A'}</span>
+              <span className="team-name">{highestScore.teamName || 'N/A'}</span>
+            </div>
+            <div className="stat-value">{highestScore.score || 0}</div>
+            <div className="opponent-info">vs {highestScore.opponentTeam || 'N/A'}</div>
+          </div>
         </div>
       </div>
 
