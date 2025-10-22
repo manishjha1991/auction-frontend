@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
+import { API_ENDPOINTS } from '../const';
 const TrophyHall = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,14 +17,14 @@ const TrophyHall = () => {
       setLoading(true);
       
       // Fetch teams
-      const teamsResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/users/teams`);
+      const teamsResponse = await fetch(`${API_ENDPOINTS}/api/users/teams`);
       if (!teamsResponse.ok) {
         throw new Error(`Failed to fetch teams: ${teamsResponse.status}`);
       }
       const teamsData = await teamsResponse.json();
       
       // Fetch match results from backend MatchResult public API
-      const matchResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/match-results/public`);
+      const matchResponse = await fetch(`${API_ENDPOINTS}/api/match-results/public`);
       if (!matchResponse.ok) {
         throw new Error(`Failed to fetch match results: ${matchResponse.status}`);
       }
@@ -220,7 +220,7 @@ const TrophyHall = () => {
                     <div style={{ position: 'relative' }}>
                       {team.teamImage ? (
                         <img 
-                          src={`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}${team.teamImage}`}
+                          src={`${API_ENDPOINTS}${team.teamImage}`}
                           alt={team.teamName}
                           style={{ 
                             width: '40px', 

@@ -24,6 +24,7 @@ import TeamDirectory from './components/TeamDirectory';
 import AdminUserManagement from './components/AdminUserManagement';
 import AdminRetainedPlayers from './components/AdminRetainedPlayers';
 import AdminTeamLocks from './components/AdminTeamLocks';
+import AdminFairnessManagement from './components/AdminFairnessManagement';
 import TournamentList from './components/TournamentList';
 import TrophyHall from './components/TrophyHall';
 import AdminMatchResults from './components/AdminMatchResults';
@@ -165,6 +166,7 @@ function App() {
                 {/* Performance Dashboard removed */}
                 {user?.isAdmin && <li><Link to="/admin/trades" onClick={toggleSidebar}>Admin Trades</Link></li>}
                 {user?.isAdmin && <li><Link to="/admin/user-management" onClick={toggleSidebar}>👑 User Management</Link></li>}
+                {user?.isAdmin && <li><Link to="/admin/fairness-management" onClick={toggleSidebar}>⚖️ Fairness Management</Link></li>}
                 {user?.isAdmin && <li><Link to="/admin/retained-players" onClick={toggleSidebar}>💎 Retained Players</Link></li>}
                 {user?.isAdmin && <li><Link to="/admin/team-locks" onClick={toggleSidebar}>🔒 Retention Locks</Link></li>}
                 {user?.isAdmin && <li><Link to="/admin/settings" onClick={toggleSidebar}>Admin Settings</Link></li>}
@@ -246,6 +248,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <AdminUserManagement />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/fairness-management"
+              element={
+                <PrivateRoute>
+                  <AdminFairnessManagement />
                 </PrivateRoute>
               }
             />
