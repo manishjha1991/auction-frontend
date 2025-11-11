@@ -117,7 +117,14 @@ function AdminTrades() {
         body: JSON.stringify({ adminUserId: user?.id, decision })
       });
       
-      if (!r.ok) throw new Error('Failed');
+      if (!r.ok) {
+        let errorMessage = 'Failed to process your decision.';
+        try {
+          const err = await r.json();
+          errorMessage = err?.message || err?.error || errorMessage;
+        } catch {}
+        throw new Error(errorMessage);
+      }
       
       await loadPending();
       await loadHistory();
@@ -137,7 +144,7 @@ function AdminTrades() {
       setAlert({
         type: 'error',
         title: 'Action Failed! ❌',
-        message: 'Failed to process your decision. Please try again.'
+        message: String(e.message || 'Failed to process your decision. Please try again.')
       });
       setToast('Action failed');
     } finally {
@@ -154,7 +161,14 @@ function AdminTrades() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminUserId: user?.id, decision })
       });
       
-      if (!r.ok) throw new Error('Failed');
+      if (!r.ok) {
+        let errorMessage = 'Failed to process your release decision.';
+        try {
+          const err = await r.json();
+          errorMessage = err?.message || err?.error || errorMessage;
+        } catch {}
+        throw new Error(errorMessage);
+      }
       
       await loadReleasePending();
       await loadReleaseHistory();
@@ -174,7 +188,7 @@ function AdminTrades() {
       setAlert({
         type: 'error',
         title: 'Release Action Failed! ❌',
-        message: 'Failed to process your release decision. Please try again.'
+        message: String(e.message || 'Failed to process your release decision. Please try again.')
       });
       setToast('Release action failed');
     } finally {
@@ -191,7 +205,14 @@ function AdminTrades() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminUserId: user?.id, decision })
       });
       
-      if (!r.ok) throw new Error('Failed');
+      if (!r.ok) {
+        let errorMessage = 'Failed to process your pick decision.';
+        try {
+          const err = await r.json();
+          errorMessage = err?.message || err?.error || errorMessage;
+        } catch {}
+        throw new Error(errorMessage);
+      }
       
       await loadPickPending();
       await loadPickHistory();
@@ -211,7 +232,7 @@ function AdminTrades() {
       setAlert({
         type: 'error',
         title: 'Pick Action Failed! ❌',
-        message: 'Failed to process your pick decision. Please try again.'
+        message: String(e.message || 'Failed to process your pick decision. Please try again.')
       });
       setToast('Pick action failed');
     } finally {
@@ -553,16 +574,4 @@ function AdminTrades() {
             <div className="teams-row">
               <span className="team-pill"><strong>{p.user?.teamName}</strong></span>
               <span className="arrow">→</span>
-              <span className="player-chip">{p.player?.name}{p.player?.type && (<span className={`type-badge ${String(p.player.type).toLowerCase()}`} style={{ marginLeft: 8 }}>{p.player.type}</span>)}</span>
-            </div>
-          </div>
-        ))}
-        {pickHistory.length === 0 && <div className="empty">No pick history</div>}
-      </div>
-    </div>
-  );
-}
-
-export default AdminTrades;
-
-
+              <span className="player-chip">{p.player?.name}{p.player?.type && (<span className={`
