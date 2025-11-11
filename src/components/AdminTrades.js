@@ -574,4 +574,29 @@ function AdminTrades() {
             <div className="teams-row">
               <span className="team-pill"><strong>{p.user?.teamName}</strong></span>
               <span className="arrow">→</span>
-              <span className="player-chip">{p.player?.name}{p.player?.type && (<span className={`
+              <span className="player-chip">
+                {p.player?.name}
+                {p.player?.type && (
+                  <span
+                    className={`type-badge ${String(p.player.type).toLowerCase()}`}
+                    style={{ marginLeft: 8 }}
+                  >
+                    {p.player.type}
+                  </span>
+                )}
+              </span>
+            </div>
+            {p.adminDecision?.note && (
+              <div className="decision-note">
+                <strong>Note:</strong> {p.adminDecision.note}
+              </div>
+            )}
+          </div>
+        ))}
+        {pickHistory.length === 0 && <div className="empty">No pick history</div>}
+      </div>
+    </div>
+  );
+}
+
+export default AdminTrades;
