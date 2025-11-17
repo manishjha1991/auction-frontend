@@ -28,22 +28,19 @@ const CARD_CONFIGS = [
       { key: 'bowler', label: 'Bowler', type: 'text' }
     ]
   },
-  {
-    key: 'homeBowling',
-    label: 'Team Bowling',
-    description: 'Upload the bowling figures for your bowlers only.',
-    type: 'bowling',
-    isHomeTeam: true,
-    columns: [
-      { key: 'name', label: 'Bowler', type: 'text' },
-      { key: 'overs', label: 'Overs', type: 'text' },
-      { key: 'maidens', label: 'Maidens', type: 'number' },
-      { key: 'runs', label: 'Runs', type: 'number' },
-      { key: 'wickets', label: 'Wkts', type: 'number' },
-      { key: 'economy', label: 'Eco', type: 'text' },
-      { key: 'extras', label: 'Extras', type: 'number' }
-    ]
-  },
+      {
+        key: 'homeBowling',
+        label: 'Team Bowling',
+        description: 'Upload the bowling figures for your bowlers only.',
+        type: 'bowling',
+        isHomeTeam: true,
+        columns: [
+          { key: 'name', label: 'Bowler', type: 'text' },
+          { key: 'overs', label: 'Overs', type: 'text' },
+          { key: 'runs', label: 'Runs', type: 'number' },
+          { key: 'wickets', label: 'Wkts', type: 'number' }
+        ]
+      },
   {
     key: 'opponentBatting',
     label: 'Opponent Batting',
@@ -58,22 +55,19 @@ const CARD_CONFIGS = [
       { key: 'bowler', label: 'Bowler', type: 'text' }
     ]
   },
-  {
-    key: 'opponentBowling',
-    label: 'Opponent Bowling',
-    description: 'Upload the opponent team bowling figures (for reference only).',
-    type: 'bowling',
-    isHomeTeam: false,
-    columns: [
-      { key: 'name', label: 'Bowler', type: 'text' },
-      { key: 'overs', label: 'Overs', type: 'text' },
-      { key: 'maidens', label: 'Maidens', type: 'number' },
-      { key: 'runs', label: 'Runs', type: 'number' },
-      { key: 'wickets', label: 'Wkts', type: 'number' },
-      { key: 'economy', label: 'Eco', type: 'text' },
-      { key: 'extras', label: 'Extras', type: 'number' }
-    ]
-  }
+      {
+        key: 'opponentBowling',
+        label: 'Opponent Bowling',
+        description: 'Upload the opponent team bowling figures (for reference only).',
+        type: 'bowling',
+        isHomeTeam: false,
+        columns: [
+          { key: 'name', label: 'Bowler', type: 'text' },
+          { key: 'overs', label: 'Overs', type: 'text' },
+          { key: 'runs', label: 'Runs', type: 'number' },
+          { key: 'wickets', label: 'Wkts', type: 'number' }
+        ]
+      }
 ];
 
 const createEmptyRow = (columns = []) => ({
@@ -1260,24 +1254,27 @@ const OcrExtractor = () => {
         <table className="scorecard-table">
           <thead>
             <tr>
-              <th>Player</th>
-              <th>Runs</th>
-              <th>Balls</th>
-              {isHomeTeam && <th>MoM</th>}
-              <th />
+              <th className="col-player">Player</th>
+              <th className="col-runs">R</th>
+              <th className="col-balls">B</th>
+              {isHomeTeam && <th className="col-mom">MoM</th>}
+              <th className="col-delete" />
             </tr>
           </thead>
           <tbody>
             {card.manualRows.map((row, rowIdx) => (
               <tr key={`bat-row-${rowIdx}`}>
                 <td>
-                  <input
-                    type="text"
-                    value={row.name}
-                    onChange={(event) =>
-                      updateManualRow(cardKey, rowIdx, { name: event.target.value })
-                    }
-                  />
+                  {!row.playerId && (
+                    <input
+                      type="text"
+                      value={row.name}
+                      onChange={(event) =>
+                        updateManualRow(cardKey, rowIdx, { name: event.target.value })
+                      }
+                      placeholder="Player name"
+                    />
+                  )}
                   <select
                     value={row.playerId || ''}
                     onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
@@ -1289,11 +1286,6 @@ const OcrExtractor = () => {
                       </option>
                     ))}
                   </select>
-                  {row.playerId && (
-                    <div className="selected-player-label">
-                      {rosterOptionsToUse.find((opt) => opt.value === row.playerId)?.label || ''}
-                    </div>
-                  )}
                 </td>
                 <td>
                   <input
@@ -1351,20 +1343,27 @@ const OcrExtractor = () => {
         <table className="scorecard-table">
           <thead>
             <tr>
-              <th>Player</th>
-              <th>Overs</th>
-              <th>Maidens</th>
-              <th>Runs</th>
-              <th>Wkts</th>
-              <th>Economy</th>
-              <th>Extras</th>
-              <th />
+              <th className="col-player">Player</th>
+              <th className="col-overs">Ov</th>
+              <th className="col-runs">Runs</th>
+              <th className="col-wickets">Wkts</th>
+              <th className="col-delete" />
             </tr>
           </thead>
           <tbody>
             {card.manualRows.map((row, rowIdx) => (
               <tr key={`bowl-row-${rowIdx}`}>
                 <td>
+                  {!row.playerId && (
+                    <input
+                      type="text"
+                      value={row.name || ''}
+                      onChange={(event) =>
+                        updateManualRow(cardKey, rowIdx, { name: event.target.value })
+                      }
+                      placeholder="Bowler name"
+                    />
+                  )}
                   <select
                     value={row.playerId || ''}
                     onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
@@ -1376,25 +1375,12 @@ const OcrExtractor = () => {
                       </option>
                     ))}
                   </select>
-                  {row.name && <div className="selected-player-label">{row.name}</div>}
                 </td>
               <td>
                 <input
                   type="text"
                   value={row.overs ?? ''}
                   onChange={(event) => updateManualRow(cardKey, rowIdx, { overs: event.target.value })}
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  value={row.maidens ?? 0}
-                  onChange={(event) =>
-                    updateManualRow(cardKey, rowIdx, {
-                      maidens: event.target.value === '' ? 0 : Number(event.target.value),
-                    })
-                  }
                 />
               </td>
               <td>
@@ -1417,25 +1403,6 @@ const OcrExtractor = () => {
                   onChange={(event) =>
                     updateManualRow(cardKey, rowIdx, {
                       wickets: event.target.value === '' ? 0 : Number(event.target.value),
-                    })
-                  }
-                />
-              </td>
-              <td>
-                <input
-                  type="text"
-                  value={row.economy ?? ''}
-                  onChange={(event) => updateManualRow(cardKey, rowIdx, { economy: event.target.value })}
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  value={row.extras ?? 0}
-                  onChange={(event) =>
-                    updateManualRow(cardKey, rowIdx, {
-                      extras: event.target.value === '' ? 0 : Number(event.target.value),
                     })
                   }
                 />

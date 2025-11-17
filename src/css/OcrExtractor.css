@@ -1252,61 +1252,180 @@
   }
 
   .table-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin: 0 -1rem;
-    padding: 0 1rem;
-    scrollbar-width: thin;
-  }
-
-  .table-wrapper::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  .table-wrapper::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
+    overflow-x: visible;
+    margin: 0;
+    padding: 0;
   }
 
   .scorecard-table {
     font-size: 0.85rem;
-    min-width: 600px; /* Force horizontal scroll on mobile */
+    width: 100%;
+    table-layout: fixed;
+    border-spacing: 0;
+    border-collapse: collapse;
+    background: transparent;
   }
 
   .scorecard-table th,
   .scorecard-table td {
-    padding: 0.6rem 0.5rem;
+    padding: 0.75rem 0.4rem;
     font-size: 0.8rem;
+    word-wrap: break-word;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    vertical-align: middle;
   }
 
   .scorecard-table th {
-    font-size: 0.7rem;
-    padding: 0.5rem 0.4rem;
+    font-size: 0.75rem;
+    padding: 0.65rem 0.4rem;
+    font-weight: 600;
+    background: rgba(82, 226, 208, 0.1);
+    color: #52e2d0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .scorecard-table tbody tr {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .scorecard-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  /* Column widths - optimized for mobile */
+  .scorecard-table .col-player {
+    width: 30%;
+    min-width: 0;
+  }
+
+  .scorecard-table .col-runs,
+  .scorecard-table .col-balls {
+    width: 14%;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .scorecard-table .col-mom {
+    width: 12%;
+    min-width: 0;
+    text-align: center;
+  }
+
+  /* Bowling table columns - simplified to 3 stats */
+  .scorecard-table .col-overs {
+    width: 18%;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .scorecard-table .col-runs {
+    width: 18%;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .scorecard-table .col-wickets {
+    width: 18%;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .scorecard-table .col-delete {
+    width: 10%;
+    min-width: 0;
+    text-align: center;
   }
 
   .scorecard-table input {
-    padding: 0.5rem 0.4rem;
-    font-size: 1rem; /* Prevents zoom on iOS */
-    min-height: 40px;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.9rem;
+    min-height: 44px;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 100%;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(15, 23, 42, 0.8);
+    color: #f5f7ff;
+    transition: border-color 0.2s ease;
+  }
+
+  .scorecard-table input:focus {
+    outline: 2px solid #52e2d0;
+    outline-offset: -2px;
+    border-color: #52e2d0;
+    background: rgba(15, 23, 42, 0.95);
+  }
+
+  .scorecard-table input[type="text"] {
+    font-size: 0.85rem;
+    padding: 0.6rem 0.5rem;
+  }
+
+  .scorecard-table input[type="number"] {
+    text-align: center;
+    font-weight: 500;
+    font-size: 0.9rem;
   }
 
   .scorecard-table select {
-    padding: 0.5rem 0.4rem;
-    font-size: 1rem; /* Prevents zoom on iOS */
-    min-height: 40px;
+    padding: 0.6rem 0.5rem;
+    padding-right: 2.5rem;
+    font-size: 0.85rem;
+    min-height: 44px;
     margin-top: 0.25rem;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 100%;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: rgba(15, 23, 42, 0.8);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%2352e2d0' d='M7 10L2 5h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    color: #f5f7ff;
+    transition: border-color 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  }
+
+  .scorecard-table select:focus {
+    outline: 2px solid #52e2d0;
+    outline-offset: -2px;
+    border-color: #52e2d0;
+    background-color: rgba(15, 23, 42, 0.95);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%2352e2d0' d='M7 10L2 5h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+  }
+
+  /* Make checkbox larger and more touch-friendly on mobile */
+  .scorecard-table input[type="checkbox"] {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: rgba(82, 226, 208, 0.3);
+    margin: 0 auto;
+    display: block;
+    accent-color: #52e2d0;
+    border-radius: 4px;
   }
 
   .selected-player-label {
-    font-size: 0.75rem;
-    margin-top: 0.2rem;
+    display: none; /* Hide redundant label */
   }
 
   .link-btn {
     font-size: 1.2rem;
-    padding: 0.5rem;
+    padding: 0.4rem;
     min-width: 44px;
     min-height: 44px;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1314,11 +1433,16 @@
     user-select: none;
     -webkit-user-select: none;
     touch-action: manipulation;
+    background: rgba(248, 113, 113, 0.15);
+    border-radius: 6px;
+    border: 1px solid rgba(248, 113, 113, 0.4);
+    box-sizing: border-box;
+    color: #ff7b7b;
+    transition: background 0.2s ease;
   }
 
   .link-btn:active {
-    transform: scale(0.9);
-    opacity: 0.8;
+    background: rgba(248, 113, 113, 0.25);
   }
 
   .upload-zone {
@@ -1391,18 +1515,48 @@
   }
 
   .scorecard-table {
-    min-width: 700px; /* Wider scroll on very small screens */
-    font-size: 0.8rem;
+    font-size: 0.7rem;
   }
 
   .scorecard-table th,
   .scorecard-table td {
-    padding: 0.5rem 0.4rem;
-    font-size: 0.75rem;
+    padding: 0.4rem 0.2rem;
+    font-size: 0.65rem;
   }
 
   .scorecard-table th {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
+    padding: 0.35rem 0.2rem;
+  }
+
+  .scorecard-table input {
+    padding: 0.35rem 0.25rem;
+    font-size: 0.75rem;
+    min-height: 30px;
+  }
+
+  .scorecard-table input[type="text"] {
+    font-size: 0.7rem;
+  }
+
+  .scorecard-table select {
+    padding: 0.35rem 0.25rem;
+    font-size: 0.7rem;
+    min-height: 30px;
+  }
+
+  .scorecard-table input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+  }
+
+  .link-btn {
+    font-size: 1rem;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0.2rem;
   }
 
   .upload-zone {
