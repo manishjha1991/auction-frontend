@@ -168,6 +168,147 @@
     color: inherit;
   }
   
+.player-insight-section {
+  margin: 22px 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: left;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.player-insight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+.player-insight-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.form-score-chip {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffecb3;
+}
+
+.insight-summary-text {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #fdfdfd;
+}
+
+.insight-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.insight-tag {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.insight-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.insight-metrics-grid div {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 14px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.insight-metrics-grid .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #d1d5db;
+}
+
+.insight-metrics-grid strong {
+  display: block;
+  font-size: 16px;
+  color: #fff;
+  margin-top: 4px;
+}
+
+.insight-projection {
+  font-size: 13px;
+  color: #ffe082;
+  margin-bottom: 12px;
+}
+
+.insight-recent h4 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: #fff;
+}
+
+.insight-recent-list {
+  display: grid;
+  gap: 8px;
+}
+
+.insight-recent-item {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.insight-recent-item .title {
+  font-size: 13px;
+  color: #e0f2f1;
+  margin-bottom: 4px;
+}
+
+.insight-recent-item .values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.insight-recent-item .highlight {
+  font-size: 12px;
+  color: #ffecb3;
+}
+
+.insight-muted {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.insight-error {
+  font-size: 13px;
+  color: #ffb4b4;
+}
+
   /* Bids Section - Enhanced & Sexy */
 .bids-section {
   margin: 25px 0;

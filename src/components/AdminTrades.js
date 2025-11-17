@@ -240,6 +240,11 @@ function AdminTrades() {
     }
   }
 
+  const formatCr = value => {
+    if (value === null || typeof value === 'undefined') return '—';
+    return `₹${Number(value || 0).toFixed(2)} Cr`;
+  };
+
   return (
     <div className="admin-trades-page">
       {toast && <div className="toast">{toast}</div>}
@@ -447,6 +452,24 @@ function AdminTrades() {
                         )}
                       </button>
                     </div>
+                {r.aiInsight && (
+                  <div className="ai-insight-card">
+                    <div className="ai-insight-title">AI Insight</div>
+                    <p className="ai-insight-summary">{r.aiInsight.summary}</p>
+                    <div className="ai-insight-metrics">
+                      <span>Refund: {formatCr(r.aiInsight.refundCr)}</span>
+                      <span>Projected Purse: {formatCr(r.aiInsight.projectedPurseCr)}</span>
+                      <span>Players After Release: {r.aiInsight.remainingPlayers}</span>
+                    </div>
+                    {r.aiInsight.warnings && r.aiInsight.warnings.length > 0 && (
+                      <ul className="ai-insight-warnings">
+                        {r.aiInsight.warnings.map((warning, idx) => (
+                          <li key={idx}>{warning}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
                   </div>
                 ))}
               </div>
@@ -479,6 +502,24 @@ function AdminTrades() {
               <span className="arrow">→</span>
               <span className="player-chip">{r.player?.name}{r.player?.type && (<span className={`type-badge ${String(r.player.type).toLowerCase()}`} style={{ marginLeft: 8 }}>{r.player.type}</span>)}</span>
             </div>
+          {r.aiInsight && (
+            <div className="ai-insight-card subtle">
+              <div className="ai-insight-title">AI Insight Snapshot</div>
+              <p className="ai-insight-summary">{r.aiInsight.summary}</p>
+              <div className="ai-insight-metrics">
+                <span>Refund: {formatCr(r.aiInsight.refundCr)}</span>
+                <span>Projected Purse: {formatCr(r.aiInsight.projectedPurseCr)}</span>
+                <span>Players After Release: {r.aiInsight.remainingPlayers}</span>
+              </div>
+              {r.aiInsight.warnings && r.aiInsight.warnings.length > 0 && (
+                <ul className="ai-insight-warnings">
+                  {r.aiInsight.warnings.map((warning, idx) => (
+                    <li key={idx}>{warning}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           </div>
         ))}
         {releaseHistory.length === 0 && <div className="empty">No release history</div>}

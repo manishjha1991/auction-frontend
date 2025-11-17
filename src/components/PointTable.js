@@ -614,7 +614,7 @@ const PointsTable = () => {
         }
 
         return (
-          <TableRow key={team._id} index={index} variant={variant}>
+          <TableRow key={team._id || `${team.teamName}-${index}`} index={index} variant={variant}>
             <RankCell>{`${index + 1} -`}</RankCell>
             <HighlightCell onClick={() => handleTeamClick(team)}>
               <img src={teamImage} alt={team.teamName} />

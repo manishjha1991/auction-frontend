@@ -94,6 +94,61 @@
 .type-badge.emerald { background: linear-gradient(135deg, #56ab2f, #a8e063); color: #0b3d0b; }
 .type-badge.silver { background: linear-gradient(135deg, #ffffff, #e0e0e0); color: #333; }
 
+.ai-insight-card {
+  margin-top: 12px;
+  background: linear-gradient(135deg, rgba(13,110,253,0.08), rgba(32,201,151,0.08));
+  border: 1px solid rgba(13,110,253,0.15);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 12px 30px rgba(13,110,253,0.12);
+}
+
+.ai-insight-card.subtle {
+  background: linear-gradient(135deg, rgba(15,23,42,0.02), rgba(32,201,151,0.05));
+  box-shadow: none;
+}
+
+.ai-insight-title {
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  color: #0f172a;
+}
+
+.ai-insight-summary {
+  margin: 0 0 8px 0;
+  color: #0f172a;
+  line-height: 1.4;
+}
+
+.ai-insight-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.ai-insight-metrics span {
+  background: rgba(255,255,255,0.7);
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.ai-insight-warnings {
+  margin: 8px 0 0 0;
+  padding-left: 18px;
+  color: #b45309;
+  font-size: 12px;
+}
+
+.ai-insight-warnings li {
+  margin-bottom: 4px;
+}
+
 @media (max-width: 1100px) { .history-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 @media (max-width: 640px) { 
   .history-grid { grid-template-columns: 1fr; } 

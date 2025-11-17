@@ -11,6 +11,7 @@ import Fixtures from './components/Fixtures';
 import PointTable from './components/PointTable';
 import PlayerStatsList from './components/PlayerStatsList';
 import StatsOverview from './components/StatsOverview'; // <-- import your new component
+import PlayerInsightsPage from './components/PlayerInsightsPage';
 import NewsAlerts from './components/NewsAlerts';
 import TradeCenter from './components/TradeCenter';
 import UnsoldPlayers from './components/UnsoldPlayers';
@@ -28,6 +29,7 @@ import AdminFairnessManagement from './components/AdminFairnessManagement';
 import TournamentList from './components/TournamentList';
 import TrophyHall from './components/TrophyHall';
 import AdminMatchResults from './components/AdminMatchResults';
+import ImageTextExtractor from './components/ImageTextExtractor';
 // AdminDashboard removed - performance dashboard disabled
 
 import './App.css';
@@ -128,8 +130,10 @@ function App() {
                 <li><Link to="/user-purses" onClick={toggleSidebar}>Teams</Link></li>
                 <li><Link to="/points-table" onClick={toggleSidebar}>Points Table</Link></li>
                 <li><Link to="/player-stats" onClick={toggleSidebar}>Player Stats</Link></li>
+                <li><Link to="/player-insights" onClick={toggleSidebar}>Player Insights</Link></li>
                 <li><Link to="/fixtures" onClick={toggleSidebar}>Fixtures</Link></li>
                 <li><Link to="/match-scheduler" onClick={toggleSidebar}>🏏 Match Scheduler</Link></li>
+                <li><Link to="/ocr" onClick={toggleSidebar}>🖼️ OCR Extractor</Link></li>
                 <li><Link to="/team-directory" onClick={toggleSidebar}>👥 Team Directory</Link></li>
                 <li><Link to="/tournaments" onClick={toggleSidebar}>🏆 Tournaments</Link></li>
                 <li><Link to="/trophy-hall" onClick={toggleSidebar}>🏆 Trophy Hall</Link></li>
@@ -199,7 +203,9 @@ function App() {
             <Route path="/tournaments" element={<PrivateRoute><TournamentList /></PrivateRoute>} />
             <Route path="/trophy-hall" element={<PrivateRoute><TrophyHall /></PrivateRoute>} />
             <Route path="/admin-match-results" element={<PrivateRoute><AdminMatchResults /></PrivateRoute>} />
+            <Route path="/ocr" element={<PrivateRoute><ImageTextExtractor /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
+            <Route path="/player-insights" element={<PrivateRoute><PlayerInsightsPage /></PrivateRoute>} />
             
 
             {/* NEW: StatsOverview Route */}

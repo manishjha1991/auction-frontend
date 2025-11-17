@@ -17,6 +17,7 @@
     "react-select": "^5.10.0",
     "socket.io-client": "^4.8.1",
     "styled-components": "^6.1.13",
+    "tesseract.js": "^4.1.4",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

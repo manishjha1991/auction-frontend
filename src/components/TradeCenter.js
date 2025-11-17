@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { API_ENDPOINTS } from '../const';
 import '../css/TradeCenter.css';
 import { FaExchangeAlt, FaCheck,FaClock, FaBoxOpen,FaTimes, FaPaperPlane, FaRetweet, FaUsers, FaUnlock, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
-
 // Sexy Dropdown Loader Component
 const SexyDropdownLoader = ({ isLoading, children, placeholder = "Loading...", dataLength = 0, dataType = "", isStale = false, onRefresh, loadingProgress = 0 }) => {
   if (isLoading) {
@@ -136,6 +135,9 @@ function TradeCenter() {
   const [isSelectingTrade, setIsSelectingTrade] = useState(false);
   const [isSelectingRelease, setIsSelectingRelease] = useState(false);
   const [alert, setAlert] = useState(null);
+  const [tradeInsights, setTradeInsights] = useState(null);
+  const [tradeInsightLoading, setTradeInsightLoading] = useState(false);
+  const [tradeInsightError, setTradeInsightError] = useState(null);
   
   // Dropdown loading states
   const [dropdownLoading, setDropdownLoading] = useState({
@@ -247,6 +249,32 @@ function TradeCenter() {
       setUser(JSON.parse(cachedUser));
     }
   }, []);
+
+  const fetchTradeInsights = async (userId) => {
+    if (!userId) return;
+    try {
+      setTradeInsightLoading(true);
+      setTradeInsightError(null);
+      const res = await fetch(`${API_ENDPOINTS}/api/trades/insights/${userId}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to load team balance');
+      }
+      const data = await res.json();
+      setTradeInsights(data);
+    } catch (error) {
+      setTradeInsights(null);
+      setTradeInsightError(error.message || 'Failed to load team balance');
+    } finally {
+      setTradeInsightLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchTradeInsights(user.id);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     async function bootstrap() {
@@ -558,6 +586,9 @@ function TradeCenter() {
         title: 'Release Request Sent! 🔓',
         message: 'Your release request has been sent to admin for approval.'
       });
+      if (user?.id) {
+        fetchTradeInsights(user.id);
+      }
     } catch (e) {
       // Show sexy error alert
       setAlert({
@@ -600,6 +631,9 @@ function TradeCenter() {
           ? 'Trade accepted! Awaiting admin approval.' 
           : 'Trade has been rejected.'
       });
+      if (user?.id) {
+        fetchTradeInsights(user.id);
+      }
     } catch (e) {
       // Show sexy error alert
       setAlert({
@@ -648,6 +682,128 @@ function TradeCenter() {
         </div>
         
       </div>
+
+      <div className="balance-insight-wrapper">
+        <div className="balance-header">
+          <div>
+            <h2>Team Balance Snapshot</h2>
+            <p>AI glance at your roster composition and trade health.</p>
+          </div>
+          <button
+            className="balance-refresh-btn"
+            onClick={() => user?.id && fetchTradeInsights(user.id)}
+            disabled={tradeInsightLoading}
+          >
+            {tradeInsightLoading ? 'Analyzing...' : 'Refresh'}
+          </button>
+        </div>
+        {tradeInsightLoading ? (
+          <div className="balance-card muted">Analyzing your squad...</div>
+        ) : tradeInsightError ? (
+          <div className="balance-card muted">{tradeInsightError}</div>
+        ) : tradeInsights?.balance ? (
+          <div className="balance-card">
+            <div className="balance-score">
+              <span>Balance Score</span>
+              <strong>{tradeInsights.balance.balanceScore}</strong>
+            </div>
+            <p className="balance-summary">{tradeInsights.balance.summary}</p>
+            {tradeInsights.balance.strengths?.length > 0 && (
+              <div className="balance-tags">
+                {tradeInsights.balance.strengths.map((tag) => (
+                  <span key={tag} className="positive-tag">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            {tradeInsights.balance.gaps?.length > 0 && (
+              <div className="balance-tags">
+                {tradeInsights.balance.gaps.map((tag) => (
+                  <span key={tag} className="warning-tag">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="balance-metrics-grid">
+              <div>
+                <small>Batters</small>
+                <strong>{tradeInsights.balance.roles?.Batsman || 0}</strong>
+              </div>
+              <div>
+                <small>Bowlers</small>
+                <strong>{tradeInsights.balance.roles?.Bowler || 0}</strong>
+              </div>
+              <div>
+                <small>Allrounders</small>
+                <strong>{tradeInsights.balance.roles?.Allrounder || 0}</strong>
+              </div>
+              <div>
+                <small>Keepers</small>
+                <strong>{tradeInsights.balance.roles?.WicketKeeper || 0}</strong>
+              </div>
+              <div>
+                <small>Pace / Spin</small>
+                <strong>
+                  {tradeInsights.balance.bowling?.pace || 0} /{' '}
+                  {tradeInsights.balance.bowling?.spin || 0}
+                </strong>
+              </div>
+              <div>
+                <small>Left / Right</small>
+                <strong>
+                  {tradeInsights.balance.styles?.left || 0} /{' '}
+                  {tradeInsights.balance.styles?.right || 0}
+                </strong>
+              </div>
+            </div>
+            {tradeInsights.balance.recommendations?.length > 0 && (
+              <ul className="balance-recommendations">
+                {tradeInsights.balance.recommendations.map((rec, idx) => (
+                  <li key={idx}>{rec}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
+      </div>
+
+      {tradeInsights?.recommendations && (
+        <div className="trade-suggestions-card">
+          <div className="trade-suggestions-header">
+            <h3>AI Trade Suggestions</h3>
+            <p>Ideas based on your roster gaps and league surplus.</p>
+          </div>
+          {tradeInsights.recommendations.length === 0 ? (
+            <p className="muted">No trade suggestions right now. Your roster is balanced.</p>
+          ) : (
+            tradeInsights.recommendations.map((rec, idx) => (
+              <div key={idx} className="suggestion-item">
+                <div className="suggestion-focus">{rec.focus}</div>
+                <div className="suggestion-body">
+                  <div>
+                    <small>Acquire</small>
+                    <strong>
+                      {rec.acquire?.name} · {rec.acquire?.role}{' '}
+                      <span className="suggestion-team">({rec.acquire?.fromTeam})</span>
+                    </strong>
+                  </div>
+                  {rec.offer && (
+                    <div>
+                      <small>Offer</small>
+                      <strong>
+                        {rec.offer.name} · {rec.offer.role}
+                      </strong>
+                    </div>
+                  )}
+                </div>
+                <p className="suggestion-rationale">{rec.rationale}</p>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       <div className="trade-propose">
         <div className="card glass propose-card">
@@ -1021,6 +1177,9 @@ function TradeCenter() {
                               title: 'Release Withdrawn! 🔄',
                               message: 'Release request has been successfully withdrawn.'
                             });
+                            if (user?.id) {
+                              fetchTradeInsights(user.id);
+                            }
                           } catch (e) {
                             // Show sexy error alert
                             setAlert({

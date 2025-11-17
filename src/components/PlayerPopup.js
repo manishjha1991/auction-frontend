@@ -14,6 +14,9 @@ const PlayerPopup = ({ player, onClose }) => {
   const [bidError, setBidError] = useState(null);
   const [bidAlert, setBidAlert] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [playerInsight, setPlayerInsight] = useState(null);
+  const [insightLoading, setInsightLoading] = useState(true);
+  const [insightError, setInsightError] = useState(null);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -45,6 +48,38 @@ const PlayerPopup = ({ player, onClose }) => {
     };
 
     fetchPlayerData();
+  }, [player.id]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchInsights = async () => {
+      try {
+        setInsightLoading(true);
+        setInsightError(null);
+        const response = await fetch(`${API_ENDPOINTS}/api/player-stats/insights/${player.id}`);
+        if (!response.ok) {
+          throw new Error('Unable to fetch performance insight');
+        }
+        const data = await response.json();
+        if (isMounted) {
+          setPlayerInsight(data);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setInsightError(err.message || 'Insight unavailable');
+          setPlayerInsight(null);
+        }
+      } finally {
+        if (isMounted) {
+          setInsightLoading(false);
+        }
+      }
+    };
+
+    fetchInsights();
+    return () => {
+      isMounted = false;
+    };
   }, [player.id]);
 
 
@@ -445,6 +480,88 @@ const PlayerPopup = ({ player, onClose }) => {
                 <span className="player-detail-icon">🔥</span>
                 <b>Total Wickets:</b> <span>{playerDetails.totalWickets || 0}</span>
               </p>
+            </div>
+
+            <div className="player-insight-section">
+              <div className="player-insight-header">
+                <h3>Performance Insight</h3>
+                {!insightLoading && playerInsight?.form?.score && (
+                  <span className="form-score-chip">
+                    Form {playerInsight.form.score}/100
+                  </span>
+                )}
+              </div>
+              {insightLoading ? (
+                <p className="insight-muted">Crunching latest performances...</p>
+              ) : insightError ? (
+                <p className="insight-error">{insightError}</p>
+              ) : playerInsight ? (
+                <>
+                  <p className="insight-summary-text">{playerInsight.summary}</p>
+                  {playerInsight.form?.tags && (
+                    <div className="insight-tags">
+                      {playerInsight.form.tags.map((tag) => (
+                        <span key={tag} className="insight-tag">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="insight-metrics-grid">
+                    <div>
+                      <span className="label">Recent Avg</span>
+                      <strong>{playerInsight.batting ? `${playerInsight.batting.recentAverage} runs` : '—'}</strong>
+                    </div>
+                    <div>
+                      <span className="label">Recent SR</span>
+                      <strong>
+                        {playerInsight.batting
+                          ? `${playerInsight.batting.recentStrikeRate || 0} SR`
+                          : '—'}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="label">Wickets / Match</span>
+                      <strong>
+                        {playerInsight.bowling
+                          ? `${playerInsight.bowling.wicketsPerMatch || 0}`
+                          : '—'}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="label">Economy</span>
+                      <strong>
+                        {playerInsight.bowling ? playerInsight.bowling.economy || 0 : '—'}
+                      </strong>
+                    </div>
+                  </div>
+                  {playerInsight.form?.projection && (
+                    <p className="insight-projection">{playerInsight.form.projection}</p>
+                  )}
+                  {playerInsight.recentMatches && playerInsight.recentMatches.length > 0 && (
+                    <div className="insight-recent">
+                      <h4>Recent Trend</h4>
+                      <div className="insight-recent-list">
+                        {playerInsight.recentMatches.slice(0, 3).map((match, idx) => (
+                          <div key={`${match.matchLabel}-${idx}`} className="insight-recent-item">
+                            <div className="title">
+                              {match.matchLabel} · {match.opponent}
+                            </div>
+                            <div className="values">
+                              <span>{match.runs} runs</span>
+                              <span>{match.wickets} wkts</span>
+                              {match.strikeRate && <span>{match.strikeRate} SR</span>}
+                            </div>
+                            <div className="highlight">{match.highlight}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="insight-muted">Insights will appear once performances are recorded.</p>
+              )}
             </div>
 
             {topTwoBids.length > 0 && (

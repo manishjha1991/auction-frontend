@@ -688,6 +688,218 @@
 .release-box { margin-top: 14px; display: grid; gap: 8px; }
 .release-row { display: flex; gap: 8px; align-items: center; }
 
+.balance-insight-wrapper {
+  margin: 20px 0;
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.balance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.balance-header h2 {
+  margin: 0;
+  color: #111827;
+}
+
+.balance-header p {
+  margin: 4px 0 0;
+  color: #6b7280;
+}
+
+.balance-refresh-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.balance-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.balance-refresh-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 15px 30px rgba(79, 70, 229, 0.3);
+}
+
+.balance-card {
+  background: linear-gradient(135deg, #0f172a, #1e1b4b);
+  border-radius: 20px;
+  padding: 20px;
+  color: #f8fafc;
+}
+
+.balance-card.muted {
+  background: #f3f4f6;
+  color: #6b7280;
+  box-shadow: none;
+}
+
+.balance-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(248, 250, 252, 0.7);
+}
+
+.balance-score strong {
+  font-size: 36px;
+  color: #fcd34d;
+}
+
+.balance-summary {
+  margin: 12px 0;
+  font-size: 15px;
+  color: #e0e7ff;
+}
+
+.balance-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.balance-tags span {
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+}
+
+.balance-tags .positive-tag {
+  background: rgba(34, 197, 94, 0.2);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.balance-tags .warning-tag {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fde68a;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.balance-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.balance-metrics-grid div {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.balance-metrics-grid small {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: rgba(248, 250, 252, 0.7);
+}
+
+.balance-metrics-grid strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  color: #facc15;
+}
+
+.balance-recommendations {
+  margin: 16px 0 0;
+  padding-left: 18px;
+  color: #e0e7ff;
+}
+
+.trade-suggestions-card {
+  margin: 20px 0;
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.trade-suggestions-header h3 {
+  margin: 0;
+  color: #111827;
+}
+
+.trade-suggestions-header p {
+  margin: 4px 0 0;
+  color: #6b7280;
+}
+
+.trade-suggestions-card .muted {
+  color: #6b7280;
+  margin: 0;
+}
+
+.suggestion-item {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 14px;
+  margin-top: 12px;
+  background: #f8fafc;
+}
+
+.suggestion-focus {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #7c3aed;
+  margin-bottom: 6px;
+}
+
+.suggestion-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.suggestion-body small {
+  display: block;
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.suggestion-body strong {
+  font-size: 15px;
+  color: #111827;
+}
+
+.suggestion-team {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.suggestion-rationale {
+  margin: 0;
+  font-size: 13px;
+  color: #374151;
+}
+
 /* Release inbox - pending requests */
 .release-inbox { margin-top: 24px; }
 .release-inbox h3 { margin-bottom: 16px; color: #333; font-size: 18px; }
