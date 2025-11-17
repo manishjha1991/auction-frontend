@@ -1,0 +1,1816 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Tesseract from 'tesseract.js';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { API_ENDPOINTS } from '../const';
+import '../css/OcrExtractor.css';
+
+const STATUS_COPY = {
+  idle: 'Pick an image to get started.',
+  ready: 'Image loaded. Run OCR when you are ready.',
+  processing: 'Extracting text from the image…',
+  done: 'Text extracted. You can edit or export it.',
+  exporting: 'Generating the Word document…',
+  error: 'Something went wrong. Please try again.'
+};
+
+const CARD_CONFIGS = [
+  {
+    key: 'homeBatting',
+    label: 'Team Batting',
+    description: 'Upload the batting scorecard for your roster only.',
+    type: 'batting',
+    isHomeTeam: true,
+    columns: [
+      { key: 'name', label: 'Batter', type: 'text' },
+      { key: 'runs', label: 'Runs', type: 'number' },
+      { key: 'balls', label: 'Balls', type: 'number' },
+      { key: 'dismissal', label: 'Dismissal', type: 'text' },
+      { key: 'bowler', label: 'Bowler', type: 'text' }
+    ]
+  },
+  {
+    key: 'homeBowling',
+    label: 'Team Bowling',
+    description: 'Upload the bowling figures for your bowlers only.',
+    type: 'bowling',
+    isHomeTeam: true,
+    columns: [
+      { key: 'name', label: 'Bowler', type: 'text' },
+      { key: 'overs', label: 'Overs', type: 'text' },
+      { key: 'maidens', label: 'Maidens', type: 'number' },
+      { key: 'runs', label: 'Runs', type: 'number' },
+      { key: 'wickets', label: 'Wkts', type: 'number' },
+      { key: 'economy', label: 'Eco', type: 'text' },
+      { key: 'extras', label: 'Extras', type: 'number' }
+    ]
+  },
+  {
+    key: 'opponentBatting',
+    label: 'Opponent Batting',
+    description: 'Upload the opponent team batting scorecard (for reference only).',
+    type: 'batting',
+    isHomeTeam: false,
+    columns: [
+      { key: 'name', label: 'Batter', type: 'text' },
+      { key: 'runs', label: 'Runs', type: 'number' },
+      { key: 'balls', label: 'Balls', type: 'number' },
+      { key: 'dismissal', label: 'Dismissal', type: 'text' },
+      { key: 'bowler', label: 'Bowler', type: 'text' }
+    ]
+  },
+  {
+    key: 'opponentBowling',
+    label: 'Opponent Bowling',
+    description: 'Upload the opponent team bowling figures (for reference only).',
+    type: 'bowling',
+    isHomeTeam: false,
+    columns: [
+      { key: 'name', label: 'Bowler', type: 'text' },
+      { key: 'overs', label: 'Overs', type: 'text' },
+      { key: 'maidens', label: 'Maidens', type: 'number' },
+      { key: 'runs', label: 'Runs', type: 'number' },
+      { key: 'wickets', label: 'Wkts', type: 'number' },
+      { key: 'economy', label: 'Eco', type: 'text' },
+      { key: 'extras', label: 'Extras', type: 'number' }
+    ]
+  }
+];
+
+const createEmptyRow = (columns = []) => ({
+  ...columns.reduce((acc, column) => ({ ...acc, [column.key]: '' }), {}),
+  playerId: '',
+  isMom: false,
+});
+
+const buildInitialCardState = () =>
+  CARD_CONFIGS.reduce((acc, config) => {
+    acc[config.key] = {
+      file: null,
+      previewUrl: '',
+      enhancedPreviewUrl: '',
+      processedBlob: null,
+      ocrText: '',
+      manualRows: [],
+      columns: config.columns.map((column) => ({ ...column })),
+      status: 'idle',
+      progress: 0,
+      error: '',
+      teamRole: config.teamRole || null
+    };
+    return acc;
+  }, {});
+
+const normalizeName = (value = '') =>
+  value
+    .toLowerCase()
+    .replace(/(^|\s)([a-z])/g, (match, space, letter) => `${space}${letter.toUpperCase()}`)
+    .trim();
+
+const VISUAL_DIGIT_MAP = {
+  '@': '3',
+  '₃': '3',
+  '⁵': '5',
+  '₅': '5',
+  '⁷': '7',
+  '₇': '7',
+  '⁰': '0',
+  '₀': '0',
+  O: '0',
+  o: '0',
+  Q: '0',
+  S: '5',
+  s: '5',
+  B: '8',
+  I: '1',
+  l: '1',
+  '|': '1'
+};
+
+const RUN_TOKEN_MAP = {
+  duck: 0,
+  m: 0,
+  mm: 0,
+  'm m': 0,
+  n: 11
+};
+
+const BALL_TOKEN_MAP = {
+  y: 7,
+  yy: 77,
+  l: 1,
+  i: 1
+};
+
+const mapVisualDigits = (value = '') =>
+  value
+    .split('')
+    .map((char) => VISUAL_DIGIT_MAP[char] ?? char)
+    .join('');
+
+const extractRuns = (tokens = []) => {
+  const normalized = tokens
+    .map((token) => mapVisualDigits(token.replace(/[^0-9a-z]/gi, '')))
+    .find((token) => /^\d{1,3}$/.test(token));
+  if (normalized) return Number(normalized);
+
+  const fallback = tokens
+    .map((token) => token.replace(/[^a-z]/gi, '').toLowerCase())
+    .find((token) => RUN_TOKEN_MAP.hasOwnProperty(token));
+  return fallback !== undefined ? RUN_TOKEN_MAP[fallback] : null;
+};
+
+const extractBalls = (text = '') => {
+  const bracketMatch = text.match(/[\(\[]([^)\]]{1,5})[\)\]]/);
+  if (bracketMatch) {
+    const digits = mapVisualDigits(bracketMatch[1]).replace(/[^0-9]/g, '');
+    if (digits) return Number(digits);
+  }
+  const fallback = text
+    .split(' ')
+    .map((token) => token.replace(/[^a-z]/gi, '').toLowerCase())
+    .find((token) => BALL_TOKEN_MAP.hasOwnProperty(token));
+  return fallback ? BALL_TOKEN_MAP[fallback] : null;
+};
+
+const parseBattingRows = (text = '') =>
+  text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !SCORECARD_EXCLUDE_PATTERN.test(line))
+    .map((line) => {
+      const tokens = line.split(/\s+/);
+      if (tokens.length < 2) return null;
+      const name = normalizeName(`${tokens[0]} ${tokens[1]}`);
+      const detailTokens = tokens.slice(2);
+      const runs = extractRuns(detailTokens);
+      const balls = extractBalls(line);
+      return {
+        name,
+        runs,
+        balls,
+        dismissal: '',
+        bowler: '',
+        raw: line,
+        playerId: '',
+        isMom: false
+      };
+    })
+    .filter((row) => row && row.name);
+
+const parseSummaryMeta = (text = '') => {
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const meta = {};
+  const headerIdx = lines.findIndex((line) => /T20\s+AT/i.test(line));
+  if (headerIdx > 0) {
+    meta.teamName = normalizeName(lines[headerIdx - 1]);
+  }
+  if (headerIdx !== -1) {
+    const venueMatch = lines[headerIdx].match(/T20\s+AT\s+(.+)/i);
+    if (venueMatch) {
+      meta.venue = venueMatch[1].replace(/-.+/, '').trim();
+    }
+  }
+  const winnerLine = lines.find((line) => /won\s+by/i.test(line));
+  if (winnerLine) {
+    const parts = winnerLine.split(/won\s+by/i);
+    meta.winnerTeamName = normalizeName(parts[0]);
+    meta.margin = parts[1]?.trim() || '';
+  }
+  const playerLine = lines.find((line) => /Player\s+of\s+the\s+Match/i.test(line));
+  if (playerLine) {
+    meta.playerOfMatch = playerLine.replace(/Player\s+of\s+the\s+Match[:\-]?\s*/i, '').trim();
+  }
+  const timeMatch = lines
+    .map((line) => line.match(/\b(\d{1,2}:\d{2}\s?(?:AM|PM))\b/i))
+    .find(Boolean);
+  if (timeMatch) {
+    meta.matchTime = timeMatch[1].toUpperCase().replace(/\s+/, '');
+  }
+  return meta;
+};
+
+
+const parseBowlingRows = (text = '') =>
+  text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !SCORECARD_EXCLUDE_PATTERN.test(line))
+    .map((line) => {
+      const tokens = line.split(/\s+/);
+      const firstMetricIdx = tokens.findIndex((token) => /[\d]/.test(token));
+      if (firstMetricIdx <= 0) return null;
+      const name = normalizeName(tokens.slice(0, firstMetricIdx).join(' '));
+      const stats = tokens.slice(firstMetricIdx);
+      if (!name || !stats.length) return null;
+      const [overs = '', maidens = '', runs = '', wickets = '', economy = '', extras = ''] = stats;
+      return {
+        name,
+        overs,
+        maidens: Number(maidens ?? 0) || 0,
+        runs: Number(runs ?? 0) || 0,
+        wickets: Number(wickets ?? 0) || 0,
+        economy,
+        extras: Number(extras ?? 0) || 0,
+        raw: line,
+        playerId: ''
+      };
+    })
+    .filter((row) => row && row.name);
+
+const convertBallsToOvers = (balls) => {
+  const totalBalls = Number(balls);
+  if (!Number.isFinite(totalBalls) || totalBalls <= 0) return '';
+  const overs = Math.floor(totalBalls / 6);
+  const remainder = totalBalls % 6;
+  return remainder ? `${overs}.${remainder}` : String(overs);
+};
+
+const SCORECARD_EXCLUDE_PATTERN =
+  /(T20\s+AT|FALL\s+OF\s+WICKET|EXTRAS\b|CHANGE\s+SCORECARD|PLAYER\s+OF\s+THE\s+MATCH)/i;
+
+const normalizePlayerKey = (value = '') => value.replace(/[^a-z]/gi, '').toLowerCase();
+
+const convertOversToBalls = (oversValue) => {
+  if (oversValue === undefined || oversValue === null || oversValue === '') return null;
+  const str = String(oversValue).trim();
+  if (!str.length) return null;
+  if (str.includes(':')) {
+    const [o, b] = str.split(':');
+    const overs = Number.parseInt(o, 10) || 0;
+    const balls = Number.parseInt(b, 10) || 0;
+    return overs * 6 + Math.min(Math.max(balls, 0), 5);
+  }
+  const parts = str.split('.');
+  const overs = Number.parseInt(parts[0], 10) || 0;
+  const balls = parts[1] ? Number.parseInt(parts[1], 10) || 0 : 0;
+  return overs * 6 + Math.min(Math.max(balls, 0), 5);
+};
+
+const parseCardByType = (config, text = '') => {
+  if (!text.trim()) return { rows: [], meta: {} };
+  switch (config.type) {
+    case 'batting':
+      return { rows: parseBattingRows(text), meta: parseSummaryMeta(text) };
+    case 'bowling':
+      return { rows: parseBowlingRows(text), meta: {} };
+    default:
+      return { rows: [], meta: {} };
+  }
+};
+
+const OcrExtractor = () => {
+  const [cardState, setCardState] = useState(buildInitialCardState());
+  const [fixtures, setFixtures] = useState([]);
+  const [fixtureSearch, setFixtureSearch] = useState('');
+  const [fixturesLoading, setFixturesLoading] = useState(false);
+  const [fixturesError, setFixturesError] = useState('');
+  const [selectedFixtureId, setSelectedFixtureId] = useState('');
+  const [primaryTeamName, setPrimaryTeamName] = useState('');
+  const [opponentTeamName, setOpponentTeamName] = useState('');
+  const [venue, setVenue] = useState('');
+  const [matchLabel, setMatchLabel] = useState('');
+  const [roster, setRoster] = useState([]);
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [rosterError, setRosterError] = useState('');
+  const [opponentRoster, setOpponentRoster] = useState([]);
+  const [opponentRosterLoading, setOpponentRosterLoading] = useState(false);
+  const [opponentRosterError, setOpponentRosterError] = useState('');
+  const [language, setLanguage] = useState('eng');
+  const [applyEnhancement, setApplyEnhancement] = useState(true);
+  const [upscaleFactor, setUpscaleFactor] = useState(2);
+  const [contrast, setContrast] = useState(1.35);
+  const [brightness, setBrightness] = useState(1.05);
+  const [pageSegMode, setPageSegMode] = useState('6');
+  const [charWhitelist, setCharWhitelist] = useState(
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-–:()./% '
+  );
+  const [copyToast, setCopyToast] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [globalError, setGlobalError] = useState('');
+  const [isPlayoff, setIsPlayoff] = useState(false);
+  const enhancedUrlRef = useRef({});
+
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}');
+    } catch (err) {
+      return {};
+    }
+  }, []);
+  const currentUserId = currentUser?.id || '';
+  const currentUserTeamName = currentUser?.teamName || '';
+
+  const updateCardState = useCallback((cardKey, updater) => {
+    setCardState((prev) => {
+      const card = prev[cardKey];
+      if (!card) return prev;
+      const updatedCard =
+        typeof updater === 'function' ? updater(card) : { ...card, ...updater };
+      return { ...prev, [cardKey]: updatedCard };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    const fetchRoster = async () => {
+      setRosterLoading(true);
+      setRosterError('');
+      try {
+        const res = await fetch(`${API_ENDPOINTS}/api/player-stats/list?userId=${currentUserId}`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || 'Unable to load roster.');
+        }
+        const data = await res.json();
+        setRoster(data.players || []);
+      } catch (err) {
+        console.error('Failed to load roster', err);
+        setRosterError(err.message || 'Failed to load roster.');
+      } finally {
+        setRosterLoading(false);
+      }
+    };
+    fetchRoster();
+  }, [currentUserId]);
+
+  useEffect(() => {
+    const fetchFixtures = async () => {
+      setFixturesLoading(true);
+      setFixturesError('');
+      try {
+        const res = await fetch(`${API_ENDPOINTS}/api/fixtures`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || 'Unable to load fixtures.');
+        }
+        const data = await res.json();
+        if (!Array.isArray(data)) {
+          throw new Error('Unexpected fixture response.');
+        }
+        const sorted = [...data].sort((a, b) => {
+          const aHasUser =
+            a.team1 === currentUserTeamName || a.team2 === currentUserTeamName ? 1 : 0;
+          const bHasUser =
+            b.team1 === currentUserTeamName || b.team2 === currentUserTeamName ? 1 : 0;
+          if (aHasUser !== bHasUser) return bHasUser - aHasUser;
+          const aTime = new Date(a.createdAt || a.matchDate || 0).getTime();
+          const bTime = new Date(b.createdAt || b.matchDate || 0).getTime();
+          return bTime - aTime;
+        });
+        setFixtures(sorted);
+      } catch (err) {
+        console.error('Failed to load fixtures', err);
+        setFixturesError(err.message || 'Failed to load fixtures.');
+      } finally {
+        setFixturesLoading(false);
+      }
+    };
+    fetchFixtures();
+  }, [currentUserTeamName]);
+
+  const selectedFixture = useMemo(
+    () => fixtures.find((fixture) => String(fixture._id) === String(selectedFixtureId)),
+    [fixtures, selectedFixtureId]
+  );
+
+  const getTeamDetails = useCallback(
+    (teamName) => {
+      if (!selectedFixture || !teamName) return null;
+      if (selectedFixture.team1 === teamName) return selectedFixture.team1Details;
+      if (selectedFixture.team2 === teamName) return selectedFixture.team2Details;
+      return null;
+    },
+    [selectedFixture]
+  );
+
+  const opponentTeamDetails = useMemo(
+    () => getTeamDetails(opponentTeamName),
+    [getTeamDetails, opponentTeamName]
+  );
+  const resolvedOpponentUserId = useMemo(() => {
+    if (!opponentTeamDetails) return '';
+    return String(opponentTeamDetails.userId || opponentTeamDetails._id || opponentTeamDetails.id || '');
+  }, [opponentTeamDetails]);
+
+  // Fetch opponent roster when opponent is selected
+  useEffect(() => {
+    if (!resolvedOpponentUserId) {
+      setOpponentRoster([]);
+      return;
+    }
+    const fetchOpponentRoster = async () => {
+      setOpponentRosterLoading(true);
+      setOpponentRosterError('');
+      try {
+        const res = await fetch(`${API_ENDPOINTS}/api/player-stats/list?userId=${resolvedOpponentUserId}`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || 'Unable to load opponent roster.');
+        }
+        const data = await res.json();
+        setOpponentRoster(data.players || []);
+      } catch (err) {
+        console.error('Failed to load opponent roster', err);
+        setOpponentRosterError(err.message || 'Failed to load opponent roster.');
+      } finally {
+        setOpponentRosterLoading(false);
+      }
+    };
+    fetchOpponentRoster();
+  }, [resolvedOpponentUserId]);
+
+  useEffect(() => {
+    setCardState(buildInitialCardState());
+    if (!selectedFixture) {
+      setMatchLabel('');
+      setVenue('');
+      setPrimaryTeamName('');
+      setOpponentTeamName('');
+      return;
+    }
+    const teams = [selectedFixture.team1, selectedFixture.team2].filter(Boolean);
+    let primary = teams.find((team) => team === currentUserTeamName) || teams[0] || '';
+    const secondary = teams.find((team) => team !== primary) || teams[1] || '';
+    if (!primary && secondary) {
+      primary = secondary;
+    }
+    setPrimaryTeamName(primary || '');
+    setOpponentTeamName(secondary || '');
+    setMatchLabel(
+      selectedFixture.matchTitle ||
+        `${selectedFixture.team1 || 'Team 1'} vs ${selectedFixture.team2 || 'Team 2'}`
+    );
+    setVenue(selectedFixture.matchVenue || '');
+  }, [selectedFixture, currentUserTeamName]);
+
+  const filteredFixtures = useMemo(() => {
+    if (!fixtureSearch.trim()) return fixtures;
+    const term = fixtureSearch.trim().toLowerCase();
+    return fixtures.filter(
+      (fx) =>
+        fx.team1?.toLowerCase().includes(term) ||
+        fx.team2?.toLowerCase().includes(term) ||
+        (fx.matchTitle || '').toLowerCase().includes(term)
+    );
+  }, [fixtures, fixtureSearch]);
+
+  const rosterOptions = useMemo(
+    () =>
+      (roster || []).map((player) => ({
+        value: player._id,
+        label: player.name,
+      })),
+    [roster]
+  );
+
+  const opponentRosterOptions = useMemo(
+    () =>
+      (opponentRoster || []).map((player) => ({
+        value: player._id,
+        label: player.name,
+      })),
+    [opponentRoster]
+  );
+
+  const findPlayerIdByName = useCallback(
+    (name = '') => {
+      const key = normalizePlayerKey(name);
+      if (!key) return '';
+      const match = rosterOptions.find(
+        (option) => normalizePlayerKey(option.label) === key
+      );
+      return match?.value || '';
+    },
+    [rosterOptions]
+  );
+
+  const findOpponentPlayerIdByName = useCallback(
+    (name = '') => {
+      const key = normalizePlayerKey(name);
+      if (!key) return '';
+      const match = opponentRosterOptions.find(
+        (option) => normalizePlayerKey(option.label) === key
+      );
+      return match?.value || '';
+    },
+    [opponentRosterOptions]
+  );
+
+  useEffect(() => {
+    if (!rosterOptions.length && !opponentRosterOptions.length) return;
+    setCardState((prev) => {
+      let changed = false;
+      const nextState = { ...prev };
+      CARD_CONFIGS.forEach((cfg) => {
+        const card = prev[cfg.key];
+        if (!card) return;
+        const isHomeTeam = cfg.isHomeTeam !== false;
+        const options = isHomeTeam ? rosterOptions : opponentRosterOptions;
+        const findPlayer = isHomeTeam ? findPlayerIdByName : findOpponentPlayerIdByName;
+        
+        if (!options.length) return;
+        
+        const nextRows = card.manualRows.map((row) => {
+          if (row.playerId) return row;
+          const matchedId = findPlayer(row.name);
+          if (!matchedId) return row;
+          changed = true;
+          return { ...row, playerId: matchedId };
+        });
+        nextState[cfg.key] = { ...card, manualRows: nextRows };
+      });
+      return changed ? nextState : prev;
+    });
+  }, [findPlayerIdByName, findOpponentPlayerIdByName, rosterOptions.length, opponentRosterOptions.length]);
+
+  const getCardConfig = useCallback((cardKey) => CARD_CONFIGS.find((cfg) => cfg.key === cardKey), []);
+
+  const acceptFile = useCallback(
+    (cardKey, file) => {
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        updateCardState(cardKey, (card) => ({ ...card, error: 'Only images are supported.' }));
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        updateCardState(cardKey, (card) => ({ ...card, error: 'Use images smaller than 8 MB.' }));
+        return;
+      }
+      const previewUrl = URL.createObjectURL(file);
+      updateCardState(cardKey, (card) => {
+        if (card.previewUrl) URL.revokeObjectURL(card.previewUrl);
+        if (card.enhancedPreviewUrl) URL.revokeObjectURL(card.enhancedPreviewUrl);
+        return {
+          ...card,
+          file,
+          previewUrl,
+          enhancedPreviewUrl: '',
+          processedBlob: null,
+          status: 'ready',
+          progress: 0,
+          error: '',
+          ocrText: '',
+          meta: card.meta || {}
+        };
+      });
+    },
+    [updateCardState]
+  );
+
+  const resetCard = useCallback(
+    (cardKey) => {
+      updateCardState(cardKey, (card) => {
+        if (card.previewUrl) URL.revokeObjectURL(card.previewUrl);
+        if (card.enhancedPreviewUrl) URL.revokeObjectURL(card.enhancedPreviewUrl);
+        const cfg = getCardConfig(cardKey);
+        return {
+          file: null,
+          previewUrl: '',
+          enhancedPreviewUrl: '',
+          processedBlob: null,
+          ocrText: '',
+          manualRows: [],
+          columns: (cfg?.columns || []).map((col) => ({ ...col })),
+          status: 'idle',
+          progress: 0,
+          error: '',
+          meta: {},
+          teamRole: card.teamRole || cfg?.teamRole || null
+        };
+      });
+    },
+    [getCardConfig, updateCardState]
+  );
+
+  const readImage = useCallback(
+    (file) =>
+      new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = (event) => {
+          URL.revokeObjectURL(url);
+          reject(event);
+        };
+        img.crossOrigin = 'anonymous';
+        img.src = url;
+      }),
+    []
+  );
+
+  const preprocessImage = useCallback(
+    async (file) => {
+      if (!file) return null;
+      const imgEl = await readImage(file);
+      const canvas = document.createElement('canvas');
+      const scale = Math.min(Math.max(Number(upscaleFactor) || 1, 1), 3);
+      canvas.width = imgEl.width * scale;
+      canvas.height = imgEl.height * scale;
+      const ctx = canvas.getContext('2d');
+      if (applyEnhancement) {
+        ctx.filter = [
+          `brightness(${Math.max(Number(brightness) || 1, 0.5)})`,
+          `contrast(${Math.max(Number(contrast) || 1, 0.5)})`,
+          'grayscale(1)'
+        ].join(' ');
+      } else {
+        ctx.filter = 'none';
+      }
+      ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Unable to preprocess image'));
+          },
+          'image/png',
+          1
+        );
+      });
+    },
+    [applyEnhancement, brightness, contrast, readImage, upscaleFactor]
+  );
+
+  const runOcr = useCallback(
+    async (cardKey) => {
+      const card = cardState[cardKey];
+      const config = getCardConfig(cardKey);
+      if (!card?.file) {
+        updateCardState(cardKey, (prev) => ({ ...prev, error: 'Please select an image first.' }));
+        return;
+      }
+      updateCardState(cardKey, (prev) => ({ ...prev, status: 'processing', progress: 0, error: '' }));
+      try {
+        const sourceImage = applyEnhancement
+          ? card.processedBlob || (await preprocessImage(card.file))
+          : card.file;
+
+        const processedBlob =
+          applyEnhancement && !card.processedBlob ? sourceImage : card.processedBlob || null;
+
+        const { data } = await Tesseract.recognize(sourceImage, language, {
+          tessedit_char_whitelist: charWhitelist || undefined,
+          tessedit_pageseg_mode: pageSegMode,
+          logger: (message) => {
+            if (message.status === 'recognizing text') {
+              updateCardState(cardKey, (prev) => ({
+                ...prev,
+                progress: Math.round(message.progress * 100)
+              }));
+            }
+          }
+        });
+
+        const text = data?.text?.trim() || '';
+        const parsed = parseCardByType(config, text);
+        const rowsToUse =
+          parsed.rows.length > 0
+            ? parsed.rows.map((row) => ({
+                ...createEmptyRow(config.columns),
+                ...row
+              }))
+            : card.manualRows.length
+            ? card.manualRows
+            : [];
+
+        if (parsed.meta?.teamName && !primaryTeamName) {
+          setPrimaryTeamName(parsed.meta.teamName);
+        }
+        if (parsed.meta?.venue && !venue) {
+          setVenue(parsed.meta.venue);
+        }
+
+        updateCardState(cardKey, (prev) => ({
+          ...prev,
+          ocrText: text,
+          manualRows: rowsToUse,
+          status: 'done',
+          progress: 100,
+          processedBlob,
+          meta: parsed.meta || {},
+          error: ''
+        }));
+      } catch (err) {
+        console.error('OCR failed', err);
+        updateCardState(cardKey, (prev) => ({
+          ...prev,
+          status: 'error',
+          error: 'OCR failed, try adjusting enhancement settings.'
+        }));
+      } finally {
+        // no-op
+      }
+    },
+    [
+      applyEnhancement,
+      cardState,
+      charWhitelist,
+      getCardConfig,
+      language,
+      preprocessImage,
+      primaryTeamName,
+      updateCardState,
+      venue,
+      pageSegMode
+    ]
+  );
+
+  const exportDocx = useCallback(
+    async (cardKey) => {
+      const card = cardState[cardKey];
+      if (!card?.ocrText?.trim()) {
+        setGlobalError('Run OCR for this card before exporting.');
+        return;
+      }
+      updateCardState(cardKey, (prev) => ({ ...prev, status: 'exporting' }));
+      try {
+        const paragraphs = card.ocrText.split('\n').map(
+          (line) =>
+            new Paragraph({
+              children: [new TextRun(line || ' ')]
+            })
+        );
+        const doc = new Document({
+          sections: [
+            {
+              properties: {},
+              children: paragraphs
+            }
+          ]
+        });
+        const blob = await Packer.toBlob(doc);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `ocr-${cardKey}-${Date.now()}.docx`;
+        link.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('DOCX export failed', err);
+      } finally {
+        updateCardState(cardKey, (prev) => ({ ...prev, status: 'done' }));
+      }
+    },
+    [cardState, updateCardState]
+  );
+
+  const handleAddRow = useCallback(
+    (cardKey) => {
+      const cfg = getCardConfig(cardKey);
+      if (!cfg) return;
+      updateCardState(cardKey, (card) => ({
+        ...card,
+        manualRows: [...card.manualRows, createEmptyRow(card.columns || cfg.columns)]
+      }));
+    },
+    [getCardConfig, updateCardState]
+  );
+
+  const handleRemoveRow = useCallback(
+    (cardKey, rowIndex) => {
+      updateCardState(cardKey, (card) => ({
+        ...card,
+        manualRows: card.manualRows.filter((_, idx) => idx !== rowIndex)
+      }));
+    },
+    [updateCardState]
+  );
+
+  const updateManualRow = useCallback(
+    (cardKey, rowIndex, updates) => {
+      updateCardState(cardKey, (card) => ({
+        ...card,
+        manualRows: card.manualRows.map((row, idx) =>
+          idx === rowIndex ? { ...row, ...updates } : row
+        )
+      }));
+    },
+    [updateCardState]
+  );
+
+  const handlePlayerSelect = useCallback(
+    (cardKey, rowIndex, playerId) => {
+      const cardConfig = getCardConfig(cardKey);
+      const isHomeTeam = cardConfig?.isHomeTeam !== false;
+      const optionsToUse = isHomeTeam ? rosterOptions : opponentRosterOptions;
+      const selected = optionsToUse.find((option) => option.value === playerId);
+      updateManualRow(cardKey, rowIndex, {
+        playerId,
+        name: selected?.label || ''
+      });
+    },
+    [getCardConfig, rosterOptions, opponentRosterOptions, updateManualRow]
+  );
+
+  const handleMomToggle = useCallback((targetCardKey, targetRowIdx, checked) => {
+    setCardState((prev) => {
+      let changed = false;
+      const nextState = {};
+      CARD_CONFIGS.forEach((cfg) => {
+        const card = prev[cfg.key];
+        if (!card) return;
+        const nextRows = card.manualRows.map((row, idx) => {
+          const shouldBeMom = checked && cfg.key === targetCardKey && idx === targetRowIdx;
+          if ((row.isMom || false) !== shouldBeMom) {
+            changed = true;
+            return { ...row, isMom: shouldBeMom };
+          }
+          return row;
+        });
+        nextState[cfg.key] = {
+          ...card,
+          manualRows: nextRows
+        };
+      });
+      return changed ? nextState : prev;
+    });
+  }, [setCardState]);
+
+  const hasMeaningfulData = useCallback(
+    (cardKey) => {
+      const card = cardState[cardKey];
+      if (!card) return false;
+      return card.manualRows.some((row) =>
+        Object.entries(row).some(
+          ([key, value]) =>
+            key !== 'playerId' &&
+            key !== 'isMom' &&
+            value !== '' &&
+            value !== null &&
+            value !== undefined
+        )
+      );
+    },
+    [cardState]
+  );
+
+  const sanitizeBattingRows = useCallback((rows = []) => {
+    return (rows || [])
+      .filter((row) => row?.name)
+      .map((row) => ({
+        name: row.name.trim(),
+        runs: row.runs === '' || row.runs === null ? null : Number(row.runs),
+        balls: row.balls === '' || row.balls === null ? null : Number(row.balls),
+        dismissal: row.dismissal || '',
+        bowler: row.bowler || '',
+        playerId: row.playerId || '',
+        isMom: !!row.isMom
+      }))
+      .filter(
+        (row) =>
+          row.playerId ||
+          row.runs !== null ||
+          row.balls !== null ||
+          row.dismissal ||
+          row.bowler
+      );
+  }, []);
+
+  const sanitizeBowlingRows = useCallback((rows = []) => {
+    return (rows || [])
+      .filter((row) => row?.name)
+      .map((row) => {
+        const oversStr = row.overs === undefined || row.overs === null ? '' : String(row.overs);
+        const ballsBowledCandidate =
+          row.ballsBowled !== undefined && row.ballsBowled !== null && row.ballsBowled !== ''
+            ? Number(row.ballsBowled)
+            : convertOversToBalls(oversStr);
+        const runs = row.runs === '' || row.runs === null ? 0 : Number(row.runs);
+        const wickets = row.wickets === '' || row.wickets === null ? 0 : Number(row.wickets);
+        const maidens = row.maidens === '' || row.maidens === null ? 0 : Number(row.maidens);
+        const extras = row.extras === '' || row.extras === null ? 0 : Number(row.extras);
+        const providedEconomy =
+          row.economy === '' || row.economy === null || row.economy === undefined
+            ? null
+            : Number(row.economy);
+        const computedEconomy =
+          ballsBowledCandidate && ballsBowledCandidate > 0
+            ? Number((runs / (ballsBowledCandidate / 6)).toFixed(2))
+            : null;
+
+        return {
+          name: row.name.trim(),
+          overs: oversStr,
+          maidens,
+          runs,
+          wickets,
+          economy: providedEconomy ?? computedEconomy ?? '',
+          extras,
+          ballsBowled: ballsBowledCandidate,
+          playerId: row.playerId || ''
+        };
+      })
+      .filter(
+        (row) =>
+          row.playerId ||
+          row.runs ||
+          row.wickets ||
+          row.overs ||
+          (row.ballsBowled !== null && row.ballsBowled !== undefined)
+      );
+  }, []);
+
+  const playerEntries = useMemo(() => {
+    const entryMap = new Map();
+    const ensureEntry = (playerId, name) => {
+      if (!playerId) return null;
+      if (!entryMap.has(playerId)) {
+        entryMap.set(playerId, {
+          playerId,
+          name,
+          battingStats: { runs: 0, balls: 0 },
+          bowlingStats: {
+            runsGiven: 0,
+            ballsBowled: 0,
+            wickets: 0,
+            overs: null,
+            economy: null,
+            maidens: 0,
+            extras: 0
+          },
+          isMom: false
+        });
+      }
+      return entryMap.get(playerId);
+    };
+
+    sanitizeBattingRows(cardState.homeBatting?.manualRows).forEach((row) => {
+      const entry = ensureEntry(row.playerId, row.name);
+      if (!entry) return;
+      entry.battingStats = {
+        runs: Number.isFinite(row.runs) ? row.runs : 0,
+        balls: Number.isFinite(row.balls) ? row.balls : 0
+      };
+      entry.isMom = entry.isMom || row.isMom;
+    });
+
+    sanitizeBowlingRows(cardState.homeBowling?.manualRows).forEach((row) => {
+      const entry = ensureEntry(row.playerId, row.name);
+      if (!entry) return;
+      const ballsBowled =
+        row.ballsBowled && Number.isFinite(row.ballsBowled)
+          ? row.ballsBowled
+          : convertOversToBalls(row.overs) || 0;
+      const runsGiven = Number.isFinite(row.runs) ? row.runs : row.runsGiven || 0;
+      const economy =
+        row.economy !== '' && row.economy !== null && row.economy !== undefined
+          ? Number(row.economy)
+          : ballsBowled > 0
+          ? Number((runsGiven / (ballsBowled / 6)).toFixed(2))
+          : null;
+
+      entry.bowlingStats = {
+        runsGiven,
+        ballsBowled,
+        wickets: Number.isFinite(row.wickets) ? row.wickets : 0,
+        overs: ballsBowled ? Number((ballsBowled / 6).toFixed(2)) : null,
+        economy,
+        maidens: Number.isFinite(row.maidens) ? row.maidens : 0,
+        extras: Number.isFinite(row.extras) ? row.extras : 0
+      };
+    });
+
+    return Array.from(entryMap.values());
+  }, [cardState.homeBatting, cardState.homeBowling, sanitizeBattingRows, sanitizeBowlingRows]);
+
+  const opponentPlayerEntries = useMemo(() => {
+    const entryMap = new Map();
+    const ensureEntry = (playerId, name) => {
+      if (!playerId) return null;
+      if (!entryMap.has(playerId)) {
+        entryMap.set(playerId, {
+          playerId,
+          name,
+          battingStats: { runs: 0, balls: 0 },
+          bowlingStats: {
+            runsGiven: 0,
+            ballsBowled: 0,
+            wickets: 0,
+            overs: null,
+            economy: null,
+            maidens: 0,
+            extras: 0
+          },
+          isMom: false
+        });
+      }
+      return entryMap.get(playerId);
+    };
+
+    sanitizeBattingRows(cardState.opponentBatting?.manualRows).forEach((row) => {
+      const entry = ensureEntry(row.playerId, row.name);
+      if (!entry) return;
+      entry.battingStats = {
+        runs: Number.isFinite(row.runs) ? row.runs : 0,
+        balls: Number.isFinite(row.balls) ? row.balls : 0
+      };
+      entry.isMom = entry.isMom || row.isMom;
+    });
+
+    sanitizeBowlingRows(cardState.opponentBowling?.manualRows).forEach((row) => {
+      const entry = ensureEntry(row.playerId, row.name);
+      if (!entry) return;
+      const ballsBowled =
+        row.ballsBowled && Number.isFinite(row.ballsBowled)
+          ? row.ballsBowled
+          : convertOversToBalls(row.overs) || 0;
+      const runsGiven = Number.isFinite(row.runs) ? row.runs : row.runsGiven || 0;
+      const economy =
+        row.economy !== '' && row.economy !== null && row.economy !== undefined
+          ? Number(row.economy)
+          : ballsBowled > 0
+          ? Number((runsGiven / (ballsBowled / 6)).toFixed(2))
+          : null;
+
+      entry.bowlingStats = {
+        runsGiven,
+        ballsBowled,
+        wickets: Number.isFinite(row.wickets) ? row.wickets : 0,
+        overs: ballsBowled ? Number((ballsBowled / 6).toFixed(2)) : null,
+        economy,
+        maidens: Number.isFinite(row.maidens) ? row.maidens : 0,
+        extras: Number.isFinite(row.extras) ? row.extras : 0
+      };
+    });
+
+    return Array.from(entryMap.values());
+  }, [cardState.opponentBatting, cardState.opponentBowling, sanitizeBattingRows, sanitizeBowlingRows]);
+
+  const handleSubmitScorecard = useCallback(async () => {
+    if (!currentUserId) {
+      setGlobalError('User session expired; please log in again.');
+      return;
+    }
+    if (!rosterOptions.length) {
+      setGlobalError('Roster not loaded yet. Please wait a moment and try again.');
+      return;
+    }
+    const missingRows = [];
+    const checkRows = (rows = [], label, isHomeTeam) => {
+      rows.forEach((row, idx) => {
+        const hasStats = Object.entries(row).some(
+          ([key, value]) =>
+            key !== 'playerId' &&
+            key !== 'isMom' &&
+            value !== '' &&
+            value !== null &&
+            value !== undefined
+        );
+        if (hasStats && !row.playerId) {
+          missingRows.push(`${isHomeTeam ? 'Your' : 'Opponent'} ${label} row ${idx + 1}`);
+        }
+      });
+    };
+    checkRows(cardState.homeBatting?.manualRows, 'batting', true);
+    checkRows(cardState.homeBowling?.manualRows, 'bowling', true);
+    checkRows(cardState.opponentBatting?.manualRows, 'batting', false);
+    checkRows(cardState.opponentBowling?.manualRows, 'bowling', false);
+
+    if (missingRows.length) {
+      setGlobalError(`Assign roster players for: ${missingRows.join(', ')}`);
+      return;
+    }
+
+    if (!playerEntries.length && !opponentPlayerEntries.length) {
+      setGlobalError('No player stats detected. Please add batting or bowling data first.');
+      return;
+    }
+
+    if (!resolvedOpponentUserId) {
+      setGlobalError('Select a fixture/team so we know which opponent user to update.');
+      return;
+    }
+
+    setSaving(true);
+    setGlobalError('');
+    setSaveMessage('');
+
+    try {
+      const matchKeyBase =
+        matchLabel?.trim() ||
+        `${primaryTeamName || 'Team'} vs ${opponentTeamName || 'Opponent'}`;
+      const matchName = venue ? `${matchKeyBase} @ ${venue}` : matchKeyBase;
+      const timestamp = Date.now();
+      let successCount = 0;
+      const errors = [];
+
+      // Save home team stats (userId = currentUserId, opponentUserId = resolvedOpponentUserId)
+      for (const entry of playerEntries) {
+        const payload = {
+          playerId: entry.playerId,
+          opponentTeamName,
+          opponentUserId: resolvedOpponentUserId,
+          battingStats: entry.battingStats,
+          bowlingStats: entry.bowlingStats,
+          wicketsTaken: entry.bowlingStats?.wickets ?? 0,
+          isMom: entry.isMom || false,
+          isPlayoffScore: isPlayoff,
+          economy: entry.bowlingStats?.economy ?? null,
+          extras: entry.bowlingStats?.extras ?? null,
+          matchName,
+          matchKey: `${matchKeyBase}-${entry.playerId}-${timestamp}`
+        };
+
+        try {
+          const res = await fetch(`${API_ENDPOINTS}/api/player-stats/store`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          const json = await res.json();
+          if (!res.ok) {
+            throw new Error(json.message || 'Failed to save player stats');
+          }
+          successCount += 1;
+        } catch (err) {
+          errors.push(`Home team: ${err.message}`);
+        }
+      }
+
+      // Save opponent team stats (userId = resolvedOpponentUserId, opponentUserId = currentUserId) - FLIPPED
+      for (const entry of opponentPlayerEntries) {
+        const payload = {
+          playerId: entry.playerId,
+          opponentTeamName: primaryTeamName,
+          opponentUserId: currentUserId, // Flipped: opponent's opponent is us
+          battingStats: entry.battingStats,
+          bowlingStats: entry.bowlingStats,
+          wicketsTaken: entry.bowlingStats?.wickets ?? 0,
+          isMom: entry.isMom || false,
+          isPlayoffScore: isPlayoff,
+          economy: entry.bowlingStats?.economy ?? null,
+          extras: entry.bowlingStats?.extras ?? null,
+          matchName,
+          matchKey: `${matchKeyBase}-opponent-${entry.playerId}-${timestamp}`
+        };
+
+        try {
+          const res = await fetch(`${API_ENDPOINTS}/api/player-stats/store`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          const json = await res.json();
+          if (!res.ok) {
+            throw new Error(json.message || 'Failed to save opponent player stats');
+          }
+          successCount += 1;
+        } catch (err) {
+          errors.push(`Opponent team: ${err.message}`);
+        }
+      }
+
+      if (errors.length > 0) {
+        setGlobalError(`Some entries failed: ${errors.join('; ')}`);
+      }
+      setSaveMessage(`Saved ${successCount} player stat ${successCount === 1 ? 'entry' : 'entries'}.`);
+    } catch (err) {
+      console.error('Player stats save failed', err);
+      setGlobalError(err.message || 'Failed to save player stats');
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    API_ENDPOINTS,
+    cardState.homeBatting,
+    cardState.homeBowling,
+    cardState.opponentBatting,
+    cardState.opponentBowling,
+    currentUserId,
+    isPlayoff,
+    matchLabel,
+    opponentPlayerEntries,
+    opponentTeamName,
+    playerEntries,
+    primaryTeamName,
+    resolvedOpponentUserId,
+    rosterOptions.length,
+    venue
+  ]);
+
+  useEffect(() => {
+    const summaryCard = cardState.summary;
+    if (!summaryCard) return;
+    if (!summaryCard.manualRows.length) {
+      updateCardState('summary', (prev) => ({
+        ...prev,
+        manualRows: [createEmptyRow(prev.columns)]
+      }));
+    }
+  }, [cardState.summary, updateCardState]);
+
+  const renderBattingTable = (cardKey, card) => {
+    const cardConfig = getCardConfig(cardKey);
+    const isHomeTeam = cardConfig?.isHomeTeam !== false;
+    const rosterOptionsToUse = isHomeTeam ? rosterOptions : opponentRosterOptions;
+    
+    return (
+      <div className="table-wrapper">
+        <table className="scorecard-table">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Runs</th>
+              <th>Balls</th>
+              {isHomeTeam && <th>MoM</th>}
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {card.manualRows.map((row, rowIdx) => (
+              <tr key={`bat-row-${rowIdx}`}>
+                <td>
+                  <input
+                    type="text"
+                    value={row.name}
+                    onChange={(event) =>
+                      updateManualRow(cardKey, rowIdx, { name: event.target.value })
+                    }
+                  />
+                  <select
+                    value={row.playerId || ''}
+                    onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
+                  >
+                    <option value="">Select roster player</option>
+                    {rosterOptionsToUse.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  {row.playerId && (
+                    <div className="selected-player-label">
+                      {rosterOptionsToUse.find((opt) => opt.value === row.playerId)?.label || ''}
+                    </div>
+                  )}
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    min="0"
+                    value={row.runs ?? ''}
+                    onChange={(event) =>
+                      updateManualRow(cardKey, rowIdx, {
+                        runs: event.target.value === '' ? '' : Number(event.target.value),
+                      })
+                    }
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    min="0"
+                    value={row.balls ?? ''}
+                    onChange={(event) =>
+                      updateManualRow(cardKey, rowIdx, {
+                        balls: event.target.value === '' ? '' : Number(event.target.value),
+                      })
+                    }
+                  />
+                </td>
+                {isHomeTeam && (
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={row.isMom || false}
+                      onChange={(event) => handleMomToggle(cardKey, rowIdx, event.target.checked)}
+                    />
+                  </td>
+                )}
+                <td>
+                  <button type="button" className="link-btn" onClick={() => handleRemoveRow(cardKey, rowIdx)}>
+                    ✕
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderBowlingTable = (cardKey, card) => {
+    const cardConfig = getCardConfig(cardKey);
+    const isHomeTeam = cardConfig?.isHomeTeam !== false;
+    const rosterOptionsToUse = isHomeTeam ? rosterOptions : opponentRosterOptions;
+    
+    return (
+      <div className="table-wrapper">
+        <table className="scorecard-table">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Overs</th>
+              <th>Maidens</th>
+              <th>Runs</th>
+              <th>Wkts</th>
+              <th>Economy</th>
+              <th>Extras</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {card.manualRows.map((row, rowIdx) => (
+              <tr key={`bowl-row-${rowIdx}`}>
+                <td>
+                  <select
+                    value={row.playerId || ''}
+                    onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
+                  >
+                    <option value="">Select roster player</option>
+                    {rosterOptionsToUse.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  {row.name && <div className="selected-player-label">{row.name}</div>}
+                </td>
+              <td>
+                <input
+                  type="text"
+                  value={row.overs ?? ''}
+                  onChange={(event) => updateManualRow(cardKey, rowIdx, { overs: event.target.value })}
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  value={row.maidens ?? 0}
+                  onChange={(event) =>
+                    updateManualRow(cardKey, rowIdx, {
+                      maidens: event.target.value === '' ? 0 : Number(event.target.value),
+                    })
+                  }
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  value={row.runs ?? 0}
+                  onChange={(event) =>
+                    updateManualRow(cardKey, rowIdx, {
+                      runs: event.target.value === '' ? 0 : Number(event.target.value),
+                    })
+                  }
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  value={row.wickets ?? 0}
+                  onChange={(event) =>
+                    updateManualRow(cardKey, rowIdx, {
+                      wickets: event.target.value === '' ? 0 : Number(event.target.value),
+                    })
+                  }
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  value={row.economy ?? ''}
+                  onChange={(event) => updateManualRow(cardKey, rowIdx, { economy: event.target.value })}
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  value={row.extras ?? 0}
+                  onChange={(event) =>
+                    updateManualRow(cardKey, rowIdx, {
+                      extras: event.target.value === '' ? 0 : Number(event.target.value),
+                    })
+                  }
+                />
+              </td>
+              <td>
+                <button type="button" className="link-btn" onClick={() => handleRemoveRow(cardKey, rowIdx)}>
+                  ✕
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+  };
+
+  const renderCardSection = (cfg) => {
+    const card = cardState[cfg.key];
+    if (!card) return null;
+    const statusText = STATUS_COPY[card.status] ?? STATUS_COPY.idle;
+    const cardComplete = hasMeaningfulData(cfg.key);
+
+    return (
+      <section key={cfg.key} className="scorecard-panel">
+        <div className="panel-heading scorecard-heading">
+          <div>
+            <div>{cfg.label}</div>
+            <p className="muted">{cfg.description}</p>
+          </div>
+          <span className="scorecard-meta">
+            {cardComplete ? '✅ Data captured' : '⚠️ Awaiting data'} · {statusText}
+          </span>
+        </div>
+
+        <section
+          className="upload-zone"
+          onDrop={(event) => {
+            event.preventDefault();
+            acceptFile(cfg.key, event.dataTransfer.files?.[0]);
+          }}
+          onDragOver={(event) => event.preventDefault()}
+        >
+          <input
+            id={`ocr-file-input-${cfg.key}`}
+            type="file"
+            accept="image/*"
+            onChange={(event) => acceptFile(cfg.key, event.target.files?.[0])}
+          />
+          <label htmlFor={`ocr-file-input-${cfg.key}`}>
+            <strong>Drop an image</strong> or click to browse
+          </label>
+          {card.file && (
+            <p className="file-meta">
+              Selected: {card.file.name} · {(card.file.size / 1024).toFixed(0)} KB
+            </p>
+          )}
+          <p className="helper-text">{statusText}</p>
+          {card.status === 'processing' && (
+            <div className="progress-track">
+              <div className="progress-fill" style={{ width: `${card.progress}%` }} />
+              <span>{card.progress}%</span>
+            </div>
+          )}
+        </section>
+
+        {card.previewUrl && (
+          <div className="preview-panel">
+            <div className="panel-heading">Image preview</div>
+            <img src={card.previewUrl} alt={`${cfg.label} upload`} />
+          </div>
+        )}
+
+        {card.error && <div className="error-banner">{card.error}</div>}
+
+        <div className="action-row">
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => runOcr(cfg.key)}
+            disabled={!card.file || card.status === 'processing'}
+          >
+            {card.status === 'processing' ? 'Extracting…' : 'Extract Text'}
+          </button>
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={() => exportDocx(cfg.key)}
+            disabled={!card.ocrText}
+          >
+            Download Word (.docx)
+          </button>
+          <button type="button" className="ghost-btn" onClick={() => resetCard(cfg.key)}>
+            Reset
+          </button>
+        </div>
+
+        <div className="table-controls">
+          <button type="button" className="secondary-btn" onClick={() => handleAddRow(cfg.key)}>
+            Add Row
+          </button>
+        </div>
+
+        {cfg.type === 'batting'
+          ? renderBattingTable(cfg.key, card)
+          : renderBowlingTable(cfg.key, card)}
+      </section>
+    );
+  };
+
+  const requiredCards = ['homeBatting', 'homeBowling'];
+  const canSubmit =
+    requiredCards.every(hasMeaningfulData) &&
+    playerEntries.length > 0 &&
+    primaryTeamName.trim().length > 0 &&
+    !saving &&
+    !rosterLoading;
+
+  return (
+    <div className="ocr-page">
+      <div className="ocr-card">
+        <header className="ocr-header">
+          <div>
+            <h1>Team OCR Upload</h1>
+            <p>
+              Drop just your team&apos;s batting and bowling cards, map each row to your roster, then push
+              everything straight into Player Stats with MoM and playoff tagging.
+            </p>
+          </div>
+          <button type="button" className="ghost-btn" onClick={() => window.location.reload()}>
+            Reset All
+          </button>
+        </header>
+
+        <section className="fixture-meta">
+          <label>
+            Fixture
+            {fixturesLoading ? (
+              <div className="muted">Loading fixtures…</div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  className="fixture-search-input"
+                  placeholder="Search team or match..."
+                  value={fixtureSearch}
+                  onChange={(event) => setFixtureSearch(event.target.value)}
+                />
+                <select
+                  value={selectedFixtureId}
+                  onChange={(event) => setSelectedFixtureId(event.target.value)}
+                >
+                  <option value="">Select a fixture</option>
+                  {filteredFixtures.map((fx) => (
+                    <option key={fx._id} value={fx._id}>
+                      {fx.team1} vs {fx.team2}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+          </label>
+          <label>
+            Your Team
+            <input
+              type="text"
+              value={primaryTeamName}
+              onChange={(event) => setPrimaryTeamName(event.target.value)}
+              placeholder="e.g. Bluefire Legion"
+            />
+          </label>
+          <label>
+            Opponent Team
+            {selectedFixture ? (
+              <select
+                value={opponentTeamName}
+                onChange={(event) => setOpponentTeamName(event.target.value)}
+              >
+                <option value="">Select opponent</option>
+                {[selectedFixture.team1, selectedFixture.team2]
+                  .filter(Boolean)
+                  .map((team) => (
+                    <option key={team} value={team}>
+                      {team}
+                    </option>
+                  ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={opponentTeamName}
+                onChange={(event) => setOpponentTeamName(event.target.value)}
+                placeholder="Opponent as shown on scoreboard"
+              />
+            )}
+          </label>
+          <label>
+            Venue
+            <input
+              type="text"
+              value={venue}
+              onChange={(event) => setVenue(event.target.value)}
+              placeholder="Venue or ground"
+            />
+          </label>
+          <label>
+            Match Label
+            <input
+              type="text"
+              value={matchLabel}
+              onChange={(event) => setMatchLabel(event.target.value)}
+              placeholder="Qualifier 1 vs Royals"
+            />
+          </label>
+          <label className={`playoff-checkbox-wrapper ${isPlayoff ? 'checked' : ''}`}>
+            <input
+              type="checkbox"
+              className="playoff-checkbox"
+              checked={isPlayoff}
+              onChange={(event) => setIsPlayoff(event.target.checked)}
+            />
+            <span className="playoff-checkbox-label">
+              <span className="playoff-icon">🏆</span>
+              Count this match as a playoff score
+            </span>
+          </label>
+        </section>
+
+        <div className="roster-hint">
+          {rosterLoading ? (
+            <span>Loading your roster…</span>
+          ) : rosterOptions.length ? (
+            <span>
+              Your roster loaded · {rosterOptions.length} players available · {playerEntries.length} mapped in this upload
+            </span>
+          ) : (
+            <span>No active roster players found for this account.</span>
+          )}
+          {opponentTeamName && (
+            <>
+              {opponentRosterLoading ? (
+                <span> · Loading opponent roster…</span>
+              ) : opponentRosterOptions.length ? (
+                <span> · Opponent roster loaded · {opponentRosterOptions.length} players available</span>
+              ) : opponentRosterError ? (
+                <span> · Opponent roster: {opponentRosterError}</span>
+              ) : (
+                <span> · Opponent roster: Not available</span>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* OCR Controls disabled */}
+        {/* <section className="ocr-controls">
+          <div className="control-group">
+            <label htmlFor="ocr-language">Language</label>
+            <select id="ocr-language" value={language} onChange={(event) => setLanguage(event.target.value)}>
+              <option value="eng">English</option>
+              <option value="hin">Hindi</option>
+              <option value="ben">Bengali</option>
+              <option value="tam">Tamil</option>
+              <option value="tel">Telugu</option>
+              <option value="spa">Spanish</option>
+              <option value="fra">French</option>
+              <option value="deu">German</option>
+            </select>
+          </div>
+          <div className="control-group checkbox">
+            <label htmlFor="enhance-toggle">
+              <input
+                id="enhance-toggle"
+                type="checkbox"
+                checked={applyEnhancement}
+                onChange={(event) => setApplyEnhancement(event.target.checked)}
+              />
+              Auto enhance before OCR
+            </label>
+          </div>
+          <div className="control-group">
+            <label htmlFor="upscale-range">Upscale ×{upscaleFactor.toFixed(1)}</label>
+            <input
+              id="upscale-range"
+              type="range"
+              min="1"
+              max="3"
+              step="0.1"
+              value={upscaleFactor}
+              onChange={(event) => setUpscaleFactor(Number(event.target.value))}
+              disabled={!applyEnhancement}
+            />
+          </div>
+          <div className="control-group">
+            <label htmlFor="contrast-range">Contrast {contrast.toFixed(2)}x</label>
+            <input
+              id="contrast-range"
+              type="range"
+              min="0.8"
+              max="2"
+              step="0.05"
+              value={contrast}
+              onChange={(event) => setContrast(Number(event.target.value))}
+              disabled={!applyEnhancement}
+            />
+          </div>
+          <div className="control-group">
+            <label htmlFor="brightness-range">Brightness {brightness.toFixed(2)}x</label>
+            <input
+              id="brightness-range"
+              type="range"
+              min="0.7"
+              max="1.5"
+              step="0.05"
+              value={brightness}
+              onChange={(event) => setBrightness(Number(event.target.value))}
+              disabled={!applyEnhancement}
+            />
+          </div>
+          <div className="control-group">
+            <label htmlFor="psm">Page layout</label>
+            <select id="psm" value={pageSegMode} onChange={(event) => setPageSegMode(event.target.value)}>
+              <option value="6">Uniform text block</option>
+              <option value="3">Fully automatic</option>
+              <option value="4">Column of text</option>
+              <option value="5">Single line</option>
+              <option value="11">Sparse text</option>
+            </select>
+          </div>
+          <div className="control-group full-width">
+            <label htmlFor="whitelist">Character whitelist</label>
+            <input
+              id="whitelist"
+              type="text"
+              value={charWhitelist}
+              onChange={(event) => setCharWhitelist(event.target.value)}
+              placeholder="Characters you expect in the document"
+            />
+          </div>
+        </section> */}
+
+        {rosterError && <div className="error-banner">{rosterError}</div>}
+        {globalError && <div className="error-banner">{globalError}</div>}
+        {saveMessage && <div className="success-banner">{saveMessage}</div>}
+
+        <section className="card-status-grid">
+          {CARD_CONFIGS.map((cfg) => (
+            <div key={`status-${cfg.key}`} className="card-status-chip">
+              <span>{cfg.label}</span>
+              <strong>{hasMeaningfulData(cfg.key) ? 'Ready' : 'Pending'}</strong>
+            </div>
+          ))}
+        </section>
+
+        {CARD_CONFIGS.map((cfg) => renderCardSection(cfg))}
+
+        <div className="submit-row">
+          <div>
+            <p className="helper-text subtle">
+              Upload both batting & bowling cards, map every row to a roster player, flag MoM where
+              needed, then hit save to push each entry into Player Stats automatically.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={handleSubmitScorecard}
+            disabled={!canSubmit}
+          >
+            {saving ? 'Saving stats…' : 'Save Player Stats'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default OcrExtractor;
+

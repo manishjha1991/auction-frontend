@@ -29,7 +29,8 @@ import AdminFairnessManagement from './components/AdminFairnessManagement';
 import TournamentList from './components/TournamentList';
 import TrophyHall from './components/TrophyHall';
 import AdminMatchResults from './components/AdminMatchResults';
-import ImageTextExtractor from './components/ImageTextExtractor';
+import OcrExtractor from './components/OcrExtractor';
+
 // AdminDashboard removed - performance dashboard disabled
 
 import './App.css';
@@ -203,9 +204,9 @@ function App() {
             <Route path="/tournaments" element={<PrivateRoute><TournamentList /></PrivateRoute>} />
             <Route path="/trophy-hall" element={<PrivateRoute><TrophyHall /></PrivateRoute>} />
             <Route path="/admin-match-results" element={<PrivateRoute><AdminMatchResults /></PrivateRoute>} />
-            <Route path="/ocr" element={<PrivateRoute><ImageTextExtractor /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
             <Route path="/player-insights" element={<PrivateRoute><PlayerInsightsPage /></PrivateRoute>} />
+            <Route path="/ocr" element={<PrivateRoute><OcrExtractor /></PrivateRoute>} />
             
 
             {/* NEW: StatsOverview Route */}
