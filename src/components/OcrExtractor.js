@@ -534,6 +534,49 @@ const OcrExtractor = () => {
     [opponentRosterOptions]
   );
 
+  // Get card configuration
+  const getCardConfig = useCallback((cardKey) => CARD_CONFIGS.find((cfg) => cfg.key === cardKey), []);
+
+  // Check if a player name matches the roster
+  const checkPlayerMatch = useCallback(
+    (name = '', isHomeTeam = true) => {
+      if (!name) return { matched: false, playerId: '' };
+      const findPlayer = isHomeTeam ? findPlayerIdByName : findOpponentPlayerIdByName;
+      const playerId = findPlayer(name);
+      return { matched: !!playerId, playerId };
+    },
+    [findPlayerIdByName, findOpponentPlayerIdByName]
+  );
+
+  // Get matching statistics for a card
+  const getCardMatchStats = useCallback(
+    (cardKey) => {
+      const card = cardState[cardKey];
+      if (!card || !card.manualRows.length) return { total: 0, matched: 0, unmatched: 0 };
+      const cfg = getCardConfig(cardKey);
+      const isHomeTeam = cfg?.isHomeTeam !== false;
+      
+      let matched = 0;
+      let unmatched = 0;
+      
+      card.manualRows.forEach((row) => {
+        if (row.playerId) {
+          matched++;
+        } else if (row.name) {
+          const match = checkPlayerMatch(row.name, isHomeTeam);
+          if (match.matched) {
+            matched++;
+          } else {
+            unmatched++;
+          }
+        }
+      });
+      
+      return { total: card.manualRows.length, matched, unmatched };
+    },
+    [cardState, getCardConfig, checkPlayerMatch]
+  );
+
   useEffect(() => {
     if (!rosterOptions.length && !opponentRosterOptions.length) return;
     setCardState((prev) => {
@@ -560,8 +603,6 @@ const OcrExtractor = () => {
       return changed ? nextState : prev;
     });
   }, [findPlayerIdByName, findOpponentPlayerIdByName, rosterOptions.length, opponentRosterOptions.length]);
-
-  const getCardConfig = useCallback((cardKey) => CARD_CONFIGS.find((cfg) => cfg.key === cardKey), []);
 
   const acceptFile = useCallback(
     (cardKey, file) => {
@@ -1262,8 +1303,16 @@ const OcrExtractor = () => {
             </tr>
           </thead>
           <tbody>
-            {card.manualRows.map((row, rowIdx) => (
-              <tr key={`bat-row-${rowIdx}`}>
+            {card.manualRows.map((row, rowIdx) => {
+              const isMatched = !!row.playerId;
+              // Always check name match (even if already selected) to determine if it was auto-matched
+              const nameMatch = row.name ? checkPlayerMatch(row.name, isHomeTeam) : null;
+              const needsAttention = !isMatched && row.name && !nameMatch?.matched;
+              // Check if this was auto-matched (playerId matches the name match result)
+              const wasAutoMatched = isMatched && nameMatch?.matched && nameMatch?.playerId === row.playerId;
+              
+              return (
+              <tr key={`bat-row-${rowIdx}`} className={needsAttention ? 'row-unmatched' : isMatched ? 'row-matched' : ''}>
                 <td>
                   {!row.playerId && (
                     <input
@@ -1273,19 +1322,36 @@ const OcrExtractor = () => {
                         updateManualRow(cardKey, rowIdx, { name: event.target.value })
                       }
                       placeholder="Player name"
+                      className={needsAttention ? 'input-unmatched' : ''}
                     />
                   )}
-                  <select
-                    value={row.playerId || ''}
-                    onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
-                  >
-                    <option value="">Select roster player</option>
-                    {rosterOptionsToUse.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="player-select-wrapper">
+                    <select
+                      value={row.playerId || ''}
+                      onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
+                      className={needsAttention ? 'select-unmatched' : isMatched ? 'select-matched' : ''}
+                    >
+                      <option value="">Select roster player</option>
+                      {rosterOptionsToUse.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {isMatched && (
+                      <span 
+                        className={`match-indicator ${wasAutoMatched ? 'matched-auto' : 'matched-manual'}`} 
+                        title={wasAutoMatched ? "Auto-matched with roster" : "Manually selected from roster"}
+                      >
+                        {wasAutoMatched ? '✓' : '✓'}
+                      </span>
+                    )}
+                    {needsAttention && (
+                      <span className="match-indicator unmatched" title="Player not found in roster - please select">
+                        ⚠
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td>
                   <input
@@ -1326,7 +1392,8 @@ const OcrExtractor = () => {
                   </button>
                 </td>
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </div>
@@ -1351,8 +1418,16 @@ const OcrExtractor = () => {
             </tr>
           </thead>
           <tbody>
-            {card.manualRows.map((row, rowIdx) => (
-              <tr key={`bowl-row-${rowIdx}`}>
+            {card.manualRows.map((row, rowIdx) => {
+              const isMatched = !!row.playerId;
+              // Always check name match (even if already selected) to determine if it was auto-matched
+              const nameMatch = row.name ? checkPlayerMatch(row.name, isHomeTeam) : null;
+              const needsAttention = !isMatched && row.name && !nameMatch?.matched;
+              // Check if this was auto-matched (playerId matches the name match result)
+              const wasAutoMatched = isMatched && nameMatch?.matched && nameMatch?.playerId === row.playerId;
+              
+              return (
+              <tr key={`bowl-row-${rowIdx}`} className={needsAttention ? 'row-unmatched' : isMatched ? 'row-matched' : ''}>
                 <td>
                   {!row.playerId && (
                     <input
@@ -1362,19 +1437,36 @@ const OcrExtractor = () => {
                         updateManualRow(cardKey, rowIdx, { name: event.target.value })
                       }
                       placeholder="Bowler name"
+                      className={needsAttention ? 'input-unmatched' : ''}
                     />
                   )}
-                  <select
-                    value={row.playerId || ''}
-                    onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
-                  >
-                    <option value="">Select roster player</option>
-                    {rosterOptionsToUse.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="player-select-wrapper">
+                    <select
+                      value={row.playerId || ''}
+                      onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
+                      className={needsAttention ? 'select-unmatched' : isMatched ? 'select-matched' : ''}
+                    >
+                      <option value="">Select roster player</option>
+                      {rosterOptionsToUse.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {isMatched && (
+                      <span 
+                        className={`match-indicator ${wasAutoMatched ? 'matched-auto' : 'matched-manual'}`} 
+                        title={wasAutoMatched ? "Auto-matched with roster" : "Manually selected from roster"}
+                      >
+                        {wasAutoMatched ? '✓' : '✓'}
+                      </span>
+                    )}
+                    {needsAttention && (
+                      <span className="match-indicator unmatched" title="Player not found in roster - please select">
+                        ⚠
+                      </span>
+                    )}
+                  </div>
                 </td>
               <td>
                 <input
@@ -1413,7 +1505,8 @@ const OcrExtractor = () => {
                 </button>
               </td>
             </tr>
-          ))}
+          );
+          })}
         </tbody>
       </table>
     </div>
@@ -1477,6 +1570,30 @@ const OcrExtractor = () => {
         )}
 
         {card.error && <div className="error-banner">{card.error}</div>}
+
+        {card.manualRows.length > 0 && (
+          <div className="match-summary">
+            {(() => {
+              const stats = getCardMatchStats(cfg.key);
+              if (stats.total === 0) return null;
+              return (
+                <div className={`match-summary-content ${stats.unmatched > 0 ? 'has-unmatched' : 'all-matched'}`}>
+                  <span className="match-count">
+                    {stats.matched > 0 && (
+                      <span className="matched-count">✓ {stats.matched} matched</span>
+                    )}
+                    {stats.unmatched > 0 && (
+                      <span className="unmatched-count">⚠ {stats.unmatched} need selection</span>
+                    )}
+                    {stats.unmatched === 0 && stats.matched === stats.total && (
+                      <span className="all-matched-text">All players matched!</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
+        )}
 
         <div className="action-row">
           <button
