@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from "../const";
 import LoadingCube from "./CricketAnimation";
 import NotificationBell from './NotificationBell';
 import TeamStrengthChart from './TeamStrengthChart';
+import AdminControlPanel from './AdminControlPanel';
 const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,6 +15,7 @@ const Profile = () => {
 
   // Admin state
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminProfileUser, setAdminProfileUser] = useState(null);
 
   // Confirmation popups
   const [showConfirmSell, setShowConfirmSell] = useState(false);
@@ -45,8 +47,14 @@ const Profile = () => {
 
   // Check localStorage for user.isAdmin
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    setIsAdmin(user?.isAdmin === true);
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      setIsAdmin(user?.isAdmin === true);
+      setAdminProfileUser(user);
+    } catch (err) {
+      console.error('Failed to parse user from storage', err);
+      setIsAdmin(false);
+    }
   }, []);
 
   // Fetch user data
@@ -512,6 +520,15 @@ const Profile = () => {
       setError('Failed to update profile. Please try again later.');
     }
   };
+
+  if (isAdmin) {
+    return (
+      <div className="admin-profile-container">
+        <NotificationBell />
+        <AdminControlPanel adminUser={adminProfileUser || userData?.user} />
+      </div>
+    );
+  }
 
   if (loading) {
     return <LoadingCube animationFile="Profile.json" />;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../const';
 import '../css/AdminSettings.css';
+import PlayerTypeControls from './PlayerTypeControls';
 
 function AdminSettings() {
   const [user, setUser] = useState(null);
@@ -181,6 +182,10 @@ function AdminSettings() {
           )}
           <div className="actions">
             <button className="btn btn-ghost" onClick={loadSettings} disabled={saving}>Refresh</button>
+          </div>
+          <div className="subpanel">
+            <div className="subpanel-title">Player Type Availability</div>
+            <PlayerTypeControls adminUserId={user?.id} showHeader={false} />
           </div>
         </div>
       )}
