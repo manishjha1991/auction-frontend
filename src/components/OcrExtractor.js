@@ -267,6 +267,59 @@ const SCORECARD_EXCLUDE_PATTERN =
 
 const normalizePlayerKey = (value = '') => value.replace(/[^a-z]/gi, '').toLowerCase();
 
+// Enhanced matching for abbreviated names (e.g., "J. Clark" matches "Jordan Clark")
+const matchPlayerName = (extractedName = '', rosterName = '') => {
+  if (!extractedName || !rosterName) return false;
+  
+  // Normalize both names
+  const extracted = extractedName.trim().toLowerCase();
+  const roster = rosterName.trim().toLowerCase();
+  
+  // Exact match after normalization
+  if (normalizePlayerKey(extracted) === normalizePlayerKey(roster)) {
+    return true;
+  }
+  
+  // Split into parts
+  const extractedParts = extracted.split(/\s+/).filter(Boolean);
+  const rosterParts = roster.split(/\s+/).filter(Boolean);
+  
+  if (extractedParts.length === 0 || rosterParts.length === 0) return false;
+  
+  // Get last names (usually the last part)
+  const extractedLastName = extractedParts[extractedParts.length - 1];
+  const rosterLastName = rosterParts[rosterParts.length - 1];
+  
+  // Last names must match
+  if (normalizePlayerKey(extractedLastName) !== normalizePlayerKey(rosterLastName)) {
+    return false;
+  }
+  
+  // Check if extracted name has an initial (single letter or letter with period)
+  const extractedFirst = extractedParts[0];
+  const isInitial = /^[a-z]\.?$/i.test(extractedFirst);
+  
+  if (isInitial) {
+    // If extracted is an initial, check if it matches the first letter of roster first name
+    const rosterFirst = rosterParts[0];
+    const extractedInitial = extractedFirst.replace(/\./g, '').toLowerCase();
+    const rosterFirstInitial = rosterFirst.charAt(0).toLowerCase();
+    return extractedInitial === rosterFirstInitial;
+  }
+  
+  // If not an initial, check if first names match (fuzzy)
+  const extractedFirstName = extractedParts[0];
+  const rosterFirstName = rosterParts[0];
+  
+  // Check if extracted first name starts with roster first name or vice versa
+  const extractedFirstNorm = normalizePlayerKey(extractedFirstName);
+  const rosterFirstNorm = normalizePlayerKey(rosterFirstName);
+  
+  return extractedFirstNorm === rosterFirstNorm || 
+         extractedFirstNorm.startsWith(rosterFirstNorm) || 
+         rosterFirstNorm.startsWith(extractedFirstNorm);
+};
+
 const convertOversToBalls = (oversValue) => {
   if (oversValue === undefined || oversValue === null || oversValue === '') return null;
   const str = String(oversValue).trim();
@@ -512,24 +565,44 @@ const OcrExtractor = () => {
 
   const findPlayerIdByName = useCallback(
     (name = '') => {
+      if (!name) return '';
+      
+      // First try exact match
       const key = normalizePlayerKey(name);
-      if (!key) return '';
-      const match = rosterOptions.find(
-        (option) => normalizePlayerKey(option.label) === key
+      if (key) {
+        const exactMatch = rosterOptions.find(
+          (option) => normalizePlayerKey(option.label) === key
+        );
+        if (exactMatch) return exactMatch.value;
+      }
+      
+      // Then try enhanced matching for abbreviated names
+      const enhancedMatch = rosterOptions.find(
+        (option) => matchPlayerName(name, option.label)
       );
-      return match?.value || '';
+      return enhancedMatch?.value || '';
     },
     [rosterOptions]
   );
 
   const findOpponentPlayerIdByName = useCallback(
     (name = '') => {
+      if (!name) return '';
+      
+      // First try exact match
       const key = normalizePlayerKey(name);
-      if (!key) return '';
-      const match = opponentRosterOptions.find(
-        (option) => normalizePlayerKey(option.label) === key
+      if (key) {
+        const exactMatch = opponentRosterOptions.find(
+          (option) => normalizePlayerKey(option.label) === key
+        );
+        if (exactMatch) return exactMatch.value;
+      }
+      
+      // Then try enhanced matching for abbreviated names
+      const enhancedMatch = opponentRosterOptions.find(
+        (option) => matchPlayerName(name, option.label)
       );
-      return match?.value || '';
+      return enhancedMatch?.value || '';
     },
     [opponentRosterOptions]
   );
@@ -577,6 +650,7 @@ const OcrExtractor = () => {
     [cardState, getCardConfig, checkPlayerMatch]
   );
 
+  // Auto-match players when roster loads (for existing rows)
   useEffect(() => {
     if (!rosterOptions.length && !opponentRosterOptions.length) return;
     setCardState((prev) => {
@@ -584,7 +658,7 @@ const OcrExtractor = () => {
       const nextState = { ...prev };
       CARD_CONFIGS.forEach((cfg) => {
         const card = prev[cfg.key];
-        if (!card) return;
+        if (!card || !card.manualRows.length) return;
         const isHomeTeam = cfg.isHomeTeam !== false;
         const options = isHomeTeam ? rosterOptions : opponentRosterOptions;
         const findPlayer = isHomeTeam ? findPlayerIdByName : findOpponentPlayerIdByName;
@@ -595,8 +669,14 @@ const OcrExtractor = () => {
           if (row.playerId) return row;
           const matchedId = findPlayer(row.name);
           if (!matchedId) return row;
+          // Find the roster player's name to replace the extracted name
+          const matchedPlayer = options.find((opt) => opt.value === matchedId);
           changed = true;
-          return { ...row, playerId: matchedId };
+          return { 
+            ...row, 
+            playerId: matchedId,
+            name: matchedPlayer?.label || row.name // Replace with roster name
+          };
         });
         nextState[cfg.key] = { ...card, manualRows: nextRows };
       });
@@ -721,6 +801,9 @@ const OcrExtractor = () => {
         updateCardState(cardKey, (prev) => ({ ...prev, error: 'Please select an image first.' }));
         return;
       }
+      const isHomeTeam = config?.isHomeTeam !== false;
+      const optionsToUse = isHomeTeam ? rosterOptions : opponentRosterOptions;
+      const findPlayer = isHomeTeam ? findPlayerIdByName : findOpponentPlayerIdByName;
       updateCardState(cardKey, (prev) => ({ ...prev, status: 'processing', progress: 0, error: '' }));
       try {
         const sourceImage = applyEnhancement
@@ -762,10 +845,26 @@ const OcrExtractor = () => {
           setVenue(parsed.meta.venue);
         }
 
+        // Auto-match players immediately after OCR extraction
+        let matchedRows = rowsToUse;
+        if (optionsToUse.length > 0 && rowsToUse.length > 0) {
+          matchedRows = rowsToUse.map((row) => {
+            if (row.playerId) return row;
+            const matchedId = findPlayer(row.name);
+            if (!matchedId) return row;
+            const matchedPlayer = optionsToUse.find((opt) => opt.value === matchedId);
+            return {
+              ...row,
+              playerId: matchedId,
+              name: matchedPlayer?.label || row.name
+            };
+          });
+        }
+
         updateCardState(cardKey, (prev) => ({
           ...prev,
           ocrText: text,
-          manualRows: rowsToUse,
+          manualRows: matchedRows,
           status: 'done',
           progress: 100,
           processedBlob,
@@ -950,7 +1049,7 @@ const OcrExtractor = () => {
 
   const sanitizeBowlingRows = useCallback((rows = []) => {
     return (rows || [])
-      .filter((row) => row?.name)
+      .filter((row) => row?.name && row?.playerId) // Bowling requires playerId
       .map((row) => {
         const oversStr = row.overs === undefined || row.overs === null ? '' : String(row.overs);
         const ballsBowledCandidate =
@@ -1325,33 +1424,40 @@ const OcrExtractor = () => {
                       className={needsAttention ? 'input-unmatched' : ''}
                     />
                   )}
-                  <div className="player-select-wrapper">
-                    <select
-                      value={row.playerId || ''}
-                      onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
-                      className={needsAttention ? 'select-unmatched' : isMatched ? 'select-matched' : ''}
-                    >
-                      <option value="">Select roster player</option>
-                      {rosterOptionsToUse.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    {isMatched && (
+                  {/* For batting: Only show dropdown if NOT matched */}
+                  {!isMatched && (
+                    <div className="player-select-wrapper">
+                      <select
+                        value={row.playerId || ''}
+                        onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
+                        className={needsAttention ? 'select-unmatched' : ''}
+                      >
+                        <option value="">Select roster player</option>
+                        {rosterOptionsToUse.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      {needsAttention && (
+                        <span className="match-indicator unmatched" title="Player not found in roster - please select">
+                          ⚠
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {/* For batting: Show matched indicator if matched (no dropdown) */}
+                  {isMatched && (
+                    <div className="player-select-wrapper">
+                      <span className="matched-name-display">{row.name}</span>
                       <span 
                         className={`match-indicator ${wasAutoMatched ? 'matched-auto' : 'matched-manual'}`} 
                         title={wasAutoMatched ? "Auto-matched with roster" : "Manually selected from roster"}
                       >
-                        {wasAutoMatched ? '✓' : '✓'}
+                        ✓
                       </span>
-                    )}
-                    {needsAttention && (
-                      <span className="match-indicator unmatched" title="Player not found in roster - please select">
-                        ⚠
-                      </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </td>
                 <td>
                   <input
@@ -1440,13 +1546,15 @@ const OcrExtractor = () => {
                       className={needsAttention ? 'input-unmatched' : ''}
                     />
                   )}
+                  {/* For bowling: Always show dropdown (mandatory for all players) */}
                   <div className="player-select-wrapper">
                     <select
                       value={row.playerId || ''}
                       onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
                       className={needsAttention ? 'select-unmatched' : isMatched ? 'select-matched' : ''}
+                      required
                     >
-                      <option value="">Select roster player</option>
+                      <option value="">Select roster player *</option>
                       {rosterOptionsToUse.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -1458,7 +1566,7 @@ const OcrExtractor = () => {
                         className={`match-indicator ${wasAutoMatched ? 'matched-auto' : 'matched-manual'}`} 
                         title={wasAutoMatched ? "Auto-matched with roster" : "Manually selected from roster"}
                       >
-                        {wasAutoMatched ? '✓' : '✓'}
+                        ✓
                       </span>
                     )}
                     {needsAttention && (

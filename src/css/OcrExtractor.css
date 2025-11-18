@@ -619,6 +619,17 @@
   font-weight: 600;
 }
 
+.matched-name-display {
+  color: #f5f7ff;
+  font-weight: 500;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.5rem;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  flex: 1;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
