@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import '../css/Login.css'; // Import CSS for styling
+import '../css/Auth.css';
 import { API_ENDPOINTS } from "../const";
 
 const Login = ({ onLogin }) => {
@@ -40,39 +40,77 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <div className="login-container">
-      <img 
-        src="images/cricket_trophy_CPL.jpg" 
-        alt="Cricket Trophy" 
-        className="trophy-image" 
-      />
-      <h2>Welcome Back!</h2>
-      {error && <p className="error-message">{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={credentials.email}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={credentials.password}
-          onChange={handleChange}
-          required
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Loading...' : 'Login'}
-        </button>
-      </form>
-      {loading && <div className="loading-spinner"></div>}
-      <p className="signup-redirect">
-        Don't have an account? <Link to="/signup">Sign up here</Link>
-      </p>
+    <div className="auth-page auth-login">
+      <div className="auth-background">
+        <span className="orb orb-one" />
+        <span className="orb orb-two" />
+        <span className="orb orb-three" />
+      </div>
+
+      <div className="auth-content">
+        <div className="auth-illustration">
+          <p className="eyebrow">CPL Auction Hub</p>
+          <h1>Welcome back to the arena.</h1>
+          <p className="subtitle">
+            Manage squads, track purses, and make your next championship-defining move.
+          </p>
+          <ul className="feature-list">
+            <li>⚡ Real-time bidding updates</li>
+            <li>📊 Smart insights & player stats</li>
+            <li>📱 Optimised for every screen</li>
+          </ul>
+        </div>
+
+        <div className="auth-card">
+          <div className="auth-card-heading">
+            <img
+              src="images/cricket_trophy_CPL.jpg"
+              alt="Cricket Trophy"
+              className="auth-logo"
+            />
+            <div>
+              <p className="eyebrow">Sign in</p>
+              <h2>Welcome Back</h2>
+            </div>
+          </div>
+
+          {error && <p className="auth-error">{error}</p>}
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <label>
+              <span>Email</span>
+              <input
+                type="email"
+                name="email"
+                placeholder="captain@cpl.com"
+                value={credentials.email}
+                onChange={handleChange}
+                required
+              />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                value={credentials.password}
+                onChange={handleChange}
+                required
+              />
+            </label>
+
+            <button type="submit" className="auth-primary-btn" disabled={loading}>
+              {loading ? 'Signing you in…' : 'Login'}
+            </button>
+          </form>
+
+          <div className="auth-footer">
+            <p>New to CPL?</p>
+            <Link to="/signup">Create an account</Link>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
