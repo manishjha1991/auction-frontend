@@ -5,6 +5,165 @@ import { API_ENDPOINTS } from '../const';
 const formatNumber = (value, digits = 2) =>
   typeof value === 'number' ? value.toFixed(digits) : value || '—';
 
+const toNumber = (value) => (typeof value === 'number' ? value : Number(value) || 0);
+
+const inferRoleBucket = (roleFocus = '') => {
+  const text = (roleFocus || '').toLowerCase();
+  if (text.includes('all') || text.includes('round')) return 'allrounder';
+  if (text.includes('keeper')) return 'keeper';
+  if (text.includes('bowl')) return 'bowler';
+  return 'batter';
+};
+
+const normalizeRoleForCombo = (roleBucket) =>
+  roleBucket === 'keeper' ? 'batter' : roleBucket;
+
+const battingImpactIndex = (player = {}) => {
+  if (!player.batting) return 0;
+  const recentAvg = toNumber(player.batting.recentAverage);
+  const overallAvg = toNumber(player.batting.average);
+  const sr = toNumber(player.batting.recentStrikeRate);
+  return recentAvg * 0.6 + overallAvg * 0.4 + sr / 8;
+};
+
+const bowlingImpactIndex = (player = {}) => {
+  if (!player.bowling) return 0;
+  const wickets = toNumber(player.bowling.wicketsPerMatch);
+  const economy = toNumber(player.bowling.economy);
+  const strike = toNumber(player.bowling.strikeRate);
+  return wickets * 18 - economy * 1.5 - strike * 0.2;
+};
+
+const overallImpactIndex = (player, roleBucket) => {
+  const formScore = toNumber(player.formScore || player.form?.score);
+  const roleWeight =
+    roleBucket === 'allrounder'
+      ? 12
+      : roleBucket === 'bowler'
+      ? 6
+      : roleBucket === 'keeper'
+      ? 5
+      : 8;
+  return formScore * 0.75 + battingImpactIndex(player) + bowlingImpactIndex(player) + roleWeight;
+};
+
+const roleDescriptor = (roleBucket) => {
+  switch (roleBucket) {
+    case 'bowler':
+      return 'strike bowler';
+    case 'keeper':
+      return 'keeper-batter';
+    case 'allrounder':
+      return '3D impact option';
+    default:
+      return 'top-order anchor';
+  }
+};
+
+const buildPlayerNarrative = (player, roleBucket) => {
+  const snippets = [];
+  const formScore = player.formScore || player.form?.score;
+  if (formScore) snippets.push(`form score ${formScore}`);
+  if ((roleBucket === 'batter' || roleBucket === 'keeper' || roleBucket === 'allrounder') && player.batting) {
+    snippets.push(
+      `recent ${formatNumber(player.batting.recentAverage || 0)} @ ${formatNumber(
+        player.batting.recentStrikeRate || 0
+      )} SR`
+    );
+  }
+  if ((roleBucket === 'bowler' || roleBucket === 'allrounder') && player.bowling) {
+    snippets.push(
+      `${formatNumber(player.bowling.wicketsPerMatch || 0)} wkts/match, ${formatNumber(
+        player.bowling.economy || 0
+      )} econ`
+    );
+  }
+  return snippets.join(' • ') || 'balanced output';
+};
+
+const buildComboContext = (leader, leaderRole, trailer, trailerRole) => {
+  const leaderType = normalizeRoleForCombo(leaderRole);
+  const trailerType = normalizeRoleForCombo(trailerRole);
+
+  const leaderNarrative = buildPlayerNarrative(leader, leaderRole);
+  const trailerNarrative = buildPlayerNarrative(trailer, trailerRole);
+
+  const describeNeed = (need) => ` when your XI needs ${need}`;
+
+  if (
+    (leaderType === 'batter' && trailerType === 'bowler') ||
+    (leaderType === 'bowler' && trailerType === 'batter')
+  ) {
+    if (leaderType === 'batter') {
+      return `${leader.playerName} tilts it with run production, but ${trailer.playerName} still supplies wickets (${trailerNarrative}). Pick ${trailer.playerName}${describeNeed(
+        'an extra strike spell'
+      )}.`;
+    }
+    return `${leader.playerName} wins on wicket-taking upside, whereas ${trailer.playerName} remains the safer batting anchor (${trailerNarrative}). Turn to ${trailer.playerName}${describeNeed(
+      'top-order stability'
+    )}.`;
+  }
+
+  if (
+    (leaderType === 'batter' && trailerType === 'allrounder') ||
+    (leaderType === 'allrounder' && trailerType === 'batter')
+  ) {
+    if (leaderType === 'allrounder') {
+      return `${leader.playerName} adds dual value (${leaderNarrative}), while ${trailer.playerName} is pure batting security. Slot ${trailer.playerName} if your order still lacks an anchor.`;
+    }
+    return `${leader.playerName} is the premium batting option, but ${trailer.playerName} keeps you covered with overs (${trailerNarrative}). Go with ${trailer.playerName} when the balance sheet needs that extra bowling cushion.`;
+  }
+
+  if (
+    (leaderType === 'bowler' && trailerType === 'allrounder') ||
+    (leaderType === 'allrounder' && trailerType === 'bowler')
+  ) {
+    if (leaderType === 'allrounder') {
+      return `${leader.playerName} offers 3D impact (${leaderNarrative}), whereas ${trailer.playerName} is your dedicated wicket hunter. Reach for ${trailer.playerName}${describeNeed(
+        'pure strike overs'
+      )}.`;
+    }
+    return `${leader.playerName} is the hotter strike bowler, yet ${trailer.playerName} plugs lower-order runs (${trailerNarrative}). Deploy ${trailer.playerName} if batting depth is the gap.`;
+  }
+
+  return '';
+};
+
+const craftRecommendationCopy = (players = []) => {
+  if (!Array.isArray(players) || players.length !== 2) {
+    return 'Awaiting enough data to generate an AI recommendation.';
+  }
+  const [rawA, rawB] = players;
+  const roleA = inferRoleBucket(rawA.roleFocus);
+  const roleB = inferRoleBucket(rawB.roleFocus);
+  const scoreA = overallImpactIndex(rawA, roleA);
+  const scoreB = overallImpactIndex(rawB, roleB);
+  const leader = scoreA >= scoreB ? rawA : rawB;
+  const leaderRole = scoreA >= scoreB ? roleA : roleB;
+  const trailer = scoreA >= scoreB ? rawB : rawA;
+  const trailerRole = scoreA >= scoreB ? roleB : roleA;
+  const gap = Math.abs(scoreA - scoreB);
+
+  if (gap < 8) {
+    return `${rawA.playerName} (${buildPlayerNarrative(rawA, roleA)}) and ${rawB.playerName} (${buildPlayerNarrative(
+      rawB,
+      roleB
+    )}) are trending evenly. Let matchups decide—lean ${roleDescriptor(
+      roleA
+    )} for powerplay control or ${roleDescriptor(roleB)} if you need flexibility.`;
+  }
+
+  const base = `${leader.playerName} profiles as the sharper ${roleDescriptor(
+    leaderRole
+  )} right now (${buildPlayerNarrative(leader, leaderRole)}). ${trailer.playerName} still offers ${buildPlayerNarrative(
+    trailer,
+    trailerRole
+  )}, so deploy when the role requirement matches their strengths.`;
+
+  const comboContext = buildComboContext(leader, leaderRole, trailer, trailerRole);
+  return comboContext ? `${base} ${comboContext}` : base;
+};
+
 const InsightCard = ({ insight }) => {
   if (!insight) {
     return (
@@ -246,6 +405,14 @@ const PlayerInsightsPage = () => {
     }
   }, [players, compareA, compareB]);
 
+  const decorateComparisonResult = (result) => {
+    if (!result?.players || result.players.length !== 2) return result;
+    return {
+      ...result,
+      recommendation: craftRecommendationCopy(result.players),
+    };
+  };
+
   const handleCompare = async () => {
     if (!compareA || !compareB || compareA === compareB) {
       setCompareError('Select two distinct players to compare.');
@@ -266,7 +433,7 @@ const PlayerInsightsPage = () => {
         throw new Error(err.message || 'Compare failed');
       }
       const data = await response.json();
-      setComparisonResult(data);
+      setComparisonResult(decorateComparisonResult(data));
     } catch (error) {
       setCompareError(error.message || 'Compare failed');
       setComparisonResult(null);

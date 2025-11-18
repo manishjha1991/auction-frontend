@@ -11,13 +11,14 @@ import Fixtures from './components/Fixtures';
 import PointTable from './components/PointTable';
 import PlayerStatsList from './components/PlayerStatsList';
 import StatsOverview from './components/StatsOverview'; // <-- import your new component
+import TopRankingsPage from './components/TopRankingsPage';
 import PlayerInsightsPage from './components/PlayerInsightsPage';
 import NewsAlerts from './components/NewsAlerts';
 import TradeCenter from './components/TradeCenter';
 import UnsoldPlayers from './components/UnsoldPlayers';
 import AdminSettings from './components/AdminSettings';
 import { API_ENDPOINTS } from './const';
-import { FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen, FaTrophy } from 'react-icons/fa';
+import { FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen, FaTrophy, FaMedal } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
 import GlobalNotification from './components/GlobalNotification';
@@ -150,6 +151,11 @@ function App() {
                   </Link>
                 </li>
                 <li>
+                  <Link to="/rankings" onClick={toggleSidebar}>
+                    <FaMedal /> <span>Top Rankings</span>
+                  </Link>
+                </li>
+                <li>
                   <Link to="/news" onClick={toggleSidebar}>
                     <FaBullhorn /> <span>News Alerts</span>
                   </Link>
@@ -215,6 +221,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <StatsOverview />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/rankings"
+              element={
+                <PrivateRoute>
+                  <TopRankingsPage />
                 </PrivateRoute>
               }
             />
