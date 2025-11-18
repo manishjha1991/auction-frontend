@@ -150,35 +150,43 @@
   align-items: flex-end;
 }
 
-table {
+.admin-section table,
+.admin-control-panel table {
   width: 100%;
   border-collapse: collapse;
   min-width: 600px;
 }
 
-th, td {
+.admin-section th,
+.admin-section td,
+.admin-control-panel th,
+.admin-control-panel td {
   padding: 12px 14px;
   text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-th {
+.admin-section th,
+.admin-control-panel th {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: rgba(255, 255, 255, 0.7);
 }
 
-td {
+.admin-section td,
+.admin-control-panel td {
   font-size: 0.95rem;
 }
 
-td.muted {
+.admin-section td.muted,
+.admin-control-panel td.muted {
   text-align: center;
   color: rgba(255, 255, 255, 0.6);
 }
 
-td .pill-row {
+.admin-section td .pill-row,
+.admin-control-panel td .pill-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -227,7 +235,8 @@ td .pill-row {
     align-items: stretch;
   }
 
-  table {
+  .admin-section table,
+  .admin-control-panel table {
     min-width: 500px;
   }
 
