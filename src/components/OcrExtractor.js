@@ -20,6 +20,7 @@ const CARD_CONFIGS = [
     description: 'Upload the batting scorecard for your roster only.',
     type: 'batting',
     isHomeTeam: true,
+    allowMom: true,
     columns: [
       { key: 'name', label: 'Batter', type: 'text' },
       { key: 'runs', label: 'Runs', type: 'number' },
@@ -28,25 +29,26 @@ const CARD_CONFIGS = [
       { key: 'bowler', label: 'Bowler', type: 'text' }
     ]
   },
-      {
-        key: 'homeBowling',
-        label: 'Team Bowling',
-        description: 'Upload the bowling figures for your bowlers only.',
-        type: 'bowling',
-        isHomeTeam: true,
-        columns: [
-          { key: 'name', label: 'Bowler', type: 'text' },
-          { key: 'overs', label: 'Overs', type: 'text' },
-          { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'wickets', label: 'Wkts', type: 'number' }
-        ]
-      },
+  {
+    key: 'homeBowling',
+    label: 'Team Bowling',
+    description: 'Upload the bowling figures for your bowlers only.',
+    type: 'bowling',
+    isHomeTeam: true,
+    columns: [
+      { key: 'name', label: 'Bowler', type: 'text' },
+      { key: 'overs', label: 'Overs', type: 'text' },
+      { key: 'runs', label: 'Runs', type: 'number' },
+      { key: 'wickets', label: 'Wkts', type: 'number' }
+    ]
+  },
   {
     key: 'opponentBatting',
     label: 'Opponent Batting',
     description: 'Upload the opponent team batting scorecard (for reference only).',
     type: 'batting',
     isHomeTeam: false,
+    allowMom: true,
     columns: [
       { key: 'name', label: 'Batter', type: 'text' },
       { key: 'runs', label: 'Runs', type: 'number' },
@@ -55,19 +57,19 @@ const CARD_CONFIGS = [
       { key: 'bowler', label: 'Bowler', type: 'text' }
     ]
   },
-      {
-        key: 'opponentBowling',
-        label: 'Opponent Bowling',
-        description: 'Upload the opponent team bowling figures (for reference only).',
-        type: 'bowling',
-        isHomeTeam: false,
-        columns: [
-          { key: 'name', label: 'Bowler', type: 'text' },
-          { key: 'overs', label: 'Overs', type: 'text' },
-          { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'wickets', label: 'Wkts', type: 'number' }
-        ]
-      }
+  {
+    key: 'opponentBowling',
+    label: 'Opponent Bowling',
+    description: 'Upload the opponent team bowling figures (for reference only).',
+    type: 'bowling',
+    isHomeTeam: false,
+    columns: [
+      { key: 'name', label: 'Bowler', type: 'text' },
+      { key: 'overs', label: 'Overs', type: 'text' },
+      { key: 'runs', label: 'Runs', type: 'number' },
+      { key: 'wickets', label: 'Wkts', type: 'number' }
+    ]
+  }
 ];
 
 const createEmptyRow = (columns = []) => ({
@@ -334,6 +336,26 @@ const convertOversToBalls = (oversValue) => {
   const overs = Number.parseInt(parts[0], 10) || 0;
   const balls = parts[1] ? Number.parseInt(parts[1], 10) || 0 : 0;
   return overs * 6 + Math.min(Math.max(balls, 0), 5);
+};
+
+const MAX_BOWLING_OVERS = 4;
+const MAX_BOWLING_BALLS = MAX_BOWLING_OVERS * 6;
+const MAX_WICKETS = 10;
+
+const clampOversInput = (value) => {
+  if (value === undefined || value === null) return '';
+  const sanitized = String(value).replace(/[^\d.:]/g, '');
+  if (!sanitized) return '';
+  const balls = convertOversToBalls(sanitized);
+  if (balls === null) return sanitized;
+  const clampedBalls = Math.min(balls, MAX_BOWLING_BALLS);
+  return clampedBalls === balls ? sanitized : convertBallsToOvers(clampedBalls);
+};
+
+const clampWicketsValue = (rawValue) => {
+  const numeric = Number(rawValue);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.min(Math.max(numeric, 0), MAX_WICKETS);
 };
 
 const parseCardByType = (config, text = '') => {
@@ -1051,13 +1073,14 @@ const OcrExtractor = () => {
     return (rows || [])
       .filter((row) => row?.name && row?.playerId) // Bowling requires playerId
       .map((row) => {
-        const oversStr = row.overs === undefined || row.overs === null ? '' : String(row.overs);
+        const oversStr = clampOversInput(row.overs ?? '');
         const ballsBowledCandidate =
           row.ballsBowled !== undefined && row.ballsBowled !== null && row.ballsBowled !== ''
             ? Number(row.ballsBowled)
             : convertOversToBalls(oversStr);
         const runs = row.runs === '' || row.runs === null ? 0 : Number(row.runs);
-        const wickets = row.wickets === '' || row.wickets === null ? 0 : Number(row.wickets);
+        const wickets =
+          row.wickets === '' || row.wickets === null ? 0 : clampWicketsValue(row.wickets);
         const maidens = row.maidens === '' || row.maidens === null ? 0 : Number(row.maidens);
         const extras = row.extras === '' || row.extras === null ? 0 : Number(row.extras);
         const providedEconomy =
@@ -1387,6 +1410,7 @@ const OcrExtractor = () => {
   const renderBattingTable = (cardKey, card) => {
     const cardConfig = getCardConfig(cardKey);
     const isHomeTeam = cardConfig?.isHomeTeam !== false;
+    const allowMomColumn = cardConfig?.allowMom === true;
     const rosterOptionsToUse = isHomeTeam ? rosterOptions : opponentRosterOptions;
     
     return (
@@ -1397,7 +1421,7 @@ const OcrExtractor = () => {
               <th className="col-player">Player</th>
               <th className="col-runs">R</th>
               <th className="col-balls">B</th>
-              {isHomeTeam && <th className="col-mom">MoM</th>}
+              {allowMomColumn && <th className="col-mom">MoM</th>}
               <th className="col-delete" />
             </tr>
           </thead>
@@ -1483,7 +1507,7 @@ const OcrExtractor = () => {
                     }
                   />
                 </td>
-                {isHomeTeam && (
+                {allowMomColumn && (
                   <td>
                     <input
                       type="checkbox"
@@ -1509,6 +1533,7 @@ const OcrExtractor = () => {
   const renderBowlingTable = (cardKey, card) => {
     const cardConfig = getCardConfig(cardKey);
     const isHomeTeam = cardConfig?.isHomeTeam !== false;
+    const allowMomColumn = cardConfig?.allowMom === true;
     const rosterOptionsToUse = isHomeTeam ? rosterOptions : opponentRosterOptions;
     
     return (
@@ -1520,6 +1545,7 @@ const OcrExtractor = () => {
               <th className="col-overs">Ov</th>
               <th className="col-runs">Runs</th>
               <th className="col-wickets">Wkts</th>
+              {allowMomColumn && <th className="col-mom">MoM</th>}
               <th className="col-delete" />
             </tr>
           </thead>
@@ -1580,7 +1606,9 @@ const OcrExtractor = () => {
                 <input
                   type="text"
                   value={row.overs ?? ''}
-                  onChange={(event) => updateManualRow(cardKey, rowIdx, { overs: event.target.value })}
+                  onChange={(event) =>
+                    updateManualRow(cardKey, rowIdx, { overs: clampOversInput(event.target.value) })
+                  }
                 />
               </td>
               <td>
@@ -1599,14 +1627,26 @@ const OcrExtractor = () => {
                 <input
                   type="number"
                   min="0"
+                  max={MAX_WICKETS}
                   value={row.wickets ?? 0}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    const val = event.target.value;
+                    const nextValue = val === '' ? 0 : clampWicketsValue(val);
                     updateManualRow(cardKey, rowIdx, {
-                      wickets: event.target.value === '' ? 0 : Number(event.target.value),
-                    })
-                  }
+                      wickets: nextValue,
+                    });
+                  }}
                 />
               </td>
+              {allowMomColumn && (
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={row.isMom || false}
+                    onChange={(event) => handleMomToggle(cardKey, rowIdx, event.target.checked)}
+                  />
+                </td>
+              )}
               <td>
                 <button type="button" className="link-btn" onClick={() => handleRemoveRow(cardKey, rowIdx)}>
                   ✕
@@ -1738,9 +1778,10 @@ const OcrExtractor = () => {
     );
   };
 
-  const requiredCards = ['homeBatting', 'homeBowling'];
+  const requiredCards = CARD_CONFIGS.map((cfg) => cfg.key);
+  const hasAtLeastOneRequiredCard = requiredCards.some(hasMeaningfulData);
   const canSubmit =
-    requiredCards.every(hasMeaningfulData) &&
+    hasAtLeastOneRequiredCard &&
     playerEntries.length > 0 &&
     primaryTeamName.trim().length > 0 &&
     !saving &&
@@ -1986,8 +2027,8 @@ const OcrExtractor = () => {
         <div className="submit-row">
           <div>
             <p className="helper-text subtle">
-              Upload both batting & bowling cards, map every row to a roster player, flag MoM where
-              needed, then hit save to push each entry into Player Stats automatically.
+              Upload at least one scorecard (team or opponent), map every row to a roster player, flag
+              MoM where needed, then hit save to push each entry into Player Stats automatically.
             </p>
           </div>
           <button

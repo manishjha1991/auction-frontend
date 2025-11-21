@@ -383,28 +383,45 @@ const PlayerStatsList = () => {
                   </select>
                 </div>
 
-                <div className="form-group checkbox-group">
-                  <label className="checkbox-label">
+                <div className="checkbox-card-grid">
+                  <label
+                    className={`playoff-checkbox-wrapper lite ${formData.isMom ? 'checked' : ''}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <input
                       type="checkbox"
+                      className="playoff-checkbox"
                       name="isMom"
                       checked={formData.isMom}
                       onChange={handleCheckboxChange}
-                      onClick={(e) => e.stopPropagation()}
-                    />{" "}
-                    Man of the Match?
+                    />
+                    <span className="playoff-checkbox-label">
+                      <span className="playoff-icon">✨</span>
+                      <span className="checkbox-text">
+                        <span className="checkbox-title">Man of the Match</span>
+                        <span className="checkbox-subtitle">Highlights standout performer</span>
+                      </span>
+                    </span>
                   </label>
-                </div>
-                <div className="form-group checkbox-group">
-                  <label className="checkbox-label playoff-checkbox">
+
+                  <label
+                    className={`playoff-checkbox-wrapper lite playoff-accent ${formData.isPlayoffScore ? 'checked' : ''}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <input
                       type="checkbox"
+                      className="playoff-checkbox"
                       name="isPlayoffScore"
                       checked={formData.isPlayoffScore}
                       onChange={handleCheckboxChange}
-                      onClick={(e) => e.stopPropagation()}
-                    />{' '}
-                    Playoff Score
+                    />
+                    <span className="playoff-checkbox-label">
+                      <span className="playoff-icon">🏆</span>
+                      <span className="checkbox-text">
+                        <span className="checkbox-title">Playoff Score</span>
+                        <span className="checkbox-subtitle">Track post-season stats</span>
+                      </span>
+                    </span>
                   </label>
                 </div>
 
