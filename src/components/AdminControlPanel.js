@@ -20,6 +20,11 @@ const AdminControlPanel = ({ adminUser }) => {
   const [syncExecuting, setSyncExecuting] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
 
+  const [fixPreview, setFixPreview] = useState(null);
+  const [fixLoading, setFixLoading] = useState(false);
+  const [fixExecuting, setFixExecuting] = useState(false);
+  const [fixResult, setFixResult] = useState(null);
+
   const handleToast = (message) => {
     setToast(message);
     setTimeout(() => setToast(''), 4000);
@@ -121,6 +126,70 @@ const AdminControlPanel = ({ adminUser }) => {
 
   const syncActionUsers =
     syncPreview?.users.filter((user) => user.missingPlayers.length > 0) || [];
+
+  const fixActionPlayers =
+    fixPreview?.players.filter((player) => player.status === 'needs-fix') || [];
+  const fixCandidateIds = fixActionPlayers.map((player) => player.playerId);
+
+  const requestFixPreview = async () => {
+    if (!adminUserId) return;
+    setFixLoading(true);
+    setFixResult(null);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/scripts/auction-fix/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to build auction fix preview');
+      setFixPreview(data);
+      handleToast('Auction fix preview ready');
+    } catch (err) {
+      handleToast(err.message || 'Unable to build auction fix preview');
+    } finally {
+      setFixLoading(false);
+    }
+  };
+
+  const executeAuctionFix = async () => {
+    if (!adminUserId) return;
+    if (!fixPreview) {
+      handleToast('Run the preview before executing the fix');
+      return;
+    }
+    if (fixCandidateIds.length === 0) {
+      handleToast('No players require fixing based on the latest preview');
+      return;
+    }
+
+    const pending = fixPreview.summary.needsFix;
+    const confirmMessage =
+      pending > 0
+        ? `This will automatically reassign ${pending} player(s) to their correct teams. Continue?`
+        : 'No players currently need fixing. Run the cleanup anyway?';
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setFixExecuting(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/scripts/auction-fix/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId, playerIds: fixCandidateIds }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to execute auction fix');
+      setFixResult(data);
+      handleToast('Auction fix completed');
+      await requestFixPreview();
+    } catch (err) {
+      handleToast(err.message || 'Unable to execute auction fix');
+    } finally {
+      setFixExecuting(false);
+    }
+  };
 
   return (
     <div className="admin-control-panel">
@@ -389,6 +458,107 @@ const AdminControlPanel = ({ adminUser }) => {
         {syncResult && (
           <div className="result-banner">
             <strong>{syncResult.usersUpdated} teams updated • {syncResult.playersUpdated} players marked active.</strong>
+          </div>
+        )}
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Ownership Fix (Bidding Cleanup)</h2>
+            <p>Detect and repair players sold to the wrong teams after manual overrides.</p>
+          </div>
+          <div className="section-actions">
+            <button
+              className="btn ghost"
+              onClick={requestFixPreview}
+              disabled={fixLoading || !adminUserId}
+            >
+              {fixLoading ? 'Scanning…' : 'Preview Issues'}
+            </button>
+            <button
+              className="btn danger"
+              onClick={executeAuctionFix}
+              disabled={fixExecuting || !fixPreview || fixCandidateIds.length === 0}
+            >
+              {fixExecuting ? 'Fixing…' : 'Confirm & Fix'}
+            </button>
+          </div>
+        </div>
+
+        {fixPreview && (
+          <div className="summary-grid">
+            <div className="summary-card">
+              <span>Players Checked</span>
+              <strong>{fixPreview.summary.totalPlayersChecked}</strong>
+            </div>
+            <div className="summary-card">
+              <span>Sold Players</span>
+              <strong>{fixPreview.summary.totalSoldPlayers}</strong>
+            </div>
+            <div className="summary-card">
+              <span>In Current Bids</span>
+              <strong>{fixPreview.summary.referencedInCurrentBids}</strong>
+            </div>
+            <div className="summary-card">
+              <span>Needs Fix</span>
+              <strong>{fixPreview.summary.needsFix}</strong>
+            </div>
+            <div className="summary-card">
+              <span>Missing Winner</span>
+              <strong>{fixPreview.summary.missingWinner}</strong>
+            </div>
+            <div className="summary-card">
+              <span>Already Correct</span>
+              <strong>{fixPreview.summary.alreadyCorrect}</strong>
+            </div>
+          </div>
+        )}
+
+        {fixPreview && (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Type</th>
+                  <th>Source</th>
+                  <th>Current Owner</th>
+                  <th>Correct Owner</th>
+                  <th>Locked Bidders</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fixActionPlayers.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="muted">
+                      No ownership discrepancies detected.
+                    </td>
+                  </tr>
+                )}
+                {fixActionPlayers.map((player) => (
+                  <tr key={player.playerId}>
+                    <td>{player.name}</td>
+                    <td>{player.type}</td>
+                    <td>{player.fromCurrentBids ? 'Current Bid' : 'Sold'}</td>
+                    <td>{player.currentOwner?.teamName || player.currentOwner?.name || '—'}</td>
+                    <td>{player.desiredOwner?.teamName || player.desiredOwner?.name || '—'}</td>
+                    <td>{player.hasLockedBidders ? 'Yes' : 'No'}</td>
+                    <td>{player.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {fixResult && (
+          <div className="result-banner">
+            <strong>
+              {fixResult.summary.fixed} players fixed • {fixResult.summary.unchanged} already aligned •{' '}
+              {fixResult.summary.skipped} skipped • {fixResult.summary.errors} errors.
+            </strong>
           </div>
         )}
       </section>
