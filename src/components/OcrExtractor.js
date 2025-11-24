@@ -557,9 +557,17 @@ const OcrExtractor = () => {
   }, [selectedFixture, currentUserTeamName]);
 
   const filteredFixtures = useMemo(() => {
-    if (!fixtureSearch.trim()) return fixtures;
+    const baseFixtures = currentUser?.isAdmin
+      ? fixtures
+      : fixtures.filter(
+          (fx) =>
+            fx.team1?.toLowerCase() === currentUserTeamName.toLowerCase() ||
+            fx.team2?.toLowerCase() === currentUserTeamName.toLowerCase()
+        );
+
+    if (!fixtureSearch.trim()) return baseFixtures;
     const term = fixtureSearch.trim().toLowerCase();
-    return fixtures.filter(
+    return baseFixtures.filter(
       (fx) =>
         fx.team1?.toLowerCase().includes(term) ||
         fx.team2?.toLowerCase().includes(term) ||
