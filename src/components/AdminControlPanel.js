@@ -5,8 +5,22 @@ import PlayerTypeControls from './PlayerTypeControls';
 
 const formatCr = (value) => `${value.toFixed(2)} Cr`;
 
+const deriveAdminId = (adminUser) => {
+  if (adminUser?.id) return adminUser.id;
+  if (adminUser?._id) return adminUser._id.toString();
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem('user') || '{}');
+      return stored?.id || stored?._id || null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
 const AdminControlPanel = ({ adminUser }) => {
-  const adminUserId = adminUser?.id || adminUser?._id || adminUser?._id?.toString();
+  const [adminUserId, setAdminUserId] = useState(() => deriveAdminId(adminUser));
   const [toast, setToast] = useState('');
   const [isCompact, setIsCompact] = useState(false);
 
@@ -25,16 +39,51 @@ const AdminControlPanel = ({ adminUser }) => {
   const [fixExecuting, setFixExecuting] = useState(false);
   const [fixResult, setFixResult] = useState(null);
 
+  const [cronSettings, setCronSettings] = useState({
+    cronSingleBidEnabled: true,
+    cronSingleBidFinalizerEnabled: true,
+    cronBulkExitEnabled: true,
+    cronLockEnabled: true,
+  });
+  const [cronLoading, setCronLoading] = useState(false);
+  const [cronSaving, setCronSaving] = useState(false);
+
   const handleToast = (message) => {
     setToast(message);
     setTimeout(() => setToast(''), 4000);
   };
 
   useEffect(() => {
+    setAdminUserId(deriveAdminId(adminUser));
+  }, [adminUser]);
+
+  useEffect(() => {
     const updateCompact = () => setIsCompact(window.innerWidth < 768);
     updateCompact();
     window.addEventListener('resize', updateCompact);
     return () => window.removeEventListener('resize', updateCompact);
+  }, []);
+
+  useEffect(() => {
+    const fetchCronSettings = async () => {
+      setCronLoading(true);
+      try {
+        const res = await fetch(`${API_ENDPOINTS}/api/settings`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to load cron settings');
+        setCronSettings({
+          cronSingleBidEnabled: data.cronSingleBidEnabled !== false,
+          cronSingleBidFinalizerEnabled: data.cronSingleBidFinalizerEnabled !== false,
+          cronBulkExitEnabled: data.cronBulkExitEnabled !== false,
+          cronLockEnabled: data.cronLockEnabled !== false,
+        });
+      } catch (err) {
+        handleToast(err.message || 'Unable to load cron settings');
+      } finally {
+        setCronLoading(false);
+      }
+    };
+    fetchCronSettings();
   }, []);
 
   const requestPursePreview = async () => {
@@ -191,6 +240,64 @@ const AdminControlPanel = ({ adminUser }) => {
     }
   };
 
+  const updateCronToggle = async (key, value) => {
+    if (!adminUserId || cronSaving) return;
+    setCronSaving(true);
+    try {
+      const payload = { adminUserId, [key]: value };
+      if (key === 'cronSingleBidEnabled' && value) {
+        payload.cronBulkExitEnabled = false;
+      }
+      if (key === 'cronBulkExitEnabled' && value) {
+        payload.cronSingleBidEnabled = false;
+      }
+      const res = await fetch(`${API_ENDPOINTS}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update cron setting');
+      setCronSettings({
+        cronSingleBidEnabled: data.cronSingleBidEnabled !== false,
+        cronSingleBidFinalizerEnabled: data.cronSingleBidFinalizerEnabled !== false,
+        cronBulkExitEnabled: data.cronBulkExitEnabled !== false,
+        cronLockEnabled: data.cronLockEnabled !== false,
+      });
+      handleToast('Cron setting updated');
+    } catch (err) {
+      handleToast(err.message || 'Unable to update cron setting');
+    } finally {
+      setCronSaving(false);
+    }
+  };
+
+  const cronDefinitions = [
+    {
+      key: 'cronSingleBidEnabled',
+      title: 'Single Bid Auto-Sell',
+      description:
+        'Every 10 minutes from 12:30 IST remove the second bidder (and sell after a full cycle) plus run the 23:30 single-bid finalizer. Enabling this pauses the bulk cleanup job automatically.',
+    },
+    {
+      key: 'cronSingleBidFinalizerEnabled',
+      title: 'Single Bid Finalizer (23:30)',
+      description:
+        'At 11:30 PM IST sell players who have only ever received a single bid. Disable if you want to keep those players open past midnight.',
+    },
+    {
+      key: 'cronBulkExitEnabled',
+      title: 'Second Bidder Cleanup',
+      description:
+        'Every 15 minutes run exit-second-highest for all players. Purely cleanup—no automatic sales. Enabling this pauses the single-bid auto-sell job.',
+    },
+    {
+      key: 'cronLockEnabled',
+      title: 'Lock Under Limit',
+      description: 'Nightly at 10 PM IST lock teams that violate roster rules.',
+    },
+  ];
+
   return (
     <div className="admin-control-panel">
       {toast && <div className="admin-toast">{toast}</div>}
@@ -203,6 +310,44 @@ const AdminControlPanel = ({ adminUser }) => {
           </div>
         </div>
         <PlayerTypeControls adminUserId={adminUserId} showHeader={false} />
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Cron Controls</h2>
+            <p>Toggle background jobs on or off. The single-bid monitor and bulk cleanup jobs cannot run at the same time.</p>
+          </div>
+          {cronSaving && <span className="cron-saving-pill">Saving…</span>}
+        </div>
+        {cronLoading ? (
+          <div className="loading">Loading cron settings…</div>
+        ) : (
+          <div className="cron-toggle-grid">
+            {cronDefinitions.map((job) => (
+              <div className="cron-toggle-card" key={job.key}>
+                <div className="cron-toggle-info">
+                  <div className="data-card-title">{job.title}</div>
+                  <p>{job.description}</p>
+                </div>
+                <div className="cron-toggle-switch">
+                  <span className={`cron-status ${cronSettings[job.key] ? 'on' : 'off'}`}>
+                    {cronSettings[job.key] ? 'Enabled' : 'Disabled'}
+                  </span>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={!!cronSettings[job.key]}
+                      onChange={(e) => updateCronToggle(job.key, e.target.checked)}
+                      disabled={cronSaving}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="admin-section">
@@ -516,41 +661,80 @@ const AdminControlPanel = ({ adminUser }) => {
         )}
 
         {fixPreview && (
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Player</th>
-                  <th>Type</th>
-                  <th>Source</th>
-                  <th>Current Owner</th>
-                  <th>Correct Owner</th>
-                  <th>Locked Bidders</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fixActionPlayers.length === 0 && (
+          isCompact ? (
+            <div className="card-list">
+              {fixActionPlayers.length === 0 && (
+                <div className="data-card muted-card">
+                  No ownership discrepancies detected.
+                </div>
+              )}
+              {fixActionPlayers.map((player) => (
+                <div className="data-card" key={player.playerId}>
+                  <div className="data-card-title">{player.name}</div>
+                  <div className="data-card-row">
+                    <span>Status</span>
+                    <strong>{player.status}</strong>
+                  </div>
+                  <div className="data-card-row">
+                    <span>Type</span>
+                    <span>{player.type}</span>
+                  </div>
+                  <div className="data-card-row">
+                    <span>Source</span>
+                    <span>{player.fromCurrentBids ? 'Current Bid' : 'Sold'}</span>
+                  </div>
+                  <div className="data-card-row">
+                    <span>Current Owner</span>
+                    <span>{player.currentOwner?.teamName || player.currentOwner?.name || '—'}</span>
+                  </div>
+                  <div className="data-card-row">
+                    <span>Correct Owner</span>
+                    <span>{player.desiredOwner?.teamName || player.desiredOwner?.name || '—'}</span>
+                  </div>
+                  <div className="data-card-row">
+                    <span>Locked Bidders</span>
+                    <span>{player.hasLockedBidders ? 'Yes' : 'No'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="table-wrapper">
+              <table>
+                <thead>
                   <tr>
-                    <td colSpan={7} className="muted">
-                      No ownership discrepancies detected.
-                    </td>
+                    <th>Player</th>
+                    <th>Type</th>
+                    <th>Source</th>
+                    <th>Current Owner</th>
+                    <th>Correct Owner</th>
+                    <th>Locked Bidders</th>
+                    <th>Status</th>
                   </tr>
-                )}
-                {fixActionPlayers.map((player) => (
-                  <tr key={player.playerId}>
-                    <td>{player.name}</td>
-                    <td>{player.type}</td>
-                    <td>{player.fromCurrentBids ? 'Current Bid' : 'Sold'}</td>
-                    <td>{player.currentOwner?.teamName || player.currentOwner?.name || '—'}</td>
-                    <td>{player.desiredOwner?.teamName || player.desiredOwner?.name || '—'}</td>
-                    <td>{player.hasLockedBidders ? 'Yes' : 'No'}</td>
-                    <td>{player.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {fixActionPlayers.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="muted">
+                        No ownership discrepancies detected.
+                      </td>
+                    </tr>
+                  )}
+                  {fixActionPlayers.map((player) => (
+                    <tr key={player.playerId}>
+                      <td>{player.name}</td>
+                      <td>{player.type}</td>
+                      <td>{player.fromCurrentBids ? 'Current Bid' : 'Sold'}</td>
+                      <td>{player.currentOwner?.teamName || player.currentOwner?.name || '—'}</td>
+                      <td>{player.desiredOwner?.teamName || player.desiredOwner?.name || '—'}</td>
+                      <td>{player.hasLockedBidders ? 'Yes' : 'No'}</td>
+                      <td>{player.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
         )}
 
         {fixResult && (
