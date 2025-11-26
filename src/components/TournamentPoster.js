@@ -18,7 +18,7 @@ const FALLBACK_TEAMS = [
 const getLabel = (team) => team?.abbreviation || team?.teamShortName || team?.shortName || '';
 const getDisplayName = (team) => team?.teamName || team?.name || '—';
 
-const TournamentPoster = ({ compact = false, asLoader = false }) => {
+const TournamentPoster = ({ compact = false, asLoader = false, hideHeader = false }) => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -77,23 +77,29 @@ const TournamentPoster = ({ compact = false, asLoader = false }) => {
     <section
       className={`poster-shell${compact ? ' poster--compact' : ''}${asLoader || loading ? ' poster--loader' : ''}`}
     >
-      <div className="poster-header">
-        <div>
-          <p className="poster-overline">CPL 2025 • Ownership Grid</p>
-          <h2 className="poster-title">20 Teams. One Trophy.</h2>
-          <p className="poster-subtitle">Live auction feed · Powered by Admin Control</p>
+      {!hideHeader && (
+        <div className="poster-header">
+          <div>
+            <p className="poster-overline">CPL 2025 • Ownership Grid</p>
+            <h2 className="poster-title">20 Teams. One Trophy.</h2>
+            <p className="poster-subtitle">Live auction feed · Powered by Admin Control</p>
+          </div>
+          <div className={`poster-pill${error ? ' warning' : ''}`}>
+            {error ? 'Offline mode' : loading ? 'Syncing…' : 'Live'}
+          </div>
         </div>
-        <div className={`poster-pill${error ? ' warning' : ''}`}>
-          {error ? 'Offline mode' : loading ? 'Syncing…' : 'Live'}
-        </div>
-      </div>
+      )}
 
       <div className="poster-body">
         <div className="poster-column">{renderColumn(leftTeams)}</div>
         <div className="poster-centerpiece">
           <img src="/images/icc_champions_trophy.jpg" alt="CPL Championship Trophy" />
-          <h3>CPL TITLE</h3>
-          <p>India & Sri Lanka · Season 14</p>
+          {!hideHeader && (
+            <>
+              <h3>CPL TITLE</h3>
+              <p>India & Sri Lanka · Season 14</p>
+            </>
+          )}
         </div>
         <div className="poster-column">{renderColumn(rightTeams, leftTeams.length)}</div>
       </div>

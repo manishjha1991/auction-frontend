@@ -40,12 +40,14 @@ function AdminSettings() {
 
   useEffect(() => { loadSettings(); }, []);
 
+  const adminId = user?.id || user?._id || null;
+
   async function save(partial) {
     try {
       setSaving(true);
       const res = await fetch(`${API_ENDPOINTS}/api/settings`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminUserId: user?.id, ...partial })
+        body: JSON.stringify({ adminUserId: adminId, ...partial })
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.message || 'Failed');
@@ -83,7 +85,7 @@ function AdminSettings() {
     try {
       const res = await fetch(`${API_ENDPOINTS}/api/users/${teamId}/group`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminUserId: user?.id, group })
+        body: JSON.stringify({ adminUserId: adminId, group })
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.message || 'Failed');
@@ -185,7 +187,7 @@ function AdminSettings() {
           </div>
           <div className="subpanel">
             <div className="subpanel-title">Player Type Availability</div>
-            <PlayerTypeControls adminUserId={user?.id} showHeader={false} />
+            <PlayerTypeControls adminUserId={adminId} showHeader={false} />
           </div>
         </div>
       )}

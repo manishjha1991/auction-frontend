@@ -15,13 +15,28 @@ const PlayerTypeControls = ({ adminUserId, showHeader = true }) => {
   const [actionType, setActionType] = useState('');
   const [error, setError] = useState('');
 
+  const effectiveAdminId = React.useMemo(() => {
+    if (adminUserId) return adminUserId;
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(window.localStorage.getItem('user') || '{}');
+        return stored?.id || stored?._id || null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }, [adminUserId]);
+
   const fetchStatus = async () => {
-    if (!adminUserId) return;
+    if (!effectiveAdminId) return;
     setLoading(true);
     setError('');
     try {
       const res = await fetch(
-        `${API_ENDPOINTS}/api/admin-tools/player-type/status?adminUserId=${adminUserId}`
+        `${API_ENDPOINTS}/api/admin-tools/player-type/status?${new URLSearchParams({
+          adminUserId: effectiveAdminId,
+        }).toString()}`
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Unable to load status');
@@ -37,17 +52,17 @@ const PlayerTypeControls = ({ adminUserId, showHeader = true }) => {
   useEffect(() => {
     fetchStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminUserId]);
+  }, [effectiveAdminId]);
 
   const handleToggle = async (type, enable) => {
-    if (!adminUserId) return;
+    if (!effectiveAdminId) return;
     setActionType(type);
     setError('');
     try {
       const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/player-type/toggle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminUserId, type, enable }),
+        body: JSON.stringify({ adminUserId: effectiveAdminId, type, enable }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Unable to update players');
@@ -69,7 +84,7 @@ const PlayerTypeControls = ({ adminUserId, showHeader = true }) => {
           <button
             className="ptc-refresh"
             onClick={fetchStatus}
-            disabled={loading || !adminUserId}
+            disabled={loading || !effectiveAdminId}
           >
             Refresh
           </button>
@@ -113,7 +128,7 @@ const PlayerTypeControls = ({ adminUserId, showHeader = true }) => {
                   type="checkbox"
                   checked={item.isEnabled}
                   onChange={(e) => handleToggle(item.type, e.target.checked)}
-                  disabled={loading || actionType === item.type || !adminUserId}
+                  disabled={loading || actionType === item.type || !effectiveAdminId}
                 />
                 <span className="ptc-slider" />
               </label>

@@ -5,7 +5,6 @@ import LoadingCube from "./CricketAnimation";
 import NotificationBell from './NotificationBell';
 import TeamStrengthChart from './TeamStrengthChart';
 import AdminControlPanel from './AdminControlPanel';
-import TournamentPoster from './TournamentPoster';
 const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,8 +75,6 @@ const Profile = () => {
         }
         const data = await response.json();
         console.log('Fetched user data from API:', data);
-        console.log('User timezone from API:', data.user.timezone);
-        console.log('User isRetentionLocked from API:', data.user.isRetentionLocked);
         setUserData(data);
         setEditData({
           name: data.user.name,
@@ -88,7 +85,6 @@ const Profile = () => {
         });
         
         // Set retention lock status from initial data
-        console.log('Setting initial retention lock status:', data.user.isRetentionLocked);
         setIsRetentionLocked(data.user.isRetentionLocked === true);
         
         // Set allPlayersReleased status from initial data
@@ -135,6 +131,9 @@ const Profile = () => {
         if (response.ok) {
           const data = await response.json();
           setRetentionEnabled(data.enablePlayerRetention !== false);
+          // adminReleasedPlayers is not in settings response, so we'll use allPlayersReleased instead
+          // The backend undo endpoint checks settings.adminReleasedPlayers, but for frontend
+          // we can use allPlayersReleased which is already being tracked
         }
       } catch (err) {
         console.error('Failed to fetch retention setting:', err);
@@ -310,7 +309,10 @@ const Profile = () => {
   };
 
   // Retain player functionality
-  const handleRetainPlayer = (player) => {
+  const handleRetainPlayer = (playerData) => {
+    // Handle both formats: direct player object or { player, bidValue } object
+    const player = playerData.player || playerData;
+    
     // Check if user can retain more players
     if (retainedPlayers.length >= 4) {
       setError('You can only retain a maximum of 4 players');
@@ -324,7 +326,8 @@ const Profile = () => {
       return;
     }
 
-    setSelectedPlayerForRetain(player);
+    // Store the full playerData object (which includes bidValue if passed)
+    setSelectedPlayerForRetain(playerData);
     setShowRetainConfirm(true);
   };
 
@@ -333,18 +336,26 @@ const Profile = () => {
       const user = JSON.parse(localStorage.getItem('user'));
       const userId = user?.id;
       
+      // Handle both formats: direct player object or { player, bidValue } object
+      const player = selectedPlayerForRetain.player || selectedPlayerForRetain;
+      const playerId = player._id || player.player?._id;
+      
+      if (!playerId) {
+        setError('Invalid player data. Please try again.');
+        return;
+      }
+      
       const response = await fetch(`${API_ENDPOINTS}/api/retained-players/retain`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: userId,
-          playerId: selectedPlayerForRetain.player._id
+          playerId: playerId
         })
       });
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Player retained successfully:', result);
         
         // Refresh retained players list
         const retainedResponse = await fetch(`${API_ENDPOINTS}/api/retained-players/user/${userId}`, {
@@ -385,7 +396,9 @@ const Profile = () => {
     }
 
     // Check if admin has released players
-    if (adminReleasedPlayers) {
+    // Use allPlayersReleased instead of adminReleasedPlayers since that's what we track
+    // The backend will also check settings.adminReleasedPlayers
+    if (allPlayersReleased) {
       setError('Cannot remove retained players after admin has released all other players. This action is no longer available.');
       return;
     }
@@ -416,8 +429,6 @@ const Profile = () => {
       });
 
       if (response.ok) {
-        console.log('Player removed from retention successfully');
-        
         // Refresh retained players list
         const retainedResponse = await fetch(`${API_ENDPOINTS}/api/retained-players/user/${userId}`, {
           headers: { 'Content-Type': 'application/json' },
@@ -758,9 +769,6 @@ const Profile = () => {
     }
   }
 
-  // Debug: Log the current state
-  console.log('Profile render - isRetentionLocked:', isRetentionLocked, 'type:', typeof isRetentionLocked);
-  
   // Function to refresh lock status from backend
   const refreshLockStatus = async () => {
     try {
@@ -771,7 +779,6 @@ const Profile = () => {
         });
         if (response.ok) {
           const userData = await response.json();
-          console.log('Refreshing lock status from backend:', userData.user.isRetentionLocked);
           setIsRetentionLocked(userData.user.isRetentionLocked === true);
           setAllPlayersReleased(userData.user.allPlayersReleased === true);
           // Update localStorage with fresh data
@@ -784,12 +791,6 @@ const Profile = () => {
     }
   };
 
-  // Temporary test button - remove this later
-  const toggleLockStatus = () => {
-    console.log('Toggling lock status from', isRetentionLocked, 'to', !isRetentionLocked);
-    setIsRetentionLocked(!isRetentionLocked);
-  };
-  
   // If retention is locked, show only lock message
   if (isRetentionLocked === true) {
     return (
@@ -838,7 +839,41 @@ const Profile = () => {
     <div className="profile-container">
       {/* Include the NotificationBell component */}
       <NotificationBell />
-      <TournamentPoster />
+      
+      {/* Error Message Display */}
+      {error && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
+          color: 'white',
+          padding: '15px 25px',
+          borderRadius: '12px',
+          boxShadow: '0 8px 25px rgba(220, 53, 69, 0.4)',
+          zIndex: 1001,
+          border: '2px solid rgba(255, 255, 255, 0.2)',
+          animation: 'slideInDown 0.5s ease-out',
+          maxWidth: '500px',
+          textAlign: 'center',
+          cursor: 'pointer'
+        }}
+        onClick={() => setError(null)}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+            <div style={{ fontSize: '1.5rem' }}>⚠️</div>
+            <div>
+              <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>
+                {error}
+              </div>
+              <div style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '5px' }}>
+                Click to dismiss
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Retention Locked Floating Notification */}
       {isRetentionLocked && (
@@ -1177,46 +1212,98 @@ const Profile = () => {
                     style={{
                       position: 'relative',
                       cursor: (() => {
-                        if (isRetained) return 'default';
-                        if (!retentionEnabled || isRetentionLocked || adminReleasedPlayers) return 'not-allowed';
+                        if (isRetained) {
+                          // Allow click if withdrawal is possible
+                          if (!isRetentionLocked && !allPlayersReleased && retentionEnabled) {
+                            return 'pointer';
+                          }
+                          return 'not-allowed';
+                        }
+                        if (!retentionEnabled || isRetentionLocked) return 'not-allowed';
                         const canRetainMore = retainedPlayers.length < 4;
                         const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
                         return (canRetainMore && !hasCategoryRetained) ? 'pointer' : 'not-allowed';
                       })(),
                       transition: 'all 0.3s ease',
-                      opacity: isRetained ? 0.7 : 1
+                      opacity: isRetained ? 1 : 1
                     }}
                     onMouseEnter={(e) => {
-                      if (!isRetained && !adminReleasedPlayers) {
+                      if (isRetained) {
+                        // If retained and withdrawal is allowed, show hover effect
+                        if (!isRetentionLocked && !allPlayersReleased && retentionEnabled) {
+                          e.currentTarget.style.transform = 'translateY(-5px)';
+                          e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+                        }
+                      } else if (retentionEnabled && !isRetentionLocked) {
                         const canRetainMore = retainedPlayers.length < 4;
                         const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
                         
                         if (canRetainMore && !hasCategoryRetained) {
-                          e.target.style.transform = 'translateY(-5px)';
-                          e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+                          e.currentTarget.style.transform = 'translateY(-5px)';
+                          e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
                         }
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (!isRetained && !adminReleasedPlayers) {
+                      if (isRetained) {
+                        // If retained and withdrawal is allowed, reset hover effect
+                        if (!isRetentionLocked && !allPlayersReleased && retentionEnabled) {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+                        }
+                      } else if (retentionEnabled && !isRetentionLocked) {
                         const canRetainMore = retainedPlayers.length < 4;
                         const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
                         
                         if (canRetainMore && !hasCategoryRetained) {
-                          e.target.style.transform = 'translateY(0)';
-                          e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
                         }
                       }
                     }}
-                    onClick={() => {
-                      if (!isRetained && retentionEnabled && !isRetentionLocked && !allPlayersReleased) {
-                        const canRetainMore = retainedPlayers.length < 4;
-                        const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
-                        
-                        if (canRetainMore && !hasCategoryRetained) {
-                          handleRetainPlayer({ player, bidValue });
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      
+                      // If already retained, allow withdrawal
+                      if (isRetained) {
+                        const retainedPlayer = retainedPlayers.find(rp => rp.playerId._id === player._id);
+                        if (retainedPlayer) {
+                          handleWithdrawRetention(retainedPlayer);
+                        } else {
+                          setError('Retained player data not found. Please refresh the page.');
                         }
+                        return;
                       }
+                      
+                      // Check if retention is enabled
+                      if (!retentionEnabled) {
+                        setError('Player retention feature is currently disabled by admin');
+                        return;
+                      }
+                      
+                      // Check if retention is locked (this is the main blocker)
+                      if (isRetentionLocked) {
+                        setError('Your team retention is locked by admin. You cannot retain players.');
+                        return;
+                      }
+                      
+                      // Check if user can retain more players
+                      const canRetainMore = retainedPlayers.length < 4;
+                      if (!canRetainMore) {
+                        setError('You can only retain a maximum of 4 players');
+                        return;
+                      }
+                      
+                      // Check if user already has a player from this category
+                      const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
+                      if (hasCategoryRetained) {
+                        setError(`You already have a ${player.type} player retained. You can only retain one player from each category.`);
+                        return;
+                      }
+                      
+                      // All checks passed - proceed with retention
+                      handleRetainPlayer({ player, bidValue });
                     }}
                   >
                     {isRetained && (
@@ -1235,12 +1322,12 @@ const Profile = () => {
                         ✅ RETAINED
                       </div>
                     )}
-                  <p><strong>Name:</strong> {player.name}</p>
-                  <p><strong>Type:</strong> {player.type}</p>
-                  <p><strong>Role:</strong> {player.role}</p>
-                  <p><strong>Base Price:</strong> {formatAmount(player.basePrice)}</p>
-                  <p><strong>Sold For:</strong> {formatAmount(bidValue)}</p>
-                    {!isRetained && retentionEnabled && !isRetentionLocked && !allPlayersReleased && (() => {
+                  <p style={{ pointerEvents: 'none' }}><strong>Name:</strong> {player.name}</p>
+                  <p style={{ pointerEvents: 'none' }}><strong>Type:</strong> {player.type}</p>
+                  <p style={{ pointerEvents: 'none' }}><strong>Role:</strong> {player.role}</p>
+                  <p style={{ pointerEvents: 'none' }}><strong>Base Price:</strong> {formatAmount(player.basePrice)}</p>
+                  <p style={{ pointerEvents: 'none' }}><strong>Sold For:</strong> {formatAmount(bidValue)}</p>
+                    {!isRetained && retentionEnabled && !isRetentionLocked && (() => {
                       // Check if user can retain more players
                       const canRetainMore = retainedPlayers.length < 4;
                       const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
@@ -1255,7 +1342,8 @@ const Profile = () => {
                             textAlign: 'center',
                             fontSize: '12px',
                             color: '#dc3545',
-                            fontWeight: '600'
+                            fontWeight: '600',
+                            pointerEvents: 'none'
                           }}>
                             ❌ Max 4 players retained
                 </div>
@@ -1272,7 +1360,8 @@ const Profile = () => {
                             textAlign: 'center',
                             fontSize: '12px',
                             color: '#ffc107',
-                            fontWeight: '600'
+                            fontWeight: '600',
+                            pointerEvents: 'none'
                           }}>
                             ⚠️ {player.type} already retained
                           </div>
@@ -1288,7 +1377,8 @@ const Profile = () => {
                           textAlign: 'center',
                           fontSize: '12px',
                           color: '#667eea',
-                          fontWeight: '600'
+                          fontWeight: '600',
+                          pointerEvents: 'none'
                         }}>
                           💎 Click to retain (₹17 Cr)
                         </div>
@@ -1304,7 +1394,8 @@ const Profile = () => {
                         textAlign: 'center',
                         fontSize: '12px',
                         color: '#6c757d',
-                        fontWeight: '600'
+                        fontWeight: '600',
+                        pointerEvents: 'none'
                       }}>
                         🔒 Retention disabled by admin
                       </div>
@@ -1319,7 +1410,8 @@ const Profile = () => {
                         textAlign: 'center',
                         fontSize: '12px',
                         color: '#dc3545',
-                        fontWeight: '600'
+                        fontWeight: '600',
+                        pointerEvents: 'none'
                       }}>
                         🔒 Team locked by admin
                       </div>
@@ -1577,16 +1669,7 @@ const Profile = () => {
                     <p><strong>Retained On:</strong> {new Date(retained.retainedAt).toLocaleDateString()}</p>
                     
                     {/* Withdraw Button - Only show when not locked and all players not released */}
-                    {(() => {
-                      const shouldShowButton = !isRetentionLocked && !allPlayersReleased && retentionEnabled;
-                      console.log('Remove from Retention button visibility:', {
-                        isRetentionLocked,
-                        allPlayersReleased,
-                        retentionEnabled,
-                        shouldShowButton
-                      });
-                      return shouldShowButton;
-                    })() && (
+                    {!isRetentionLocked && !allPlayersReleased && retentionEnabled && (
                       <div style={{
                         marginTop: '15px',
                         textAlign: 'center'
@@ -1656,7 +1739,10 @@ const Profile = () => {
       </div>
 
       {/* Retain Player Confirmation Popup */}
-      {showRetainConfirm && selectedPlayerForRetain && (
+      {showRetainConfirm && selectedPlayerForRetain && (() => {
+        // Handle both formats: direct player object or { player, bidValue } object
+        const player = selectedPlayerForRetain.player || selectedPlayerForRetain;
+        return (
         <div className="confirm-overlay">
           <div className="confirm-popup" style={{ maxWidth: '500px' }}>
             <h2>💎 Retain Player</h2>
@@ -1669,10 +1755,10 @@ const Profile = () => {
               textAlign: 'center'
             }}>
               <h3 style={{ margin: '0 0 10px 0', fontSize: '1.5rem' }}>
-                {selectedPlayerForRetain.player.name}
+                {player.name}
               </h3>
               <p style={{ margin: '0 0 15px 0', opacity: 0.9 }}>
-                {selectedPlayerForRetain.player.type} • {selectedPlayerForRetain.player.role}
+                {player.type} • {player.role}
               </p>
               <div style={{
                 background: 'rgba(255, 255, 255, 0.2)',
@@ -1706,7 +1792,8 @@ const Profile = () => {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Remove from Retention Confirmation Popup */}
       {showWithdrawConfirm && selectedRetainedForWithdraw && (
