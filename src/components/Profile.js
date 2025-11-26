@@ -5,6 +5,7 @@ import LoadingCube from "./CricketAnimation";
 import NotificationBell from './NotificationBell';
 import TeamStrengthChart from './TeamStrengthChart';
 import AdminControlPanel from './AdminControlPanel';
+import TournamentPoster from './TournamentPoster';
 const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -837,6 +838,7 @@ const Profile = () => {
     <div className="profile-container">
       {/* Include the NotificationBell component */}
       <NotificationBell />
+      <TournamentPoster />
       
       {/* Retention Locked Floating Notification */}
       {isRetentionLocked && (

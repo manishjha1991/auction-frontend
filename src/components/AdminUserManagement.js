@@ -460,6 +460,51 @@ const ErrorMessage = styled.div`
   animation: ${slideIn} 0.5s ease-out;
 `;
 
+const StatusBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0,0,0,0.08);
+  flex-wrap: wrap;
+`;
+
+const StatusPill = styled.span`
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: ${({ active }) => (active ? '#1c7c54' : '#b71c1c')};
+  background: ${({ active }) => (active ? 'rgba(28,124,84,0.12)' : 'rgba(183,28,28,0.12)')};
+  border: 1px solid ${({ active }) => (active ? 'rgba(28,124,84,0.3)' : 'rgba(183,28,28,0.3)')};
+`;
+
+const ToggleButton = styled.button`
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: white;
+  background: ${({ danger }) =>
+    danger ? 'linear-gradient(135deg, #ff3d71, #ff8f70)' : 'linear-gradient(135deg, #22c1c3, #3a7bd5)'};
+  box-shadow: 0 8px 18px rgba(0,0,0,0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -468,15 +513,18 @@ const AdminUserManagement = () => {
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [adminUserId, setAdminUserId] = useState(null);
 
   useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    setAdminUserId(storedUser?.id || storedUser?._id || null);
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_ENDPOINTS}/api/users/all`);
+      const response = await axios.get(`${API_ENDPOINTS}/api/users/all?includeInactive=true`);
       setUsers(response.data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -528,6 +576,27 @@ const AdminUserManagement = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleToggleActive = async (user) => {
+    if (!adminUserId) {
+      setMessage({ type: 'error', text: 'Missing admin credentials' });
+      return;
+    }
+    try {
+      await axios.post(`${API_ENDPOINTS}/api/admin-tools/users/${user._id}/active`, {
+        adminUserId,
+        isActive: !(user.isActive === false),
+      });
+      setMessage({
+        type: 'success',
+        text: `${user.teamName || user.name} is now ${user.isActive === false ? 'active' : 'inactive'}.`,
+      });
+      fetchUsers();
+    } catch (error) {
+      console.error('Error toggling user active state:', error);
+      setMessage({ type: 'error', text: 'Failed to update user status' });
+    }
   };
 
   const filteredUsers = users.filter(user =>
@@ -735,6 +804,21 @@ const AdminUserManagement = () => {
                   </Button>
                 </ButtonGroup>
               </FormSection>
+            )}
+
+            {!user.isAdmin && (
+              <StatusBar>
+                <StatusPill active={user.isActive !== false}>
+                  {user.isActive === false ? 'Inactive' : 'Active'}
+                </StatusPill>
+                <ToggleButton
+                  danger={user.isActive !== false}
+                  onClick={() => handleToggleActive(user)}
+                  disabled={saving}
+                >
+                  {user.isActive !== false ? 'Deactivate' : 'Activate'}
+                </ToggleButton>
+              </StatusBar>
             )}
           </UserCard>
         ))}

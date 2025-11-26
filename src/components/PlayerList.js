@@ -3,7 +3,7 @@ import styled, { keyframes } from "styled-components";
 import "../css/PlayerList.css";
 import PlayerPopup from "./PlayerPopup";
 import { API_ENDPOINTS } from "../const";
-import LoadingCube from "./CricketAnimation"; // Import the reusable component
+import TrophyLoader from "./TrophyLoader";
 import NotificationBell from './NotificationBell';
 
 
@@ -137,7 +137,7 @@ const PlayerList = () => {
   };
 
   if (loading) {
-    return <LoadingCube animationFile="HittingSix.json" />;
+    return <TrophyLoader message="Loading player board…" />;
   }
 
   if (error) {
@@ -146,16 +146,9 @@ const PlayerList = () => {
 
   return (
     <div className="player-list">
-       <NotificationBell />
+      <NotificationBell />
       {unsoldPlayers.length === 0 ? (
-        <div style={{ textAlign: "center", marginTop: "20px" }}>
-          <img
-            src="/images/back.jpg" // Path to your image in the `public` folder
-            alt="No players available"
-            style={{ width: "300px", height: "auto" }}
-          />
-          <p>No players available. Please check back later.</p>
-        </div>
+        <TrophyLoader message="No squads detected. Waiting for live feed…" />
       ) : (
       <>
       <div className="list-header">

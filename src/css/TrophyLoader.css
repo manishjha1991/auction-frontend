@@ -1,0 +1,95 @@
+.trophy-loader {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top, rgba(15, 27, 70, 0.85), rgba(4, 9, 23, 0.95));
+  background-blend-mode: overlay;
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+  margin: 24px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+}
+
+.trophy-loader::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 215, 0, 0.4),
+    rgba(0, 212, 255, 0.1),
+    transparent,
+    rgba(255, 215, 0, 0.4)
+  );
+  animation: trophySpin 6s linear infinite;
+  opacity: 0.6;
+}
+
+.trophy-loader-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 40px;
+  color: #f0f7ff;
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.65);
+}
+
+.trophy-loader-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: 0.2rem;
+}
+
+.trophy-loader-subtitle {
+  margin-top: 12px;
+  font-size: 1rem;
+  opacity: 0.85;
+}
+
+.trophy-loader-ring {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 6px solid rgba(255, 255, 255, 0.15);
+  margin: 30px auto 0;
+  border-top-color: #ffd700;
+  animation: ringSpin 1.8s linear infinite;
+}
+
+@media (max-width: 768px) {
+  .trophy-loader {
+    margin: 16px;
+    border-radius: 18px;
+    min-height: 55vh;
+  }
+
+  .trophy-loader-content {
+    padding: 24px;
+  }
+
+  .trophy-loader-title {
+    font-size: 1.6rem;
+  }
+}
+
+@keyframes trophySpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ringSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
