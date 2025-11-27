@@ -93,8 +93,12 @@ const PlayerStatsList = () => {
         if (response.ok) {
           const data = await response.json();
           console.log("Teams API Response:", data);
-          // The API returns an array directly, not wrapped in a teams property
-          const teamsArray = Array.isArray(data) ? data : [];
+          // API now returns { teams: [...] }
+          const teamsArray = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.teams)
+            ? data.teams
+            : [];
           console.log("Setting teams array:", teamsArray);
           setAllTeams(teamsArray);
         } else {
