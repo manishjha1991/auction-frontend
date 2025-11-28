@@ -305,9 +305,6 @@ const AdminUserActivity = ({ adminUser }) => {
                     <p><strong>Action:</strong> {activity.action}</p>
                     <p><strong>IP:</strong> {activity.ipAddress}</p>
                     <p className="suspicious-reason"><strong>Reason:</strong> {activity.suspiciousReason}</p>
-                    {activity.details?.otherAccountsSameIP && activity.details.otherAccountsSameIP.length > 0 && (
-                      <p><strong>Other accounts from same IP:</strong> {activity.details.otherAccountsSameIP.map(a => a.name).join(', ')}</p>
-                    )}
                     {activity.details?.otherAccountsSameDevice && activity.details.otherAccountsSameDevice.length > 0 && (
                       <p><strong>Other accounts from same device:</strong> {activity.details.otherAccountsSameDevice.map(a => a.name).join(', ')}</p>
                     )}
@@ -329,9 +326,6 @@ const AdminUserActivity = ({ adminUser }) => {
                     <p><strong>IP:</strong> {activity.ipAddress}</p>
                     <p><strong>Time:</strong> {formatDate(activity.timestamp)}</p>
                     <p className="suspicious-reason"><strong>Issue:</strong> {activity.suspiciousReason}</p>
-                    {activity.details?.otherAccountsSameIP && (
-                      <p><strong>Other accounts from same IP:</strong> {activity.details.otherAccountsSameIP.map(a => a.name).join(', ')}</p>
-                    )}
                     {activity.details?.otherAccountsSameDevice && (
                       <p><strong>Other accounts from same device:</strong> {activity.details.otherAccountsSameDevice.map(a => a.name).join(', ')}</p>
                     )}
