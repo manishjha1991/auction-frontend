@@ -1,15 +1,24 @@
 .admin-activity-container {
-  padding: 20px;
-  max-width: 1400px;
+  width: 100%;
+  max-width: 1200px;
+  padding: clamp(16px, 3vw, 32px);
   margin: 0 auto;
-  background: #f5f5f5;
-  min-height: 100vh;
+  background: linear-gradient(145deg, #fdfdff 0%, #eef2ff 45%, #f8fafc 100%);
+  border-radius: 24px;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.25);
+  color: #0b1120;
+  min-height: 100%;
+  box-sizing: border-box;
 }
 
 .admin-activity-container h2 {
-  color: #333;
+  color: #0b1120;
   margin-bottom: 20px;
   font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .activity-tabs {
@@ -29,6 +38,9 @@
   font-weight: 500;
   color: #666;
   transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .activity-tabs button:hover {
@@ -43,10 +55,11 @@
 }
 
 .activity-summary {
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
 }
 
 .summary-cards {
@@ -60,7 +73,7 @@
   padding: 20px;
   border-radius: 8px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
 }
 
 .summary-card.alert {
@@ -75,6 +88,11 @@
 
 .summary-card.info {
   background: linear-gradient(135deg, #42a5f5, #1e88e5);
+  color: white;
+}
+
+.summary-card.device {
+  background: linear-gradient(135deg, #34d399, #059669);
   color: white;
 }
 
@@ -100,13 +118,34 @@
   margin-bottom: 15px;
 }
 
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 12px;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: 999px;
+}
+
+th {
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  background: rgba(255, 255, 255, 0.96);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 15px 40px rgba(15, 23, 42, 0.2);
+  color: #0b1120;
 }
 
 thead {
@@ -164,11 +203,74 @@ tbody tr:hover {
   color: white;
 }
 
-.activities-section {
-  background: white;
+.ip-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.ip-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(241,245,249,0.9));
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+
+.ip-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.ip-card-title {
+  font-weight: 600;
+  color: #0b1120;
+}
+
+.ip-card-note {
+  font-size: 14px;
+  color: #475569;
+  margin: 0 0 8px 0;
+}
+
+.ip-card-meta {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.multi-account-section {
+  margin-top: 30px;
+}
+
+.multi-account-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.multi-account-item {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(255, 247, 237, 0.9);
+  box-shadow: 0 12px 24px rgba(255, 159, 67, 0.2);
+}
+
+.new-device-list {
+  margin-top: 30px;
+}
+
+.activities-section,
+.suspicious-section {
+  background: rgba(255, 255, 255, 0.94);
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
 }
 
 .activity-filters {
@@ -194,7 +296,7 @@ tbody tr:hover {
   padding: 15px;
   border: 1px solid #ddd;
   border-radius: 8px;
-  background: #fafafa;
+  background: linear-gradient(135deg, rgba(226, 232, 240, 0.45), rgba(241, 245, 249, 0.9));
   transition: all 0.3s;
 }
 
@@ -256,13 +358,6 @@ tbody tr:hover {
   overflow-x: auto;
 }
 
-.suspicious-section {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
 .suspicious-activities-list {
   display: flex;
   flex-direction: column;
@@ -315,27 +410,57 @@ tbody tr:hover {
 
 @media (max-width: 768px) {
   .admin-activity-container {
-    padding: 10px;
+    max-width: 100%;
+    padding: 16px;
+    border-radius: 18px;
+    box-shadow: none;
+    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
   }
 
   .activity-tabs {
     flex-direction: column;
+    gap: 6px;
+  }
+
+  .activity-tabs button {
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255,255,255,0.7);
+    padding: 10px 14px;
   }
 
   .summary-cards {
     grid-template-columns: 1fr;
   }
 
+  .activity-filters {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .table-scroll {
+    margin: 0 -12px;
+    padding: 0 12px 12px;
+  }
+
+  .ip-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+
+  .multi-account-list {
+    grid-template-columns: 1fr;
+  }
+
   table {
-    font-size: 12px;
+    min-width: 640px;
+    font-size: 13px;
   }
 
   th, td {
-    padding: 8px;
-  }
-
-  .activity-filters {
-    flex-direction: column;
+    padding: 10px;
   }
 }
 

@@ -6,7 +6,6 @@ const AdminUserActivity = ({ adminUser }) => {
   const [adminUserId, setAdminUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('summary'); // 'summary', 'activities', 'suspicious'
-  const [summary, setSummary] = useState(null);
   const [activities, setActivities] = useState([]);
   const [suspiciousData, setSuspiciousData] = useState(null);
   const [selectedUserId, setSelectedUserId] = useState(null);
@@ -128,78 +127,94 @@ const AdminUserActivity = ({ adminUser }) => {
               <p className="count">{suspiciousData.summary?.totalSuspiciousActivities || 0}</p>
             </div>
             <div className="summary-card info">
-              <h3>🌐 IP Mismatches</h3>
-              <p className="count">{suspiciousData.summary?.totalIPMismatches || 0}</p>
+              <h3>🤝 Shared Device Alerts</h3>
+              <p className="count">{suspiciousData.summary?.totalMultiAccountCases || 0}</p>
+            </div>
+            <div className="summary-card device">
+              <h3>📱 New Device Logins</h3>
+              <p className="count">{suspiciousData.summary?.totalNewDeviceAlerts || 0}</p>
             </div>
           </div>
 
           {suspiciousData.suspiciousUsers && suspiciousData.suspiciousUsers.length > 0 && (
             <div className="suspicious-users-list">
               <h3>Users with Suspicious Activity</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Email</th>
-                    <th>Login IP</th>
-                    <th>Bid IP</th>
-                    <th>Suspicious Count</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {suspiciousData.suspiciousUsers.map((user) => (
-                    <tr key={user._id}>
-                      <td>{user.teamName || user.name}</td>
-                      <td>{user.email}</td>
-                      <td>{user.lastLoginIP || 'N/A'}</td>
-                      <td className={user.lastLoginIP !== user.lastBidIP ? 'mismatch' : ''}>
-                        {user.lastBidIP || 'N/A'}
-                      </td>
-                      <td className="suspicious-count">{user.suspiciousActivityCount || 0}</td>
-                      <td>
-                        <button 
-                          className="view-details-btn"
-                          onClick={() => {
-                            fetchUserActivity(user._id);
-                            setActiveTab('activities');
-                          }}
-                        >
-                          View Details
-                        </button>
-                      </td>
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Flags</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {suspiciousData.suspiciousUsers.map((user) => (
+                      <tr key={user._id}>
+                        <td>{user.teamName || user.name}</td>
+                        <td className="suspicious-count">
+                          {user.suspiciousActivityCount || 0} alerts
+                        </td>
+                        <td>
+                          <button 
+                            className="view-details-btn"
+                            onClick={() => {
+                              fetchUserActivity(user._id);
+                              setActiveTab('activities');
+                            }}
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {suspiciousData.ipMismatchUsers && suspiciousData.ipMismatchUsers.length > 0 && (
             <div className="ip-mismatch-list">
               <h3>⚠️ IP Address Mismatches</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Login IP</th>
-                    <th>Bid IP</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {suspiciousData.ipMismatchUsers.map((user) => (
-                    <tr key={user._id} className="mismatch-row">
-                      <td>{user.teamName || user.name}</td>
-                      <td>{user.lastLoginIP}</td>
-                      <td className="mismatch">{user.lastBidIP}</td>
-                      <td>
-                        <span className="badge warning">IP Mismatch</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="ip-card-grid">
+                {suspiciousData.ipMismatchUsers.map((user) => (
+                  <div key={user._id} className="ip-card">
+                    <div className="ip-card-header">
+                      <span className="ip-card-title">{user.teamName || user.name}</span>
+                      <span className="badge warning">Mismatch</span>
+                    </div>
+                    <p className="ip-card-note">
+                      Login and bidding locations don’t match. Please review this account.
+                    </p>
+                    <p className="ip-card-meta">
+                      Last alert: {formatDate(user.lastBidTime || user.lastLoginTime)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {suspiciousData.newDeviceLogins && suspiciousData.newDeviceLogins.length > 0 && (
+            <div className="new-device-list">
+              <h3>📱 Recent New Device Logins</h3>
+              <div className="ip-card-grid">
+                {suspiciousData.newDeviceLogins.map((entry) => (
+                  <div key={entry._id} className="ip-card">
+                    <div className="ip-card-header">
+                      <span className="ip-card-title">{entry.user?.teamName || entry.user?.name || 'Unknown'}</span>
+                      <span className="badge warning">New Device</span>
+                    </div>
+                    <p className="ip-card-note">
+                      Account logged in from an unfamiliar device.
+                    </p>
+                    <p className="ip-card-meta">
+                      {formatDate(entry.timestamp)}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -320,6 +335,23 @@ const AdminUserActivity = ({ adminUser }) => {
                     {activity.details?.otherAccountsSameDevice && (
                       <p><strong>Other accounts from same device:</strong> {activity.details.otherAccountsSameDevice.map(a => a.name).join(', ')}</p>
                     )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {suspiciousData.newDeviceLogins && suspiciousData.newDeviceLogins.length > 0 && (
+            <div className="multi-account-section">
+              <h3>📱 New Device Alerts</h3>
+              <div className="multi-account-list">
+                {suspiciousData.newDeviceLogins.map((entry, idx) => (
+                  <div key={`new-device-${idx}`} className="multi-account-item">
+                    <p><strong>User:</strong> {entry.user?.teamName || entry.user?.name || 'Unknown'}</p>
+                    <p><strong>Time:</strong> {formatDate(entry.timestamp)}</p>
+                    <p className="suspicious-reason">
+                      <strong>Reason:</strong> New device login detected
+                    </p>
                   </div>
                 ))}
               </div>
