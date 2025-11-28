@@ -197,9 +197,13 @@ const PlayerPopup = ({ player, onClose }) => {
 
       const user = JSON.parse(localStorage.getItem("user"));
       const bidderId = user?.id;
+      const token = user?.token; // Get JWT token from user object
 
       if (!bidderId) {
         throw new Error("Bidder ID not found in local storage.");
+      }
+      if (!token) {
+        throw new Error("Authentication token not found. Please login again.");
       }
       const lastBidAmount =
         topTwoBids.length > 0 ? topTwoBids[0]?.bidAmount || 0 : playerDetails?.basePrice || 0;
@@ -220,7 +224,10 @@ const PlayerPopup = ({ player, onClose }) => {
 
       const response = await fetch(`${API_ENDPOINTS}/api/bids/${playerDetails.id}/bid`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` // Include JWT token in Authorization header
+        },
         body: JSON.stringify(payload),
       });
 
