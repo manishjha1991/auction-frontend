@@ -31,6 +31,7 @@ import TournamentList from './components/TournamentList';
 import TrophyHall from './components/TrophyHall';
 import AdminMatchResults from './components/AdminMatchResults';
 import OcrExtractor from './components/OcrExtractor';
+import LiveBiddingDashboard from './components/LiveBiddingDashboard';
 
 // AdminDashboard removed - performance dashboard disabled
 
@@ -126,6 +127,7 @@ function App() {
               </div>
               <ul className="menu">
                 <li><Link to="/players" onClick={toggleSidebar}>Players</Link></li>
+                <li><Link to="/live-bidding" onClick={toggleSidebar}>🔥 Live Bidding Dashboard</Link></li>
                 <li><Link to="/profile" onClick={toggleSidebar}>Profile</Link></li>
                 {user?.isAdmin && <li><Link to="/add-player" onClick={toggleSidebar}>Add Player</Link></li>}
                 
@@ -199,6 +201,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/" element={<PrivateRoute><Navigate to="/profile" /></PrivateRoute>} />
             <Route path="/players" element={<PrivateRoute><PlayerList /></PrivateRoute>} />
+            <Route path="/live-bidding" element={<PrivateRoute><LiveBiddingDashboard /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="/add-player" element={<PrivateRoute><AddPlayer /></PrivateRoute>} />
             <Route path="/user-purses" element={<PrivateRoute><UserPursePage /></PrivateRoute>} />
