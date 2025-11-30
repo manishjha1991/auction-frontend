@@ -4,12 +4,10 @@ import { API_ENDPOINTS } from '../const';
 import '../css/LiveBiddingDashboard.css';
 
 const LiveBiddingDashboard = () => {
-  const [allBids, setAllBids] = useState([]);
-  const [myBids, setMyBids] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newBidIds, setNewBidIds] = useState(new Set());
-  const [counterBidIds, setCounterBidIds] = useState(new Set());
-  const [previousBidCounts, setPreviousBidCounts] = useState(new Map());
+  const [updatedUserIds, setUpdatedUserIds] = useState(new Set());
+  const [previousPurses, setPreviousPurses] = useState(new Map());
   const user = JSON.parse(localStorage.getItem('user'));
 
   // Format currency
@@ -26,94 +24,85 @@ const LiveBiddingDashboard = () => {
     return `₹${amount}`;
   };
 
-  // Fetch active bids
-  const fetchActiveBids = async () => {
+  // Fetch users with purse and active bids
+  const fetchUsersData = async () => {
     try {
-      const response = await fetch(`${API_ENDPOINTS}/api/bids/live-dashboard`);
+      const response = await fetch(`${API_ENDPOINTS}/api/bids/users-dashboard`);
       if (response.ok) {
         const data = await response.json();
-        const bids = data.activeBids || [];
+        const usersData = data.users || [];
         
-        // Detect new/updated bids for animation
-        const currentBidCounts = new Map();
-        const newIds = new Set();
-        const counterBidIds = new Set();
+        // Detect purse changes for animation
+        const currentPurses = new Map();
+        const updatedIds = new Set();
         
-        bids.forEach(bid => {
-          const playerId = bid.playerId.toString();
-          const currentBidAmount = bid.highestBid?.bidAmount || 0;
-          const previousBid = previousBidCounts.get(playerId);
+        usersData.forEach(userData => {
+          const userId = userData.userId.toString();
+          const currentPurse = userData.purse;
+          const previousPurse = previousPurses.get(userId);
           
-          if (previousBid && previousBid !== currentBidAmount) {
-            // Bid amount changed - this is a counter bid!
-            counterBidIds.add(playerId);
-          } else if (!previousBid && currentBidAmount > 0) {
-            // New player in bidding (first bid)
-            newIds.add(playerId);
+          if (previousPurse !== undefined && previousPurse !== currentPurse) {
+            // Purse changed - user made a bid or got refunded
+            updatedIds.add(userId);
           }
           
-          currentBidCounts.set(playerId, currentBidAmount);
+          currentPurses.set(userId, currentPurse);
         });
         
-        // Update new bid IDs for animation
-        if (newIds.size > 0) {
-          setNewBidIds(newIds);
-          // Clear animation after 2 seconds
+        // Update animation state
+        if (updatedIds.size > 0) {
+          setUpdatedUserIds(updatedIds);
           setTimeout(() => {
-            setNewBidIds(new Set());
-          }, 2000);
-        }
-        
-        // Update counter bid IDs for animation
-        if (counterBidIds.size > 0) {
-          setCounterBidIds(counterBidIds);
-          // Clear animation after 1.5 seconds
-          setTimeout(() => {
-            setCounterBidIds(new Set());
+            setUpdatedUserIds(new Set());
           }, 1500);
         }
         
-        setPreviousBidCounts(currentBidCounts);
-        setAllBids(bids);
+        setPreviousPurses(currentPurses);
         
-        // Filter my bids
-        if (user && (user.id || user._id)) {
-          const userId = (user.id || user._id).toString();
-          const myBidding = bids.filter(bid => {
-            const highestBidderId = bid.highestBid?.bidder?._id?.toString();
-            const secondBidderId = bid.secondBid?.bidder?._id?.toString();
-            return highestBidderId === userId || secondBidderId === userId;
-          });
-          setMyBids(myBidding);
-        }
+        // Sort: My user first, then others
+        const userId = user ? (user.id || user._id)?.toString() : null;
+        const sortedUsers = usersData.sort((a, b) => {
+          const aId = a.userId.toString();
+          const bId = b.userId.toString();
+          if (aId === userId) return -1;
+          if (bId === userId) return 1;
+          return 0;
+        });
+        
+        setUsers(sortedUsers);
       }
     } catch (error) {
-      console.error('Error fetching active bids:', error);
+      console.error('Error fetching users data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchActiveBids();
+    fetchUsersData();
     
     // Set up socket connection for live updates
     const socket = io(API_ENDPOINTS);
     
     socket.on('bid_notification', (data) => {
-      // Refresh bids when new bid is placed
-      fetchActiveBids();
+      // Refresh when new bid is placed (purse decreases)
+      fetchUsersData();
     });
     
     socket.on('bid_exit_notification', (data) => {
-      // Refresh bids when someone exits
-      fetchActiveBids();
+      // Refresh when someone exits (purse increases - refund)
+      fetchUsersData();
     });
 
-    // Poll every 2 seconds as backup
+    socket.on('player_sold', (data) => {
+      // Refresh when player is sold (purse changes for winner and others)
+      fetchUsersData();
+    });
+
+    // Poll every 1.5 seconds for real-time purse updates
     const pollInterval = setInterval(() => {
-      fetchActiveBids();
-    }, 2000);
+      fetchUsersData();
+    }, 1500);
 
     return () => {
       socket.disconnect();
@@ -132,53 +121,51 @@ const LiveBiddingDashboard = () => {
     }
   };
 
-  // Render compact bid card for 300+ players
-  const renderBidCard = (bid, isMyBid = false) => {
+  // Render user card
+  const renderUserCard = (userData) => {
     const userId = user ? (user.id || user._id)?.toString() : null;
-    const isHighest = bid.highestBid?.bidder?._id?.toString() === userId;
-    const isSecond = bid.secondBid?.bidder?._id?.toString() === userId;
-    const isNewBid = newBidIds.has(bid.playerId.toString());
-    const isCounterBid = counterBidIds.has(bid.playerId.toString());
+    const isMyUser = userData.userId.toString() === userId;
+    const isUpdated = updatedUserIds.has(userData.userId.toString());
     
     return (
-      <div key={bid.playerId} className={`compact-bid-card ${isMyBid ? 'my-bid' : ''} ${isHighest ? 'highest' : ''} ${isSecond ? 'second' : ''} ${isNewBid ? 'new-bid-animation' : ''} ${isCounterBid ? 'counter-bid-animation' : ''}`}>
-        <div className="compact-player-info">
-          <div className="compact-player-name-row">
-            <span className="compact-player-name">{bid.playerName}</span>
-            <span className="compact-type-badge" style={{ backgroundColor: getTypeColor(bid.playerType) }}>
-              {bid.playerType.charAt(0)}
-            </span>
+      <div key={userData.userId} className={`user-card ${isMyUser ? 'my-user' : ''} ${isUpdated ? 'updated-animation' : ''}`}>
+        <div className="user-card-header">
+          <div className="user-info">
+            <h3 className="user-abbreviation">{userData.abbreviation || 'N/A'}</h3>
           </div>
-          <div className="compact-meta-row">
-            <span className="compact-role">{bid.playerRole}</span>
-            <span className="compact-base">Base: {formatCurrency(bid.basePrice)}</span>
+          <div className="purse-display">
+            <span className="purse-label">Purse</span>
+            <span className="purse-value">{formatCurrency(userData.purse)}</span>
           </div>
         </div>
         
-        <div className="compact-bidders-row">
-          {/* Highest Bidder */}
-          {bid.highestBid && (
-            <div className={`compact-bidder highest ${isHighest ? 'my-bid' : ''}`}>
-              <span className="compact-arrow up">↑</span>
-              <div className="compact-bidder-info">
-                <span className="compact-bidder-name">{bid.highestBid.bidder?.name || 'Unknown'}</span>
-                <span className="compact-bid-amount">{formatCurrency(bid.highestBid.bidAmount)}</span>
-              </div>
-            </div>
-          )}
+        <div className="user-active-bids">
+          <div className="bids-header">
+            <span className="bids-count">Bids: {userData.activeBids.length}</span>
+          </div>
           
-          {/* Second Bidder */}
-          {bid.secondBid ? (
-            <div className={`compact-bidder second ${isSecond ? 'my-bid' : ''}`}>
-              <span className="compact-arrow down">↓</span>
-              <div className="compact-bidder-info">
-                <span className="compact-bidder-name">{bid.secondBid.bidder?.name || 'Unknown'}</span>
-                <span className="compact-bid-amount">{formatCurrency(bid.secondBid.bidAmount)}</span>
-              </div>
-            </div>
+          {userData.activeBids.length === 0 ? (
+            <div className="no-active-bids">No active bids</div>
           ) : (
-            <div className="compact-bidder waiting">
-              <span className="compact-waiting">Waiting...</span>
+            <div className="bids-list">
+              {userData.activeBids.map((bid, index) => (
+                <div key={`${bid.playerId}-${index}`} className={`bid-item ${bid.isWinning ? 'winning' : ''} ${bid.isLosing ? 'losing' : ''}`}>
+                  <div className="bid-player-info">
+                    <span className="bid-player-name">{bid.playerName}</span>
+                    <span className="bid-player-type" style={{ backgroundColor: getTypeColor(bid.playerType) }}>
+                      {bid.playerType.charAt(0)}
+                    </span>
+                    {bid.otherBidderAbbr && (
+                      <span className="counter-bid-badge">vs {bid.otherBidderAbbr}</span>
+                    )}
+                  </div>
+                  <div className="bid-amount-display">
+                    <span className={`bid-amount-circle ${bid.isWinning ? 'winning-circle' : ''} ${bid.isLosing ? 'losing-circle' : ''}`}>
+                      {formatCurrency(bid.bidAmount)}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -190,61 +177,44 @@ const LiveBiddingDashboard = () => {
     return (
       <div className="live-dashboard-loading">
         <div className="spinner"></div>
-        <p>Loading live bids...</p>
+        <p>Loading live dashboard...</p>
       </div>
     );
   }
 
+  const myUser = users.find(u => u.userId.toString() === (user ? (user.id || user._id)?.toString() : null));
+  const otherUsers = users.filter(u => u.userId.toString() !== (user ? (user.id || user._id)?.toString() : null));
+
   return (
     <div className="live-bidding-dashboard">
-      {/* Fixed Header with My Bidding */}
       <div className="dashboard-header-fixed">
         <div className="header-left">
           <h1>🏏 Live Bidding Dashboard</h1>
           <div className="stats">
             <span className="stat-item">
-              <span className="stat-label">Total:</span>
-              <span className="stat-value">{allBids.length}</span>
+              <span className="stat-label">Total Users:</span>
+              <span className="stat-value">{users.length}</span>
             </span>
             <span className="stat-item">
-              <span className="stat-label">My Bids:</span>
-              <span className="stat-value my-bids-count">{myBids.length}</span>
+              <span className="stat-label">Total Active Bids:</span>
+              <span className="stat-value">{users.reduce((sum, u) => sum + u.activeBids.length, 0)}</span>
             </span>
           </div>
         </div>
-        
-        {/* My Bidding Horizontal Bar */}
-        {myBids.length > 0 && (
-          <div className="my-bids-horizontal-bar">
-            <span className="my-bids-label">🎯 My Bidding:</span>
-            <div className="my-bids-scroll">
-              {myBids.map(bid => {
-                const userId = user ? (user.id || user._id)?.toString() : null;
-                const isHighest = bid.highestBid?.bidder?._id?.toString() === userId;
-                const isSecond = bid.secondBid?.bidder?._id?.toString() === userId;
-                return (
-                  <div key={bid.playerId} className={`my-bid-chip ${isHighest ? 'highest' : ''} ${isSecond ? 'second' : ''}`}>
-                    <span className="chip-player-name">{bid.playerName}</span>
-                    <span className="chip-bid-amount">
-                      {isHighest ? '↑' : '↓'} {formatCurrency(isHighest ? bid.highestBid?.bidAmount : bid.secondBid?.bidAmount)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Main Grid - All Bids - No Scrolling */}
       <div className="dashboard-content-no-scroll">
-        {allBids.length === 0 ? (
+        {users.length === 0 ? (
           <div className="no-bids">
-            <p>No active bids at the moment</p>
+            <p>No users found</p>
           </div>
         ) : (
-          <div className="bids-grid-no-scroll">
-            {allBids.map(bid => renderBidCard(bid, false))}
+          <div className="users-grid">
+            {/* My User First */}
+            {myUser && renderUserCard(myUser)}
+            
+            {/* Other Users */}
+            {otherUsers.map(userData => renderUserCard(userData))}
           </div>
         )}
       </div>
@@ -253,4 +223,3 @@ const LiveBiddingDashboard = () => {
 };
 
 export default LiveBiddingDashboard;
-
