@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import '../css/AdminProfile.css';
 import { API_ENDPOINTS } from '../const';
 import PlayerTypeControls from './PlayerTypeControls';
-import AdminUserActivity from './AdminUserActivity';
 
 const formatCr = (value) => `${value.toFixed(2)} Cr`;
 
@@ -746,10 +745,6 @@ const AdminControlPanel = ({ adminUser }) => {
             </strong>
           </div>
         )}
-      </section>
-
-      <section className="admin-section">
-        <AdminUserActivity adminUser={adminUser} />
       </section>
     </div>
   );
