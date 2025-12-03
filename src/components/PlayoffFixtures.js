@@ -609,6 +609,8 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const [team2Fairness, setTeam2Fairness] = useState("");
   const [teams, setTeams] = useState([]);
   const [requiredGames, setRequiredGames] = useState(12); // Configurable number of games
+  const [worldCupMode, setWorldCupMode] = useState(false);
+  const [top8Teams, setTop8Teams] = useState([]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -616,6 +618,8 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
     fetchPlayoffFixtures();
     fetchTeams();
     fetchRequiredGames();
+    fetchWorldCupMode();
+    fetchTop8Teams();
   }, []);
 
   const fetchRequiredGames = async () => {
@@ -626,6 +630,32 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
     } catch (error) {
       console.error("Error fetching required games:", error);
       setRequiredGames(12); // Default fallback
+    }
+  };
+
+  const fetchWorldCupMode = async () => {
+    try {
+      const response = await axios.get(`${API_ENDPOINTS}/api/settings`);
+      setWorldCupMode(response?.data?.worldCupMode === true);
+    } catch (error) {
+      console.error("Error fetching World Cup mode:", error);
+      setWorldCupMode(false);
+    }
+  };
+
+  const fetchTop8Teams = async () => {
+    try {
+      const response = await axios.get(`${API_ENDPOINTS}/api/users/points-table`);
+      if (Array.isArray(response.data)) {
+        const sorted = response.data.sort((a, b) => {
+          if (b.points !== a.points) return b.points - a.points;
+          return b.fairness - a.fairness;
+        });
+        setTop8Teams(sorted.slice(0, 8));
+      }
+    } catch (error) {
+      console.error("Error fetching top 8 teams:", error);
+      setTop8Teams([]);
     }
   };
 
@@ -662,8 +692,41 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
       alert("Playoff fixtures initialized successfully!");
     } catch (error) {
       console.error("Error initializing playoffs:", error);
-      alert("Failed to initialize playoff fixtures.");
+      alert(error.response?.data?.message || "Failed to initialize playoff fixtures.");
     }
+  };
+
+  const initializeWorldCup = async () => {
+    try {
+      // Get user ID from localStorage
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = user?.id || user?._id;
+      
+      if (!userId) {
+        alert("User ID not found. Please login again.");
+        return;
+      }
+
+      const response = await axios.post(
+        `${API_ENDPOINTS}/api/tournaments/world-cup/initialize`,
+        {},
+        {
+          headers: {
+            'user-id': userId.toString()
+          }
+        }
+      );
+      alert(`World Cup tournament "${response.data.tournament.name}" created successfully! You can view it in the Tournaments section.`);
+      // Optionally redirect to tournaments page
+      window.location.href = '/tournaments';
+    } catch (error) {
+      console.error("Error initializing World Cup:", error);
+      alert(error.response?.data?.error || "Failed to initialize World Cup tournament.");
+    }
+  };
+
+  const areTop8TeamsEligible = () => {
+    return top8Teams.length >= 8 && top8Teams.every(team => (team.matchesPlayed || 0) >= requiredGames);
   };
 
   const handleEditFixture = (fixture) => {
@@ -797,20 +860,50 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
                 <div>
                   <p>Playoff fixtures not initialized yet.</p>
                   {isAdmin && (
-                    <button 
-                      onClick={initializePlayoffs}
-                      style={{
-                        background: '#007bff',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '5px',
-                        padding: '0.5rem 1rem',
-                        cursor: 'pointer',
-                        marginTop: '1rem'
-                      }}
-                    >
-                      Initialize Playoffs
-                    </button>
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
+                      <button 
+                        onClick={initializePlayoffs}
+                        style={{
+                          background: '#007bff',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '5px',
+                          padding: '0.5rem 1.5rem',
+                          cursor: 'pointer',
+                          fontSize: '1rem',
+                          fontWeight: '600'
+                        }}
+                      >
+                        Initialize Playoff
+                      </button>
+                      {worldCupMode && top8Teams.length >= 8 && areTop8TeamsEligible() && (
+                        <button 
+                          onClick={initializeWorldCup}
+                          style={{
+                            background: '#28a745',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '5px',
+                            padding: '0.5rem 1.5rem',
+                            cursor: 'pointer',
+                            fontSize: '1rem',
+                            fontWeight: '600'
+                          }}
+                        >
+                          Initialize World Cup
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {worldCupMode && top8Teams.length >= 8 && !areTop8TeamsEligible() && isAdmin && (
+                    <div style={{ marginTop: '1rem', padding: '0.5rem', background: '#fff3cd', borderRadius: '5px', color: '#856404' }}>
+                      <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                        ⏳ World Cup requires top 8 teams to complete {requiredGames} games
+                      </p>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem' }}>
+                        {top8Teams.filter(team => (team.matchesPlayed || 0) < requiredGames).length} teams still need to complete their games
+                      </p>
+                    </div>
                   )}
                 </div>
               ) : (

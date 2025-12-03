@@ -47,6 +47,8 @@ const AdminControlPanel = ({ adminUser }) => {
   });
   const [cronLoading, setCronLoading] = useState(false);
   const [cronSaving, setCronSaving] = useState(false);
+  const [worldCupMode, setWorldCupMode] = useState(false);
+  const [worldCupSaving, setWorldCupSaving] = useState(false);
 
   const handleToast = (message) => {
     setToast(message);
@@ -77,6 +79,7 @@ const AdminControlPanel = ({ adminUser }) => {
           cronBulkExitEnabled: data.cronBulkExitEnabled !== false,
           cronLockEnabled: data.cronLockEnabled !== false,
         });
+        setWorldCupMode(data.worldCupMode === true);
       } catch (err) {
         handleToast(err.message || 'Unable to load cron settings');
       } finally {
@@ -272,6 +275,26 @@ const AdminControlPanel = ({ adminUser }) => {
     }
   };
 
+  const updateWorldCupMode = async (value) => {
+    if (!adminUserId || worldCupSaving) return;
+    setWorldCupSaving(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId, worldCupMode: value }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update World Cup mode');
+      setWorldCupMode(data.worldCupMode === true);
+      handleToast(`World Cup mode ${value ? 'enabled' : 'disabled'}`);
+    } catch (err) {
+      handleToast(err.message || 'Unable to update World Cup mode');
+    } finally {
+      setWorldCupSaving(false);
+    }
+  };
+
   const cronDefinitions = [
     {
       key: 'cronSingleBidEnabled',
@@ -348,6 +371,38 @@ const AdminControlPanel = ({ adminUser }) => {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>World Cup Mode</h2>
+            <p>Enable World Cup playoff format: Top 8 teams play round-robin, then top 4 play semi-finals and finals.</p>
+          </div>
+          {worldCupSaving && <span className="cron-saving-pill">Saving…</span>}
+        </div>
+        <div className="cron-toggle-grid">
+          <div className="cron-toggle-card">
+            <div className="cron-toggle-info">
+              <div className="data-card-title">World Cup Playoff Format</div>
+              <p>When enabled, playoffs will use World Cup format: Top 8 teams selected, they play each other in round-robin, top 4 advance to semi-finals (1 vs 4, 2 vs 3), then finals.</p>
+            </div>
+            <div className="cron-toggle-switch">
+              <span className={`cron-status ${worldCupMode ? 'on' : 'off'}`}>
+                {worldCupMode ? 'Enabled' : 'Disabled'}
+              </span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={worldCupMode}
+                  onChange={(e) => updateWorldCupMode(e.target.checked)}
+                  disabled={worldCupSaving}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="admin-section">

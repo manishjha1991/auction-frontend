@@ -354,6 +354,28 @@ const TournamentList = () => {
                     🔒 Locked
                   </div>
                 )}
+                {tournament.winner?.teamName && (
+                  <div className="tournament-winner-badge" style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                    color: '#000',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '20px',
+                    fontWeight: 'bold',
+                    fontSize: '0.85rem',
+                    boxShadow: '0 4px 15px rgba(255, 215, 0, 0.5)',
+                    zIndex: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    border: '2px solid #FF8C00'
+                  }}>
+                    <span>🏆</span>
+                    <span>Winner: {tournament.winner.teamName}</span>
+                  </div>
+                )}
               </div>
 
               <div className="tournament-info">
@@ -884,6 +906,8 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
   const [loadingPointTable, setLoadingPointTable] = useState(false);
   const [showEditFixtureModal, setShowEditFixtureModal] = useState(false);
   const [editingFixture, setEditingFixture] = useState(null);
+  const [roundRobinStatus, setRoundRobinStatus] = useState(null);
+  const [generatingKnockout, setGeneratingKnockout] = useState(false);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -975,9 +999,54 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     }
   };
 
+  const fetchRoundRobinStatus = async () => {
+    try {
+      const response = await fetch(`${API_ENDPOINTS}/api/tournaments/${tournament._id}/round-robin-status`);
+      if (response.ok) {
+        const data = await response.json();
+        setRoundRobinStatus(data);
+      }
+    } catch (error) {
+      console.error('Error fetching round-robin status:', error);
+    }
+  };
+
+  const generateKnockout = async () => {
+    try {
+      setGeneratingKnockout(true);
+      const cachedUser = localStorage.getItem('user');
+      const userId = cachedUser ? JSON.parse(cachedUser).id : null;
+      
+      const response = await fetch(`${API_ENDPOINTS}/api/tournaments/${tournament._id}/generate-knockout`, {
+        method: 'POST',
+        headers: {
+          'user-id': userId
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Knockout fixtures generated! Semi-finals: ${data.top4[0].teamName} vs ${data.top4[3].teamName}, ${data.top4[1].teamName} vs ${data.top4[2].teamName}`);
+        fetchFixtures();
+        fetchRoundRobinStatus();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to generate knockout fixtures');
+      }
+    } catch (error) {
+      console.error('Error generating knockout:', error);
+      alert('Failed to generate knockout fixtures');
+    } finally {
+      setGeneratingKnockout(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'fixtures') {
       fetchFixtures();
+      if (tournament.name && tournament.name.startsWith('World Cup')) {
+        fetchRoundRobinStatus();
+      }
     } else if (activeTab === 'points') {
       fetchPointTable();
     }
@@ -1014,6 +1083,38 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
               <div className="tournament-status" style={{ backgroundColor: getStatusColor(status) }}>
                 {getStatusText(status)}
               </div>
+              {tournament.winner?.teamName && (
+                <div style={{
+                  position: 'absolute',
+                  top: '20px',
+                  right: '20px',
+                  background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                  color: '#000',
+                  padding: '1rem 1.5rem',
+                  borderRadius: '15px',
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  boxShadow: '0 6px 20px rgba(255, 215, 0, 0.6)',
+                  zIndex: 10,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  border: '3px solid #FF8C00',
+                  animation: 'pulse 2s infinite'
+                }}>
+                  <span style={{ fontSize: '2rem' }}>🏆</span>
+                  <span>CHAMPION</span>
+                  <span style={{ fontSize: '0.9rem', textAlign: 'center' }}>{tournament.winner.teamName}</span>
+                  {tournament.winner.teamImage && (
+                    <img 
+                      src={`${API_ENDPOINTS}${tournament.winner.teamImage}`}
+                      alt={tournament.winner.teamName}
+                      style={{ width: '60px', height: '60px', borderRadius: '50%', border: '2px solid #FF8C00' }}
+                    />
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="tournament-detail-info">
@@ -1111,7 +1212,49 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
 
             {activeTab === 'fixtures' && (
               <div className="fixtures-content">
-                <h3>Tournament Fixtures</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3>Tournament Fixtures</h3>
+                  {tournament.name && tournament.name.startsWith('World Cup') && roundRobinStatus && roundRobinStatus.canGenerateKnockout && (
+                    (() => {
+                      const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+                      const isAdmin = currentUser?.isAdmin;
+                      return isAdmin ? (
+                        <button
+                          onClick={generateKnockout}
+                          disabled={generatingKnockout}
+                          style={{
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '0.5rem 1.5rem',
+                            borderRadius: '8px',
+                            cursor: generatingKnockout ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            opacity: generatingKnockout ? 0.7 : 1
+                          }}
+                        >
+                          {generatingKnockout ? 'Generating...' : 'Initialize Knockout (Top 4)'}
+                        </button>
+                      ) : null;
+                    })()
+                  )}
+                </div>
+                {tournament.name && tournament.name.startsWith('World Cup') && roundRobinStatus && (
+                  <div style={{ 
+                    padding: '0.75rem', 
+                    marginBottom: '1rem', 
+                    background: roundRobinStatus.allComplete ? '#d4edda' : '#fff3cd',
+                    borderRadius: '8px',
+                    color: roundRobinStatus.allComplete ? '#155724' : '#856404'
+                  }}>
+                    <strong>Round-Robin Progress:</strong> {roundRobinStatus.completedRoundRobin}/{roundRobinStatus.totalRoundRobin} matches completed
+                    {roundRobinStatus.allComplete && !roundRobinStatus.hasKnockout && (
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                        ✅ All round-robin matches complete! Click "Initialize Knockout" to create semi-finals and final.
+                      </div>
+                    )}
+                  </div>
+                )}
                 {loadingFixtures ? (
                   <div className="loading">Loading fixtures...</div>
                 ) : fixtures.length === 0 ? (
@@ -1120,10 +1263,33 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                   </div>
                 ) : (
                   <div className="fixtures-list">
-                    {fixtures.map((fixture, index) => (
-                      <div key={index} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`}>
-                        <div className="fixture-header">
-                          <span className="match-number">Match #{index + 1}</span>
+                    {(() => {
+                      // Separate round-robin and knockout fixtures
+                      const roundRobinFixtures = fixtures.filter(f => 
+                        !f.team1?.includes('Winner of') && !f.team1?.includes('Top ')
+                      );
+                      const knockoutFixtures = fixtures.filter(f => 
+                        f.team1?.includes('Winner of') || f.team1?.includes('Top ')
+                      );
+                      
+                      return (
+                        <>
+                          {roundRobinFixtures.length > 0 && (
+                            <div style={{ marginBottom: '2rem' }}>
+                              <h4 style={{ 
+                                color: '#374151', 
+                                fontSize: '1.1rem', 
+                                fontWeight: '600', 
+                                marginBottom: '1rem',
+                                paddingBottom: '0.5rem',
+                                borderBottom: '2px solid #e5e7eb'
+                              }}>
+                                Round-Robin Matches ({roundRobinFixtures.length})
+                              </h4>
+                              {roundRobinFixtures.map((fixture, index) => (
+                                <div key={index} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`}>
+                                  <div className="fixture-header">
+                                    <span className="match-number">Match #{index + 1}</span>
                           {(() => {
                             const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
                             const isAdmin = currentUser?.isAdmin;
@@ -1184,6 +1350,105 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                         )}
                       </div>
                     ))}
+                            </div>
+                          )}
+                          {knockoutFixtures.length > 0 && (
+                            <div>
+                              <h4 style={{ 
+                                color: '#FF8C00', 
+                                fontSize: '1.2rem', 
+                                fontWeight: 'bold', 
+                                marginBottom: '1rem',
+                                marginTop: '2rem',
+                                paddingBottom: '0.5rem',
+                                borderBottom: '3px solid #FFD700',
+                                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%)',
+                                padding: '0.75rem',
+                                borderRadius: '8px'
+                              }}>
+                                🏆 Knockout Stage ({knockoutFixtures.length} matches)
+                              </h4>
+                              {knockoutFixtures.map((fixture, index) => {
+                                const fixtureIndex = roundRobinFixtures.length + index;
+                                const matchLabel = fixture.team1 === 'Winner of Semi-Final 1' 
+                                  ? '🏆 FINAL' 
+                                  : (index === 0 ? '⚡ SEMI-FINAL 1 (Top 1 vs Top 4)' : '⚡ SEMI-FINAL 2 (Top 2 vs Top 3)');
+                                
+                                return (
+                                  <div key={fixtureIndex} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`} style={{ 
+                                    border: '3px solid #FFD700', 
+                                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%)',
+                                    marginBottom: '1rem'
+                                  }}>
+                                    <div className="fixture-header">
+                                      <span className="match-number" style={{ color: '#FF8C00', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                                        {matchLabel}
+                                      </span>
+                                      {(() => {
+                                        const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+                                        const isAdmin = currentUser?.isAdmin;
+                                        const userTeamName = currentUser?.teamName;
+                                        const isUserInMatch = userTeamName && (fixture.team1 === userTeamName || fixture.team2 === userTeamName);
+                                        
+                                        if (isAdmin || (isSubscribed && isUserInMatch)) {
+                                          return (
+                                            <button 
+                                              className="edit-fixture-btn"
+                                              onClick={() => {
+                                                setEditingFixture({ ...fixture, fixtureIndex: fixtureIndex });
+                                                setShowEditFixtureModal(true);
+                                              }}
+                                            >
+                                              <FaEdit /> Edit
+                                            </button>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
+                                    </div>
+                                    <div className="fixture-body">
+                                      <div className={`team-section ${fixture.winner === fixture.team1 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
+                                        <span className="team-name">{fixture.team1}</span>
+                                        {fixture.team1Score !== undefined && (
+                                          <span className="team-score">{fixture.team1Score}</span>
+                                        )}
+                                      </div>
+                                      <div className="vs-section">VS</div>
+                                      <div className={`team-section ${fixture.winner === fixture.team2 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
+                                        <span className="team-name">{fixture.team2}</span>
+                                        {fixture.team2Score !== undefined && (
+                                          <span className="team-score">{fixture.team2Score}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    {fixture.margin && (
+                                      <div className="fixture-margin">
+                                        Margin: {fixture.margin}
+                                      </div>
+                                    )}
+                                    {fixture.mom && fixture.mom.name && (
+                                      <div className="fixture-mom">
+                                        <div className="mom-header">⭐ Man of the Match</div>
+                                        <div className="mom-info">
+                                          <div><strong>{fixture.mom.name}</strong></div>
+                                          {fixture.mom.score && <div>Batting: {fixture.mom.score}</div>}
+                                          {fixture.mom.wickets && <div>Wickets: {fixture.mom.wickets}</div>}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {fixture.winner && (
+                                      <div className="fixture-winner-badge">
+                                        🏆 Winner: {fixture.winner}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
