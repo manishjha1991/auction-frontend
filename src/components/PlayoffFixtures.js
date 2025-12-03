@@ -632,9 +632,12 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const fetchTeams = async () => {
     try {
       const response = await axios.get(`${API_ENDPOINTS}/api/users/teams`);
-      setTeams(response.data || []);
+      // API returns { teams: [...] }, so access response.data.teams
+      const teamsData = response.data?.teams || response.data;
+      setTeams(Array.isArray(teamsData) ? teamsData : []);
     } catch (error) {
       console.error("Error fetching teams:", error);
+      setTeams([]); // Set empty array on error
     }
   };
 
@@ -715,7 +718,9 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   };
 
   const getTeamData = (teamName) => {
-    const team = teams.find(t => t.teamName === teamName);
+    // Ensure teams is an array before calling .find()
+    const teamsArray = Array.isArray(teams) ? teams : [];
+    const team = teamsArray.find(t => t.teamName === teamName);
     return {
       name: teamName,
       image: team?.teamImage ? `${API_ENDPOINTS}${team.teamImage}` : "https://via.placeholder.com/50",
