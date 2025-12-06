@@ -318,10 +318,20 @@ function TradeCenter() {
         setLoadingProgress(70);
         
         // Set all data at once to reduce re-renders
-        // The /api/users/teams endpoint returns teams array directly, not wrapped in teams property
-        setTeams(Array.isArray(teamsJson) ? teamsJson : []);
+        // The /api/users/teams endpoint returns { teams: [...] }
+        const teamsData = teamsJson?.teams || teamsJson;
+        const teamsArray = Array.isArray(teamsData) ? teamsData : [];
+        const playersArray = Array.isArray(playersJson) ? playersJson : [];
+        
+        console.log('📊 TradeCenter Data Loaded:', {
+          teamsCount: teamsArray.length,
+          playersCount: playersArray.length,
+          userTeamName: currentUser?.teamName
+        });
+        
+        setTeams(teamsArray);
         setTrades(tradesJson || []);
-        setAllPlayers(Array.isArray(playersJson) ? playersJson : []);
+        setAllPlayers(playersArray);
         
         // Set fetch times
         const now = Date.now();
@@ -449,8 +459,9 @@ function TradeCenter() {
         const teamsRes = await fetch(`${API_ENDPOINTS}/api/users/teams`);
         if (!teamsRes.ok) throw new Error('Failed to fetch teams');
         const teamsJson = await teamsRes.json();
-        // The /api/users/teams endpoint returns teams array directly, not wrapped in teams property
-        setTeams(Array.isArray(teamsJson) ? teamsJson : []);
+        // The /api/users/teams endpoint returns { teams: [...] }
+        const teamsData = teamsJson?.teams || teamsJson;
+        setTeams(Array.isArray(teamsData) ? teamsData : []);
         setLastFetchTime(prev => ({ ...prev, teams: Date.now() }));
       } else if (dataType === 'players') {
         const playersRes = await fetch(`${API_ENDPOINTS}/api/players/data`);
