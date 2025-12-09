@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import styled from "styled-components";
 import axios from "axios";
 import ReactSelect from "react-select"; // <-- 1) Import react-select
@@ -594,18 +594,42 @@ const Fixtures = () => {
   };
 
   // Combine both teams' players for the Mom dropdown (with search)
-  // We'll build this array whenever we render the modal.
-  let playerOptions = [];
-  if (currentFixture) {
+  // Use useMemo to ensure it updates when currentFixture changes
+  const playerOptions = useMemo(() => {
+    if (!currentFixture) return [];
+    
+    const team1Players = currentFixture.team1Details?.players || [];
+    const team2Players = currentFixture.team2Details?.players || [];
+    
+    console.log('🔍 Building MOM player options:', {
+      team1: currentFixture.team1,
+      team1PlayersCount: team1Players.length,
+      team2: currentFixture.team2,
+      team2PlayersCount: team2Players.length,
+      team1Players: team1Players.map(p => p.name),
+      team2Players: team2Players.map(p => p.name)
+    });
+    
+    // Combine both teams' players
     const allPlayers = [
-      ...(currentFixture.team1Details?.players || []),
-      ...(currentFixture.team2Details?.players || []),
+      ...team1Players,
+      ...team2Players,
     ];
-    playerOptions = allPlayers.map((p) => ({
+    
+    // Remove duplicates (in case same player appears in both teams - shouldn't happen but safe)
+    const uniquePlayers = Array.from(
+      new Map(allPlayers.map(p => [p.name || p._id, p])).values()
+    );
+    
+    const options = uniquePlayers.map((p) => ({
       value: p.name,
       label: p.name,
     }));
-  }
+    
+    console.log('✅ Total MOM player options:', options.length, options.map(o => o.label));
+    
+    return options;
+  }, [currentFixture]);
 
   return (
     <TabContainer>

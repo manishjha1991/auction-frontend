@@ -322,7 +322,8 @@ const PointsTable = () => {
   const [showTeamDetails, setShowTeamDetails] = useState(false);
 
   const TOTAL_MATCHES = 12;
-  const NUM_QUALIFIERS = 6; // always top-6 qualify
+  const [worldCupMode, setWorldCupMode] = useState(false);
+  const NUM_QUALIFIERS = worldCupMode ? 8 : 6; // top-8 if World Cup enabled, top-6 otherwise
   const GROUP_MATCHES = 6; // matches per team in group stage
   const GROUP_QUALIFIERS = 3; // top-3 qualify from each group
 
@@ -381,7 +382,9 @@ const PointsTable = () => {
       setLoading(true);
       const settings = await axios.get(`${API_ENDPOINTS}/api/settings`);
       const pmode = settings?.data?.pointsMode || 'overall';
+      const wcMode = settings?.data?.worldCupMode === true;
       setMode(pmode);
+      setWorldCupMode(wcMode);
       
       // Set default tab based on mode
       if (pmode === 'groups') {
@@ -569,10 +572,10 @@ const PointsTable = () => {
         } else {
           // Overall mode logic
           if (allCompleted) {
-            // All teams completed 12 matches - show Q for top 6, E for bottom teams
+            // All teams completed 12 matches - show Q for top 6 or top 8 (based on World Cup mode)
             showQ = index < NUM_QUALIFIERS;
-            showE = index >= NUM_QUALIFIERS; // E badges for teams not in top 6
-            qTitle = "Qualified (Top 6)";
+            showE = index >= NUM_QUALIFIERS; // E badges for teams not in top qualifiers
+            qTitle = worldCupMode ? "Qualified (Top 8)" : "Qualified (Top 6)";
             eTitle = "Eliminated";
           } else {
             // During overall season - use existing early elimination logic
@@ -762,7 +765,7 @@ const PointsTable = () => {
             
             {activeTab === 'playoffs' && (
               <PlayoffFixtures 
-                top6Teams={sortedTeams.slice(0, 6)} 
+                top6Teams={sortedTeams.slice(0, NUM_QUALIFIERS)} 
                 mode={mode}
                 groups={groups}
               />

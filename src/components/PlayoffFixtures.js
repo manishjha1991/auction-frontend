@@ -611,6 +611,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const [requiredGames, setRequiredGames] = useState(12); // Configurable number of games
   const [worldCupMode, setWorldCupMode] = useState(false);
   const [top8Teams, setTop8Teams] = useState([]);
+  const [hasWorldCupTournament, setHasWorldCupTournament] = useState(false);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -620,7 +621,23 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
     fetchRequiredGames();
     fetchWorldCupMode();
     fetchTop8Teams();
+    checkWorldCupTournament();
   }, []);
+
+  const checkWorldCupTournament = async () => {
+    try {
+      const response = await axios.get(`${API_ENDPOINTS}/api/tournaments`);
+      const tournaments = Array.isArray(response.data) ? response.data : [];
+      // Check if there's a running World Cup tournament
+      const runningWorldCup = tournaments.find(t => 
+        t.name && t.name.startsWith('World Cup') && t.status === 'running'
+      );
+      setHasWorldCupTournament(!!runningWorldCup);
+    } catch (error) {
+      console.error("Error checking World Cup tournament:", error);
+      setHasWorldCupTournament(false);
+    }
+  };
 
   const fetchRequiredGames = async () => {
     try {
@@ -696,6 +713,11 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
     }
   };
 
+  const handleWorldCupInitialized = () => {
+    fetchPlayoffFixtures();
+    checkWorldCupTournament();
+  };
+
   const initializeWorldCup = async () => {
     try {
       // Get user ID from localStorage
@@ -722,6 +744,8 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
     } catch (error) {
       console.error("Error initializing World Cup:", error);
       alert(error.response?.data?.error || "Failed to initialize World Cup tournament.");
+    } finally {
+      handleWorldCupInitialized();
     }
   };
 
@@ -829,13 +853,24 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   if (loading) {
     return (
       <PlayoffContainer>
-        <PlayoffHeader>CPL  PLAYOFFS SCENARIO</PlayoffHeader>
-        <PlayoffSubtitle>
-          {mode === 'groups' ? 
-            '( TOP 3 FROM EACH GROUP GOES TO PLAYOFFS )' : 
-            '( TOP 6 TEAMS GOES TO PLAYOFFS )'
-          }
-        </PlayoffSubtitle>
+        {worldCupMode ? (
+          <>
+            <PlayoffHeader>🏆 WORLD CUP</PlayoffHeader>
+            <PlayoffSubtitle>
+              ( TOP 8 TEAMS GOES TO WORLD CUP )
+            </PlayoffSubtitle>
+          </>
+        ) : (
+          <>
+            <PlayoffHeader>CPL  PLAYOFFS SCENARIO</PlayoffHeader>
+            <PlayoffSubtitle>
+              {mode === 'groups' ? 
+                '( TOP 3 FROM EACH GROUP GOES TO PLAYOFFS )' : 
+                '( TOP 6 TEAMS GOES TO PLAYOFFS )'
+              }
+            </PlayoffSubtitle>
+          </>
+        )}
         <div style={{ padding: '2rem', textAlign: 'center', color: '#6c757d' }}>
           Loading playoff fixtures...
         </div>
@@ -846,13 +881,24 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   if (playoffFixtures.length === 0) {
     return (
       <PlayoffContainer>
-        <PlayoffHeader>CPL  PLAYOFFS SCENARIO</PlayoffHeader>
-        <PlayoffSubtitle>
-          {mode === 'groups' ? 
-            '( TOP 3 FROM EACH GROUP GOES TO PLAYOFFS )' : 
-            '( TOP 6 TEAMS GOES TO PLAYOFFS )'
-          }
-        </PlayoffSubtitle>
+        {worldCupMode ? (
+          <>
+            <PlayoffHeader>🏆 WORLD CUP</PlayoffHeader>
+            <PlayoffSubtitle>
+              ( TOP 8 TEAMS GOES TO WORLD CUP )
+            </PlayoffSubtitle>
+          </>
+        ) : (
+          <>
+            <PlayoffHeader>CPL  PLAYOFFS SCENARIO</PlayoffHeader>
+            <PlayoffSubtitle>
+              {mode === 'groups' ? 
+                '( TOP 3 FROM EACH GROUP GOES TO PLAYOFFS )' : 
+                '( TOP 6 TEAMS GOES TO PLAYOFFS )'
+              }
+            </PlayoffSubtitle>
+          </>
+        )}
         <div style={{ padding: '2rem', textAlign: 'center', color: '#6c757d' }}>
           {top6Teams && top6Teams.length >= 6 ? (
             <div>
@@ -925,13 +971,85 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
 
   return (
     <PlayoffContainer>
-      <PlayoffHeader>CPL  PLAYOFFS SCENARIO</PlayoffHeader>
-      <PlayoffSubtitle>
-        {mode === 'groups' ? 
-          '( TOP 3 FROM EACH GROUP GOES TO PLAYOFFS )' : 
-          '( TOP 6 TEAMS GOES TO PLAYOFFS )'
-        }
-      </PlayoffSubtitle>
+      {worldCupMode ? (
+        <>
+          <PlayoffHeader>🏆 WORLD CUP</PlayoffHeader>
+          <PlayoffSubtitle>
+            ( TOP 8 TEAMS GOES TO WORLD CUP )
+          </PlayoffSubtitle>
+        </>
+      ) : (
+        <>
+          <PlayoffHeader>CPL  PLAYOFFS SCENARIO</PlayoffHeader>
+          <PlayoffSubtitle>
+            {mode === 'groups' ? 
+              '( TOP 3 FROM EACH GROUP GOES TO PLAYOFFS )' : 
+              '( TOP 6 TEAMS GOES TO PLAYOFFS )'
+            }
+          </PlayoffSubtitle>
+        </>
+      )}
+      
+      {/* World Cup Initialize Button - Show even when playoff fixtures exist */}
+      {isAdmin && worldCupMode && top8Teams.length >= 8 && (
+        <div style={{ 
+          display: 'flex', 
+          gap: '1rem', 
+          justifyContent: 'center', 
+          flexWrap: 'wrap', 
+          marginBottom: '1.5rem',
+          padding: '1rem',
+          background: hasWorldCupTournament ? '#d1ecf1' : '#f8f9fa',
+          borderRadius: '8px',
+          border: hasWorldCupTournament ? '2px solid #0c5460' : 'none'
+        }}>
+          {hasWorldCupTournament && (
+            <div style={{ 
+              width: '100%', 
+              textAlign: 'center', 
+              marginBottom: '0.5rem',
+              color: '#0c5460',
+              fontWeight: '600',
+              fontSize: '0.9rem'
+            }}>
+              ℹ️ A World Cup tournament is already running. You can initialize a new one.
+            </div>
+          )}
+          {areTop8TeamsEligible() ? (
+            <button 
+              onClick={initializeWorldCup}
+              style={{
+                background: '#28a745',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '5px',
+                padding: '0.75rem 2rem',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: '600',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+            >
+              🏆 {hasWorldCupTournament ? 'Initialize New World Cup' : 'Initialize World Cup'}
+            </button>
+          ) : (
+            <div style={{ 
+              padding: '0.75rem 1.5rem', 
+              background: '#fff3cd', 
+              borderRadius: '5px', 
+              color: '#856404',
+              fontSize: '0.9rem'
+            }}>
+              <p style={{ margin: 0, fontWeight: '600' }}>
+                ⏳ World Cup requires top 8 teams to complete {requiredGames} games
+              </p>
+              <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem' }}>
+                {top8Teams.filter(team => (team.matchesPlayed || 0) < requiredGames).length} teams still need to complete their games
+              </p>
+            </div>
+          )}
+        </div>
+      )}
       
              {playoffFixtures.map((fixture, index) => {
          const team1Data = getTeamData(fixture.team1);
