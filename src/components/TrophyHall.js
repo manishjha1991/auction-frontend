@@ -21,7 +21,9 @@ const TrophyHall = () => {
       if (!teamsResponse.ok) {
         throw new Error(`Failed to fetch teams: ${teamsResponse.status}`);
       }
-      const teamsData = await teamsResponse.json();
+      const teamsResponseData = await teamsResponse.json();
+      // Handle response format: { teams: [...] } or direct array
+      const teamsData = teamsResponseData.teams || teamsResponseData || [];
       
       // Fetch match results from backend MatchResult public API
       const matchResponse = await fetch(`${API_ENDPOINTS}/api/match-results/public`);
@@ -29,8 +31,14 @@ const TrophyHall = () => {
         throw new Error(`Failed to fetch match results: ${matchResponse.status}`);
       }
       const matchResponseData = await matchResponse.json();
-      const matchResultsData = matchResponseData.matchResults || [];
+      // Handle response format: { matchResults: [...] } or direct array
+      const matchResultsData = matchResponseData.matchResults || matchResponseData || [];
       setMatchResultsData(matchResultsData);
+      
+      // Ensure teamsData is an array
+      if (!Array.isArray(teamsData)) {
+        throw new Error('Teams data is not in expected format');
+      }
       
       // Calculate trophy counts and runner-up data
       const teamsWithData = teamsData.map(team => {
@@ -73,7 +81,7 @@ const TrophyHall = () => {
       
     } catch (error) {
       console.error('Error fetching trophy hall data:', error);
-      setError('Failed to load trophy hall data');
+      setError(`Failed to load trophy hall data: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
