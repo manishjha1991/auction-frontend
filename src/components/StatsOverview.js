@@ -18,11 +18,49 @@ const StatsOverview = () => {
   const [statsData, setStatsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [teams, setTeams] = useState([]);
   
   // Modal state for detailed view
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState(null);
   const [modalTitle, setModalTitle] = useState('');
+
+  // Helper function to get team abbreviation
+  const getTeamAbbreviation = (teamName) => {
+    if (!teamName) return 'N/A';
+    const team = teams.find(t => t.teamName === teamName);
+    if (team && team.abbreviation) {
+      return team.abbreviation;
+    }
+    // Fallback: use first 3 characters if no abbreviation found
+    return teamName.slice(0, 3).toUpperCase();
+  };
+
+  // Helper function to get player type class for rank badge
+  const getPlayerTypeClass = (playerType) => {
+    if (!playerType) return '';
+    const normalizedType = playerType.toLowerCase();
+    if (normalizedType === 'sapphire') return 'type-sapphire';
+    if (normalizedType === 'emerald') return 'type-emerald';
+    if (normalizedType === 'gold') return 'type-gold';
+    if (normalizedType === 'silver') return 'type-silver';
+    return '';
+  };
+
+  // Fetch teams data
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const response = await fetch(`${API_ENDPOINTS}/api/users/teams`);
+        const data = await response.json();
+        setTeams(Array.isArray(data) ? data : (data?.teams || []));
+      } catch (err) {
+        console.error('Error fetching teams:', err);
+      }
+    };
+
+    fetchTeams();
+  }, []);
 
   // Fetch data from the /stats-overview API when component mounts
   useEffect(() => {
@@ -100,9 +138,6 @@ const StatsOverview = () => {
 
   return (
     <div className="stats-overview-wrapper">
-
-
-      
       {/* Leading Performers Section - Orange and Purple Boxes */}
       <div className="leading-performers">
         {/* Leading Run Scorer - Orange Box */}
@@ -126,399 +161,428 @@ const StatsOverview = () => {
         </div>
       </div>
 
-      {/* Cards: Single-Match / Overall Summaries */}
-      <div className="stats-cards-grid fade-in-up">
-        {/* Highest Strike Rate */}
-        <div className="stats-card performance-card">
-          <div className="card-header">
-            <FaFireAlt className="card-icon" />
-            <h3>Highest Strike Rate</h3>
-          </div>
-          <div className="card-content">
-            <div className="player-info">
-              <span className="player-name">{highestStrikeRate.playerName || 'N/A'}</span>
-              <span className="team-name">{highestStrikeRate.teamName || 'N/A'}</span>
-            </div>
-            <div className="stat-value">{highestStrikeRate.strikeRate || 0}</div>
-            {highestStrikeRate.opponentTeam && (
-              <div className="opponent-info">vs {highestStrikeRate.opponentTeam}</div>
-            )}
-            {(highestStrikeRate.runs !== undefined || highestStrikeRate.balls !== undefined) && (
-              <div className="match-stats">
-                {highestStrikeRate.runs !== undefined && <span>{highestStrikeRate.runs} runs</span>}
-                {highestStrikeRate.balls !== undefined && <span>{highestStrikeRate.balls} balls</span>}
+      {/* Performance Highlights Section */}
+      <div className="top-performers-section fade-in-up">
+        <h2 className="performance-section-title">
+          <FaTrophy /> Performance Highlights
+        </h2>
+        <div className="top-performers-grid">
+          {/* Highest Strike Rate */}
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaFireAlt className="icon" />
+                <span>Highest Strike Rate</span>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Best Economy */}
-        <div className="stats-card performance-card">
-          <div className="card-header">
-            <FaShieldAlt className="card-icon" />
-            <h3>Best Economy</h3>
-          </div>
-          <div className="card-content">
-            <div className="player-info">
-              <span className="player-name">{bestEconomicalBowler.playerName || 'N/A'}</span>
-              <span className="team-name">{bestEconomicalBowler.teamName || 'N/A'}</span>
             </div>
-            <div className="stat-value">{bestEconomicalBowler.economy || 0}</div>
-            {bestEconomicalBowler.opponentTeam && (
-              <div className="opponent-info">vs {bestEconomicalBowler.opponentTeam}</div>
-            )}
-            {(bestEconomicalBowler.wickets !== undefined || bestEconomicalBowler.runsGiven !== undefined || bestEconomicalBowler.ballsBowled !== undefined) && (
-              <div className="match-stats">
-                {bestEconomicalBowler.wickets !== undefined && <span>{bestEconomicalBowler.wickets} wkts</span>}
-                {bestEconomicalBowler.runsGiven !== undefined && bestEconomicalBowler.ballsBowled !== undefined && (
-                  <span>{bestEconomicalBowler.runsGiven}/{Math.floor(bestEconomicalBowler.ballsBowled / 6)}.{bestEconomicalBowler.ballsBowled % 6}</span>
+            <div className="highlight-card-content">
+              <div className="highlight-player-name">{highestStrikeRate.playerName || 'N/A'}</div>
+              <div className="highlight-team-abbr">
+                <span className="team-abbr-badge">{getTeamAbbreviation(highestStrikeRate.teamName)}</span>
+                {highestStrikeRate.opponentTeam && (
+                  <>
+                    <span className="vs-text">vs</span>
+                    <span className="team-abbr-badge opponent">{getTeamAbbreviation(highestStrikeRate.opponentTeam)}</span>
+                  </>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Highest Wickets (Single Match) */}
-        <div className="stats-card performance-card">
-          <div className="card-header">
-            <FaBowlingBall className="card-icon" />
-            <h3>Highest Wickets</h3>
-          </div>
-          <div className="card-content">
-            <div className="player-info">
-              <span className="player-name">{highestWicketTakerInMatch.playerName || 'N/A'}</span>
-              <span className="team-name">{highestWicketTakerInMatch.teamName || 'N/A'}</span>
+              <div className="highlight-stat-value">{highestStrikeRate.strikeRate || 0}</div>
+              {(highestStrikeRate.runs !== undefined || highestStrikeRate.balls !== undefined) && (
+                <div className="highlight-match-stats">
+                  {highestStrikeRate.runs !== undefined && <span>{highestStrikeRate.runs} runs</span>}
+                  {highestStrikeRate.balls !== undefined && <span>{highestStrikeRate.balls} balls</span>}
+                </div>
+              )}
             </div>
-            <div className="stat-value">{highestWicketTakerInMatch.wickets || 0}</div>
-            <div className="opponent-info">vs {highestWicketTakerInMatch.opponentTeam || 'N/A'}</div>
-            {(highestWicketTakerInMatch.runsGiven !== undefined || highestWicketTakerInMatch.ballsBowled !== undefined) && (
-              <div className="match-stats">
-                {highestWicketTakerInMatch.runsGiven !== undefined && highestWicketTakerInMatch.ballsBowled !== undefined && (
-                  <span>{highestWicketTakerInMatch.runsGiven}/{Math.floor(highestWicketTakerInMatch.ballsBowled / 6)}.{highestWicketTakerInMatch.ballsBowled % 6}</span>
+          </div>
+
+          {/* Best Economy */}
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaShieldAlt className="icon" />
+                <span>Best Economy</span>
+              </div>
+            </div>
+            <div className="highlight-card-content">
+              <div className="highlight-player-name">{bestEconomicalBowler.playerName || 'N/A'}</div>
+              <div className="highlight-team-abbr">
+                <span className="team-abbr-badge">{getTeamAbbreviation(bestEconomicalBowler.teamName)}</span>
+                {bestEconomicalBowler.opponentTeam && (
+                  <>
+                    <span className="vs-text">vs</span>
+                    <span className="team-abbr-badge opponent">{getTeamAbbreviation(bestEconomicalBowler.opponentTeam)}</span>
+                  </>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Highest Score */}
-        <div className="stats-card performance-card">
-          <div className="card-header">
-            <FaFireAlt className="card-icon" />
-            <h3>Highest Score</h3>
-          </div>
-          <div className="card-content">
-            <div className="player-info">
-              <span className="player-name">{highestScore.playerName || 'N/A'}</span>
-              <span className="team-name">{highestScore.teamName || 'N/A'}</span>
+              <div className="highlight-stat-value">{bestEconomicalBowler.economy || 0}</div>
+              {(bestEconomicalBowler.wickets !== undefined || bestEconomicalBowler.runsGiven !== undefined || bestEconomicalBowler.ballsBowled !== undefined) && (
+                <div className="highlight-match-stats">
+                  {bestEconomicalBowler.wickets !== undefined && <span>{bestEconomicalBowler.wickets} wkts</span>}
+                  {bestEconomicalBowler.runsGiven !== undefined && bestEconomicalBowler.ballsBowled !== undefined && (
+                    <span>{bestEconomicalBowler.runsGiven}/{Math.floor(bestEconomicalBowler.ballsBowled / 6)}.{bestEconomicalBowler.ballsBowled % 6}</span>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="stat-value">{highestScore.score || 0}</div>
-            <div className="opponent-info">vs {highestScore.opponentTeam || 'N/A'}</div>
-            {(highestScore.balls !== undefined || highestScore.strikeRate !== undefined) && (
-              <div className="match-stats">
-                {highestScore.balls !== undefined && <span>{highestScore.balls} balls</span>}
-                {highestScore.strikeRate !== undefined && highestScore.strikeRate > 0 && <span>SR: {highestScore.strikeRate}</span>}
+          </div>
+
+          {/* Highest Wickets (Single Match) */}
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaBowlingBall className="icon" />
+                <span>Highest Wickets</span>
               </div>
-            )}
+            </div>
+            <div className="highlight-card-content">
+              <div className="highlight-player-name">{highestWicketTakerInMatch.playerName || 'N/A'}</div>
+              <div className="highlight-team-abbr">
+                <span className="team-abbr-badge">{getTeamAbbreviation(highestWicketTakerInMatch.teamName)}</span>
+                {highestWicketTakerInMatch.opponentTeam && (
+                  <>
+                    <span className="vs-text">vs</span>
+                    <span className="team-abbr-badge opponent">{getTeamAbbreviation(highestWicketTakerInMatch.opponentTeam)}</span>
+                  </>
+                )}
+              </div>
+              <div className="highlight-stat-value">{highestWicketTakerInMatch.wickets || 0}</div>
+              {(highestWicketTakerInMatch.runsGiven !== undefined || highestWicketTakerInMatch.ballsBowled !== undefined) && (
+                <div className="highlight-match-stats">
+                  {highestWicketTakerInMatch.runsGiven !== undefined && highestWicketTakerInMatch.ballsBowled !== undefined && (
+                    <span>{highestWicketTakerInMatch.runsGiven}/{Math.floor(highestWicketTakerInMatch.ballsBowled / 6)}.{highestWicketTakerInMatch.ballsBowled % 6}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Highest Score */}
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaFireAlt className="icon" />
+                <span>Highest Score</span>
+              </div>
+            </div>
+            <div className="highlight-card-content">
+              <div className="highlight-player-name">{highestScore.playerName || 'N/A'}</div>
+              <div className="highlight-team-abbr">
+                <span className="team-abbr-badge">{getTeamAbbreviation(highestScore.teamName)}</span>
+                {highestScore.opponentTeam && (
+                  <>
+                    <span className="vs-text">vs</span>
+                    <span className="team-abbr-badge opponent">{getTeamAbbreviation(highestScore.opponentTeam)}</span>
+                  </>
+                )}
+              </div>
+              <div className="highlight-stat-value">{highestScore.score || 0}</div>
+              {(highestScore.balls !== undefined || highestScore.strikeRate !== undefined) && (
+                <div className="highlight-match-stats">
+                  {highestScore.balls !== undefined && <span>{highestScore.balls} balls</span>}
+                  {highestScore.strikeRate !== undefined && highestScore.strikeRate > 0 && <span>SR: {highestScore.strikeRate}</span>}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* NEW: Top-5 Performers Section */}
-      <div className="top5-section fade-in-up">
-        <h2 className="top5-heading">Top 5 Performers</h2>
-
-        <div className="top5-cards-grid">
+      {/* Top Performers Section */}
+      <div className="top-performers-section fade-in-up">
+        <h2 className="performance-section-title">
+          <FaChartLine /> Top Performers
+        </h2>
+        <div className="top-performers-grid">
           {/* Top 5 Run Scorers */}
-          <div className="stats-card top5-card clickable-card">
-            <h2 className="top5-card-title">
-              <FaFireAlt className="icon" /> Top 5 Run Scorers
+          <div className="top-performer-card clickable-card" onClick={() => top5RunScorers[0] && handleViewDetails('batting', top5RunScorers[0].playerId)}>
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaFireAlt className="icon" />
+                <span>Top Run Scorers</span>
+              </div>
               <FaEye className="view-icon" />
-            </h2>
-            {top5RunScorers.length > 0 ? (
-              <ul className="top5-list">
-                {top5RunScorers.map((player, i) => (
-                  <li key={i} className="top5-list-item clickable-item" onClick={() => handleViewDetails('batting', player.playerId)}>
-                    <span className={`rank-badge rank-${i + 1}`}>{i + 1}</span>
-                    <div className="player-info">
-                      <strong>{player.playerName}</strong> 
-                      <span className="team-name">({player.teamName})</span>
+            </div>
+            <ul className="top-performer-list">
+              {top5RunScorers.length > 0 ? (
+                top5RunScorers.map((player, i) => (
+                  <li key={i} className="top-performer-item" onClick={(e) => { e.stopPropagation(); handleViewDetails('batting', player.playerId); }}>
+                    <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <div className="top-performer-item-info">
+                      <div className="top-performer-item-name">{player.playerName}</div>
+                      <div className="top-performer-item-team">{player.teamName}</div>
                     </div>
-                    <div className="stat-highlight">{player.runs} Runs</div>
+                    <div className="top-performer-stat">{player.runs} Runs</div>
                   </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No data available</p>
-            )}
+                ))
+              ) : (
+                <li style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</li>
+              )}
+            </ul>
           </div>
 
           {/* Top 5 Wicket Takers */}
-          <div className="stats-card top5-card clickable-card">
-            <h2 className="top5-card-title">
-              <FaBowlingBall className="icon" /> Top 5 Wicket Takers
+          <div className="top-performer-card clickable-card" onClick={() => top5WicketTakers[0] && handleViewDetails('bowling', top5WicketTakers[0].playerId)}>
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaBowlingBall className="icon" />
+                <span>Top Wicket Takers</span>
+              </div>
               <FaEye className="view-icon" />
-            </h2>
-            {top5WicketTakers.length > 0 ? (
-              <ul className="top5-list">
-                {top5WicketTakers.map((player, i) => (
-                  <li key={i} className="top5-list-item clickable-item" onClick={() => handleViewDetails('bowling', player.playerId)}>
-                    <span className={`rank-badge rank-${i + 1}`}>{i + 1}</span>
-                    <div className="player-info">
-                      <strong>{player.playerName}</strong>
-                      <span className="team-name">({player.teamName})</span>
+            </div>
+            <ul className="top-performer-list">
+              {top5WicketTakers.length > 0 ? (
+                top5WicketTakers.map((player, i) => (
+                  <li key={i} className="top-performer-item" onClick={(e) => { e.stopPropagation(); handleViewDetails('bowling', player.playerId); }}>
+                    <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <div className="top-performer-item-info">
+                      <div className="top-performer-item-name">{player.playerName}</div>
+                      <div className="top-performer-item-team">{player.teamName}</div>
                     </div>
-                    <div className="stat-highlight">{player.wickets} Wkts</div>
+                    <div className="top-performer-stat">{player.wickets} Wkts</div>
                   </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No data available</p>
-            )}
+                ))
+              ) : (
+                <li style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</li>
+              )}
+            </ul>
           </div>
 
           {/* Top 5 MOM */}
-          <div className="stats-card top5-card">
-            <h2 className="top5-card-title">
-              <FaStar className="icon" /> Top 5 MOM
-            </h2>
-            {top5MOM.length > 0 ? (
-              <ul className="top5-list">
-                {top5MOM.map((player, i) => (
-                  <li key={i} className="top5-list-item">
-                    <span className={`rank-badge rank-${i + 1}`}>{i + 1}</span>
-                    <div className="player-info">
-                      <strong>{player.playerName}</strong> 
-                      <span className="team-name">({player.teamName})</span>
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaStar className="icon" />
+                <span>Top MoM</span>
+              </div>
+            </div>
+            <ul className="top-performer-list">
+              {top5MOM.length > 0 ? (
+                top5MOM.map((player, i) => (
+                  <li key={i} className="top-performer-item">
+                    <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <div className="top-performer-item-info">
+                      <div className="top-performer-item-name">{player.playerName}</div>
+                      <div className="top-performer-item-team">{player.teamName}</div>
                     </div>
-                    <div className="stat-highlight">{player.momCount} MoM</div>
+                    <div className="top-performer-stat">{player.momCount} MoM</div>
                   </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No data available</p>
-            )}
+                ))
+              ) : (
+                <li style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</li>
+              )}
+            </ul>
           </div>
 
           {/* Top 5 Bowling Strike Rate */}
-          <div className="stats-card top5-card">
-            <h2 className="top5-card-title">
-              <FaBowlingBall className="icon" /> Best Bowling S/R
-            </h2>
-            {top5BowlingStrikeRate.length > 0 ? (
-              <ul className="top5-list">
-                {top5BowlingStrikeRate.map((player, i) => (
-                  <li key={i} className="top5-list-item">
-                    <span className={`rank-badge rank-${i + 1}`}>{i + 1}</span>
-                    <div className="player-info">
-                      <strong>{player.playerName}</strong>
-                      <span className="team-name">({player.teamName})</span>
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaBowlingBall className="icon" />
+                <span>Best Bowling S/R</span>
+              </div>
+            </div>
+            <ul className="top-performer-list">
+              {top5BowlingStrikeRate.length > 0 ? (
+                top5BowlingStrikeRate.map((player, i) => (
+                  <li key={i} className="top-performer-item">
+                    <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <div className="top-performer-item-info">
+                      <div className="top-performer-item-name">{player.playerName}</div>
+                      <div className="top-performer-item-team">{player.teamName}</div>
                     </div>
-                    <div className="stat-highlight">
-                      {player.strikeRate.toFixed(1)} S/R
-                    </div>
+                    <div className="top-performer-stat">{player.strikeRate.toFixed(1)} S/R</div>
                   </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No data available</p>
-            )}
+                ))
+              ) : (
+                <li style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</li>
+              )}
+            </ul>
           </div>
 
           {/* Top 5 Best Batting Average */}
-          <div className="stats-card top5-card">
-            <h2 className="top5-card-title">
-              <FaFireAlt className="icon" /> Best Batting Avg
-            </h2>
-            {top5BestBattingAverage.length > 0 ? (
-              <ul className="top5-list">
-                {top5BestBattingAverage.map((player, i) => (
-                  <li key={i} className="top5-list-item">
-                    <span className={`rank-badge rank-${i + 1}`}>{i + 1}</span>
-                    <div className="player-info">
-                      <strong>{player.playerName}</strong>
-                      <span className="team-name">({player.teamName})</span>
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaFireAlt className="icon" />
+                <span>Best Batting Avg</span>
+              </div>
+            </div>
+            <ul className="top-performer-list">
+              {top5BestBattingAverage.length > 0 ? (
+                top5BestBattingAverage.map((player, i) => (
+                  <li key={i} className="top-performer-item">
+                    <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <div className="top-performer-item-info">
+                      <div className="top-performer-item-name">{player.playerName}</div>
+                      <div className="top-performer-item-team">{player.teamName}</div>
                     </div>
-                    <div className="stat-highlight">
-                      {player.average.toFixed(2)} Avg
-                    </div>
+                    <div className="top-performer-stat">{player.average.toFixed(2)} Avg</div>
                   </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No data available</p>
-            )}
+                ))
+              ) : (
+                <li style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</li>
+              )}
+            </ul>
           </div>
         </div>
       </div>
 
-      {/* Highest 5-Wicket Hauls */}
-      <div className="table-section fade-in-up">
-        <h2><FaStar className="table-heading-icon" /> Highest 5-Wicket Hauls</h2>
-        <div className="responsive-table-wrapper">
-          <table className="stats-table">
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Team</th>
-                <th>Opponent</th>
-                <th>Wickets</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {highestFiveWicketHauls.map((haul, i) => {
-                const overs = haul.ballsBowled 
-                  ? `${Math.floor(haul.ballsBowled / 6)}.${haul.ballsBowled % 6}` 
-                  : '0.0';
-                return (
-                  <tr key={i}>
-                    <td>{haul.playerName}</td>
-                    <td>{haul.teamName}</td>
-                    <td>{haul.opponentTeam}</td>
-                    <td>
-                      <span>{haul.wickets}</span>
-                      {haul.runsGiven !== undefined && haul.ballsBowled !== undefined && (
-                        <span className="table-stat-detail"> ({haul.runsGiven}/{overs})</span>
+      {/* Records Section - Card Based */}
+      <div className="top-performers-section fade-in-up">
+        <h2 className="performance-section-title">
+          <FaTrophy /> Records & Achievements
+        </h2>
+        <div className="top-performers-grid">
+          {/* Highest 5-Wicket Hauls */}
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaBowlingBall className="icon" />
+                <span>5-Wicket Hauls</span>
+              </div>
+            </div>
+            <ul className="top-performer-list">
+              {highestFiveWicketHauls.length > 0 ? (
+                highestFiveWicketHauls.map((haul, i) => {
+                  const overs = haul.ballsBowled 
+                    ? `${Math.floor(haul.ballsBowled / 6)}.${haul.ballsBowled % 6}` 
+                    : '0.0';
+                  return (
+                    <li key={i} className="top-performer-item">
+                      <span className={`rank-badge ${getPlayerTypeClass(haul.playerType)}`}>{i + 1}</span>
+                      <div className="top-performer-item-info">
+                        <div className="top-performer-item-name">{haul.playerName}</div>
+                        <div className="top-performer-item-teams-inline">
+                          <span className="team-abbr-badge">{getTeamAbbreviation(haul.teamName)}</span>
+                          <span className="vs-text">vs</span>
+                          <span className="team-abbr-badge opponent">{getTeamAbbreviation(haul.opponentTeam)}</span>
+                        </div>
+                      </div>
+                      <div className="top-performer-stat">
+                        <div>{haul.wickets} wkts</div>
+                        {haul.runsGiven !== undefined && haul.ballsBowled !== undefined && (
+                          <div className="stat-detail">{haul.runsGiven}/{overs}</div>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })
+              ) : (
+                <li style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</li>
+              )}
+            </ul>
+          </div>
+
+          {/* Highest 4-Wicket Hauls */}
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaBowlingBall className="icon" />
+                <span>4-Wicket Hauls</span>
+              </div>
+            </div>
+            <ul className="top-performer-list">
+              {highestFourWicketHauls.length > 0 ? (
+                highestFourWicketHauls.map((haul, i) => {
+                  const overs = haul.ballsBowled 
+                    ? `${Math.floor(haul.ballsBowled / 6)}.${haul.ballsBowled % 6}` 
+                    : '0.0';
+                  return (
+                    <li key={i} className="top-performer-item">
+                      <span className={`rank-badge ${getPlayerTypeClass(haul.playerType)}`}>{i + 1}</span>
+                      <div className="top-performer-item-info">
+                        <div className="top-performer-item-name">{haul.playerName}</div>
+                        <div className="top-performer-item-teams-inline">
+                          <span className="team-abbr-badge">{getTeamAbbreviation(haul.teamName)}</span>
+                          <span className="vs-text">vs</span>
+                          <span className="team-abbr-badge opponent">{getTeamAbbreviation(haul.opponentTeam)}</span>
+                        </div>
+                      </div>
+                      <div className="top-performer-stat">
+                        <div>{haul.wickets} wkts</div>
+                        {haul.runsGiven !== undefined && haul.ballsBowled !== undefined && (
+                          <div className="stat-detail">{haul.runsGiven}/{overs}</div>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })
+              ) : (
+                <li style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</li>
+              )}
+            </ul>
+          </div>
+
+          {/* Centuries */}
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaFireAlt className="icon" />
+                <span>Centuries</span>
+              </div>
+            </div>
+            <ul className="top-performer-list">
+              {centuries.length > 0 ? (
+                centuries.map((c, i) => (
+                  <li key={i} className="top-performer-item">
+                    <span className={`rank-badge ${getPlayerTypeClass(c.playerType)}`}>{i + 1}</span>
+                      <div className="top-performer-item-info">
+                        <div className="top-performer-item-name">{c.playerName}</div>
+                        <div className="top-performer-item-teams-inline">
+                          <span className="team-abbr-badge">{getTeamAbbreviation(c.teamName)}</span>
+                          <span className="vs-text">vs</span>
+                          <span className="team-abbr-badge opponent">{getTeamAbbreviation(c.againstTeam)}</span>
+                        </div>
+                      </div>
+                    <div className="top-performer-stat">
+                      <div>{c.runs} runs</div>
+                      {c.balls !== undefined && (
+                        <div className="stat-detail">{c.balls} balls</div>
                       )}
-                    </td>
-                    <td>{new Date(haul.date).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'short', 
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    </div>
+                  </li>
+                ))
+              ) : (
+                <li style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</li>
+              )}
+            </ul>
+          </div>
 
-      {/* Highest 4-Wicket Hauls */}
-      <div className="table-section fade-in-up">
-        <h2><FaStar className="table-heading-icon" /> Highest 4-Wicket Hauls</h2>
-        <div className="responsive-table-wrapper">
-          <table className="stats-table">
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Team</th>
-                <th>Opponent</th>
-                <th>Wickets</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {highestFourWicketHauls.map((haul, i) => {
-                const overs = haul.ballsBowled 
-                  ? `${Math.floor(haul.ballsBowled / 6)}.${haul.ballsBowled % 6}` 
-                  : '0.0';
-                return (
-                  <tr key={i}>
-                    <td>{haul.playerName}</td>
-                    <td>{haul.teamName}</td>
-                    <td>{haul.opponentTeam}</td>
-                    <td>
-                      <span>{haul.wickets}</span>
-                      {haul.runsGiven !== undefined && haul.ballsBowled !== undefined && (
-                        <span className="table-stat-detail"> ({haul.runsGiven}/{overs})</span>
+          {/* Half Centuries */}
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaFireAlt className="icon" />
+                <span>Half Centuries</span>
+              </div>
+            </div>
+            <ul className="top-performer-list">
+              {halfCenturies.length > 0 ? (
+                halfCenturies.map((hc, i) => (
+                  <li key={i} className="top-performer-item">
+                    <span className={`rank-badge ${getPlayerTypeClass(hc.playerType)}`}>{i + 1}</span>
+                      <div className="top-performer-item-info">
+                        <div className="top-performer-item-name">{hc.playerName}</div>
+                        <div className="top-performer-item-teams-inline">
+                          <span className="team-abbr-badge">{getTeamAbbreviation(hc.teamName)}</span>
+                          <span className="vs-text">vs</span>
+                          <span className="team-abbr-badge opponent">{getTeamAbbreviation(hc.againstTeam)}</span>
+                        </div>
+                      </div>
+                    <div className="top-performer-stat">
+                      <div>{hc.runs} runs</div>
+                      {hc.balls !== undefined && (
+                        <div className="stat-detail">{hc.balls} balls</div>
                       )}
-                    </td>
-                    <td>{new Date(haul.date).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'short', 
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Centuries */}
-      <div className="table-section fade-in-up">
-        <h2><FaStar className="table-heading-icon" /> Centuries</h2>
-        <div className="responsive-table-wrapper">
-          <table className="stats-table">
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Team</th>
-                <th>Against</th>
-                <th>Runs</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {centuries.map((c, i) => (
-                <tr key={i}>
-                  <td>{c.playerName}</td>
-                  <td>{c.teamName}</td>
-                  <td>{c.againstTeam}</td>
-                  <td>
-                    <span>{c.runs}</span>
-                    {c.balls !== undefined && (
-                      <span className="table-stat-detail"> ({c.balls} balls)</span>
-                    )}
-                  </td>
-                  <td>{new Date(c.date).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Half Centuries */}
-      <div className="table-section fade-in-up">
-        <h2><FaStar className="table-heading-icon" /> Half Centuries</h2>
-        <div className="responsive-table-wrapper">
-          <table className="stats-table">
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Team</th>
-                <th>Against</th>
-                <th>Runs</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {halfCenturies.map((hc, i) => (
-                <tr key={i}>
-                  <td>{hc.playerName}</td>
-                  <td>{hc.teamName}</td>
-                  <td>{hc.againstTeam}</td>
-                  <td>
-                    <span>{hc.runs}</span>
-                    {hc.balls !== undefined && (
-                      <span className="table-stat-detail"> ({hc.balls} balls)</span>
-                    )}
-                  </td>
-                  <td>{new Date(hc.date).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </div>
+                  </li>
+                ))
+              ) : (
+                <li style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</li>
+              )}
+            </ul>
+          </div>
         </div>
       </div>
 
