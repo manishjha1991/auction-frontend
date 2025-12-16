@@ -176,9 +176,35 @@ margin-bottom: 2rem;
 
 .performance-card .opponent-info {
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: #6b7280;
   text-align: center;
   font-style: italic;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(102, 126, 234, 0.08);
+  border-radius: 6px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.3;
+}
+
+.performance-card .match-stats {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.performance-card .match-stats span {
+  padding: 0.2rem 0.5rem;
+  background: rgba(102, 126, 234, 0.12);
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 /* Mobile Responsive for Performance Cards */
@@ -230,6 +256,18 @@ margin-bottom: 2rem;
   
   .performance-card .opponent-info {
     font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+    margin-top: 0.4rem;
+  }
+  
+  .performance-card .match-stats {
+    font-size: 0.7rem;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+  }
+  
+  .performance-card .match-stats span {
+    padding: 0.15rem 0.4rem;
   }
 }
 
@@ -274,6 +312,18 @@ margin-bottom: 2rem;
   
   .performance-card .opponent-info {
     font-size: 0.7rem;
+    padding: 0.15rem 0.3rem;
+    margin-top: 0.3rem;
+  }
+  
+  .performance-card .match-stats {
+    font-size: 0.65rem;
+    gap: 0.4rem;
+    margin-top: 0.3rem;
+  }
+  
+  .performance-card .match-stats span {
+    padding: 0.1rem 0.3rem;
   }
 }
 
@@ -412,7 +462,14 @@ background-color: var(--table-head-bg);
 padding: 0.8rem;
 text-align: left;
 font-size: 0.9rem;
-white-space: nowrap; /* Helps keep columns from squishing */
+}
+
+.stats-table th {
+white-space: nowrap; /* Keep headers on one line */
+}
+
+.stats-table td {
+white-space: normal; /* Allow wrapping for content */
 }
 
 .stats-table th {
@@ -426,6 +483,34 @@ border-bottom: 1px solid #eee;
 
 .stats-table tbody tr:hover {
 background-color: var(--table-row-hover);
+}
+
+.stats-table .table-stat-detail {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+  margin-left: 0.25rem;
+  white-space: nowrap;
+}
+
+/* Mobile responsive for table stat details */
+@media (max-width: 768px) {
+  .stats-table .table-stat-detail {
+    font-size: 0.75rem;
+    display: block;
+    margin-left: 0;
+    margin-top: 0.2rem;
+  }
+  
+  .stats-table td {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-table .table-stat-detail {
+    font-size: 0.7rem;
+  }
 }
 
 /* Custom scrollbar (optional) */

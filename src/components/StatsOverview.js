@@ -140,6 +140,15 @@ const StatsOverview = () => {
               <span className="team-name">{highestStrikeRate.teamName || 'N/A'}</span>
             </div>
             <div className="stat-value">{highestStrikeRate.strikeRate || 0}</div>
+            {highestStrikeRate.opponentTeam && (
+              <div className="opponent-info">vs {highestStrikeRate.opponentTeam}</div>
+            )}
+            {(highestStrikeRate.runs !== undefined || highestStrikeRate.balls !== undefined) && (
+              <div className="match-stats">
+                {highestStrikeRate.runs !== undefined && <span>{highestStrikeRate.runs} runs</span>}
+                {highestStrikeRate.balls !== undefined && <span>{highestStrikeRate.balls} balls</span>}
+              </div>
+            )}
           </div>
         </div>
 
@@ -155,6 +164,17 @@ const StatsOverview = () => {
               <span className="team-name">{bestEconomicalBowler.teamName || 'N/A'}</span>
             </div>
             <div className="stat-value">{bestEconomicalBowler.economy || 0}</div>
+            {bestEconomicalBowler.opponentTeam && (
+              <div className="opponent-info">vs {bestEconomicalBowler.opponentTeam}</div>
+            )}
+            {(bestEconomicalBowler.wickets !== undefined || bestEconomicalBowler.runsGiven !== undefined || bestEconomicalBowler.ballsBowled !== undefined) && (
+              <div className="match-stats">
+                {bestEconomicalBowler.wickets !== undefined && <span>{bestEconomicalBowler.wickets} wkts</span>}
+                {bestEconomicalBowler.runsGiven !== undefined && bestEconomicalBowler.ballsBowled !== undefined && (
+                  <span>{bestEconomicalBowler.runsGiven}/{Math.floor(bestEconomicalBowler.ballsBowled / 6)}.{bestEconomicalBowler.ballsBowled % 6}</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -171,6 +191,13 @@ const StatsOverview = () => {
             </div>
             <div className="stat-value">{highestWicketTakerInMatch.wickets || 0}</div>
             <div className="opponent-info">vs {highestWicketTakerInMatch.opponentTeam || 'N/A'}</div>
+            {(highestWicketTakerInMatch.runsGiven !== undefined || highestWicketTakerInMatch.ballsBowled !== undefined) && (
+              <div className="match-stats">
+                {highestWicketTakerInMatch.runsGiven !== undefined && highestWicketTakerInMatch.ballsBowled !== undefined && (
+                  <span>{highestWicketTakerInMatch.runsGiven}/{Math.floor(highestWicketTakerInMatch.ballsBowled / 6)}.{highestWicketTakerInMatch.ballsBowled % 6}</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -187,6 +214,12 @@ const StatsOverview = () => {
             </div>
             <div className="stat-value">{highestScore.score || 0}</div>
             <div className="opponent-info">vs {highestScore.opponentTeam || 'N/A'}</div>
+            {(highestScore.balls !== undefined || highestScore.strikeRate !== undefined) && (
+              <div className="match-stats">
+                {highestScore.balls !== undefined && <span>{highestScore.balls} balls</span>}
+                {highestScore.strikeRate !== undefined && highestScore.strikeRate > 0 && <span>SR: {highestScore.strikeRate}</span>}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -334,21 +367,31 @@ const StatsOverview = () => {
               </tr>
             </thead>
             <tbody>
-              {highestFiveWicketHauls.map((haul, i) => (
-                <tr key={i}>
-                  <td>{haul.playerName}</td>
-                  <td>{haul.teamName}</td>
-                  <td>{haul.opponentTeam}</td>
-                  <td>{haul.wickets}</td>
-                  <td>{new Date(haul.date).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</td>
-                </tr>
-              ))}
+              {highestFiveWicketHauls.map((haul, i) => {
+                const overs = haul.ballsBowled 
+                  ? `${Math.floor(haul.ballsBowled / 6)}.${haul.ballsBowled % 6}` 
+                  : '0.0';
+                return (
+                  <tr key={i}>
+                    <td>{haul.playerName}</td>
+                    <td>{haul.teamName}</td>
+                    <td>{haul.opponentTeam}</td>
+                    <td>
+                      <span>{haul.wickets}</span>
+                      {haul.runsGiven !== undefined && haul.ballsBowled !== undefined && (
+                        <span className="table-stat-detail"> ({haul.runsGiven}/{overs})</span>
+                      )}
+                    </td>
+                    <td>{new Date(haul.date).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'short', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -369,21 +412,31 @@ const StatsOverview = () => {
               </tr>
             </thead>
             <tbody>
-              {highestFourWicketHauls.map((haul, i) => (
-                <tr key={i}>
-                  <td>{haul.playerName}</td>
-                  <td>{haul.teamName}</td>
-                  <td>{haul.opponentTeam}</td>
-                  <td>{haul.wickets}</td>
-                  <td>{new Date(haul.date).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</td>
-                </tr>
-              ))}
+              {highestFourWicketHauls.map((haul, i) => {
+                const overs = haul.ballsBowled 
+                  ? `${Math.floor(haul.ballsBowled / 6)}.${haul.ballsBowled % 6}` 
+                  : '0.0';
+                return (
+                  <tr key={i}>
+                    <td>{haul.playerName}</td>
+                    <td>{haul.teamName}</td>
+                    <td>{haul.opponentTeam}</td>
+                    <td>
+                      <span>{haul.wickets}</span>
+                      {haul.runsGiven !== undefined && haul.ballsBowled !== undefined && (
+                        <span className="table-stat-detail"> ({haul.runsGiven}/{overs})</span>
+                      )}
+                    </td>
+                    <td>{new Date(haul.date).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'short', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -409,7 +462,12 @@ const StatsOverview = () => {
                   <td>{c.playerName}</td>
                   <td>{c.teamName}</td>
                   <td>{c.againstTeam}</td>
-                  <td>{c.runs}</td>
+                  <td>
+                    <span>{c.runs}</span>
+                    {c.balls !== undefined && (
+                      <span className="table-stat-detail"> ({c.balls} balls)</span>
+                    )}
+                  </td>
                   <td>{new Date(c.date).toLocaleDateString('en-US', { 
                     year: 'numeric', 
                     month: 'short', 
@@ -444,7 +502,12 @@ const StatsOverview = () => {
                   <td>{hc.playerName}</td>
                   <td>{hc.teamName}</td>
                   <td>{hc.againstTeam}</td>
-                  <td>{hc.runs}</td>
+                  <td>
+                    <span>{hc.runs}</span>
+                    {hc.balls !== undefined && (
+                      <span className="table-stat-detail"> ({hc.balls} balls)</span>
+                    )}
+                  </td>
                   <td>{new Date(hc.date).toLocaleDateString('en-US', { 
                     year: 'numeric', 
                     month: 'short', 
