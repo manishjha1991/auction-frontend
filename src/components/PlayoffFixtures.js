@@ -612,6 +612,23 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const [worldCupMode, setWorldCupMode] = useState(false);
   const [top8Teams, setTop8Teams] = useState([]);
   const [hasWorldCupTournament, setHasWorldCupTournament] = useState(false);
+  
+  // Check if fixtures are World Cup fixtures by examining matchIds and stages
+  // This ensures we show "WORLD CUP" header even if worldCupMode setting is incorrect
+  const isWorldCupFixtures = playoffFixtures.length > 0 && (
+    playoffFixtures.some(f => {
+      const matchId = f.matchId?.toString() || '';
+      const stage = f.stage?.toString() || '';
+      return matchId.startsWith('WC') || 
+             matchId === 'WCSF1' || 
+             matchId === 'WCSF2' || 
+             matchId === 'WCF' ||
+             stage.includes('WORLD CUP') ||
+             stage.includes('WORLD CUP ROUND-ROBIN') ||
+             stage.includes('WORLD CUP SEMI-FINAL') ||
+             stage.includes('WORLD CUP FINAL');
+    })
+  );
 
   // 🚀 PERFORMANCE: Batch all API calls in parallel instead of sequential
   useEffect(() => {
@@ -638,7 +655,9 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
         
         const games = settingsRes?.data?.requiredGames || 12;
         setRequiredGames(games);
-        setWorldCupMode(settingsRes?.data?.worldCupMode === true);
+        const wcMode = settingsRes?.data?.worldCupMode === true || settingsRes?.data?.worldCupMode === 'true';
+        setWorldCupMode(wcMode);
+        console.log('World Cup Mode from settings:', wcMode, 'Raw value:', settingsRes?.data?.worldCupMode);
         
         if (Array.isArray(pointsRes.data)) {
           const sorted = pointsRes.data.sort((a, b) => {
@@ -1008,9 +1027,17 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
     );
   }
 
+  // Determine if we should show World Cup header based on fixtures or mode
+  // Priority: 
+  // 1. If fixtures exist, check if they're World Cup fixtures (most reliable)
+  // 2. If no fixtures exist, use worldCupMode setting
+  const showWorldCup = playoffFixtures.length > 0 
+    ? isWorldCupFixtures  // When fixtures exist, trust the fixture data
+    : worldCupMode;        // When no fixtures, use the setting
+  
   return (
     <PlayoffContainer>
-      {worldCupMode ? (
+      {showWorldCup ? (
         <>
           <PlayoffHeader>🏆 WORLD CUP</PlayoffHeader>
           <PlayoffSubtitle>
@@ -1093,8 +1120,10 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
              {playoffFixtures.map((fixture, index) => {
          const team1Data = getTeamData(fixture.team1);
          const team2Data = getTeamData(fixture.team2);
-         const isFinal = fixture.matchId === 'F';
-         const isSemi = fixture.matchId === 'C' || fixture.matchId === 'E' || fixture.matchId === 'SF1' || fixture.matchId === 'SF2';
+         // Check if this is a World Cup fixture
+         const isWorldCupMatch = fixture.matchId?.startsWith('WC') || fixture.stage?.includes('WORLD CUP');
+         const isFinal = fixture.matchId === 'F' || fixture.matchId === 'WCF';
+         const isSemi = fixture.matchId === 'C' || fixture.matchId === 'E' || fixture.matchId === 'SF1' || fixture.matchId === 'SF2' || fixture.matchId === 'WCSF1' || fixture.matchId === 'WCSF2';
          const isDisabled = isMatchDisabled(fixture);
          const displayTeam1Name = getDisplayTeamName(fixture.team1);
          const displayTeam2Name = getDisplayTeamName(fixture.team2);
