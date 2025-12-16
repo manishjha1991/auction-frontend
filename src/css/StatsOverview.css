@@ -217,20 +217,20 @@ text-align: center;
   }
 }
 
-/* Stack on mobile/tablet */
+/* Side by side on mobile/tablet */
 @media (max-width: 768px) {
   .leading-performers {
-    flex-direction: column !important;
-    align-items: center;
-    gap: 15px;
+    flex-direction: row !important;
+    align-items: stretch;
+    gap: 10px;
     padding: 0 0.5rem;
   }
   
   .leading-box {
-    max-width: 100%;
-    width: 100%;
-    min-width: unset;
-    flex: none;
+    flex: 1 1 auto;
+    max-width: 50%;
+    min-width: 0;
+    padding: 15px;
   }
 }
 
