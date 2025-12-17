@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
+import { useSocket } from "../contexts/SocketContext";
 import "../css/PlayerList.css";
 import PlayerPopup from "./PlayerPopup";
 import { API_ENDPOINTS } from "../const";
@@ -44,23 +45,70 @@ const PlayerList = () => {
 
     fetchPlayers();
   }, []);
+  
+  // 🚀 REALTIME: Listen for real-time bid updates using shared socket
+  const { on } = useSocket();
+  
+  useEffect(() => {
+    if (!on) return;
+    
+    const cleanup1 = on('player_bid_update', (update) => {
+      setPlayers(prevPlayers => {
+        return prevPlayers.map(player => {
+          if (player.id === update.playerId || player._id === update.playerId) {
+            return {
+              ...player,
+              biddingPrice: update.bidAmount || update.currentBid || player.biddingPrice,
+              currentBidder: update.currentBidder || player.currentBidder,
+              basePrice: update.bidAmount || update.currentBid || player.basePrice
+            };
+          }
+          return player;
+        });
+      });
+    });
+    
+    const cleanup2 = on('player_sold_update', (update) => {
+      setPlayers(prevPlayers => {
+        return prevPlayers.map(player => {
+          if (player.id === update.playerId || player._id === update.playerId) {
+            return {
+              ...player,
+              status: 'Sold'
+            };
+          }
+          return player;
+        });
+      });
+    });
+    
+    return () => {
+      cleanup1();
+      cleanup2();
+    };
+  }, [on]);
 
-  const handlePlayerClick = (player) => {
+  const handlePlayerClick = useCallback((player) => {
     setSelectedPlayer(player);
-  };
+  }, []);
 
-  const handleClosePopup = () => {
+  const handleClosePopup = useCallback(() => {
     setSelectedPlayer(null);
-  };
+  }, []);
 
-  const formatBasePrice = (price) => {
+  const formatBasePrice = useCallback((price) => {
     const value = Number(price);
     if (value >= 10000000) return `${(value / 10000000).toFixed(2)} CR`;
     if (value >= 100000) return `${(value / 100000).toFixed(2)} Lakh`;
     return `${(value / 1000).toFixed(2)} K`;
-  };
-  const unsoldPlayers = players.filter((player) => player.status !== "Sold");
-  const sortedPlayers = [...players]
+  }, []);
+  
+  const unsoldPlayers = useMemo(() => 
+    players.filter((player) => player.status !== "Sold"), 
+    [players]
+  );
+  
+  const sortedPlayers = useMemo(() => [...players]
     .filter((player) =>
       player.name.toLowerCase().includes(search.toLowerCase())
     )
@@ -86,9 +134,9 @@ const PlayerList = () => {
           const maxB = Math.max(b.biddingPrice || 0, b.basePrice || 0);
           return maxB - maxA;
       }
-    });
+    }), [players, search, roleFilter, sortOption]);
 
-  const getRoleIcon = (role) => {
+  const getRoleIcon = useCallback((role) => {
     switch (role.toLowerCase()) {
       case "batsman":
         return "🏌️";
@@ -101,9 +149,9 @@ const PlayerList = () => {
       default:
         return "🏏";
     }
-  };
+  }, []);
 
-  const getStatusIcon = (player) => {
+  const getStatusIcon = useCallback((player) => {
     if (player.status === "Sold") {
       return (
         <span>
@@ -124,17 +172,17 @@ const PlayerList = () => {
           </span>
         );
       }
-  };
+  }, []);
 
 
-  const shouldBlink = (player) => {
+  const shouldBlink = useCallback((player) => {
     const biddingPrice = player.biddingPrice || player.basePrice || 0;
     return (
       player.currentBidder &&
       biddingPrice > 200000000 &&
       player.status !== "Sold"
     );
-  };
+  }, []);
 
   if (loading) {
     return <TrophyLoader message="Loading player board…" />;
@@ -272,4 +320,5 @@ const PlayerList = () => {
   );
 };
 
-export default PlayerList;
+// 🚀 PERFORMANCE: Memoize component to prevent unnecessary re-renders
+export default React.memo(PlayerList);

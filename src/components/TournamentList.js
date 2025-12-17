@@ -90,7 +90,17 @@ const TournamentList = () => {
       }
 
       const data = await response.json();
-      setTournaments(data.tournaments || []);
+
+      // Backend can return either:
+      // - an array of tournaments (default for limit >= 100 or no limit)
+      // - an object { tournaments: [...], totalPages, currentPage, total } when limit < 100
+      if (Array.isArray(data)) {
+        setTournaments(data);
+      } else if (data && Array.isArray(data.tournaments)) {
+        setTournaments(data.tournaments);
+      } else {
+        setTournaments([]);
+      }
     } catch (error) {
       console.error('Error fetching tournaments:', error);
       setError(error.message || 'Failed to load tournaments');
@@ -426,11 +436,12 @@ const TournamentList = () => {
                 </div>
 
                 <div className="tournament-actions">
-                  {user && user.isAdmin ? (
+                  {user && user.isAdmin && (
                     <div className="admin-actions">
                       <button 
                         className="edit-btn"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setEditingTournament(tournament);
                           setShowEditModal(true);
                         }}
@@ -439,37 +450,13 @@ const TournamentList = () => {
                       </button>
                       <button 
                         className="delete-btn"
-                        onClick={() => handleDeleteTournament(tournament._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTournament(tournament._id);
+                        }}
                       >
                         <FaTrash /> Delete
                       </button>
-                    </div>
-                  ) : (
-                    <div className="user-actions">
-                      {isSubscribed ? (
-                        <button 
-                          className="withdraw-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleUnsubscribe(tournament._id);
-                          }}
-                          disabled={!canWithdraw(tournament)}
-                        >
-                          {tournament.isLocked ? 'Locked' : 'Withdraw'}
-                        </button>
-                      ) : (
-                        <button 
-                          className="subscribe-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSubscribe(tournament._id);
-                          }}
-                          disabled={!canSubscribe(tournament)}
-                        >
-                          {subscriptionCount >= 2 ? 'Limit Reached' : 
-                           tournament.slotsLeft === 0 ? 'Full' : 'Subscribe'}
-                        </button>
-                      )}
                     </div>
                   )}
                 </div>
@@ -724,6 +711,10 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
     tournamentImage: null
   });
   const [loading, setLoading] = useState(false);
+  const [availableTeams, setAvailableTeams] = useState([]);
+  const [subscribedTeams, setSubscribedTeams] = useState(tournament.subscribedTeams || []);
+  const [loadingTeams, setLoadingTeams] = useState(false);
+  const [showTeamManagement, setShowTeamManagement] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -740,6 +731,168 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
         ...prev,
         tournamentImage: file
       }));
+    }
+  };
+
+  // Fetch available teams (teams not yet subscribed)
+  useEffect(() => {
+    const fetchAvailableTeams = async () => {
+      setLoadingTeams(true);
+      try {
+        const cachedUser = localStorage.getItem('user');
+        const userId = cachedUser ? JSON.parse(cachedUser).id : null;
+        
+        const response = await fetch(`${API_ENDPOINTS}/api/users/teams`, {
+          headers: {
+            'user-id': userId
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const teams = data.teams || data || [];
+          
+          // Filter out teams that are already subscribed
+          const subscribedTeamIds = subscribedTeams.map(team => team.userId?._id || team.userId || team.userId?.toString());
+          const available = teams.filter(team => 
+            team._id && 
+            !subscribedTeamIds.includes(team._id.toString()) &&
+            team.isActive !== false &&
+            team.teamName && 
+            team.teamName !== 'NA'
+          );
+          
+          setAvailableTeams(available);
+        }
+      } catch (error) {
+        console.error('Error fetching available teams:', error);
+      } finally {
+        setLoadingTeams(false);
+      }
+    };
+    
+    if (showTeamManagement) {
+      fetchAvailableTeams();
+    }
+  }, [showTeamManagement, subscribedTeams]);
+
+  // Add team to tournament
+  const handleAddTeam = async (teamUserId) => {
+    try {
+      const cachedUser = localStorage.getItem('user');
+      const userId = cachedUser ? JSON.parse(cachedUser).id : null;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await fetch(`${API_ENDPOINTS}/api/tournaments/${tournament._id}/subscribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': userId
+        },
+        body: JSON.stringify({ userId: teamUserId })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add team');
+      }
+
+      // Refresh tournament data to get updated subscribed teams
+      const tournamentResponse = await fetch(`${API_ENDPOINTS}/api/tournaments/${tournament._id}`, {
+        headers: {
+          'user-id': userId
+        }
+      });
+      
+      if (tournamentResponse.ok) {
+        const updatedTournament = await tournamentResponse.json();
+        setSubscribedTeams(updatedTournament.subscribedTeams || []);
+        // Refresh available teams
+        const teamsResponse = await fetch(`${API_ENDPOINTS}/api/users/teams`, {
+          headers: {
+            'user-id': userId
+          }
+        });
+        if (teamsResponse.ok) {
+          const teamsData = await teamsResponse.json();
+          const teams = teamsData.teams || teamsData || [];
+          const subscribedTeamIds = (updatedTournament.subscribedTeams || []).map(team => team.userId?._id || team.userId || team.userId?.toString());
+          const available = teams.filter(team => 
+            team._id && 
+            !subscribedTeamIds.includes(team._id.toString()) &&
+            team.isActive !== false &&
+            team.teamName && 
+            team.teamName !== 'NA'
+          );
+          setAvailableTeams(available);
+        }
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  // Remove team from tournament
+  const handleRemoveTeam = async (teamUserId) => {
+    if (!window.confirm('Are you sure you want to remove this team from the tournament?')) {
+      return;
+    }
+
+    try {
+      const cachedUser = localStorage.getItem('user');
+      const userId = cachedUser ? JSON.parse(cachedUser).id : null;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await fetch(`${API_ENDPOINTS}/api/tournaments/${tournament._id}/teams/${teamUserId}`, {
+        method: 'DELETE',
+        headers: {
+          'user-id': userId
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove team');
+      }
+
+      // Refresh tournament data to get updated subscribed teams
+      const tournamentResponse = await fetch(`${API_ENDPOINTS}/api/tournaments/${tournament._id}`, {
+        headers: {
+          'user-id': userId
+        }
+      });
+      
+      if (tournamentResponse.ok) {
+        const updatedTournament = await tournamentResponse.json();
+        setSubscribedTeams(updatedTournament.subscribedTeams || []);
+        // Refresh available teams
+        const teamsResponse = await fetch(`${API_ENDPOINTS}/api/users/teams`, {
+          headers: {
+            'user-id': userId
+          }
+        });
+        if (teamsResponse.ok) {
+          const teamsData = await teamsResponse.json();
+          const teams = teamsData.teams || teamsData || [];
+          const subscribedTeamIds = (updatedTournament.subscribedTeams || []).map(team => team.userId?._id || team.userId || team.userId?.toString());
+          const available = teams.filter(team => 
+            team._id && 
+            !subscribedTeamIds.includes(team._id.toString()) &&
+            team.isActive !== false &&
+            team.teamName && 
+            team.teamName !== 'NA'
+          );
+          setAvailableTeams(available);
+        }
+      }
+    } catch (error) {
+      alert(error.message);
     }
   };
 
@@ -881,6 +1034,191 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Team Management Section */}
+          <div className="form-group" style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '2px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <label style={{ marginBottom: 0, fontSize: '1.1rem', fontWeight: '600' }}>Manage Teams</label>
+              <button
+                type="button"
+                onClick={() => setShowTeamManagement(!showTeamManagement)}
+                style={{
+                  background: showTeamManagement ? '#ef4444' : '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: '600'
+                }}
+              >
+                {showTeamManagement ? 'Hide Teams' : 'Show Teams'}
+              </button>
+            </div>
+
+            {showTeamManagement && (
+              <div style={{ marginTop: '1rem' }}>
+                {/* Subscribed Teams */}
+                <div style={{ marginBottom: '2rem' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.75rem', color: '#374151' }}>
+                    Subscribed Teams ({subscribedTeams.length}/{formData.maxSlots})
+                  </h4>
+                  {subscribedTeams.length === 0 ? (
+                    <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>No teams subscribed yet.</p>
+                  ) : (
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+                      gap: '0.75rem',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      padding: '0.5rem',
+                      background: '#f9fafb',
+                      borderRadius: '8px'
+                    }}>
+                      {subscribedTeams.map((team, index) => (
+                        <div
+                          key={team.userId?._id || team.userId || index}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.75rem',
+                            background: 'white',
+                            borderRadius: '6px',
+                            border: '1px solid #e5e7eb',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                            {team.teamImage && (
+                              <img
+                                src={`${API_ENDPOINTS}${team.teamImage}`}
+                                alt={team.teamName}
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '50%',
+                                  objectFit: 'cover'
+                                }}
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151' }}>
+                              {team.teamName || 'Unknown Team'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTeam(team.userId?._id || team.userId)}
+                            style={{
+                              background: '#ef4444',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '0.25rem 0.5rem',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}
+                            title="Remove team"
+                          >
+                            <FaTimes /> Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Available Teams */}
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.75rem', color: '#374151' }}>
+                    Available Teams ({availableTeams.length})
+                  </h4>
+                  {loadingTeams ? (
+                    <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Loading teams...</p>
+                  ) : availableTeams.length === 0 ? (
+                    <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>No available teams to add.</p>
+                  ) : (
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+                      gap: '0.75rem',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      padding: '0.5rem',
+                      background: '#f9fafb',
+                      borderRadius: '8px'
+                    }}>
+                      {availableTeams.map((team) => (
+                        <div
+                          key={team._id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.75rem',
+                            background: 'white',
+                            borderRadius: '6px',
+                            border: '1px solid #e5e7eb',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                            {team.teamImage && (
+                              <img
+                                src={`${API_ENDPOINTS}${team.teamImage}`}
+                                alt={team.teamName}
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '50%',
+                                  objectFit: 'cover'
+                                }}
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151' }}>
+                              {team.teamName || 'Unknown Team'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAddTeam(team._id)}
+                            disabled={subscribedTeams.length >= formData.maxSlots}
+                            style={{
+                              background: subscribedTeams.length >= formData.maxSlots ? '#d1d5db' : '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '0.25rem 0.5rem',
+                              cursor: subscribedTeams.length >= formData.maxSlots ? 'not-allowed' : 'pointer',
+                              fontSize: '0.8rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              opacity: subscribedTeams.length >= formData.maxSlots ? 0.6 : 1
+                            }}
+                            title={subscribedTeams.length >= formData.maxSlots ? 'Tournament is full' : 'Add team'}
+                          >
+                            <FaPlus /> Add
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="form-actions">
@@ -1044,11 +1382,10 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
   useEffect(() => {
     if (activeTab === 'fixtures') {
       fetchFixtures();
-      if (tournament.name && tournament.name.startsWith('World Cup')) {
-        fetchRoundRobinStatus();
-      }
+      fetchRoundRobinStatus(); // Check for all tournaments, not just World Cup
     } else if (activeTab === 'points') {
       fetchPointTable();
+      fetchRoundRobinStatus(); // Also check status for point table to show Q/E icons
     }
   }, [activeTab]);
 
@@ -1135,27 +1472,14 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                 </div>
               </div>
 
-              <div className="tournament-detail-actions">
-                {isSubscribed ? (
-                  <button 
-                    className="withdraw-btn" 
-                    onClick={onUnsubscribe}
-                    disabled={tournament.isLocked}
-                  >
-                    {tournament.isLocked ? 'Tournament Locked' : 'Withdraw from Tournament'}
-                  </button>
-                ) : (
-                  <button 
-                    className="subscribe-btn" 
-                    onClick={onSubscribe}
-                    disabled={!canSubscribe}
-                  >
-                    {canSubscribe ? 'Subscribe to Tournament' : 
-                     localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin ? 
-                     'Admin Cannot Subscribe' : 'Cannot Subscribe'}
-                  </button>
-                )}
-              </div>
+              {/* Only show add/remove team buttons for admins */}
+              {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin && (
+                <div className="tournament-detail-actions">
+                  <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                    Admin: Use the remove button (×) next to each team to remove them from the tournament.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1214,7 +1538,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
               <div className="fixtures-content">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3>Tournament Fixtures</h3>
-                  {tournament.name && tournament.name.startsWith('World Cup') && roundRobinStatus && roundRobinStatus.canGenerateKnockout && (
+                  {roundRobinStatus && roundRobinStatus.canGenerateKnockout && (
                     (() => {
                       const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
                       const isAdmin = currentUser?.isAdmin;
@@ -1239,7 +1563,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                     })()
                   )}
                 </div>
-                {tournament.name && tournament.name.startsWith('World Cup') && roundRobinStatus && (
+                {roundRobinStatus && (
                   <div style={{ 
                     padding: '0.75rem', 
                     marginBottom: '1rem', 
@@ -1293,11 +1617,9 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                           {(() => {
                             const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
                             const isAdmin = currentUser?.isAdmin;
-                            const userTeamName = currentUser?.teamName;
-                            const isUserInMatch = userTeamName && (fixture.team1 === userTeamName || fixture.team2 === userTeamName);
                             
-                            // Show edit button if admin OR if user is enrolled and this match involves their team
-                            if (isAdmin || (isSubscribed && isUserInMatch)) {
+                            // Only admin can edit fixtures
+                            if (isAdmin) {
                               return (
                                 <button 
                                   className="edit-fixture-btn"
@@ -1387,10 +1709,9 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                       {(() => {
                                         const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
                                         const isAdmin = currentUser?.isAdmin;
-                                        const userTeamName = currentUser?.teamName;
-                                        const isUserInMatch = userTeamName && (fixture.team1 === userTeamName || fixture.team2 === userTeamName);
                                         
-                                        if (isAdmin || (isSubscribed && isUserInMatch)) {
+                                        // Only admin can edit fixtures
+                                        if (isAdmin) {
                                           return (
                                             <button 
                                               className="edit-fixture-btn"
@@ -1473,20 +1794,61 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                         </tr>
                       </thead>
                       <tbody>
-                        {pointTable.map((team, index) => (
-                          <tr key={index}>
-                            <td>{team.teamName}</td>
-                            <td>{team.matches}</td>
-                            <td>{team.won}</td>
-                            <td>{team.lost}</td>
-                            <td>{team.points}</td>
-                            <td>
-                              <span className={`fairness-tag fairness-${team.fairness > 70 ? 'high' : team.fairness > 40 ? 'medium' : 'low'}`}>
-                                {team.fairness}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
+                        {pointTable.map((team, index) => {
+                          // Check if all round-robin matches are complete to show Q/E icons
+                          const allRoundRobinComplete = roundRobinStatus?.allComplete || false;
+                          const showQ = allRoundRobinComplete && index < 4; // Top 4 get Q icon
+                          const showE = allRoundRobinComplete && index >= 4; // Last 4 get E icon
+                          
+                          return (
+                            <tr key={index}>
+                              <td>
+                                {team.teamName}
+                                {showQ && (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginLeft: '8px',
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    background: '#28a745',
+                                    color: '#ffffff',
+                                    fontSize: '12px',
+                                    lineHeight: '1',
+                                    fontWeight: '800'
+                                  }} title="Qualified (Top 4)">Q</span>
+                                )}
+                                {showE && (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginLeft: '8px',
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    background: '#dc3545',
+                                    color: '#ffffff',
+                                    fontSize: '12px',
+                                    lineHeight: '1',
+                                    fontWeight: '800'
+                                  }} title="Eliminated">E</span>
+                                )}
+                              </td>
+                              <td>{team.matches}</td>
+                              <td>{team.won}</td>
+                              <td>{team.lost}</td>
+                              <td>{team.points}</td>
+                              <td>
+                                <span className={`fairness-tag fairness-${team.fairness > 70 ? 'high' : team.fairness > 40 ? 'medium' : 'low'}`}>
+                                  {team.fairness}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

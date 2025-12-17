@@ -19,6 +19,15 @@
   transform: translateX(-50%);
   z-index: 3000;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Hide notification bell when sidebar is open */
+body.sidebar-open .notification-bell-container {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  display: none !important;
 }
 
 .bell-icon {

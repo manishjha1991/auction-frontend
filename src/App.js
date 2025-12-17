@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import PlayerList from './components/PlayerList';
 import Profile from './components/Profile';
 import Login from './components/Login';
@@ -18,7 +18,12 @@ import TradeCenter from './components/TradeCenter';
 import UnsoldPlayers from './components/UnsoldPlayers';
 import AdminSettings from './components/AdminSettings';
 import { API_ENDPOINTS } from './const';
-import { FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen, FaTrophy, FaMedal } from 'react-icons/fa';
+import { 
+  FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen, FaTrophy, FaMedal,
+  FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
+  FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
+  FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes
+} from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
 import GlobalNotification from './components/GlobalNotification';
@@ -36,13 +41,36 @@ import LiveBiddingDashboard from './components/LiveBiddingDashboard';
 // AdminDashboard removed - performance dashboard disabled
 
 import './App.css';
+import { SocketProvider } from './contexts/SocketContext';
+
+// Helper component for menu items with search filtering
+const MenuItem = ({ to, icon: Icon, children, onClick, searchQuery, location }) => {
+  const isActive = location.pathname === to;
+  const isVisible = !searchQuery || children.toLowerCase().includes(searchQuery.toLowerCase());
+  
+  if (!isVisible) return null;
+  
+  return (
+    <li>
+      <Link 
+        to={to} 
+        onClick={onClick} 
+        className={`menu-item ${isActive ? 'active' : ''}`}
+      >
+        {Icon && <Icon className="menu-icon" />}
+        <span>{children}</span>
+      </Link>
+    </li>
+  );
+};
 
 function App() {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [appSettings, setAppSettings] = useState({ enableTradeCenter: true, enableUnsoldPlayers: true });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [appSettings, setAppSettings] = useState({ enableTradeCenter: true, enableUnsoldPlayers: true, worldCupMode: false });
 
   useEffect(() => {
     const cachedAuth = localStorage.getItem('isLoggedIn') === 'true';
@@ -62,7 +90,13 @@ function App() {
       try {
         const res = await fetch(`${API_ENDPOINTS}/api/settings`);
         const j = await res.json();
-        if (typeof j.enableTradeCenter === 'boolean') setAppSettings({ enableTradeCenter: j.enableTradeCenter, enableUnsoldPlayers: j.enableUnsoldPlayers });
+        if (typeof j.enableTradeCenter === 'boolean') {
+          setAppSettings({ 
+            enableTradeCenter: j.enableTradeCenter, 
+            enableUnsoldPlayers: j.enableUnsoldPlayers,
+            worldCupMode: j.worldCupMode || false
+          });
+        }
       } catch {}
     }
     fetchSettings();
@@ -85,8 +119,25 @@ function App() {
     localStorage.removeItem('user');
   };
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+  const handleToggleSidebar = () => {
+    const newState = !isSidebarOpen;
+    setIsSidebarOpen(newState);
+    if (newState) {
+      document.body.classList.add('sidebar-open');
+      setSearchQuery(''); // Clear search when opening
+    } else {
+      document.body.classList.remove('sidebar-open');
+      setSearchQuery('');
+    }
+  };
+
+  const toggleSidebar = handleToggleSidebar;
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+    setSearchQuery('');
+    // Remove body class for CSS-based hiding
+    document.body.classList.remove('sidebar-open');
   };
 
   const PrivateRoute = ({ children }) => {
@@ -101,95 +152,295 @@ function App() {
     return `content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`;
   };
 
+  // Helper functions for menu filtering and active state
+  const currentPath = window.location.pathname;
+  const isActive = (path) => currentPath === path;
+  const filterItem = (text) => !searchQuery || text.toLowerCase().includes(searchQuery.toLowerCase());
+
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
 
   return (
-    <Router>
-      <div className="dashboard-container">
+    <SocketProvider>
+      <Router>
+        <div className="dashboard-container">
         {isAuthenticated && (
           <>
-            <button className="hamburger" onClick={toggleSidebar}>
-              ☰
+            <button className={`hamburger ${isSidebarOpen ? 'active' : ''}`} onClick={toggleSidebar} aria-label="Toggle menu">
+              <span></span>
+              <span></span>
+              <span></span>
             </button>
+            <div className={`sidebar-overlay ${isSidebarOpen ? 'active' : ''}`} onClick={closeSidebar}></div>
             <nav className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
               <div className="sidebar-header">
-                <button className="close-btn" onClick={toggleSidebar}>
-                  ✖
-                </button>
-              </div>
+                <div className="sidebar-header-content">
+                  <div className="sidebar-logo">
+                    <FaTrophy className="logo-icon" />
+                    <span className="logo-text">{appSettings.worldCupMode ? 'World Cup' : 'CPL'}</span>
+                  </div>
+                  <button className="close-btn" onClick={closeSidebar} aria-label="Close menu">
+                    <FaTimes />
+                  </button>
+                </div>
               <div className="welcome-message">
                 <p>
                   <span className="wave">👋</span> Welcome,
                   <span className="user-name"> {user?.name || 'User'}!</span>
                 </p>
               </div>
+                <div className="search-box">
+                  <FaSearch className="search-icon" />
+                  <input
+                    type="text"
+                    placeholder="Search menu..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="menu-search"
+                  />
+                </div>
+              </div>
+              
+              <div className="menu-container">
+                {/* Quick Actions */}
+                <div className="menu-section">
+                  <h3 className="menu-section-title">Quick Actions</h3>
               <ul className="menu">
-                <li><Link to="/players" onClick={toggleSidebar}>Players</Link></li>
-                <li><Link to="/live-bidding" onClick={toggleSidebar}>🔥 Live Bidding Dashboard</Link></li>
-                <li><Link to="/profile" onClick={toggleSidebar}>Profile</Link></li>
-                {user?.isAdmin && <li><Link to="/add-player" onClick={toggleSidebar}>Add Player</Link></li>}
-                
-                <li><Link to="/user-purses" onClick={toggleSidebar}>Teams</Link></li>
-                <li><Link to="/points-table" onClick={toggleSidebar}>Points Table</Link></li>
-                <li><Link to="/player-stats" onClick={toggleSidebar}>Player Stats</Link></li>
-                <li><Link to="/player-insights" onClick={toggleSidebar}>Player Insights</Link></li>
-                <li><Link to="/fixtures" onClick={toggleSidebar}>Fixtures</Link></li>
-                <li><Link to="/match-scheduler" onClick={toggleSidebar}>🏏 Match Scheduler</Link></li>
-                <li><Link to="/ocr" onClick={toggleSidebar}>🖼️ OCR Extractor</Link></li>
-                <li><Link to="/team-directory" onClick={toggleSidebar}>👥 Team Directory</Link></li>
-                <li><Link to="/tournaments" onClick={toggleSidebar}>🏆 Tournaments</Link></li>
-                <li><Link to="/trophy-hall" onClick={toggleSidebar}>🏆 Trophy Hall</Link></li>
-                {user && user.isAdmin && (
-                  <li><Link to="/admin-match-results" onClick={toggleSidebar}>📊 Match Results</Link></li>
-                )}
-                <li><Link to="/sold-playerslist" onClick={toggleSidebar}>Sold Player List</Link></li>
-                
-                {/* NEW: Link to Stats Overview */}
-                <li>
-                  <Link to="/stats-overview" onClick={toggleSidebar}>
-                    <FaChartPie /> <span>Stats Overview</span>
+                    {filterItem('Home') && (
+                      <li>
+                        <Link to="/profile" onClick={closeSidebar} className={`menu-item ${isActive('/profile') ? 'active' : ''}`}>
+                          <FaHome className="menu-icon" />
+                          <span>Home</span>
+                        </Link>
+                      </li>
+                    )}
+                    {filterItem('Live Bidding') && (
+                      <li>
+                        <Link to="/live-bidding" onClick={closeSidebar} className={`menu-item ${isActive('/live-bidding') ? 'active' : ''}`}>
+                          <FaFire className="menu-icon fire-icon" />
+                          <span>Live Bidding</span>
+                        </Link>
+                      </li>
+                    )}
+                    {filterItem('Players') && (
+                      <li>
+                        <Link to="/players" onClick={closeSidebar} className={`menu-item ${isActive('/players') ? 'active' : ''}`}>
+                          <FaUsers className="menu-icon" />
+                          <span>Players</span>
+                        </Link>
+                      </li>
+                    )}
+                    {user?.isAdmin && filterItem('Add Player') && (
+                      <li>
+                        <Link to="/add-player" onClick={closeSidebar} className={`menu-item ${isActive('/add-player') ? 'active' : ''}`}>
+                          <FaPlus className="menu-icon" />
+                          <span>Add Player</span>
+                        </Link>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
+                {/* Teams & Competition */}
+                <div className="menu-section">
+                  <h3 className="menu-section-title">Teams & Competition</h3>
+                  <ul className="menu">
+                    <li>
+                      <Link to="/user-purses" onClick={closeSidebar} className={`menu-item ${isActive('/user-purses') ? 'active' : ''}`}>
+                        <FaUsersCog className="menu-icon" />
+                        <span>Teams</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/points-table" onClick={closeSidebar} className={`menu-item ${isActive('/points-table') ? 'active' : ''}`}>
+                        <FaTable className="menu-icon" />
+                        <span>Points Table</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/fixtures" onClick={closeSidebar} className={`menu-item ${isActive('/fixtures') ? 'active' : ''}`}>
+                        <FaCalendarAlt className="menu-icon" />
+                        <span>Fixtures</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/match-scheduler" onClick={closeSidebar} className={`menu-item ${isActive('/match-scheduler') ? 'active' : ''}`}>
+                        <FaCalendarAlt className="menu-icon" />
+                        <span>Match Scheduler</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/tournaments" onClick={closeSidebar} className={`menu-item ${isActive('/tournaments') ? 'active' : ''}`}>
+                        <FaTrophy className="menu-icon" />
+                        <span>Tournaments</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/trophy-hall" onClick={closeSidebar} className={`menu-item ${isActive('/trophy-hall') ? 'active' : ''}`}>
+                        <FaTrophy className="menu-icon" />
+                        <span>Trophy Hall</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/team-directory" onClick={closeSidebar} className={`menu-item ${isActive('/team-directory') ? 'active' : ''}`}>
+                        <FaUsers className="menu-icon" />
+                        <span>Team Directory</span>
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Statistics & Analytics */}
+                <div className="menu-section">
+                  <h3 className="menu-section-title">Statistics & Analytics</h3>
+                  <ul className="menu">
+                    <li>
+                      <Link to="/stats-overview" onClick={closeSidebar} className={`menu-item ${isActive('/stats-overview') ? 'active' : ''}`}>
+                        <FaChartPie className="menu-icon" />
+                        <span>Stats Overview</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/rankings" onClick={closeSidebar} className={`menu-item ${isActive('/rankings') ? 'active' : ''}`}>
+                        <FaMedal className="menu-icon" />
+                        <span>Top Rankings</span>
                   </Link>
                 </li>
                 <li>
-                  <Link to="/rankings" onClick={toggleSidebar}>
-                    <FaMedal /> <span>Top Rankings</span>
+                      <Link to="/player-stats" onClick={closeSidebar} className={`menu-item ${isActive('/player-stats') ? 'active' : ''}`}>
+                        <FaChartBar className="menu-icon" />
+                        <span>Player Stats</span>
                   </Link>
                 </li>
                 <li>
-                  <Link to="/news" onClick={toggleSidebar}>
-                    <FaBullhorn /> <span>News Alerts</span>
+                      <Link to="/player-insights" onClick={closeSidebar} className={`menu-item ${isActive('/player-insights') ? 'active' : ''}`}>
+                        <FaLightbulb className="menu-icon" />
+                        <span>Player Insights</span>
+                      </Link>
+                    </li>
+                    {user && user.isAdmin && (
+                      <li>
+                        <Link to="/admin-match-results" onClick={closeSidebar} className={`menu-item ${isActive('/admin-match-results') ? 'active' : ''}`}>
+                          <FaChartBar className="menu-icon" />
+                          <span>Match Results</span>
                   </Link>
                 </li>
+                    )}
+                  </ul>
+                </div>
+
+                {/* Market & Trading */}
+                <div className="menu-section">
+                  <h3 className="menu-section-title">Market & Trading</h3>
+                  <ul className="menu">
                 {appSettings.enableTradeCenter && (
                   <li>
-                    <Link to="/trade" onClick={toggleSidebar}>
-                      <FaExchangeAlt /> <span>Trade Center</span>
+                        <Link to="/trade" onClick={closeSidebar} className={`menu-item ${isActive('/trade') ? 'active' : ''}`}>
+                          <FaExchangeAlt className="menu-icon" />
+                          <span>Trade Center</span>
                     </Link>
                   </li>
                 )}
                 {appSettings.enableUnsoldPlayers && (
                   <li>
-                    <Link to="/unsold" onClick={toggleSidebar}>
-                      <FaBoxOpen /> <span>Unsold Players</span>
+                        <Link to="/unsold" onClick={closeSidebar} className={`menu-item ${isActive('/unsold') ? 'active' : ''}`}>
+                          <FaBoxOpen className="menu-icon" />
+                          <span>Unsold Players</span>
                     </Link>
                   </li>
                 )}
-                {/* Performance Dashboard removed */}
-                {user?.isAdmin && <li><Link to="/admin/trades" onClick={toggleSidebar}>Admin Trades</Link></li>}
-                {user?.isAdmin && <li><Link to="/admin/user-management" onClick={toggleSidebar}>👑 User Management</Link></li>}
-                {user?.isAdmin && <li><Link to="/admin/fairness-management" onClick={toggleSidebar}>⚖️ Fairness Management</Link></li>}
-                {user?.isAdmin && <li><Link to="/admin/retained-players" onClick={toggleSidebar}>💎 Retained Players</Link></li>}
-                {user?.isAdmin && <li><Link to="/admin/team-locks" onClick={toggleSidebar}>🔒 Retention Locks</Link></li>}
-                {user?.isAdmin && <li><Link to="/admin/settings" onClick={toggleSidebar}>Admin Settings</Link></li>}
+                    <li>
+                      <Link to="/sold-playerslist" onClick={closeSidebar} className={`menu-item ${isActive('/sold-playerslist') ? 'active' : ''}`}>
+                        <FaDollarSign className="menu-icon" />
+                        <span>Sold Players</span>
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
 
-                <li>
+                {/* News & Updates */}
+                <div className="menu-section">
+                  <h3 className="menu-section-title">News & Updates</h3>
+                  <ul className="menu">
+                    <li>
+                      <Link to="/news" onClick={closeSidebar} className={`menu-item ${isActive('/news') ? 'active' : ''}`}>
+                        <FaBullhorn className="menu-icon" />
+                        <span>News Alerts</span>
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Tools */}
+                <div className="menu-section">
+                  <h3 className="menu-section-title">Tools</h3>
+                  <ul className="menu">
+                    <li>
+                      <Link to="/ocr" onClick={closeSidebar} className={`menu-item ${isActive('/ocr') ? 'active' : ''}`}>
+                        <FaImage className="menu-icon" />
+                        <span>OCR Extractor</span>
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Admin Section */}
+                {user?.isAdmin && (
+                  <div className="menu-section admin-section">
+                    <h3 className="menu-section-title">
+                      <FaCrown className="admin-crown" />
+                      Admin Panel
+                    </h3>
+                    <ul className="menu">
+                      <li>
+                        <Link to="/admin/trades" onClick={closeSidebar} className={`menu-item ${isActive('/admin/trades') ? 'active' : ''}`}>
+                          <FaExchangeAlt className="menu-icon" />
+                          <span>Admin Trades</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/user-management" onClick={closeSidebar} className={`menu-item ${isActive('/admin/user-management') ? 'active' : ''}`}>
+                          <FaUsersCog className="menu-icon" />
+                          <span>User Management</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/fairness-management" onClick={closeSidebar} className={`menu-item ${isActive('/admin/fairness-management') ? 'active' : ''}`}>
+                          <FaBalanceScale className="menu-icon" />
+                          <span>Fairness Management</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/retained-players" onClick={closeSidebar} className={`menu-item ${isActive('/admin/retained-players') ? 'active' : ''}`}>
+                          <FaGem className="menu-icon" />
+                          <span>Retained Players</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/team-locks" onClick={closeSidebar} className={`menu-item ${isActive('/admin/team-locks') ? 'active' : ''}`}>
+                          <FaLock className="menu-icon" />
+                          <span>Retention Locks</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/settings" onClick={closeSidebar} className={`menu-item ${isActive('/admin/settings') ? 'active' : ''}`}>
+                          <FaCog className="menu-icon" />
+                          <span>Admin Settings</span>
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+
+                {/* Logout */}
+                <div className="menu-footer">
                   <button className="logout-btn" onClick={handleLogout}>
-                    Logout
+                    <FaSignOutAlt className="logout-icon" />
+                    <span>Logout</span>
                   </button>
-                </li>
-              </ul>
+                </div>
+              </div>
             </nav>
           </>
         )}
@@ -319,7 +570,8 @@ function App() {
           </Routes>
         </main>
       </div>
-    </Router>
+      </Router>
+    </SocketProvider>
   );
 }
 

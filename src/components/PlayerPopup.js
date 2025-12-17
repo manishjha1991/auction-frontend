@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSocket } from "../contexts/SocketContext";
 import "../css/PlayerPopup.css";
 import { FaClock } from "react-icons/fa";
 import { API_ENDPOINTS } from "../const";
@@ -61,9 +62,9 @@ const PlayerPopup = ({ player, onClose }) => {
   }, []);
 
   useEffect(() => {
-    const fetchPlayerData = async () => {
+    const fetchPlayerData = async (showLoading = true) => {
       try {
-        setLoading(true);
+        if (showLoading) setLoading(true);
         const response = await fetch(`${API_ENDPOINTS}/api/player/${player.id}/bids`, {
           headers: { "Content-Type": "application/json" },
         });
@@ -78,14 +79,60 @@ const PlayerPopup = ({ player, onClose }) => {
         setAllBids(data.allBids);
       } catch (err) {
         console.error("Failed to fetch player details:", err);
-        setError("Failed to load player details. Please try again later.");
+        if (showLoading) {
+          setError("Failed to load player details. Please try again later.");
+        }
       } finally {
-        setLoading(false);
+        if (showLoading) setLoading(false);
       }
     };
 
-    fetchPlayerData();
-  }, [player.id]);
+    // Initial fetch with loading spinner
+    fetchPlayerData(true);
+  }, [player.id, player._id]);
+  
+  // 🚀 REALTIME: Listen for real-time bid updates using shared socket
+  const { on } = useSocket();
+  const currentPlayerId = player.id || player._id;
+  
+  useEffect(() => {
+    if (!on) return;
+    
+    const fetchPlayerDataSilent = async () => {
+      try {
+        const response = await fetch(`${API_ENDPOINTS}/api/player/${player.id}/bids`, {
+          headers: { "Content-Type": "application/json" },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPlayerDetails(data.player);
+          setTopTwoBids(data.topTwoBids);
+          setAllBids(data.allBids);
+        }
+      } catch (err) {
+        console.error("Failed to refresh player details:", err);
+      }
+    };
+    
+    const cleanup1 = on('player_bid_update', (update) => {
+      if (update.playerId === currentPlayerId || update.playerId?.toString() === currentPlayerId?.toString()) {
+        // Refresh player data when bid updates (silently, no loading spinner)
+        fetchPlayerDataSilent();
+      }
+    });
+    
+    const cleanup2 = on('player_sold_update', (update) => {
+      if (update.playerId === currentPlayerId || update.playerId?.toString() === currentPlayerId?.toString()) {
+        // Refresh player data when sold (silently, no loading spinner)
+        fetchPlayerDataSilent();
+      }
+    });
+    
+    return () => {
+      cleanup1();
+      cleanup2();
+    };
+  }, [on, currentPlayerId, player.id]);
 
   // Auto-hide bid alert after 5 seconds
   useEffect(() => {

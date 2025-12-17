@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import styled from "styled-components";
+import { useSocket } from "../contexts/SocketContext";
 import { API_ENDPOINTS } from "../const";
 import LoadingCube from "./CricketAnimation";
 import NotificationBell from './NotificationBell';
@@ -934,6 +935,11 @@ const keyframes = `
     50% { box-shadow: 0 0 20px rgba(244, 67, 54, 0.8); }
   }
   
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
   /* Responsive Design */
   @media (max-width: 768px) {
     .user-cards-container {
@@ -1044,92 +1050,14 @@ const UserPursePage = () => {
     setIsAdmin(user?.isAdmin === true);
   }, []);
 
-  const handlePlayerClick = (player) => {
+  const handlePlayerClick = useCallback((player) => {
     console.log('Player clicked:', player);
     setSelectedPlayer(player);
-  };
+  }, []);
 
-  const handleClosePopup = () => {
+  const handleClosePopup = useCallback(() => {
     setSelectedPlayer(null);
-  };
-
-  const fetchCompetitorBidder = async (playerId, playerName) => {
-    if (lastBidders[playerId]) {
-      return; // Already fetched
-    }
-    
-    try {
-      const response = await fetch(`${API_ENDPOINTS}/api/player/${playerId}/bids`, {
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const allBids = data.allBids || [];
-      
-      if (allBids.length === 0) {
-        setLastBidders(prev => ({
-          ...prev,
-          [playerId]: null
-        }));
-        setUserBidPositions(prev => ({
-          ...prev,
-          [playerId]: null
-        }));
-        return;
-      }
-
-      // Get current user info
-      const currentUserId = currentUser?.id || currentUser?._id;
-      
-      // Sort bids by amount (highest first)
-      const sortedBids = allBids.sort((a, b) => b.bidAmount - a.bidAmount);
-      
-      // Find current user's position
-      const userBidIndex = sortedBids.findIndex(bid => 
-        bid.bidder?.toString() === currentUserId?.toString() || 
-        bid.bidder?._id?.toString() === currentUserId?.toString()
-      );
-      
-      let competitorName = null;
-      
-      if (userBidIndex === 0) {
-        // User is highest bidder, show second highest
-        if (sortedBids.length > 1) {
-          competitorName = sortedBids[1].bidder?.name || sortedBids[1].bidderName || 'Unknown';
-        }
-      } else if (userBidIndex === 1) {
-        // User is second highest, show highest bidder
-        competitorName = sortedBids[0].bidder?.name || sortedBids[0].bidderName || 'Unknown';
-      } else if (userBidIndex > 1) {
-        // User is lower, show highest bidder
-        competitorName = sortedBids[0].bidder?.name || sortedBids[0].bidderName || 'Unknown';
-      }
-      
-      setLastBidders(prev => ({
-        ...prev,
-        [playerId]: competitorName
-      }));
-      
-      setUserBidPositions(prev => ({
-        ...prev,
-        [playerId]: userBidIndex
-      }));
-    } catch (err) {
-      console.error(`Failed to fetch competitor for ${playerName}:`, err);
-      setLastBidders(prev => ({
-        ...prev,
-        [playerId]: null
-      }));
-      setUserBidPositions(prev => ({
-        ...prev,
-        [playerId]: null
-      }));
-    }
-  };
+  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -1150,7 +1078,7 @@ const UserPursePage = () => {
         setUsersData(data);
         setLoadingProgress(80);
         
-        // OPTIMIZATION: Extract bidding statuses efficiently
+        // 🚀 PERFORMANCE: Extract bidding statuses and competitor info efficiently from API response
         if (currentUser) {
           // Try to find user by ID, _id, or userName (optimized lookup)
           const currentUserData = data.find(user => 
@@ -1178,6 +1106,20 @@ const UserPursePage = () => {
             }, {});
             
             setBiddingStatuses(userStatuses);
+            
+            // 🚀 PERFORMANCE: Extract competitor info from API response (no separate API calls needed)
+            const competitorMap = {};
+            const positionMap = {};
+            
+            currentUserData.players.forEach(player => {
+              if (player.isBidOn && player.competitorName !== undefined) {
+                competitorMap[player.id] = player.competitorName;
+                positionMap[player.id] = player.bidPosition || player.biddingStatus?.position || null;
+              }
+            });
+            
+            setLastBidders(competitorMap);
+            setUserBidPositions(positionMap);
           }
         }
         
@@ -1195,26 +1137,118 @@ const UserPursePage = () => {
 
     fetchUserData();
   }, [currentUser]);
-
-  // Auto-fetch competitor info for current user's bidding players
+  
+  // 🚀 REALTIME: Listen for real-time bid updates using shared socket
+  const { on } = useSocket();
+  
   useEffect(() => {
-    if (currentUser && usersData.length > 0) {
-      const currentUserData = usersData.find(user => 
-        user.id === currentUser.id || 
-        user._id === currentUser.id || 
-        user.userName === currentUser.name
-      );
-      
-      if (currentUserData) {
-        const biddingPlayers = currentUserData.players.filter(p => p.isBidOn);
-        biddingPlayers.forEach(player => {
-          if (player.id && !lastBidders[player.id]) {
-            fetchCompetitorBidder(player.id, player.name);
-          }
+    if (!currentUser || !on) return;
+    
+    const cleanup1 = on('player_bid_update', (update) => {
+      // Update bid values in real-time
+      setUsersData(prevUsers => {
+        const updatedUsers = prevUsers.map(user => {
+          const updatedPlayers = user.players.map(player => {
+            if (player.id === update.playerId || player._id === update.playerId) {
+              return {
+                ...player,
+                biddingPrice: update.bidAmount || update.currentBid || player.biddingPrice,
+                currentBidder: update.currentBidder || player.currentBidder
+              };
+            }
+            return player;
+          });
+          
+          return {
+            ...user,
+            players: updatedPlayers
+          };
         });
-      }
-    }
-  }, [currentUser, usersData, lastBidders]);
+        
+        // Update competitor info if current user is involved
+        const currentUserData = updatedUsers.find(user => 
+          user.id === currentUser.id || 
+          user._id === currentUser.id || 
+          user.userName === currentUser.name
+        );
+        
+        if (currentUserData) {
+          const player = currentUserData.players.find(p => 
+            p.id === update.playerId || p._id === update.playerId
+          );
+          
+          if (player && player.isBidOn) {
+            // Refresh competitor info by fetching updated data
+            fetch(`${API_ENDPOINTS}/api/player/${update.playerId}/bids`)
+              .then(res => res.json())
+              .then(data => {
+                const allBids = data.allBids || [];
+                if (allBids.length > 0) {
+                  const sortedBids = allBids.sort((a, b) => b.bidAmount - a.bidAmount);
+                  const currentUserId = currentUser?.id || currentUser?._id;
+                  const userBidIndex = sortedBids.findIndex(bid => 
+                    bid.bidder?.toString() === currentUserId?.toString() || 
+                    bid.bidder?._id?.toString() === currentUserId?.toString()
+                  );
+                  
+                  let competitorName = null;
+                  if (userBidIndex === 0 && sortedBids.length > 1) {
+                    competitorName = sortedBids[1].bidder?.name || sortedBids[1].bidderName || null;
+                  } else if (userBidIndex === 1) {
+                    competitorName = sortedBids[0].bidder?.name || sortedBids[0].bidderName || null;
+                  } else if (userBidIndex > 1) {
+                    competitorName = sortedBids[0].bidder?.name || sortedBids[0].bidderName || null;
+                  }
+                  
+                  setLastBidders(prev => ({
+                    ...prev,
+                    [update.playerId]: competitorName
+                  }));
+                  
+                  setUserBidPositions(prev => ({
+                    ...prev,
+                    [update.playerId]: userBidIndex >= 0 ? userBidIndex : null
+                  }));
+                }
+              })
+              .catch(err => console.error('Failed to fetch competitor info:', err));
+          }
+        }
+        
+        return updatedUsers;
+      });
+    });
+    
+    const cleanup2 = on('player_sold_update', (update) => {
+      setUsersData(prevUsers => {
+        return prevUsers.map(user => {
+          const updatedPlayers = user.players.map(player => {
+            if (player.id === update.playerId || player._id === update.playerId) {
+              return {
+                ...player,
+                status: 'Sold',
+                isBidOn: false
+              };
+            }
+            return player;
+          });
+          
+          return {
+            ...user,
+            players: updatedPlayers
+          };
+        });
+      });
+    });
+    
+    return () => {
+      cleanup1();
+      cleanup2();
+    };
+  }, [currentUser, on]);
+
+  // 🚀 PERFORMANCE: Removed N+1 query - competitor info now comes from main API response
+  // No need for separate API calls per player
 
 
   // Get bidding status for a specific player
@@ -1728,7 +1762,24 @@ const UserPursePage = () => {
                                         </LastBidderName>
                                       </LastBidderInfo>
                           ) : (
-                                      <div>Loading...</div>
+                                      <LastBidderInfo style={{ 
+                                        opacity: 0.6,
+                                        fontStyle: 'italic',
+                                        fontSize: '0.45rem',
+                                        color: 'rgba(255, 255, 255, 0.7)'
+                                      }}>
+                                        <span style={{ 
+                                          display: 'inline-block',
+                                          width: '8px',
+                                          height: '8px',
+                                          border: '2px solid rgba(255, 255, 255, 0.5)',
+                                          borderTop: '2px solid transparent',
+                                          borderRadius: '50%',
+                                          animation: 'spin 1s linear infinite',
+                                          marginRight: '4px'
+                                        }}></span>
+                                        Waiting for bid...
+                                      </LastBidderInfo>
                           )}
                                   </LastBidderSection>
                       )}
