@@ -32,14 +32,46 @@ const NotificationBell = () => {
     fetchNotifications();
   }, []);
 
-  // Socket connection for exit notifications:
+  // 🚀 NOTIFICATION: Identify user to server and handle exit notifications
   useEffect(() => {
+    if (!loggedUserId) return;
+    
     const socket = io(API_ENDPOINTS);
+    
+    // Identify this user to the server for targeted notifications
+    socket.emit('user_identify', { userId: loggedUserId });
+    
+    // Play notification sound
+    const playNotificationSound = () => {
+      try {
+        const audio = new Audio('/notification.mp3');
+        audio.volume = 0.5; // 50% volume
+        audio.play().catch(err => {
+          console.log('Could not play notification sound:', err);
+          // Fallback: Use Web Audio API beep if file not found
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          oscillator.frequency.value = 800;
+          oscillator.type = 'sine';
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.2);
+        });
+      } catch (err) {
+        console.log('Sound notification not available:', err);
+      }
+    };
+    
     socket.on('bid_exit_notification', (data) => {
       console.log("Received bid exit notification:", data);
-      // Show exit notification only if logged user is the current bidder
+      // Backend now only sends to relevant users, but keep as safety check
       if (data.currentBidder && data.currentBidder === loggedUserId) {
         setNotifications(prev => [...prev, data]);
+        playNotificationSound();
       }
     });
     return () => {
@@ -47,14 +79,46 @@ const NotificationBell = () => {
     };
   }, [loggedUserId]);
 
-  // Socket connection for live bid notifications
+  // 🚀 NOTIFICATION: Identify user to server and handle bid notifications
   useEffect(() => {
+    if (!loggedUserId) return;
+    
     const socket = io(API_ENDPOINTS);
+    
+    // Identify this user to the server for targeted notifications
+    socket.emit('user_identify', { userId: loggedUserId });
+    
+    // Play notification sound
+    const playNotificationSound = () => {
+      try {
+        const audio = new Audio('/notification.mp3');
+        audio.volume = 0.5; // 50% volume
+        audio.play().catch(err => {
+          console.log('Could not play notification sound:', err);
+          // Fallback: Use Web Audio API beep if file not found
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          oscillator.frequency.value = 800;
+          oscillator.type = 'sine';
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.2);
+        });
+      } catch (err) {
+        console.log('Sound notification not available:', err);
+      }
+    };
+    
     socket.on('bid_notification', (data) => {
       console.log("Received bid notification:", data);
-      // Only add notification if secondBidder exists and matches the logged-in user id.
+      // Backend now only sends to active bidders, but keep as safety check
       if (data.secondBidder && data.secondBidder === loggedUserId) {
         setNotifications(prev => [...prev, data]);
+        playNotificationSound();
       }
     });
     return () => {
