@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Tesseract from 'tesseract.js';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 import { API_ENDPOINTS } from '../const';
 import '../css/OcrExtractor.css';
 
@@ -400,8 +401,19 @@ const OcrExtractor = () => {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [globalError, setGlobalError] = useState('');
+  const [toast, setToast] = useState(null);
   const [isPlayoff, setIsPlayoff] = useState(false);
   const enhancedUrlRef = useRef({});
+
+  // Auto-dismiss toast after 5 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const currentUser = useMemo(() => {
     try {
@@ -1296,6 +1308,7 @@ const OcrExtractor = () => {
     setSaving(true);
     setGlobalError('');
     setSaveMessage('');
+    setToast(null);
 
     try {
       const matchKeyBase =
@@ -1377,12 +1390,31 @@ const OcrExtractor = () => {
       }
 
       if (errors.length > 0) {
-        setGlobalError(`Some entries failed: ${errors.join('; ')}`);
+        const errorMsg = `Some entries failed: ${errors.join('; ')}`;
+        setGlobalError(errorMsg);
+        setToast({
+          type: 'warning',
+          message: 'Partial Success',
+          details: `Successfully saved ${successCount} entries, but ${errors.length} failed. ${errors.slice(0, 2).join('; ')}${errors.length > 2 ? '...' : ''}`
+        });
+      } else {
+        const successMsg = `Saved ${successCount} player stat ${successCount === 1 ? 'entry' : 'entries'} successfully!`;
+        setSaveMessage(successMsg);
+        setToast({
+          type: 'success',
+          message: 'Stats Saved Successfully!',
+          details: `All ${successCount} player stat ${successCount === 1 ? 'entry has' : 'entries have'} been saved and rankings updated.`
+        });
       }
-      setSaveMessage(`Saved ${successCount} player stat ${successCount === 1 ? 'entry' : 'entries'}.`);
     } catch (err) {
       console.error('Player stats save failed', err);
-      setGlobalError(err.message || 'Failed to save player stats');
+      const errorMsg = err.message || 'Failed to save player stats';
+      setGlobalError(errorMsg);
+      setToast({
+        type: 'error',
+        message: 'Save Failed',
+        details: errorMsg
+      });
     } finally {
       setSaving(false);
     }
@@ -2020,6 +2052,31 @@ const OcrExtractor = () => {
         {rosterError && <div className="error-banner">{rosterError}</div>}
         {globalError && <div className="error-banner">{globalError}</div>}
         {saveMessage && <div className="success-banner">{saveMessage}</div>}
+        
+        {/* Beautiful Toast Notification */}
+        {toast && (
+          <div className={`toast-notification toast-${toast.type}`}>
+            <div className="toast-content">
+              <div className="toast-icon">
+                {toast.type === 'success' && <FaCheckCircle />}
+                {toast.type === 'error' && <FaTimesCircle />}
+                {toast.type === 'warning' && <FaExclamationTriangle />}
+              </div>
+              <div className="toast-text">
+                <div className="toast-message">{toast.message}</div>
+                {toast.details && <div className="toast-details">{toast.details}</div>}
+              </div>
+              <button 
+                className="toast-close" 
+                onClick={() => setToast(null)}
+                aria-label="Close notification"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="toast-progress"></div>
+          </div>
+        )}
 
         <section className="card-status-grid">
           {CARD_CONFIGS.map((cfg) => (
