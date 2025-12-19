@@ -553,6 +553,15 @@ const Fixtures = () => {
 
   const handleSaveFixture = async () => {
     try {
+      // Get user ID from localStorage for admin authentication
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = user?.id || user?._id;
+      
+      if (!userId) {
+        alert('User not authenticated. Please log in again.');
+        return;
+      }
+
       // Convert string inputs back to numbers safely
       const updatedMom = {
         ...mom,
@@ -571,7 +580,11 @@ const Fixtures = () => {
         team2Fairness: team2Fairness ? Number(team2Fairness) : 0,
       };
 
-      await axios.post(`${API_ENDPOINTS}/api/fixtures/save`, updatedFixture);
+      await axios.post(`${API_ENDPOINTS}/api/fixtures/save`, updatedFixture, {
+        headers: {
+          'user-id': userId
+        }
+      });
 
       setFixtures((prevFixtures) =>
         prevFixtures.map((fx) =>

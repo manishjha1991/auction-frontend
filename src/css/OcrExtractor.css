@@ -1895,11 +1895,14 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .toast-notification {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    min-width: auto;
-    max-width: none;
+    top: 10px !important;
+    right: 10px !important;
+    left: 10px !important;
+    min-width: auto !important;
+    max-width: none !important;
+    width: calc(100% - 20px) !important;
+    position: fixed !important;
+    z-index: 10000 !important;
   }
 
   .toast-content {
@@ -1922,10 +1925,14 @@
 
 @media (max-width: 480px) {
   .toast-notification {
-    top: 10px;
-    right: 10px;
-    left: 10px;
+    top: 10px !important;
+    right: 10px !important;
+    left: 10px !important;
+    width: calc(100% - 20px) !important;
     border-radius: 12px;
+    position: fixed !important;
+    z-index: 10000 !important;
+    max-width: calc(100% - 20px) !important;
   }
 
   .toast-content {
@@ -1944,6 +1951,17 @@
 
   .toast-details {
     font-size: 0.8rem;
+  }
+  
+  @keyframes toastSlideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
   }
 }
 
