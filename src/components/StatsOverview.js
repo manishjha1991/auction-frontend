@@ -312,7 +312,23 @@ const StatsOverview = () => {
                       <div className="top-performer-item-name">{player.playerName}</div>
                       <div className="top-performer-item-team">{player.teamName}</div>
                     </div>
-                    <div className="top-performer-stat">{player.runs} Runs</div>
+                    <div className="top-performer-stat">
+                      <div>{player.runs} Runs</div>
+                      {(player.halfCenturies > 0 || player.centuries > 0) && (
+                        <div className="achievement-badges">
+                          {player.halfCenturies > 0 && (
+                            <span className="achievement-badge achievement-50">
+                              50: {player.halfCenturies}
+                            </span>
+                          )}
+                          {player.centuries > 0 && (
+                            <span className="achievement-badge achievement-100">
+                              100: {player.centuries}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </li>
                 ))
               ) : (
@@ -339,7 +355,23 @@ const StatsOverview = () => {
                       <div className="top-performer-item-name">{player.playerName}</div>
                       <div className="top-performer-item-team">{player.teamName}</div>
                     </div>
-                    <div className="top-performer-stat">{player.wickets} Wkts</div>
+                    <div className="top-performer-stat">
+                      <div>{player.wickets} Wkts</div>
+                      {(player.fourWicketHauls > 0 || player.fiveWicketHauls > 0) && (
+                        <div className="achievement-badges">
+                          {player.fourWicketHauls > 0 && (
+                            <span className="achievement-badge achievement-4w">
+                              4W: {player.fourWicketHauls}
+                            </span>
+                          )}
+                          {player.fiveWicketHauls > 0 && (
+                            <span className="achievement-badge achievement-5w">
+                              5W: {player.fiveWicketHauls}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </li>
                 ))
               ) : (
@@ -627,6 +659,24 @@ const StatsOverview = () => {
                             <span className="stat-label">Strike Rate</span>
                             <span className="stat-value">{modalData.strikeRate ? modalData.strikeRate.toFixed(2) : 0}</span>
                           </div>
+                          {(modalData.halfCenturies > 0 || modalData.centuries > 0) && (
+                            <div className="stat-item">
+                              <FaTrophy className="stat-icon" />
+                              <span className="stat-label">Milestones</span>
+                              <div className="achievement-badges" style={{ justifyContent: 'flex-start', marginTop: '0.5rem' }}>
+                                {modalData.halfCenturies > 0 && (
+                                  <span className="achievement-badge achievement-50">
+                                    50: {modalData.halfCenturies}
+                                  </span>
+                                )}
+                                {modalData.centuries > 0 && (
+                                  <span className="achievement-badge achievement-100">
+                                    100: {modalData.centuries}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </>
                       ) : (
                         <>
@@ -645,6 +695,24 @@ const StatsOverview = () => {
                             <span className="stat-label">Strike Rate</span>
                             <span className="stat-value">{modalData.strikeRate ? modalData.strikeRate.toFixed(1) : 0}</span>
                           </div>
+                          {(modalData.fourWicketHauls > 0 || modalData.fiveWicketHauls > 0) && (
+                            <div className="stat-item">
+                              <FaTrophy className="stat-icon" />
+                              <span className="stat-label">Wicket Hauls</span>
+                              <div className="achievement-badges" style={{ justifyContent: 'flex-start', marginTop: '0.5rem' }}>
+                                {modalData.fourWicketHauls > 0 && (
+                                  <span className="achievement-badge achievement-4w">
+                                    4W: {modalData.fourWicketHauls}
+                                  </span>
+                                )}
+                                {modalData.fiveWicketHauls > 0 && (
+                                  <span className="achievement-badge achievement-5w">
+                                    5W: {modalData.fiveWicketHauls}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </>
                       )}
                     </div>
