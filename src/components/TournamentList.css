@@ -392,12 +392,27 @@
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
+.modal-content.tournament-detail-modal {
+  max-width: 95vw;
+  width: 95vw;
+  max-height: 95vh;
+  height: 95vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 25px 30px;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.tournament-detail-modal .modal-header {
+  padding: 20px 30px;
 }
 
 .modal-header h2 {
@@ -833,13 +848,13 @@
 }
 
 /* Tournament Detail Modal Styles */
-.tournament-detail-modal {
-  max-width: 800px;
-  max-height: 90vh;
-}
 
 .tournament-detail-content {
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 .tournament-detail-header {
@@ -902,11 +917,12 @@
   display: flex;
   border-bottom: 1px solid #e5e7eb;
   background: #f8fafc;
+  flex-shrink: 0;
 }
 
 .tournament-detail-tabs button {
-  flex: 1;
-  padding: 15px 20px;
+  flex: 0 0 auto;
+  padding: 15px 30px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -917,6 +933,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .tournament-detail-tabs button:hover {
@@ -932,8 +949,12 @@
 
 .tournament-detail-tab-content {
   padding: 25px 30px;
-  max-height: 400px;
+  flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .tournament-info-content h3,
@@ -949,6 +970,15 @@
   display: flex;
   flex-direction: column;
   gap: 15px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fixtures-content,
+.points-content {
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .fixture-card {
@@ -957,6 +987,8 @@
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .fixture-card.completed {
@@ -1156,7 +1188,8 @@
 }
 
 .points-table {
-  overflow-x: auto;
+  width: 100%;
+  overflow-x: visible;
 }
 
 .points-table table {
@@ -1166,6 +1199,7 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  table-layout: fixed;
 }
 
 .points-table th,
@@ -1173,6 +1207,9 @@
   padding: 12px 15px;
   text-align: left;
   border-bottom: 1px solid #e5e7eb;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
 }
 
 .points-table th {
@@ -1185,6 +1222,36 @@
 .points-table td {
   color: #4b5563;
   font-size: 0.9rem;
+}
+
+.points-table th:nth-child(1),
+.points-table td:nth-child(1) {
+  width: 30%;
+  max-width: 30%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.points-table th:nth-child(2),
+.points-table td:nth-child(2),
+.points-table th:nth-child(3),
+.points-table td:nth-child(3),
+.points-table th:nth-child(4),
+.points-table td:nth-child(4) {
+  width: 12%;
+  text-align: center;
+}
+
+.points-table th:nth-child(5),
+.points-table td:nth-child(5) {
+  width: 12%;
+  text-align: center;
+}
+
+.points-table th:nth-child(6),
+.points-table td:nth-child(6) {
+  width: 22%;
+  text-align: center;
 }
 
 .points-table tbody tr:hover {
@@ -1321,35 +1388,31 @@
 /* Mobile styles for tournament detail modal */
 @media (max-width: 768px) {
   .tournament-detail-modal {
-    max-width: 95vw;
-    margin: 10px;
-  }
-
-  .tournament-detail-header {
-    flex-direction: column;
-    padding: 20px;
-    gap: 15px;
-  }
-
-  .tournament-detail-image {
-    width: 100%;
-    height: 120px;
-    align-self: center;
-    max-width: 300px;
+    max-width: 100vw;
+    width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+    margin: 0;
+    border-radius: 0;
   }
 
   .tournament-detail-tabs {
-    flex-direction: column;
+    flex-wrap: wrap;
   }
 
   .tournament-detail-tabs button {
     padding: 12px 16px;
-    justify-content: flex-start;
+    flex: 1 1 auto;
+    min-width: 120px;
   }
 
   .tournament-detail-tab-content {
-    padding: 20px;
-    max-height: 300px;
+    padding: 15px;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .fixture-body {
@@ -1386,32 +1449,203 @@
   }
 
   .points-table {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    overflow-x: visible;
+  }
+
+  .points-table {
+    font-size: 0.7rem;
   }
 
   .points-table th,
   .points-table td {
-    padding: 8px 10px;
+    padding: 8px 4px;
+    font-size: 0.7rem;
+  }
+
+  .points-table th:nth-child(1),
+  .points-table td:nth-child(1) {
+    width: 25%;
+    max-width: 25%;
+    padding-left: 6px;
+    padding-right: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .points-table th:nth-child(2),
+  .points-table td:nth-child(2),
+  .points-table th:nth-child(3),
+  .points-table td:nth-child(3),
+  .points-table th:nth-child(4),
+  .points-table td:nth-child(4),
+  .points-table th:nth-child(5),
+  .points-table td:nth-child(5) {
+    width: 12%;
+    text-align: center;
+    padding: 8px 2px;
+  }
+
+  .points-table th:nth-child(6),
+  .points-table td:nth-child(6) {
+    width: 27%;
+    text-align: center;
+    padding: 8px 4px;
+  }
+
+  .fairness-tag {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+  }
+
+  .points-table td span[title] {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 10px !important;
+    margin-left: 4px !important;
+  }
+
+  .fixture-card {
+    width: 100%;
+    margin: 0;
+  }
+
+  .fixture-header {
+    padding: 10px 12px;
+  }
+
+  .match-number {
+    font-size: 0.8rem;
+  }
+
+  .edit-fixture-btn {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+
+  .fixture-body {
+    padding: 15px 10px;
+    gap: 10px;
+  }
+
+  .team-section {
+    padding: 8px;
+  }
+
+  .team-section .team-name {
+    font-size: 0.85rem;
+  }
+
+  .team-score {
+    font-size: 1.1rem;
+    padding: 6px 12px;
+    min-width: 50px;
+  }
+
+  .vs-section {
+    font-size: 0.9rem;
+  }
+
+  .fixture-margin,
+  .fixture-mom,
+  .fixture-winner-badge {
+    font-size: 0.75rem;
+    padding: 8px 12px;
   }
 }
 
 @media (max-width: 480px) {
   .tournament-detail-modal {
-    margin: 5px;
-    max-height: 95vh;
+    max-width: 100vw;
+    width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+    margin: 0;
+    border-radius: 0;
   }
 
-  .tournament-detail-header {
-    padding: 15px;
-  }
-
-  .tournament-detail-image {
-    height: 100px;
+  .tournament-detail-tabs button {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    min-width: 100px;
   }
 
   .tournament-detail-tab-content {
-    padding: 15px;
-    max-height: 250px;
+    padding: 10px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .points-table th,
+  .points-table td {
+    padding: 6px 2px;
+    font-size: 0.65rem;
+  }
+
+  .points-table th:nth-child(1),
+  .points-table td:nth-child(1) {
+    width: 22%;
+    max-width: 22%;
+    padding-left: 4px;
+    padding-right: 1px;
+    font-size: 0.65rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .points-table th:nth-child(2),
+  .points-table td:nth-child(2),
+  .points-table th:nth-child(3),
+  .points-table td:nth-child(3),
+  .points-table th:nth-child(4),
+  .points-table td:nth-child(4),
+  .points-table th:nth-child(5),
+  .points-table td:nth-child(5) {
+    width: 13%;
+    text-align: center;
+    padding: 6px 1px;
+    font-size: 0.65rem;
+  }
+
+  .points-table th:nth-child(6),
+  .points-table td:nth-child(6) {
+    width: 25%;
+    text-align: center;
+    padding: 6px 2px;
+    font-size: 0.65rem;
+  }
+
+  .fairness-tag {
+    font-size: 0.6rem;
+    padding: 2px 4px;
+  }
+
+  .points-table td span[title] {
+    width: 12px !important;
+    height: 12px !important;
+    font-size: 9px !important;
+    margin-left: 3px !important;
+  }
+
+  .fixture-body {
+    padding: 12px 8px;
+    gap: 8px;
+  }
+
+  .team-section .team-name {
+    font-size: 0.75rem;
+  }
+
+  .team-score {
+    font-size: 1rem;
+    padding: 4px 8px;
+    min-width: 40px;
+  }
+
+  .vs-section {
+    font-size: 0.8rem;
   }
 
   .tournament-detail-actions button {

@@ -1237,7 +1237,9 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
 
 // Tournament Detail Modal Component
 const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe, canSubscribe, isSubscribed }) => {
-  const [activeTab, setActiveTab] = useState('info');
+  const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+  const isAdmin = currentUser?.isAdmin;
+  const [activeTab, setActiveTab] = useState(isAdmin ? 'manage' : 'points');
   const [fixtures, setFixtures] = useState([]);
   const [pointTable, setPointTable] = useState([]);
   const [loadingFixtures, setLoadingFixtures] = useState(false);
@@ -1389,8 +1391,6 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     }
   }, [activeTab]);
 
-  const status = getTournamentStatus(tournament);
-
   return (
     <div className="modal-overlay">
       <div className="modal-content tournament-detail-modal">
@@ -1402,93 +1402,12 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
         </div>
 
         <div className="tournament-detail-content">
-          <div className="tournament-detail-header">
-            <div className="tournament-detail-image">
-              {tournament.tournamentImage ? (
-                <img 
-                  src={`${API_ENDPOINTS}${tournament.tournamentImage}`} 
-                  alt={tournament.name}
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'flex';
-                  }}
-                />
-              ) : null}
-              <div className="default-image" style={{ display: tournament.tournamentImage ? 'none' : 'flex' }}>
-                <FaTrophy />
-              </div>
-              <div className="tournament-status" style={{ backgroundColor: getStatusColor(status) }}>
-                {getStatusText(status)}
-              </div>
-              {tournament.winner?.teamName && (
-                <div style={{
-                  position: 'absolute',
-                  top: '20px',
-                  right: '20px',
-                  background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                  color: '#000',
-                  padding: '1rem 1.5rem',
-                  borderRadius: '15px',
-                  fontWeight: 'bold',
-                  fontSize: '1.1rem',
-                  boxShadow: '0 6px 20px rgba(255, 215, 0, 0.6)',
-                  zIndex: 10,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  border: '3px solid #FF8C00',
-                  animation: 'pulse 2s infinite'
-                }}>
-                  <span style={{ fontSize: '2rem' }}>🏆</span>
-                  <span>CHAMPION</span>
-                  <span style={{ fontSize: '0.9rem', textAlign: 'center' }}>{tournament.winner.teamName}</span>
-                  {tournament.winner.teamImage && (
-                    <img 
-                      src={`${API_ENDPOINTS}${tournament.winner.teamImage}`}
-                      alt={tournament.winner.teamName}
-                      style={{ width: '60px', height: '60px', borderRadius: '50%', border: '2px solid #FF8C00' }}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="tournament-detail-info">
-              {tournament.description && (
-                <p className="tournament-description">{tournament.description}</p>
-              )}
-              
-              <div className="tournament-details">
-                <div className="detail-item">
-                  <FaCalendarAlt />
-                  <span>{formatDate(tournament.startDate)} - {formatDate(tournament.endDate)}</span>
-                </div>
-                
-                <div className="detail-item">
-                  <FaUsers />
-                  <span>{tournament.subscriptionCount}/{tournament.maxSlots} teams</span>
-                  <span className="slots-left">({tournament.slotsLeft} slots left)</span>
-                </div>
-              </div>
-
-              {/* Only show add/remove team buttons for admins */}
-              {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin && (
-                <div className="tournament-detail-actions">
-                  <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-                    Admin: Use the remove button (×) next to each team to remove them from the tournament.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
           <div className="tournament-detail-tabs">
             <button 
-              className={activeTab === 'info' ? 'active' : ''}
-              onClick={() => setActiveTab('info')}
+              className={activeTab === 'points' ? 'active' : ''}
+              onClick={() => setActiveTab('points')}
             >
-              Tournament Info
+              <FaTable /> Points Table
             </button>
             <button 
               className={activeTab === 'fixtures' ? 'active' : ''}
@@ -1496,44 +1415,17 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
             >
               <FaList /> Fixtures
             </button>
-            <button 
-              className={activeTab === 'points' ? 'active' : ''}
-              onClick={() => setActiveTab('points')}
-            >
-              <FaTable /> Points Table
-            </button>
-            {(localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin) || isSubscribed ? (
+            {isAdmin && (
               <button 
                 className={activeTab === 'manage' ? 'active' : ''}
                 onClick={() => setActiveTab('manage')}
               >
-                <FaEdit /> {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin ? 'Manage' : 'My Fixtures'}
+                <FaEdit /> Manage
               </button>
-            ) : null}
+            )}
           </div>
 
           <div className="tournament-detail-tab-content">
-            {activeTab === 'info' && (
-              <div className="tournament-info-content">
-                <h3>Subscribed Teams</h3>
-                <div className="team-list">
-                  {tournament.subscribedTeams.map((team, index) => (
-                    <div key={index} className="team-item">
-                      <img 
-                        src={team.teamImage ? `${API_ENDPOINTS}${team.teamImage}` : '/images/default-team.png'} 
-                        alt={team.teamName}
-                        className="team-logo"
-                        onError={(e) => {
-                          e.target.src = '/images/default-team.png';
-                        }}
-                      />
-                      <span className="team-name">{team.teamName}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {activeTab === 'fixtures' && (
               <div className="fixtures-content">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
