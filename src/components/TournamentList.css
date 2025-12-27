@@ -1219,6 +1219,18 @@
   font-size: 0.9rem;
 }
 
+.points-table th:first-child {
+  text-align: left;
+}
+
+.points-table th:nth-child(2),
+.points-table th:nth-child(3),
+.points-table th:nth-child(4),
+.points-table th:nth-child(5),
+.points-table th:nth-child(6) {
+  text-align: center;
+}
+
 .points-table td {
   color: #4b5563;
   font-size: 0.9rem;
@@ -1228,8 +1240,9 @@
 .points-table td:nth-child(1) {
   width: 30%;
   max-width: 30%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  text-align: left;
 }
 
 .points-table th:nth-child(2),

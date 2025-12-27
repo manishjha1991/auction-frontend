@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../const';
-import { FaCalendarAlt, FaUsers, FaTrophy, FaEdit, FaTrash, FaPlus, FaImage, FaTimes, FaTable, FaList } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaTrophy, FaEdit, FaTrash, FaPlus, FaImage, FaTimes, FaTable, FaList, FaSearch } from 'react-icons/fa';
 import './TournamentList.css';
 
 const TournamentList = () => {
@@ -1248,6 +1248,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
   const [editingFixture, setEditingFixture] = useState(null);
   const [roundRobinStatus, setRoundRobinStatus] = useState(null);
   const [generatingKnockout, setGeneratingKnockout] = useState(false);
+  const [fixtureSearchQuery, setFixtureSearchQuery] = useState('');
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -1478,18 +1479,127 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                     <p>No fixtures generated yet. Admin can generate round-robin fixtures from the Manage tab.</p>
                   </div>
                 ) : (
-                  <div className="fixtures-list">
-                    {(() => {
-                      // Separate round-robin and knockout fixtures
-                      const roundRobinFixtures = fixtures.filter(f => 
-                        !f.team1?.includes('Winner of') && !f.team1?.includes('Top ')
-                      );
-                      const knockoutFixtures = fixtures.filter(f => 
-                        f.team1?.includes('Winner of') || f.team1?.includes('Top ')
-                      );
+                  <>
+                    {/* Search Bar */}
+                    <div style={{
+                      marginBottom: '1.5rem',
+                      position: 'relative'
+                    }}>
+                      <div style={{
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}>
+                        <FaSearch style={{
+                          position: 'absolute',
+                          left: '15px',
+                          color: '#6b7280',
+                          fontSize: '1rem'
+                        }} />
+                        <input
+                          type="text"
+                          placeholder="Search fixtures by team name..."
+                          value={fixtureSearchQuery}
+                          onChange={(e) => setFixtureSearchQuery(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '12px 15px 12px 45px',
+                            border: '2px solid #e5e7eb',
+                            borderRadius: '10px',
+                            fontSize: '1rem',
+                            outline: 'none',
+                            transition: 'all 0.3s ease',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = '#667eea';
+                            e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.2)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = '#e5e7eb';
+                            e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                          }}
+                        />
+                        {fixtureSearchQuery && (
+                          <button
+                            onClick={() => setFixtureSearchQuery('')}
+                            style={{
+                              position: 'absolute',
+                              right: '10px',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: '#6b7280',
+                              padding: '5px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Clear search"
+                          >
+                            <FaTimes />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="fixtures-list">
+                      {(() => {
+                        // Filter fixtures based on search query
+                        const filterFixtures = (fixtureList) => {
+                          if (!fixtureSearchQuery.trim()) return fixtureList;
+                          const query = fixtureSearchQuery.toLowerCase();
+                          return fixtureList.filter(f => 
+                            f.team1?.toLowerCase().includes(query) ||
+                            f.team2?.toLowerCase().includes(query) ||
+                            f.winner?.toLowerCase().includes(query) ||
+                            f.mom?.name?.toLowerCase().includes(query)
+                          );
+                        };
+
+                        // Sort fixtures: completed first, then pending
+                        const sortFixtures = (fixtureList) => {
+                          return [...fixtureList].sort((a, b) => {
+                            const aCompleted = !!a.winner;
+                            const bCompleted = !!b.winner;
+                            if (aCompleted && !bCompleted) return -1;
+                            if (!aCompleted && bCompleted) return 1;
+                            return 0;
+                          });
+                        };
+
+                        // Separate round-robin and knockout fixtures
+                        let roundRobinFixtures = fixtures.filter(f => 
+                          !f.team1?.includes('Winner of') && !f.team1?.includes('Top ')
+                        );
+                        let knockoutFixtures = fixtures.filter(f => 
+                          f.team1?.includes('Winner of') || f.team1?.includes('Top ')
+                        );
+
+                        // Sort both lists
+                        roundRobinFixtures = sortFixtures(roundRobinFixtures);
+                        knockoutFixtures = sortFixtures(knockoutFixtures);
+
+                        // Filter based on search
+                        roundRobinFixtures = filterFixtures(roundRobinFixtures);
+                        knockoutFixtures = filterFixtures(knockoutFixtures);
+                      
+                        const hasNoResults = fixtureSearchQuery && roundRobinFixtures.length === 0 && knockoutFixtures.length === 0;
                       
                       return (
                         <>
+                          {hasNoResults ? (
+                            <div style={{
+                              textAlign: 'center',
+                              padding: '3rem 1rem',
+                              color: '#6b7280'
+                            }}>
+                              <FaSearch style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }} />
+                              <p style={{ fontSize: '1.1rem', margin: 0 }}>No fixtures found matching "{fixtureSearchQuery}"</p>
+                              <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', opacity: 0.7 }}>Try searching with a different team name</p>
+                            </div>
+                          ) : (
+                            <>
                           {roundRobinFixtures.length > 0 && (
                             <div style={{ marginBottom: '2rem' }}>
                               <h4 style={{ 
@@ -1533,12 +1643,38 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                             {fixture.team1Score !== undefined && (
                               <span className="team-score">{fixture.team1Score}</span>
                             )}
+                            {fixture.team1Fairness !== undefined && fixture.team1Fairness !== null && (
+                              <span className="team-fairness" style={{
+                                fontSize: '0.75rem',
+                                marginTop: '4px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: fixture.winner === fixture.team1 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                color: fixture.winner === fixture.team1 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                fontWeight: '600'
+                              }}>
+                                Fairness: {fixture.team1Fairness}
+                              </span>
+                            )}
                           </div>
                           <div className="vs-section">VS</div>
                           <div className={`team-section ${fixture.winner === fixture.team2 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
                             <span className="team-name">{fixture.team2}</span>
                             {fixture.team2Score !== undefined && (
                               <span className="team-score">{fixture.team2Score}</span>
+                            )}
+                            {fixture.team2Fairness !== undefined && fixture.team2Fairness !== null && (
+                              <span className="team-fairness" style={{
+                                fontSize: '0.75rem',
+                                marginTop: '4px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: fixture.winner === fixture.team2 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                color: fixture.winner === fixture.team2 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                fontWeight: '600'
+                              }}>
+                                Fairness: {fixture.team2Fairness}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -1625,12 +1761,38 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                         {fixture.team1Score !== undefined && (
                                           <span className="team-score">{fixture.team1Score}</span>
                                         )}
+                                        {fixture.team1Fairness !== undefined && fixture.team1Fairness !== null && (
+                                          <span className="team-fairness" style={{
+                                            fontSize: '0.75rem',
+                                            marginTop: '4px',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            background: fixture.winner === fixture.team1 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                            color: fixture.winner === fixture.team1 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                            fontWeight: '600'
+                                          }}>
+                                            Fairness: {fixture.team1Fairness}
+                                          </span>
+                                        )}
                                       </div>
                                       <div className="vs-section">VS</div>
                                       <div className={`team-section ${fixture.winner === fixture.team2 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
                                         <span className="team-name">{fixture.team2}</span>
                                         {fixture.team2Score !== undefined && (
                                           <span className="team-score">{fixture.team2Score}</span>
+                                        )}
+                                        {fixture.team2Fairness !== undefined && fixture.team2Fairness !== null && (
+                                          <span className="team-fairness" style={{
+                                            fontSize: '0.75rem',
+                                            marginTop: '4px',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            background: fixture.winner === fixture.team2 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                            color: fixture.winner === fixture.team2 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                            fontWeight: '600'
+                                          }}>
+                                            Fairness: {fixture.team2Fairness}
+                                          </span>
                                         )}
                                       </div>
                                     </div>
@@ -1659,10 +1821,13 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                               })}
                             </div>
                           )}
+                            </>
+                          )}
                         </>
                       );
                     })()}
                   </div>
+                  </>
                 )}
               </div>
             )}
@@ -1678,7 +1843,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                       <thead>
                         <tr>
                           <th>Team</th>
-                          <th>Matches</th>
+                          <th>M</th>
                           <th>Won</th>
                           <th>Lost</th>
                           <th>Points</th>
@@ -1695,7 +1860,9 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                           return (
                             <tr key={index}>
                               <td>
-                                {team.teamName}
+                                <span title={team.teamName}>
+                                  {team.abbreviation || team.teamName}
+                                </span>
                                 {showQ && (
                                   <span style={{
                                     display: 'inline-flex',
@@ -1937,6 +2104,7 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
   const [players, setPlayers] = useState([]);
+  const [errors, setErrors] = useState({});
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -1969,8 +2137,69 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
     setFormData(prev => ({ ...prev, winner: value }));
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Validate Winner
+    if (!formData.winner || formData.winner.trim() === '') {
+      newErrors.winner = 'Winner is required';
+    }
+
+    // Validate Margin
+    if (!formData.margin || formData.margin.trim() === '') {
+      newErrors.margin = 'Margin is required';
+    }
+
+    // Validate Team1 Score
+    if (!formData.team1Score || formData.team1Score.toString().trim() === '') {
+      newErrors.team1Score = `${formData.team1} score is required`;
+    }
+
+    // Validate Team2 Score
+    if (!formData.team2Score || formData.team2Score.toString().trim() === '') {
+      newErrors.team2Score = `${formData.team2} score is required`;
+    }
+
+    // Validate Man of the Match
+    if (!formData.mom.name || formData.mom.name.trim() === '') {
+      newErrors.momName = 'Man of the Match is required';
+    }
+
+    // Validate MoM Batting Score
+    if (!formData.mom.score || formData.mom.score.toString().trim() === '') {
+      newErrors.momScore = 'MoM Batting Score is required';
+    }
+
+    // Validate MoM Bowling Wickets (0 is a valid value)
+    if (formData.mom.wickets === '' || formData.mom.wickets === null || formData.mom.wickets === undefined) {
+      newErrors.momWickets = 'MoM Bowling Wickets is required';
+    } else if (Number(formData.mom.wickets) < 0) {
+      newErrors.momWickets = 'MoM Bowling Wickets cannot be negative';
+    }
+
+    // Validate Team1 Fairness
+    if (!formData.team1Fairness || formData.team1Fairness.toString().trim() === '') {
+      newErrors.team1Fairness = `Fairness for ${formData.team1} is required`;
+    }
+
+    // Validate Team2 Fairness
+    if (!formData.team2Fairness || formData.team2Fairness.toString().trim() === '') {
+      newErrors.team2Fairness = `Fairness for ${formData.team2} is required`;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields
+    if (!validateForm()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -2037,94 +2266,151 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
           </div>
 
           <div className="form-group">
-            <label>Winner</label>
+            <label>Winner *</label>
             <select
               name="winner"
               value={formData.winner}
-              onChange={(e) => handleWinnerChange(e.target.value)}
+              onChange={(e) => {
+                handleWinnerChange(e.target.value);
+                if (errors.winner) {
+                  setErrors(prev => ({ ...prev, winner: '' }));
+                }
+              }}
+              required
+              style={{ borderColor: errors.winner ? '#dc3545' : '' }}
             >
               <option value="">-- Select Winner --</option>
               <option value={formData.team1}>{formData.team1}</option>
               <option value={formData.team2}>{formData.team2}</option>
             </select>
+            {errors.winner && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.winner}</span>}
           </div>
 
           <div className="form-group">
-            <label>Margin (e.g., 5 runs or 2 wickets)</label>
+            <label>Margin (e.g., 5 runs or 2 wickets) *</label>
             <input
               type="text"
               name="margin"
               value={formData.margin}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                handleInputChange(e);
+                if (errors.margin) {
+                  setErrors(prev => ({ ...prev, margin: '' }));
+                }
+              }}
               placeholder="e.g., 5 runs or 2 wickets"
+              required
+              style={{ borderColor: errors.margin ? '#dc3545' : '' }}
             />
+            {errors.margin && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.margin}</span>}
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label>{formData.team1} Score</label>
+              <label>{formData.team1} Score *</label>
               <input
                 type="text"
                 name="team1Score"
                 value={formData.team1Score}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  handleInputChange(e);
+                  if (errors.team1Score) {
+                    setErrors(prev => ({ ...prev, team1Score: '' }));
+                  }
+                }}
                 placeholder="Enter score"
+                required
+                style={{ borderColor: errors.team1Score ? '#dc3545' : '' }}
               />
+              {errors.team1Score && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.team1Score}</span>}
             </div>
 
             <div className="form-group">
-              <label>{formData.team2} Score</label>
+              <label>{formData.team2} Score *</label>
               <input
                 type="text"
                 name="team2Score"
                 value={formData.team2Score}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  handleInputChange(e);
+                  if (errors.team2Score) {
+                    setErrors(prev => ({ ...prev, team2Score: '' }));
+                  }
+                }}
                 placeholder="Enter score"
+                required
+                style={{ borderColor: errors.team2Score ? '#dc3545' : '' }}
               />
+              {errors.team2Score && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.team2Score}</span>}
             </div>
           </div>
 
           <div className="form-group">
-            <label>Man of the Match</label>
+            <label>Man of the Match *</label>
             <select
               name="momName"
               value={formData.mom.name}
-              onChange={(e) => handleMomChange('name', e.target.value)}
+              onChange={(e) => {
+                handleMomChange('name', e.target.value);
+                if (errors.momName) {
+                  setErrors(prev => ({ ...prev, momName: '' }));
+                }
+              }}
+              required
+              style={{ borderColor: errors.momName ? '#dc3545' : '' }}
             >
               <option value="">-- Select Man of the Match --</option>
               {players.map((player, idx) => (
                 <option key={idx} value={player}>{player}</option>
               ))}
             </select>
+            {errors.momName && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.momName}</span>}
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label>MoM Batting Score</label>
+              <label>MoM Batting Score *</label>
               <input
                 type="number"
                 name="momScore"
                 value={formData.mom.score}
-                onChange={(e) => handleMomChange('score', e.target.value)}
+                onChange={(e) => {
+                  handleMomChange('score', e.target.value);
+                  if (errors.momScore) {
+                    setErrors(prev => ({ ...prev, momScore: '' }));
+                  }
+                }}
                 placeholder="Batting score"
+                required
+                style={{ borderColor: errors.momScore ? '#dc3545' : '' }}
               />
+              {errors.momScore && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.momScore}</span>}
             </div>
 
             <div className="form-group">
-              <label>MoM Bowling Wickets</label>
+              <label>MoM Bowling Wickets *</label>
               <input
                 type="number"
                 name="momWickets"
                 value={formData.mom.wickets}
-                onChange={(e) => handleMomChange('wickets', e.target.value)}
+                onChange={(e) => {
+                  handleMomChange('wickets', e.target.value);
+                  if (errors.momWickets) {
+                    setErrors(prev => ({ ...prev, momWickets: '' }));
+                  }
+                }}
                 placeholder="Wickets taken"
+                required
+                min="0"
+                style={{ borderColor: errors.momWickets ? '#dc3545' : '' }}
               />
+              {errors.momWickets && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.momWickets}</span>}
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label>Fairness for {formData.team1}</label>
+              <label>Fairness for {formData.team1} *</label>
               <input
                 type="number"
                 name="team1Fairness"
@@ -2133,16 +2419,22 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
                   const value = e.target.value;
                   if (value === '' || (Number(value) >= 0 && Number(value) <= 9999 && value.length <= 4)) {
                     handleInputChange(e);
+                    if (errors.team1Fairness) {
+                      setErrors(prev => ({ ...prev, team1Fairness: '' }));
+                    }
                   }
                 }}
                 placeholder="0-9999"
                 min="0"
                 max="9999"
+                required
+                style={{ borderColor: errors.team1Fairness ? '#dc3545' : '' }}
               />
+              {errors.team1Fairness && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.team1Fairness}</span>}
             </div>
 
             <div className="form-group">
-              <label>Fairness for {formData.team2}</label>
+              <label>Fairness for {formData.team2} *</label>
               <input
                 type="number"
                 name="team2Fairness"
@@ -2151,12 +2443,18 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
                   const value = e.target.value;
                   if (value === '' || (Number(value) >= 0 && Number(value) <= 9999 && value.length <= 4)) {
                     handleInputChange(e);
+                    if (errors.team2Fairness) {
+                      setErrors(prev => ({ ...prev, team2Fairness: '' }));
+                    }
                   }
                 }}
                 placeholder="0-9999"
                 min="0"
                 max="9999"
+                required
+                style={{ borderColor: errors.team2Fairness ? '#dc3545' : '' }}
               />
+              {errors.team2Fairness && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.team2Fairness}</span>}
             </div>
           </div>
 
