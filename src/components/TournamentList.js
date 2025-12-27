@@ -224,10 +224,16 @@ const TournamentList = () => {
     }
 
     try {
+      // Use user.id or user._id (handle both cases)
+      const userId = user?.id || user?._id;
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
       const response = await fetch(`${API_ENDPOINTS}/api/tournaments/${tournamentId}`, {
         method: 'DELETE',
         headers: {
-          'user-id': user._id
+          'user-id': userId
         }
       });
 
@@ -1821,7 +1827,27 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                               }}>
                                 Round-Robin Matches ({roundRobinFixtures.length})
                               </h4>
-                              {roundRobinFixtures.map((fixture, index) => (
+                              {roundRobinFixtures.map((fixture, index) => {
+                                // Find the actual index in the original fixtures array
+                                // Match by team names and other unique properties to find exact fixture
+                                const actualIndex = fixtures.findIndex(f => {
+                                  // Must match both teams
+                                  const teamsMatch = (f.team1 === fixture.team1 && f.team2 === fixture.team2) ||
+                                                    (f.team1 === fixture.team2 && f.team2 === fixture.team1);
+                                  if (!teamsMatch) return false;
+                                  
+                                  // Must be round-robin (not knockout)
+                                  const isRoundRobin = !f.team1?.includes('Winner of') && !f.team1?.includes('Top ');
+                                  if (!isRoundRobin) return false;
+                                  
+                                  // If scores exist, they should match
+                                  if (fixture.team1Score !== undefined && f.team1Score !== fixture.team1Score) return false;
+                                  if (fixture.team2Score !== undefined && f.team2Score !== fixture.team2Score) return false;
+                                  
+                                  return true;
+                                });
+                                
+                                return (
                                 <div key={index} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`}>
                                   <div className="fixture-header">
                                     <span className="match-number">Match #{index + 1}</span>
@@ -1835,7 +1861,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                 <button 
                                   className="edit-fixture-btn"
                                   onClick={() => {
-                                    setEditingFixture({ ...fixture, fixtureIndex: index });
+                                    setEditingFixture({ ...fixture, fixtureIndex: actualIndex !== -1 ? actualIndex : index });
                                     setShowEditFixtureModal(true);
                                   }}
                                 >
@@ -1908,7 +1934,8 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                           </div>
                         )}
                       </div>
-                    ))}
+                                );
+                              })}
                             </div>
                           )}
                           {knockoutFixtures.length > 0 && (
@@ -1928,13 +1955,31 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                 🏆 Knockout Stage ({knockoutFixtures.length} matches)
                               </h4>
                               {knockoutFixtures.map((fixture, index) => {
-                                const fixtureIndex = roundRobinFixtures.length + index;
+                                // Find the actual index in the original fixtures array
+                                // Match by team names and knockout stage identifiers
+                                const actualIndex = fixtures.findIndex(f => {
+                                  // Must match both teams exactly
+                                  const teamsMatch = f.team1 === fixture.team1 && f.team2 === fixture.team2;
+                                  if (!teamsMatch) return false;
+                                  
+                                  // Must be knockout (has Winner of or Top)
+                                  const isKnockout = f.team1?.includes('Winner of') || f.team1?.includes('Top ') || 
+                                                    f.team2?.includes('Winner of') || f.team2?.includes('Top ');
+                                  if (!isKnockout) return false;
+                                  
+                                  // If scores exist, they should match
+                                  if (fixture.team1Score !== undefined && f.team1Score !== fixture.team1Score) return false;
+                                  if (fixture.team2Score !== undefined && f.team2Score !== fixture.team2Score) return false;
+                                  
+                                  return true;
+                                });
+                                
                                 const matchLabel = fixture.team1 === 'Winner of Semi-Final 1' 
                                   ? '🏆 FINAL' 
                                   : (index === 0 ? '⚡ SEMI-FINAL 1 (Top 1 vs Top 4)' : '⚡ SEMI-FINAL 2 (Top 2 vs Top 3)');
                                 
                                 return (
-                                  <div key={fixtureIndex} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`} style={{ 
+                                  <div key={actualIndex !== -1 ? actualIndex : index} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`} style={{ 
                                     border: '3px solid #FFD700', 
                                     background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%)',
                                     marginBottom: '1rem'
@@ -1953,7 +1998,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                             <button 
                                               className="edit-fixture-btn"
                                               onClick={() => {
-                                                setEditingFixture({ ...fixture, fixtureIndex: fixtureIndex });
+                                                setEditingFixture({ ...fixture, fixtureIndex: actualIndex !== -1 ? actualIndex : fixtures.length + index });
                                                 setShowEditFixtureModal(true);
                                               }}
                                             >
