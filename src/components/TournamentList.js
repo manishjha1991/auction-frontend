@@ -1322,9 +1322,10 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
       return index < 4 ? 100 : 0;
     }
 
-    // Calculate based on current position and points gap
-    const teamPoints = team.points || 0;
-    const teamMatches = team.matches || 0;
+    const teamPoints = Number(team.points) || 0;
+    const teamMatches = Number(team.matches) || 0;
+    const teamFairness = Number(team.fairness) || 0;
+    const teamWon = Number(team.won) || 0;
     const totalTeams = allTeams.length;
     const maxMatches = totalTeams - 1; // Round-robin: each team plays (n-1) matches
     const remainingMatches = maxMatches - teamMatches;
@@ -1334,32 +1335,134 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
       return 50;
     }
 
-    // Get 4th place team's points
-    const fourthPlacePoints = allTeams.length >= 4 ? (allTeams[3]?.points || 0) : 0;
-    const pointsGap = teamPoints - fourthPlacePoints;
+    // Calculate average fairness per match
+    const avgFairnessPerMatch = teamMatches > 0 ? teamFairness / teamMatches : 0;
+    const targetAvgFairness = 550; // Average fairness target
+    const fairnessRatio = avgFairnessPerMatch / targetAvgFairness; // Ratio to target (1.0 = perfect)
     
-    // Calculate percentage based on position and gap
-    let percentage = 0;
+    // Calculate min and max possible points
+    const minPoints = teamPoints; // If lose all remaining
+    const maxPoints = teamPoints + (remainingMatches * 2); // If win all remaining
     
+    // Calculate min and max possible fairness
+    const minFairness = teamFairness; // If get 0 fairness in remaining
+    const maxFairness = teamFairness + (remainingMatches * targetAvgFairness); // If get average fairness
+    
+    // Get other teams' data (excluding current team)
+    const otherTeams = allTeams.filter((t, i) => i !== index);
+    
+    // Calculate what 4th place team currently has
+    const sortedOthers = [...otherTeams].sort((a, b) => {
+      const pointsDiff = (Number(b.points) || 0) - (Number(a.points) || 0);
+      if (pointsDiff !== 0) return pointsDiff;
+      return (Number(b.fairness) || 0) - (Number(a.fairness) || 0);
+    });
+    
+    const fourthPlaceTeam = sortedOthers[3] || sortedOthers[sortedOthers.length - 1];
+    const fourthPlacePoints = Number(fourthPlaceTeam?.points) || 0;
+    const fourthPlaceFairness = Number(fourthPlaceTeam?.fairness) || 0;
+    const fourthPlaceMatches = Number(fourthPlaceTeam?.matches) || 0;
+    const fourthPlaceRemaining = maxMatches - fourthPlaceMatches;
+    
+    // Calculate 4th place team's max possible points
+    const fourthPlaceMaxPoints = fourthPlacePoints + (fourthPlaceRemaining * 2);
+    
+    // Check if team is mathematically eliminated
+    if (maxPoints < fourthPlacePoints) {
+      // Even if team wins all remaining, can't catch 4th place
+      return 0;
+    }
+    
+    // Check if team has already clinched (mathematically)
+    if (minPoints > fourthPlaceMaxPoints) {
+      // Even if 4th place wins all remaining, can't catch this team
+      return 100;
+    }
+    
+    // Calculate probability based on multiple factors
+    let basePercentage = 0;
+    
+    // Factor 1: Current position (0-40 points)
     if (index < 4) {
-      // Top 4 teams
-      const positionBonus = (4 - index) * 15; // 15% bonus per position above 4th
-      const gapBonus = Math.min(pointsGap * 5, 30); // Up to 30% bonus for points gap
-      percentage = 60 + positionBonus + gapBonus; // Start at 60% for top 4
+      basePercentage = 60 - (index * 8); // 60% for 1st, 52% for 2nd, 44% for 3rd, 36% for 4th
     } else {
-      // Teams below 4th
-      const positionPenalty = (index - 3) * 10; // 10% penalty per position below 4th
-      const gapPenalty = Math.min(Math.abs(pointsGap) * 3, 40); // Up to 40% penalty
-      percentage = Math.max(50 - positionPenalty - gapPenalty, 0);
+      basePercentage = Math.max(30 - ((index - 3) * 5), 0); // Decreasing for lower positions
     }
     
-    // Adjust based on remaining matches
-    if (remainingMatches > 0) {
-      const remainingBonus = Math.min(remainingMatches * 5, 20); // Up to 20% for remaining matches
-      percentage = Math.min(percentage + remainingBonus, 100);
+    // Factor 2: Points gap (0-25 points)
+    const pointsGap = teamPoints - fourthPlacePoints;
+    let pointsFactor = 0;
+    if (pointsGap > 0) {
+      // Ahead of 4th place
+      pointsFactor = Math.min(pointsGap * 3, 25);
+    } else {
+      // Behind 4th place
+      pointsFactor = Math.max(pointsGap * 2, -20);
     }
     
-    return Math.round(Math.max(0, Math.min(100, percentage)));
+    // Factor 3: Fairness advantage (0-20 points)
+    // Teams with higher fairness have better chance (fairness matters for tie-breakers)
+    const fairnessGap = teamFairness - fourthPlaceFairness;
+    let fairnessFactor = 0;
+    if (fairnessGap > 0) {
+      fairnessFactor = Math.min(fairnessGap / 50, 20); // 50 fairness = 1% bonus, max 20%
+    } else {
+      fairnessFactor = Math.max(fairnessGap / 50, -15); // Penalty for lower fairness
+    }
+    
+    // Factor 4: Fairness performance (0-15 points)
+    // If team is performing well in fairness (close to 550 avg), they have better chance
+    let fairnessPerformanceFactor = 0;
+    if (fairnessRatio >= 1.0) {
+      // Above average fairness
+      fairnessPerformanceFactor = 15;
+    } else if (fairnessRatio >= 0.8) {
+      // Close to average
+      fairnessPerformanceFactor = 10;
+    } else if (fairnessRatio >= 0.6) {
+      // Below average but acceptable
+      fairnessPerformanceFactor = 5;
+    } else {
+      // Poor fairness performance
+      fairnessPerformanceFactor = -10;
+    }
+    
+    // Factor 5: Remaining matches opportunity (0-10 points)
+    const remainingFactor = Math.min(remainingMatches * 2, 10);
+    
+    // Factor 6: Win rate (0-10 points)
+    const winRate = teamMatches > 0 ? teamWon / teamMatches : 0;
+    const winRateFactor = winRate * 10; // 100% win rate = 10% bonus
+    
+    // Calculate final percentage
+    let finalPercentage = basePercentage + pointsFactor + fairnessFactor + 
+                          fairnessPerformanceFactor + remainingFactor + winRateFactor;
+    
+    // Adjust based on realistic scenarios
+    // If team needs to win all remaining matches to qualify, reduce probability
+    const pointsNeeded = Math.max(0, fourthPlacePoints + 1 - teamPoints);
+    const winsNeeded = Math.ceil(pointsNeeded / 2);
+    if (winsNeeded > remainingMatches) {
+      // Can't mathematically qualify
+      finalPercentage = 0;
+    } else if (winsNeeded === remainingMatches) {
+      // Must win all remaining to qualify
+      finalPercentage = finalPercentage * 0.5; // Reduce by 50%
+    } else if (winsNeeded > remainingMatches * 0.7) {
+      // Need to win more than 70% of remaining
+      finalPercentage = finalPercentage * 0.7; // Reduce by 30%
+    }
+    
+    // Special case: If two teams have same points, fairness becomes critical
+    if (Math.abs(teamPoints - fourthPlacePoints) <= 2 && index >= 3) {
+      if (teamFairness > fourthPlaceFairness) {
+        finalPercentage += 5; // Small boost for better fairness
+      } else {
+        finalPercentage -= 5; // Small penalty for worse fairness
+      }
+    }
+    
+    return Math.round(Math.max(0, Math.min(100, finalPercentage)));
   };
 
   const fetchPointTable = async () => {
