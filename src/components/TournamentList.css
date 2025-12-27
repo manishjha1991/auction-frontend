@@ -1376,6 +1376,15 @@
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
 }
 
+.danger-btn {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+}
+
+.danger-btn:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%) !important;
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+}
+
 .generate-fixtures-btn {
   background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
 }

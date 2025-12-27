@@ -2282,6 +2282,49 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                   
                   {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin && (
                     <div className="management-section">
+                    <h4>Reset Tournament Winner</h4>
+                    <p>Reset the tournament winner if it was incorrectly set. This will clear the winner badge and set status back to 'running'.</p>
+                    <button 
+                      className="manage-btn danger-btn"
+                      onClick={async () => {
+                        if (!window.confirm('Are you sure you want to reset the tournament winner? This action cannot be undone.')) {
+                          return;
+                        }
+                        try {
+                          const cachedUser = localStorage.getItem('user');
+                          const userId = cachedUser ? JSON.parse(cachedUser).id : null;
+                          
+                          const response = await fetch(`${API_ENDPOINTS}/api/tournaments/${tournament._id}/reset-winner`, {
+                            method: 'POST',
+                            headers: {
+                              'user-id': userId
+                            }
+                          });
+
+                          if (response.ok) {
+                            alert('Tournament winner reset successfully!');
+                            onClose();
+                            window.location.reload(); // Reload to refresh tournament list
+                          } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || 'Failed to reset winner');
+                          }
+                        } catch (error) {
+                          alert(error.message);
+                        }
+                      }}
+                      style={{
+                        background: '#dc2626',
+                        color: 'white'
+                      }}
+                    >
+                      🔄 Reset Winner
+                    </button>
+                    </div>
+                  )}
+                  
+                  {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin && (
+                    <div className="management-section">
                     <h4>Tournament Lock</h4>
                     <p>Lock tournament to prevent team withdrawals. Once locked, teams cannot withdraw from the tournament.</p>
                     <button 
