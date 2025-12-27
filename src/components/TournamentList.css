@@ -1251,19 +1251,25 @@
 .points-table td:nth-child(3),
 .points-table th:nth-child(4),
 .points-table td:nth-child(4) {
-  width: 12%;
+  width: 10%;
   text-align: center;
 }
 
 .points-table th:nth-child(5),
 .points-table td:nth-child(5) {
-  width: 12%;
+  width: 10%;
   text-align: center;
 }
 
 .points-table th:nth-child(6),
 .points-table td:nth-child(6) {
-  width: 22%;
+  width: 18%;
+  text-align: center;
+}
+
+.points-table th:nth-child(7),
+.points-table td:nth-child(7) {
+  width: 10%;
   text-align: center;
 }
 
@@ -1502,9 +1508,24 @@
 
   .points-table th:nth-child(6),
   .points-table td:nth-child(6) {
-    width: 27%;
+    width: 18%;
     text-align: center;
     padding: 8px 4px;
+  }
+
+  .points-table th:nth-child(7),
+  .points-table td:nth-child(7) {
+    width: 17%;
+    text-align: center;
+    padding: 8px 4px;
+    min-width: 55px;
+  }
+
+  .points-table td:nth-child(7) span {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    white-space: nowrap;
+    display: inline-block;
   }
 
   .fairness-tag {
@@ -1624,10 +1645,28 @@
 
   .points-table th:nth-child(6),
   .points-table td:nth-child(6) {
-    width: 25%;
+    width: 16%;
     text-align: center;
     padding: 6px 2px;
     font-size: 0.65rem;
+  }
+
+  .points-table th:nth-child(7),
+  .points-table td:nth-child(7) {
+    width: 15%;
+    text-align: center;
+    padding: 6px 3px;
+    font-size: 0.65rem;
+    min-width: 50px;
+  }
+
+  .points-table td:nth-child(7) span {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    white-space: nowrap;
+    display: inline-block;
+    min-width: 40px;
+    text-align: center;
   }
 
   .fairness-tag {

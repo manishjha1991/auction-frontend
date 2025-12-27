@@ -1249,6 +1249,9 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
   const [roundRobinStatus, setRoundRobinStatus] = useState(null);
   const [generatingKnockout, setGeneratingKnockout] = useState(false);
   const [fixtureSearchQuery, setFixtureSearchQuery] = useState('');
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [teamFixtures, setTeamFixtures] = useState([]);
+  const [showTeamDetails, setShowTeamDetails] = useState(false);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -1313,6 +1316,52 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     }
   };
 
+  const calculateQualificationPercentage = (team, index, allTeams) => {
+    // If all round-robin matches are complete, show 100% for top 4, 0% for others
+    if (roundRobinStatus?.allComplete) {
+      return index < 4 ? 100 : 0;
+    }
+
+    // Calculate based on current position and points gap
+    const teamPoints = team.points || 0;
+    const teamMatches = team.matches || 0;
+    const totalTeams = allTeams.length;
+    const maxMatches = totalTeams - 1; // Round-robin: each team plays (n-1) matches
+    const remainingMatches = maxMatches - teamMatches;
+    
+    // If no matches played yet, return 50% (neutral)
+    if (teamMatches === 0) {
+      return 50;
+    }
+
+    // Get 4th place team's points
+    const fourthPlacePoints = allTeams.length >= 4 ? (allTeams[3]?.points || 0) : 0;
+    const pointsGap = teamPoints - fourthPlacePoints;
+    
+    // Calculate percentage based on position and gap
+    let percentage = 0;
+    
+    if (index < 4) {
+      // Top 4 teams
+      const positionBonus = (4 - index) * 15; // 15% bonus per position above 4th
+      const gapBonus = Math.min(pointsGap * 5, 30); // Up to 30% bonus for points gap
+      percentage = 60 + positionBonus + gapBonus; // Start at 60% for top 4
+    } else {
+      // Teams below 4th
+      const positionPenalty = (index - 3) * 10; // 10% penalty per position below 4th
+      const gapPenalty = Math.min(Math.abs(pointsGap) * 3, 40); // Up to 40% penalty
+      percentage = Math.max(50 - positionPenalty - gapPenalty, 0);
+    }
+    
+    // Adjust based on remaining matches
+    if (remainingMatches > 0) {
+      const remainingBonus = Math.min(remainingMatches * 5, 20); // Up to 20% for remaining matches
+      percentage = Math.min(percentage + remainingBonus, 100);
+    }
+    
+    return Math.round(Math.max(0, Math.min(100, percentage)));
+  };
+
   const fetchPointTable = async () => {
     setLoadingPointTable(true);
     try {
@@ -1338,6 +1387,56 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     } finally {
       setLoadingPointTable(false);
     }
+  };
+
+  const fetchTeamFixtures = async (teamName, fixturesToFilter = null) => {
+    try {
+      const fixturesToUse = fixturesToFilter || fixtures;
+      
+      // Filter fixtures where the team is either team1 or team2
+      const teamMatches = fixturesToUse.filter(fixture => 
+        fixture.team1 === teamName || fixture.team2 === teamName
+      );
+      
+      // Sort: completed matches first (by index), then pending matches
+      teamMatches.sort((a, b) => {
+        const aHasResult = !!a.winner;
+        const bHasResult = !!b.winner;
+        
+        // If one has result and other doesn't, prioritize the one with result
+        if (aHasResult && !bHasResult) return -1;
+        if (!aHasResult && bHasResult) return 1;
+        
+        // If both have same status, maintain original order
+        return 0;
+      });
+      
+      setTeamFixtures(teamMatches);
+    } catch (error) {
+      console.error('Error filtering team fixtures:', error);
+      setTeamFixtures([]);
+    }
+  };
+
+  const handleTeamClick = async (team) => {
+    setSelectedTeam(team);
+    setShowTeamDetails(true);
+    
+    // Ensure fixtures are loaded before filtering
+    if (fixtures.length === 0) {
+      await fetchFixtures();
+      // After fetching, filter with the new fixtures
+      // We'll use useEffect to handle this
+    } else {
+      // Fixtures already loaded, filter immediately
+      fetchTeamFixtures(team.teamName);
+    }
+  };
+
+  const closeTeamDetails = () => {
+    setShowTeamDetails(false);
+    setSelectedTeam(null);
+    setTeamFixtures([]);
   };
 
   const fetchRoundRobinStatus = async () => {
@@ -1391,6 +1490,13 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
       fetchRoundRobinStatus(); // Also check status for point table to show Q/E icons
     }
   }, [activeTab]);
+
+  // Refetch team fixtures when fixtures change (if team details modal is open)
+  useEffect(() => {
+    if (showTeamDetails && selectedTeam && fixtures.length > 0) {
+      fetchTeamFixtures(selectedTeam.teamName, fixtures);
+    }
+  }, [fixtures, showTeamDetails, selectedTeam]);
 
   return (
     <div className="modal-overlay">
@@ -1848,6 +1954,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                           <th>Lost</th>
                           <th>Points</th>
                           <th>Fairness</th>
+                          <th>Q%</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1857,10 +1964,32 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                           const showQ = allRoundRobinComplete && index < 4; // Top 4 get Q icon
                           const showE = allRoundRobinComplete && index >= 4; // Last 4 get E icon
                           
+                          // Calculate qualification percentage
+                          const qualPercentage = calculateQualificationPercentage(team, index, pointTable);
+                          
                           return (
-                            <tr key={index}>
+                            <tr 
+                              key={index}
+                              onClick={() => handleTeamClick(team)}
+                              style={{
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#f8fafc';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '';
+                              }}
+                              title={`${team.teamName} - Click to view match history`}
+                            >
                               <td>
-                                <span title={team.teamName}>
+                                <span 
+                                  style={{ 
+                                    color: '#3b82f6',
+                                    fontWeight: '500'
+                                  }}
+                                >
                                   {team.abbreviation || team.teamName}
                                 </span>
                                 {showQ && (
@@ -1903,6 +2032,21 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                               <td>
                                 <span className={`fairness-tag fairness-${team.fairness > 70 ? 'high' : team.fairness > 40 ? 'medium' : 'low'}`}>
                                   {team.fairness}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '4px 10px',
+                                  borderRadius: '12px',
+                                  fontSize: '0.85rem',
+                                  fontWeight: '600',
+                                  background: qualPercentage >= 70 ? '#d4edda' : qualPercentage >= 40 ? '#fff3cd' : '#f8d7da',
+                                  color: qualPercentage >= 70 ? '#155724' : qualPercentage >= 40 ? '#856404' : '#721c24',
+                                  minWidth: '45px',
+                                  whiteSpace: 'nowrap'
+                                }} title={`Qualification Chance: ${qualPercentage}%`}>
+                                  {qualPercentage}%
                                 </span>
                               </td>
                             </tr>
@@ -2080,6 +2224,181 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
             fetchPointTable();
           }}
         />
+      )}
+
+      {/* Team Details Modal */}
+      {showTeamDetails && selectedTeam && (
+        <div className="modal-overlay" onClick={closeTeamDetails} style={{ zIndex: 2000 }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                {selectedTeam.teamImage && (
+                  <img 
+                    src={`${API_ENDPOINTS}${selectedTeam.teamImage}`} 
+                    alt={selectedTeam.teamName}
+                    style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                )}
+                {selectedTeam.abbreviation || selectedTeam.teamName} - Match History
+              </h2>
+              <button className="close-btn" onClick={closeTeamDetails}>
+                <FaTimes />
+              </button>
+            </div>
+
+            <div style={{ padding: '25px 30px' }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
+                gap: '15px',
+                marginBottom: '25px'
+              }}>
+                <div style={{ 
+                  background: '#e8f5e9', 
+                  padding: '15px', 
+                  borderRadius: '8px', 
+                  textAlign: 'center',
+                  border: '2px solid #4caf50'
+                }}>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#2e7d32' }}>
+                    {selectedTeam.won || 0}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>Wins</div>
+                </div>
+                <div style={{ 
+                  background: '#ffebee', 
+                  padding: '15px', 
+                  borderRadius: '8px', 
+                  textAlign: 'center',
+                  border: '2px solid #f44336'
+                }}>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#c62828' }}>
+                    {selectedTeam.lost || 0}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>Losses</div>
+                </div>
+                <div style={{ 
+                  background: '#e3f2fd', 
+                  padding: '15px', 
+                  borderRadius: '8px', 
+                  textAlign: 'center',
+                  border: '2px solid #2196f3'
+                }}>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1565c0' }}>
+                    {selectedTeam.points || 0}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>Points</div>
+                </div>
+                <div style={{ 
+                  background: '#fff3e0', 
+                  padding: '15px', 
+                  borderRadius: '8px', 
+                  textAlign: 'center',
+                  border: '2px solid #ff9800'
+                }}>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#e65100' }}>
+                    {selectedTeam.fairness || 0}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>Fairness</div>
+                </div>
+                <div style={{ 
+                  background: '#f5f5f5', 
+                  padding: '15px', 
+                  borderRadius: '8px', 
+                  textAlign: 'center',
+                  border: '2px solid #757575'
+                }}>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#424242' }}>
+                    {selectedTeam.matches || 0}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>Matches</div>
+                </div>
+              </div>
+
+              <h3 style={{ color: '#374151', marginBottom: '1rem', fontSize: '1.2rem' }}>Match History</h3>
+              {teamFixtures.length > 0 ? (
+                <div className="points-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Opponent</th>
+                        <th>Result</th>
+                        <th>Score</th>
+                        <th>Fairness</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teamFixtures.map((fixture, index) => {
+                        const isTeam1 = fixture.team1 === selectedTeam.teamName;
+                        const opponent = isTeam1 ? fixture.team2 : fixture.team1;
+                        
+                        let result = 'vs';
+                        let resultText = 'vs';
+                        let resultColor = '#6c757d';
+                        
+                        if (fixture.winner) {
+                          if (fixture.winner === selectedTeam.teamName) {
+                            result = 'win';
+                            resultText = 'Won';
+                            resultColor = '#28a745';
+                            if (fixture.margin) {
+                              resultText += ` by ${fixture.margin}`;
+                            }
+                          } else {
+                            result = 'loss';
+                            resultText = 'Lost';
+                            resultColor = '#dc3545';
+                            if (fixture.margin) {
+                              resultText += ` by ${fixture.margin}`;
+                            }
+                          }
+                        }
+
+                        // Get score for this team
+                        const teamScore = isTeam1 ? fixture.team1Score : fixture.team2Score;
+                        const opponentScore = isTeam1 ? fixture.team2Score : fixture.team1Score;
+                        let scoreText = '-';
+                        if (teamScore !== undefined && teamScore !== null && opponentScore !== undefined && opponentScore !== null) {
+                          scoreText = `${teamScore} - ${opponentScore}`;
+                        } else if (teamScore !== undefined && teamScore !== null) {
+                          scoreText = `${teamScore} - TBD`;
+                        } else if (opponentScore !== undefined && opponentScore !== null) {
+                          scoreText = `TBD - ${opponentScore}`;
+                        } else if (fixture.winner) {
+                          scoreText = 'Score not available';
+                        } else {
+                          scoreText = 'TBD';
+                        }
+
+                        // Get fairness for this team
+                        const teamFairness = isTeam1 ? fixture.team1Fairness : fixture.team2Fairness;
+
+                        return (
+                          <tr key={index}>
+                            <td style={{ fontWeight: '500' }}>{opponent}</td>
+                            <td style={{ color: resultColor, fontWeight: 'bold' }}>{resultText}</td>
+                            <td>{scoreText}</td>
+                            <td style={{ textAlign: 'center' }}>
+                              {teamFairness ? (
+                                <span className={`fairness-tag fairness-${teamFairness > 70 ? 'high' : teamFairness > 40 ? 'medium' : 'low'}`}>
+                                  {teamFairness}
+                                </span>
+                              ) : '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>
+                  No matches found for this team in this tournament.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
