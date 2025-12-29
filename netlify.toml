@@ -6,3 +6,10 @@
   CI = "false"
   NODE_VERSION = "18"
 
+# Redirect all routes to index.html for React Router
+# This allows client-side routing to work properly
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
