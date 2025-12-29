@@ -2101,7 +2101,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                           <th>Won</th>
                           <th>Lost</th>
                           <th>Points</th>
-                          <th>Fairness</th>
+                          <th>Fair</th>
                           <th>Q%</th>
                         </tr>
                       </thead>
