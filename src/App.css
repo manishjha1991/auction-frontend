@@ -349,9 +349,13 @@
 
 /* Menu Footer */
 .menu-footer {
-  padding: 20px;
+  padding: 15px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: auto;
+  background: linear-gradient(180deg, rgba(26, 31, 53, 0.8) 0%, #1a1f35 100%);
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 /* Logout Button */

@@ -449,13 +449,14 @@ function App() {
                   </div>
                 )}
 
-                {/* Logout */}
-                <div className="menu-footer">
-                  <button className="logout-btn" onClick={handleLogout}>
-                    <FaSignOutAlt className="logout-icon" />
-                    <span>Logout</span>
-                  </button>
-                </div>
+              </div>
+              
+              {/* Logout - Outside scrollable area, always visible */}
+              <div className="menu-footer">
+                <button className="logout-btn" onClick={handleLogout}>
+                  <FaSignOutAlt className="logout-icon" />
+                  <span>Logout</span>
+                </button>
               </div>
             </nav>
           </>
