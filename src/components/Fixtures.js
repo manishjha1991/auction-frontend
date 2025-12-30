@@ -4,6 +4,7 @@ import axios from "axios";
 import ReactSelect from "react-select"; // <-- 1) Import react-select
 import { API_ENDPOINTS } from "../const";
 import PlayoffFixtures from "./PlayoffFixtures";
+import { useToast } from "./ToastNotification";
 
 // We rename the existing styled Select component to StyledSelect:
 const StyledSelect = styled.select`
@@ -350,6 +351,7 @@ const getAbbreviation = (name) => {
 };
 
 const Fixtures = () => {
+  const { showToast } = useToast();
   const [fixtures, setFixtures] = useState([]);
   const [filteredFixtures, setFilteredFixtures] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -366,6 +368,8 @@ const Fixtures = () => {
   const [mom, setMom] = useState({ name: "", score: "", wickets: "" });
   const [team1Score, setTeam1Score] = useState("");
   const [team2Score, setTeam2Score] = useState("");
+  const [team1Overs, setTeam1Overs] = useState("");
+  const [team2Overs, setTeam2Overs] = useState("");
   const [players, setPlayers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -532,6 +536,8 @@ const Fixtures = () => {
     setMargin(fixture.margin || "");
     setTeam1Score(fixture.team1Score || "");
     setTeam2Score(fixture.team2Score || "");
+    setTeam1Overs(fixture.team1Overs || "");
+    setTeam2Overs(fixture.team2Overs || "");
 
     // Convert numeric fields to string so placeholders can show up
     setMom({
@@ -558,15 +564,44 @@ const Fixtures = () => {
       const userId = user?.id || user?._id;
       
       if (!userId) {
-        alert('User not authenticated. Please log in again.');
+        showToast('User not authenticated. Please log in again.', 'error');
         return;
       }
 
-      // Convert string inputs back to numbers safely
+      // Validate score format: must be in "runs/wickets" format (e.g., "107/10", "150/5")
+      const scoreFormatRegex = /^\d+\/\d+$/; // Matches "number/number" format
+      
+      if (team1Score && !scoreFormatRegex.test(team1Score.trim())) {
+        showToast({
+          title: 'Invalid Score Format',
+          message: `${currentFixture?.team1} score format is invalid. Expected format: runs/wickets (e.g., "107/10", "150/5"). Received: "${team1Score}"`
+        }, 'error');
+        return;
+      }
+      
+      if (team2Score && !scoreFormatRegex.test(team2Score.trim())) {
+        showToast({
+          title: 'Invalid Score Format',
+          message: `${currentFixture?.team2} score format is invalid. Expected format: runs/wickets (e.g., "107/10", "150/5"). Received: "${team2Score}"`
+        }, 'error');
+        return;
+      }
+
+      // Validate required fields - overs are mandatory
+      if (!team1Overs || team1Overs.trim() === '') {
+        showToast(`${currentFixture?.team1} overs is required`, 'error');
+        return;
+      }
+      if (!team2Overs || team2Overs.trim() === '') {
+        showToast(`${currentFixture?.team2} overs is required`, 'error');
+        return;
+      }
+
+      // Convert string inputs back to numbers safely - MOM stats are optional
       const updatedMom = {
-        ...mom,
-        score: mom.score ? Number(mom.score) : 0,
-        wickets: mom.wickets ? Number(mom.wickets) : 0,
+        name: mom.name || null,
+        score: mom.score ? Number(mom.score) : null,
+        wickets: mom.wickets ? Number(mom.wickets) : null,
       };
 
       const updatedFixture = {
@@ -575,6 +610,8 @@ const Fixtures = () => {
         margin,
         team1Score,
         team2Score,
+        team1Overs: team1Overs.trim(),
+        team2Overs: team2Overs.trim(),
         mom: updatedMom,
         team1Fairness: team1Fairness ? Number(team1Fairness) : 0,
         team2Fairness: team2Fairness ? Number(team2Fairness) : 0,
@@ -599,10 +636,10 @@ const Fixtures = () => {
       );
 
       setShowModal(false);
-      alert("Fixture updated successfully!");
+      showToast("Fixture updated successfully!", 'success');
     } catch (error) {
       console.error("Error saving fixture:", error);
-      alert("Failed to save fixture.");
+      showToast(error.response?.data?.error || "Failed to save fixture.", 'error');
     }
   };
 
@@ -866,20 +903,34 @@ const Fixtures = () => {
             />
             <Input
               type="text"
-              placeholder={`Team 1 Score (${currentFixture?.team1})`}
+              placeholder={`Team 1 Score (${currentFixture?.team1}) - Format: runs/wickets (e.g., 107/10)`}
               value={team1Score}
               onChange={(e) => setTeam1Score(e.target.value)}
             />
             <Input
               type="text"
-              placeholder={`Team 2 Score (${currentFixture?.team2})`}
+              placeholder={`Team 2 Score (${currentFixture?.team2}) - Format: runs/wickets (e.g., 107/10)`}
               value={team2Score}
               onChange={(e) => setTeam2Score(e.target.value)}
+            />
+            <Input
+              type="text"
+              placeholder={`Team 1 Overs (e.g., 20.0, 19.3) *`}
+              value={team1Overs}
+              onChange={(e) => setTeam1Overs(e.target.value)}
+              required
+            />
+            <Input
+              type="text"
+              placeholder={`Team 2 Overs (e.g., 20.0, 19.3) *`}
+              value={team2Overs}
+              onChange={(e) => setTeam2Overs(e.target.value)}
+              required
             />
 
             {/* New searchable dropdown with both teams' players */}
             <ReactSelect
-              placeholder="Select Man of the Match"
+              placeholder="Select Man of the Match *"
               value={
                 playerOptions.find((opt) => opt.value === mom.name) || null
               }
@@ -892,13 +943,13 @@ const Fixtures = () => {
 
             <Input
               type="number"
-              placeholder="Batting Score"
+              placeholder="Batting Score (Optional)"
               value={mom.score}
               onChange={(e) => setMom({ ...mom, score: e.target.value })}
             />
             <Input
               type="number"
-              placeholder="Bowling Wickets"
+              placeholder="Bowling Wickets (Optional)"
               value={mom.wickets}
               onChange={(e) => setMom({ ...mom, wickets: e.target.value })}
             />

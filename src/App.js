@@ -44,6 +44,7 @@ import LiveBettingDashboard from './components/LiveBettingDashboard';
 
 import './App.css';
 import { SocketProvider } from './contexts/SocketContext';
+import { ToastProvider } from './components/ToastNotification';
 
 // Helper component for menu items with search filtering
 const MenuItem = ({ to, icon: Icon, children, onClick, searchQuery, location }) => {
@@ -164,8 +165,9 @@ function App() {
   }
 
   return (
-    <SocketProvider>
-      <Router>
+    <ToastProvider>
+      <SocketProvider>
+        <Router>
         <div className="dashboard-container">
         {isAuthenticated && (
           <>
@@ -587,7 +589,8 @@ function App() {
         </main>
       </div>
       </Router>
-    </SocketProvider>
+      </SocketProvider>
+    </ToastProvider>
   );
 }
 

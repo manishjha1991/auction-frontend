@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../const';
 import { FaCalendarAlt, FaUsers, FaTrophy, FaEdit, FaTrash, FaPlus, FaImage, FaTimes, FaTable, FaList, FaSearch } from 'react-icons/fa';
 import './TournamentList.css';
+import { useToast } from './ToastNotification';
 
 const TournamentList = () => {
+  const { showToast } = useToast();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -165,7 +167,7 @@ const TournamentList = () => {
       await fetchTournaments();
       await fetchSubscriptionCount();
     } catch (error) {
-      alert(error.message);
+      showToast(error.message, 'error');
     }
   };
 
@@ -190,7 +192,7 @@ const TournamentList = () => {
       await fetchTournaments();
       await fetchSubscriptionCount();
     } catch (error) {
-      alert(error.message);
+      showToast(error.message, 'error');
     }
   };
 
@@ -214,7 +216,7 @@ const TournamentList = () => {
 
       await fetchTournaments();
     } catch (error) {
-      alert(error.message);
+      showToast(error.message, 'error');
     }
   };
 
@@ -244,7 +246,7 @@ const TournamentList = () => {
 
       await fetchTournaments();
     } catch (error) {
-      alert(error.message);
+      showToast(error.message, 'error');
     }
   };
 
@@ -530,6 +532,7 @@ const TournamentList = () => {
 
 // Create Tournament Modal Component
 const CreateTournamentModal = ({ onClose, onSuccess }) => {
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -596,7 +599,7 @@ const CreateTournamentModal = ({ onClose, onSuccess }) => {
 
       onSuccess();
     } catch (error) {
-      alert(error.message);
+      showToast(error.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -708,6 +711,7 @@ const CreateTournamentModal = ({ onClose, onSuccess }) => {
 
 // Edit Tournament Modal Component
 const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     name: tournament.name,
     description: tournament.description || '',
@@ -837,7 +841,7 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
         }
       }
     } catch (error) {
-      alert(error.message);
+      showToast(error.message, 'error');
     }
   };
 
@@ -898,7 +902,7 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
         }
       }
     } catch (error) {
-      alert(error.message);
+      showToast(error.message, 'error');
     }
   };
 
@@ -940,7 +944,7 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
 
       onSuccess();
     } catch (error) {
-      alert(error.message);
+      showToast(error.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -1243,6 +1247,7 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
 
 // Tournament Detail Modal Component
 const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe, canSubscribe, isSubscribed }) => {
+  const { showToast } = useToast();
   const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
   const isAdmin = currentUser?.isAdmin;
   const [activeTab, setActiveTab] = useState(isAdmin ? 'manage' : 'points');
@@ -1575,16 +1580,16 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Knockout fixtures generated! Semi-finals: ${data.top4[0].teamName} vs ${data.top4[3].teamName}, ${data.top4[1].teamName} vs ${data.top4[2].teamName}`);
+        showToast(`Knockout fixtures generated! Semi-finals: ${data.top4[0].teamName} vs ${data.top4[3].teamName}, ${data.top4[1].teamName} vs ${data.top4[2].teamName}`, 'success');
         fetchFixtures();
         fetchRoundRobinStatus();
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to generate knockout fixtures');
+        showToast(error.error || 'Failed to generate knockout fixtures', 'error');
       }
     } catch (error) {
       console.error('Error generating knockout:', error);
-      alert('Failed to generate knockout fixtures');
+      showToast('Failed to generate knockout fixtures', 'error');
     } finally {
       setGeneratingKnockout(false);
     }
@@ -2266,15 +2271,15 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
 
                               if (response.ok) {
                                 const data = await response.json();
-                                alert(`Success! Generated ${data.fixtures.length} fixtures for ${data.teamsCount} teams.`);
+                                showToast(`Success! Generated ${data.fixtures.length} fixtures for ${data.teamsCount} teams.`, 'success');
                                 // Refresh to show fixtures
                                 window.location.reload();
                               } else {
                                 const errorData = await response.json();
-                                alert(errorData.error || 'Failed to generate fixtures');
+                                showToast(errorData.error || 'Failed to generate fixtures', 'error');
                               }
                             } catch (error) {
-                              alert('Error generating fixtures');
+                              showToast('Error generating fixtures', 'error');
                             }
                           }}
                         >
@@ -2317,7 +2322,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                           });
 
                           if (response.ok) {
-                            alert('Tournament winner reset successfully!');
+                            showToast('Tournament winner reset successfully!', 'success');
                             onClose();
                             window.location.reload(); // Reload to refresh tournament list
                           } else {
@@ -2325,7 +2330,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                             throw new Error(errorData.error || 'Failed to reset winner');
                           }
                         } catch (error) {
-                          alert(error.message);
+                          showToast(error.message, 'error');
                         }
                       }}
                       style={{
@@ -2358,15 +2363,15 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
 
                           if (response.ok) {
                             const data = await response.json();
-                            alert(data.message);
+                            showToast(data.message, 'success');
                             // Refresh tournament data
                             window.location.reload();
                           } else {
                             const errorData = await response.json();
-                            alert(errorData.error || 'Failed to toggle tournament lock');
+                            showToast(errorData.error || 'Failed to toggle tournament lock', 'error');
                           }
                         } catch (error) {
-                          alert('Error toggling tournament lock');
+                          showToast('Error toggling tournament lock', 'error');
                         }
                       }}
                     >
@@ -2626,6 +2631,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
 
 // Edit Fixture Modal Component
 const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     team1: fixture.team1,
     team2: fixture.team2,
@@ -2633,6 +2639,8 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
     margin: fixture.margin || '',
     team1Score: fixture.team1Score || '',
     team2Score: fixture.team2Score || '',
+    team1Overs: fixture.team1Overs || '',
+    team2Overs: fixture.team2Overs || '',
     team1Fairness: fixture.team1Fairness || '',
     team2Fairness: fixture.team2Fairness || '',
     mom: {
@@ -2678,6 +2686,7 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
 
   const validateForm = () => {
     const newErrors = {};
+    const scoreFormatRegex = /^\d+\/\d+$/; // Matches "runs/wickets" format (e.g., "107/10", "150/5")
 
     // Validate Winner
     if (!formData.winner || formData.winner.trim() === '') {
@@ -2689,30 +2698,42 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
       newErrors.margin = 'Margin is required';
     }
 
-    // Validate Team1 Score
+    // Validate Team1 Score - must be in "runs/wickets" format
     if (!formData.team1Score || formData.team1Score.toString().trim() === '') {
       newErrors.team1Score = `${formData.team1} score is required`;
+    } else if (!scoreFormatRegex.test(formData.team1Score.toString().trim())) {
+      newErrors.team1Score = `${formData.team1} score format is invalid. Expected format: runs/wickets (e.g., "107/10", "150/5"). Received: "${formData.team1Score}"`;
     }
 
-    // Validate Team2 Score
+    // Validate Team2 Score - must be in "runs/wickets" format
     if (!formData.team2Score || formData.team2Score.toString().trim() === '') {
       newErrors.team2Score = `${formData.team2} score is required`;
+    } else if (!scoreFormatRegex.test(formData.team2Score.toString().trim())) {
+      newErrors.team2Score = `${formData.team2} score format is invalid. Expected format: runs/wickets (e.g., "107/10", "150/5"). Received: "${formData.team2Score}"`;
     }
 
-    // Validate Man of the Match
+    // Validate Team1 Overs
+    if (!formData.team1Overs || formData.team1Overs.toString().trim() === '') {
+      newErrors.team1Overs = `${formData.team1} overs is required`;
+    }
+
+    // Validate Team2 Overs
+    if (!formData.team2Overs || formData.team2Overs.toString().trim() === '') {
+      newErrors.team2Overs = `${formData.team2} overs is required`;
+    }
+
+    // Validate Man of the Match - only name is required, score and wickets are optional
     if (!formData.mom.name || formData.mom.name.trim() === '') {
-      newErrors.momName = 'Man of the Match is required';
+      newErrors.momName = 'Man of the Match name is required';
     }
 
-    // Validate MoM Batting Score
-    if (!formData.mom.score || formData.mom.score.toString().trim() === '') {
-      newErrors.momScore = 'MoM Batting Score is required';
+    // MoM Batting Score is optional - only validate if provided
+    if (formData.mom.score && formData.mom.score.toString().trim() !== '' && Number(formData.mom.score) < 0) {
+      newErrors.momScore = 'MoM Batting Score cannot be negative';
     }
 
-    // Validate MoM Bowling Wickets (0 is a valid value)
-    if (formData.mom.wickets === '' || formData.mom.wickets === null || formData.mom.wickets === undefined) {
-      newErrors.momWickets = 'MoM Bowling Wickets is required';
-    } else if (Number(formData.mom.wickets) < 0) {
+    // MoM Bowling Wickets is optional - only validate if provided
+    if (formData.mom.wickets && formData.mom.wickets.toString().trim() !== '' && Number(formData.mom.wickets) < 0) {
       newErrors.momWickets = 'MoM Bowling Wickets cannot be negative';
     }
 
@@ -2735,7 +2756,7 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
     
     // Validate all fields
     if (!validateForm()) {
-      alert('Please fill in all required fields');
+      showToast('Please fill in all required fields', 'error');
       return;
     }
 
@@ -2746,11 +2767,14 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
       const userId = cachedUser ? JSON.parse(cachedUser).id : null;
       
       // Prepare data with proper type conversion (matching main fixture format)
+      // Overs are mandatory - already validated in validateForm()
       const updateData = {
         winner: formData.winner,
         margin: formData.margin,
         team1Score: formData.team1Score,
         team2Score: formData.team2Score,
+        team1Overs: formData.team1Overs.trim(),
+        team2Overs: formData.team2Overs.trim(),
         team1Fairness: formData.team1Fairness ? Number(formData.team1Fairness) : 0,
         team2Fairness: formData.team2Fairness ? Number(formData.team2Fairness) : 0,
         mom: {
@@ -2777,7 +2801,7 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
       alert('Fixture updated successfully! Point table has been updated.');
       onSuccess();
     } catch (error) {
-      alert(error.message);
+      showToast(error.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -2846,7 +2870,7 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>{formData.team1} Score *</label>
+              <label>{formData.team1} Score * (Format: runs/wickets)</label>
               <input
                 type="text"
                 name="team1Score"
@@ -2857,7 +2881,7 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
                     setErrors(prev => ({ ...prev, team1Score: '' }));
                   }
                 }}
-                placeholder="Enter score"
+                placeholder="e.g., 107/10, 150/5"
                 required
                 style={{ borderColor: errors.team1Score ? '#dc3545' : '' }}
               />
@@ -2865,7 +2889,7 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
             </div>
 
             <div className="form-group">
-              <label>{formData.team2} Score *</label>
+              <label>{formData.team2} Score * (Format: runs/wickets)</label>
               <input
                 type="text"
                 name="team2Score"
@@ -2876,11 +2900,51 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
                     setErrors(prev => ({ ...prev, team2Score: '' }));
                   }
                 }}
-                placeholder="Enter score"
+                placeholder="e.g., 107/10, 150/5"
                 required
                 style={{ borderColor: errors.team2Score ? '#dc3545' : '' }}
               />
               {errors.team2Score && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.team2Score}</span>}
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>{formData.team1} Overs (e.g., 20.0, 19.3) *</label>
+              <input
+                type="text"
+                name="team1Overs"
+                value={formData.team1Overs}
+                onChange={(e) => {
+                  handleInputChange(e);
+                  if (errors.team1Overs) {
+                    setErrors(prev => ({ ...prev, team1Overs: '' }));
+                  }
+                }}
+                placeholder="e.g., 20.0, 19.3"
+                required
+                style={{ borderColor: errors.team1Overs ? '#dc3545' : '' }}
+              />
+              {errors.team1Overs && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.team1Overs}</span>}
+            </div>
+
+            <div className="form-group">
+              <label>{formData.team2} Overs (e.g., 20.0, 19.3) *</label>
+              <input
+                type="text"
+                name="team2Overs"
+                value={formData.team2Overs}
+                onChange={(e) => {
+                  handleInputChange(e);
+                  if (errors.team2Overs) {
+                    setErrors(prev => ({ ...prev, team2Overs: '' }));
+                  }
+                }}
+                placeholder="e.g., 20.0, 19.3"
+                required
+                style={{ borderColor: errors.team2Overs ? '#dc3545' : '' }}
+              />
+              {errors.team2Overs && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.team2Overs}</span>}
             </div>
           </div>
 
@@ -2908,7 +2972,7 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>MoM Batting Score *</label>
+              <label>MoM Batting Score (Optional)</label>
               <input
                 type="number"
                 name="momScore"
@@ -2919,15 +2983,15 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
                     setErrors(prev => ({ ...prev, momScore: '' }));
                   }
                 }}
-                placeholder="Batting score"
-                required
+                placeholder="Batting score (optional)"
+                min="0"
                 style={{ borderColor: errors.momScore ? '#dc3545' : '' }}
               />
               {errors.momScore && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.momScore}</span>}
             </div>
 
             <div className="form-group">
-              <label>MoM Bowling Wickets *</label>
+              <label>MoM Bowling Wickets (Optional)</label>
               <input
                 type="number"
                 name="momWickets"
@@ -2938,8 +3002,7 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
                     setErrors(prev => ({ ...prev, momWickets: '' }));
                   }
                 }}
-                placeholder="Wickets taken"
-                required
+                placeholder="Wickets taken (optional)"
                 min="0"
                 style={{ borderColor: errors.momWickets ? '#dc3545' : '' }}
               />
