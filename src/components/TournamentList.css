@@ -1189,7 +1189,9 @@
 
 .points-table {
   width: 100%;
-  overflow-x: visible;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 0;
 }
 
 .points-table table {
@@ -1197,14 +1199,14 @@
   border-collapse: collapse;
   background: white;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .points-table th,
 .points-table td {
-  padding: 12px 15px;
+  padding: 8px 6px;
   text-align: left;
   border-bottom: 1px solid #e5e7eb;
   word-wrap: break-word;
@@ -1216,30 +1218,40 @@
   background: #f8fafc;
   font-weight: 600;
   color: #374151;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  padding: 8px 4px;
 }
 
 .points-table th:first-child {
   text-align: left;
+  padding-left: 8px;
 }
 
 .points-table th:nth-child(2),
 .points-table th:nth-child(3),
 .points-table th:nth-child(4),
 .points-table th:nth-child(5),
-.points-table th:nth-child(6) {
+.points-table th:nth-child(6),
+.points-table th:nth-child(7),
+.points-table th:nth-child(8) {
   text-align: center;
 }
 
 .points-table td {
   color: #4b5563;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  padding: 8px 4px;
+}
+
+.points-table td:first-child {
+  padding-left: 8px;
 }
 
 .points-table th:nth-child(1),
 .points-table td:nth-child(1) {
-  width: 30%;
-  max-width: 30%;
+  min-width: 80px;
+  max-width: 120px;
   word-wrap: break-word;
   overflow-wrap: break-word;
   text-align: left;
@@ -1251,26 +1263,35 @@
 .points-table td:nth-child(3),
 .points-table th:nth-child(4),
 .points-table td:nth-child(4) {
-  width: 10%;
+  min-width: 35px;
   text-align: center;
 }
 
 .points-table th:nth-child(5),
 .points-table td:nth-child(5) {
-  width: 10%;
+  min-width: 40px;
   text-align: center;
 }
 
 .points-table th:nth-child(6),
 .points-table td:nth-child(6) {
-  width: 18%;
+  min-width: 50px;
   text-align: center;
 }
 
 .points-table th:nth-child(7),
 .points-table td:nth-child(7) {
-  width: 10%;
+  min-width: 55px;
   text-align: center;
+}
+
+.points-table th:nth-child(8),
+.points-table td:nth-child(8) {
+  min-width: 60px;
+  width: 60px;
+  text-align: center;
+  padding-right: 10px;
+  padding-left: 4px;
 }
 
 .points-table tbody tr:hover {
@@ -1279,6 +1300,168 @@
 
 .points-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+.qualification-col {
+  font-weight: 600;
+}
+
+.qualification-percentage {
+  display: inline-block;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.fairness-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .points-table table {
+    font-size: 0.75rem;
+  }
+
+  .points-table th,
+  .points-table td {
+    padding: 6px 3px;
+    font-size: 0.7rem;
+  }
+
+  .points-table th {
+    font-size: 0.7rem;
+    padding: 6px 2px;
+  }
+
+  .points-table th:first-child,
+  .points-table td:first-child {
+    padding-left: 6px;
+  }
+
+  .points-table th:nth-child(1),
+  .points-table td:nth-child(1) {
+    min-width: 70px;
+    max-width: 100px;
+  }
+
+  .points-table th:nth-child(2),
+  .points-table td:nth-child(2),
+  .points-table th:nth-child(3),
+  .points-table td:nth-child(3),
+  .points-table th:nth-child(4),
+  .points-table td:nth-child(4) {
+    min-width: 30px;
+  }
+
+  .points-table th:nth-child(5),
+  .points-table td:nth-child(5) {
+    min-width: 35px;
+  }
+
+  .points-table th:nth-child(6),
+  .points-table td:nth-child(6) {
+    min-width: 45px;
+  }
+
+  .points-table th:nth-child(7),
+  .points-table td:nth-child(7) {
+    min-width: 50px;
+  }
+
+  .points-table th:nth-child(8),
+  .points-table td:nth-child(8) {
+    min-width: 55px;
+    width: 55px;
+    padding-right: 8px;
+    padding-left: 3px;
+  }
+
+  .qualification-percentage {
+    font-size: 0.7rem;
+    padding: 2px 3px;
+  }
+
+  .fairness-tag {
+    font-size: 0.65rem;
+    padding: 2px 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .points-table table {
+    font-size: 0.7rem;
+  }
+
+  .points-table th,
+  .points-table td {
+    padding: 5px 2px;
+    font-size: 0.65rem;
+  }
+
+  .points-table th {
+    font-size: 0.65rem;
+    padding: 5px 2px;
+  }
+
+  .points-table th:first-child,
+  .points-table td:first-child {
+    padding-left: 4px;
+  }
+
+  .points-table th:nth-child(1),
+  .points-table td:nth-child(1) {
+    min-width: 60px;
+    max-width: 90px;
+  }
+
+  .points-table th:nth-child(2),
+  .points-table td:nth-child(2),
+  .points-table th:nth-child(3),
+  .points-table td:nth-child(3),
+  .points-table th:nth-child(4),
+  .points-table td:nth-child(4) {
+    min-width: 25px;
+  }
+
+  .points-table th:nth-child(5),
+  .points-table td:nth-child(5) {
+    min-width: 30px;
+  }
+
+  .points-table th:nth-child(6),
+  .points-table td:nth-child(6) {
+    min-width: 40px;
+  }
+
+  .points-table th:nth-child(7),
+  .points-table td:nth-child(7) {
+    min-width: 45px;
+  }
+
+  .points-table th:nth-child(8),
+  .points-table td:nth-child(8) {
+    min-width: 52px;
+    width: 52px;
+    padding-right: 6px;
+    padding-left: 2px;
+  }
+
+  .qualification-percentage {
+    font-size: 0.65rem;
+    padding: 1px 2px;
+  }
+
+  .fairness-tag {
+    font-size: 0.6rem;
+    padding: 1px 3px;
+  }
 }
 
 .fairness-tag {

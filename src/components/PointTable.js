@@ -9,12 +9,12 @@ import PlayoffFixtures from "./PlayoffFixtures";
 
 // Tab styles
 const TabContainer = styled.div`
-  margin: 2rem auto;
-  width: 95%;
-  max-width: 800px;
+  margin: 0.5rem auto;
+  width: 98%;
+  max-width: 100%;
   background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 `;
 
@@ -26,53 +26,56 @@ const TabHeader = styled.div`
 
 const TabButton = styled.button`
   flex: 1;
-  padding: 1rem;
+  padding: 0.5rem 0.75rem;
   background: ${props => props.active ? '#007bff' : 'transparent'};
   color: ${props => props.active ? '#ffffff' : '#6c757d'};
   border: none;
   font-weight: ${props => props.active ? 'bold' : 'normal'};
   cursor: pointer;
   transition: all 0.3s ease;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   
   &:hover {
     background: ${props => props.active ? '#007bff' : '#e9ecef'};
   }
   
   @media (max-width: 600px) {
-    padding: 0.8rem 0.5rem;
-    font-size: 0.8rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.7rem;
   }
 `;
 
 // Styled components
 const TableWrapper = styled.div`
-  padding: 1rem;
+  padding: 0.5rem;
   background: #ffffff;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   color: #343a40;
-  table-layout: auto;
+  table-layout: fixed;
 
   @media (max-width: 600px) {
-    font-size: 0.8rem; /* Adjust font size for smaller screens */
+    font-size: 0.7rem;
+    table-layout: auto;
   }
 `;
 
 const TableHead = styled.thead`
   background-color: #ffffff !important;
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   color: #343a40;
 
   @media (max-width: 600px) {
-    font-size: 0.75rem; /* Reduce font size on mobile screens */
+    font-size: 0.65rem;
   }
 `;
 
@@ -85,32 +88,34 @@ const TableRow = styled.tr`
       : props.variant === "eliminated"
       ? "#f8d7da"
       : "#fff3cd"} !important;
-  height: 50px;
+  height: 35px;
   ${(props) =>
     props.variant === "eliminated" &&
     `
-    border-left: 4px solid #dc3545;
-    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+    border-left: 3px solid #dc3545;
+    box-shadow: 0 1px 4px rgba(220, 53, 69, 0.3);
     `}
 `;
 
 const TableCell = styled.td`
-  padding: 0.5rem; /* Reduce padding for better fit */
-  font-size: 0.9rem;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.75rem;
   border: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  word-wrap: break-word;
 
   @media (max-width: 600px) {
-    padding: 0.3rem; /* Adjust padding for smaller screens */
+    padding: 0.2rem 0.3rem;
+    font-size: 0.7rem;
   }
 `;
 
 const HighlightCell = styled(TableCell)`
   font-weight: bold;
   text-align: left;
-  padding-left: 1rem;
+  padding-left: 0.5rem;
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -121,15 +126,15 @@ const HighlightCell = styled(TableCell)`
   }
 
   img {
-    margin-right: 8px;
-    width: 24px;
-    height: 24px;
+    margin-right: 6px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     object-fit: cover;
   }
 
   @media (max-width: 600px) {
-    padding-left: 0.5rem; /* Reduce padding on mobile screens */
+    padding-left: 0.3rem;
   }
 `;
 
@@ -137,13 +142,13 @@ const QualifierBadge = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: 8px;
-  width: 18px;
-  height: 18px;
+  margin-left: 4px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #28a745; /* green */
   color: #ffffff;
-  font-size: 12px;
+  font-size: 10px;
   line-height: 1;
   font-weight: 800;
 `;
@@ -152,13 +157,13 @@ const EliminatedBadge = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: 8px;
-  width: 18px;
-  height: 18px;
+  margin-left: 4px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #dc3545; /* red */
   color: #ffffff;
-  font-size: 12px;
+  font-size: 10px;
   line-height: 1;
   font-weight: 800;
 `;
@@ -166,6 +171,9 @@ const EliminatedBadge = styled.span`
 const RankCell = styled(TableCell)`
   font-weight: bold;
   color: #000;
+  padding: 0.25rem 0.2rem;
+  font-size: 0.75rem;
+  width: 50px;
 `;
 
 // Team Details Modal Styles
@@ -616,6 +624,15 @@ const PointsTable = () => {
           }
         }
 
+        // Format NRR with proper sign and 3 decimal places
+        const formatNRR = (nrr) => {
+          if (nrr === null || nrr === undefined || isNaN(nrr)) {
+            return '0.000';
+          }
+          const formatted = parseFloat(nrr).toFixed(3);
+          return formatted >= 0 ? `+${formatted}` : formatted;
+        };
+
         return (
           <TableRow key={team._id || `${team.teamName}-${index}`} index={index} variant={variant}>
             <RankCell>{`${index + 1} -`}</RankCell>
@@ -633,6 +650,7 @@ const PointsTable = () => {
             <TableCell>{team.fairness}</TableCell>
             <TableCell>{team.points}</TableCell>
             <TableCell>{team.matchesPlayed}</TableCell>
+            <TableCell>{formatNRR(team.nrr)}</TableCell>
           </TableRow>
         );
       })}
@@ -668,7 +686,7 @@ const PointsTable = () => {
           <TableWrapper>
             {activeTab === 'groupA' && (
               <>
-                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "1.5rem" }}>
+                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
                   Group A
                 </h2>
                 <Table>
@@ -681,6 +699,7 @@ const PointsTable = () => {
                       <TableCell>FAIR</TableCell>
                       <TableCell>PTS</TableCell>
                       <TableCell>MP</TableCell>
+                      <TableCell>NRR</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(groups.A)}
@@ -690,7 +709,7 @@ const PointsTable = () => {
             
             {activeTab === 'groupB' && (
               <>
-                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "1.5rem" }}>
+                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
                   Group B
                 </h2>
                 <Table>
@@ -703,6 +722,7 @@ const PointsTable = () => {
                       <TableCell>FAIR</TableCell>
                       <TableCell>PTS</TableCell>
                       <TableCell>MP</TableCell>
+                      <TableCell>NRR</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(groups.B)}
@@ -743,7 +763,7 @@ const PointsTable = () => {
           <TableWrapper>
             {activeTab === 'overall' && (
               <>
-                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "1.5rem" }}>
+                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
                   Points Table
                 </h2>
                 <Table>
@@ -756,6 +776,7 @@ const PointsTable = () => {
                       <TableCell>FAIR</TableCell>
                       <TableCell>PTS</TableCell>
                       <TableCell>MP</TableCell>
+                      <TableCell>NRR</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(sortedTeams)}

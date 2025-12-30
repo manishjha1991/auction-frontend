@@ -1758,8 +1758,8 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                       </div>
                     </div>
 
-                    <div className="fixtures-list">
-                      {(() => {
+                  <div className="fixtures-list">
+                    {(() => {
                         // Filter fixtures based on search query
                         const filterFixtures = (fixtureList) => {
                           if (!fixtureSearchQuery.trim()) return fixtureList;
@@ -1783,13 +1783,13 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                           });
                         };
 
-                        // Separate round-robin and knockout fixtures
+                      // Separate round-robin and knockout fixtures
                         let roundRobinFixtures = fixtures.filter(f => 
-                          !f.team1?.includes('Winner of') && !f.team1?.includes('Top ')
-                        );
+                        !f.team1?.includes('Winner of') && !f.team1?.includes('Top ')
+                      );
                         let knockoutFixtures = fixtures.filter(f => 
-                          f.team1?.includes('Winner of') || f.team1?.includes('Top ')
-                        );
+                        f.team1?.includes('Winner of') || f.team1?.includes('Top ')
+                      );
 
                         // Sort both lists
                         roundRobinFixtures = sortFixtures(roundRobinFixtures);
@@ -1814,7 +1814,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                               <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', opacity: 0.7 }}>Try searching with a different team name</p>
                             </div>
                           ) : (
-                            <>
+                        <>
                           {roundRobinFixtures.length > 0 && (
                             <div style={{ marginBottom: '2rem' }}>
                               <h4 style={{ 
@@ -2098,11 +2098,12 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                         <tr>
                           <th>Team</th>
                           <th>M</th>
-                          <th>Won</th>
-                          <th>Lost</th>
-                          <th>Points</th>
+                          <th>W</th>
+                          <th>L</th>
+                          <th>Pts</th>
                           <th>Fair</th>
-                          <th>Q%</th>
+                          <th>NRR</th>
+                          <th className="qualification-col">Qual%</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2113,7 +2114,18 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                           const showE = allRoundRobinComplete && index >= 4; // Last 4 get E icon
                           
                           // Calculate qualification percentage
-                          const qualPercentage = calculateQualificationPercentage(team, index, pointTable);
+                          const qualificationPercentage = calculateQualificationPercentage(team, index, pointTable);
+                          
+                          // Determine NRR color
+                          const nrrValue = team.nrr !== undefined && team.nrr !== null ? parseFloat(team.nrr) : 0;
+                          let nrrColor = '#374151'; // Default gray
+                          if (nrrValue < 0) {
+                            nrrColor = '#dc3545'; // Red for negative
+                          } else if (nrrValue > 0.5) {
+                            nrrColor = '#28a745'; // Green for high positive
+                          } else if (nrrValue > 0) {
+                            nrrColor = '#f59e0b'; // Yellow/amber for okay/neutral positive
+                          }
                           
                           return (
                             <tr 
@@ -2145,13 +2157,13 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    marginLeft: '8px',
-                                    width: '18px',
-                                    height: '18px',
+                                    marginLeft: '4px',
+                                    width: '16px',
+                                    height: '16px',
                                     borderRadius: '50%',
                                     background: '#28a745',
                                     color: '#ffffff',
-                                    fontSize: '12px',
+                                    fontSize: '10px',
                                     lineHeight: '1',
                                     fontWeight: '800'
                                   }} title="Qualified (Top 4)">Q</span>
@@ -2161,13 +2173,13 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    marginLeft: '8px',
-                                    width: '18px',
-                                    height: '18px',
+                                    marginLeft: '4px',
+                                    width: '16px',
+                                    height: '16px',
                                     borderRadius: '50%',
                                     background: '#dc3545',
                                     color: '#ffffff',
-                                    fontSize: '12px',
+                                    fontSize: '10px',
                                     lineHeight: '1',
                                     fontWeight: '800'
                                   }} title="Eliminated">E</span>
@@ -2182,19 +2194,22 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                   {team.fairness}
                                 </span>
                               </td>
-                              <td style={{ textAlign: 'center' }}>
-                                <span style={{
-                                  display: 'inline-block',
-                                  padding: '4px 10px',
-                                  borderRadius: '12px',
-                                  fontSize: '0.85rem',
-                                  fontWeight: '600',
-                                  background: qualPercentage >= 70 ? '#d4edda' : qualPercentage >= 40 ? '#fff3cd' : '#f8d7da',
-                                  color: qualPercentage >= 70 ? '#155724' : qualPercentage >= 40 ? '#856404' : '#721c24',
-                                  minWidth: '45px',
-                                  whiteSpace: 'nowrap'
-                                }} title={`Qualification Chance: ${qualPercentage}%`}>
-                                  {qualPercentage}%
+                              <td style={{ fontWeight: '600', color: nrrColor }}>
+                                {team.nrr !== undefined && team.nrr !== null 
+                                  ? (team.nrr >= 0 ? '+' : '') + parseFloat(team.nrr).toFixed(3)
+                                  : '0.000'}
+                              </td>
+                              <td className="qualification-col">
+                                <span 
+                                  className="qualification-percentage"
+                                  style={{
+                                    fontWeight: '600',
+                                    color: qualificationPercentage >= 70 ? '#28a745' : 
+                                           qualificationPercentage >= 40 ? '#f59e0b' : 
+                                           qualificationPercentage >= 20 ? '#f97316' : '#dc3545'
+                                  }}
+                                >
+                                  {qualificationPercentage}%
                                 </span>
                               </td>
                             </tr>
@@ -2504,6 +2519,20 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                   </div>
                   <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>Matches</div>
                 </div>
+                {selectedTeam.nrr !== undefined && selectedTeam.nrr !== null && (
+                  <div style={{ 
+                    background: '#e8f5e9', 
+                    padding: '15px', 
+                    borderRadius: '8px', 
+                    textAlign: 'center',
+                    border: '2px solid #4caf50'
+                  }}>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#2e7d32' }}>
+                      {selectedTeam.nrr >= 0 ? '+' : ''}{parseFloat(selectedTeam.nrr || 0).toFixed(3)}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>NRR</div>
+                  </div>
+                )}
               </div>
 
               <h3 style={{ color: '#374151', marginBottom: '1rem', fontSize: '1.2rem' }}>Match History</h3>

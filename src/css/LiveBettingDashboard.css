@@ -1,0 +1,1373 @@
+.live-betting-dashboard {
+  max-width: 1400px;
+  margin: 0.5rem auto;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: calc(100vh - 1rem);
+  border-radius: 15px;
+}
+
+.live-betting-dashboard .dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.live-betting-dashboard .dashboard-header h1 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.live-betting-dashboard .settle-all-btn {
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.live-betting-dashboard .settle-all-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.live-betting-dashboard .settle-all-btn:disabled {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Tab Navigation */
+.live-betting-dashboard .tab-navigation {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.live-betting-dashboard .tab-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.live-betting-dashboard .tab-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.live-betting-dashboard .tab-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.live-betting-dashboard .message {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.live-betting-dashboard .message.success {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+  border: 2px solid #10b981;
+}
+
+.live-betting-dashboard .message.error {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #991b1b;
+  border: 2px solid #ef4444;
+}
+
+.live-betting-dashboard .stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.live-betting-dashboard .stat-item {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1rem;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
+}
+
+.live-betting-dashboard .stat-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.live-betting-dashboard .stat-label {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.live-betting-dashboard .stat-value {
+  color: #1f2937;
+  font-size: 1.25rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.live-betting-dashboard .no-bets {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  color: #6b7280;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Matches Table */
+.live-betting-dashboard .matches-table-container {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+}
+
+.live-betting-dashboard .matches-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  table-layout: auto;
+}
+
+.live-betting-dashboard .matches-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  visibility: visible;
+  opacity: 1;
+  display: table-header-group;
+}
+
+.live-betting-dashboard .matches-table th {
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: normal;
+  visibility: visible;
+  opacity: 1;
+  display: table-cell;
+  overflow: visible;
+  word-wrap: break-word;
+}
+
+.live-betting-dashboard .matches-table th:first-child {
+  border-radius: 8px 0 0 0;
+}
+
+.live-betting-dashboard .matches-table th:last-child {
+  border-radius: 0 8px 0 0;
+}
+
+.live-betting-dashboard .match-row {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.2s;
+}
+
+.live-betting-dashboard .match-row:hover {
+  background: #f9fafb;
+}
+
+.live-betting-dashboard .match-cell {
+  padding: 0.75rem 0.5rem;
+}
+
+.live-betting-dashboard .match-teams-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.live-betting-dashboard .team-name-compact {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+.live-betting-dashboard .vs-compact {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.live-betting-dashboard .team-bets-cell {
+  padding: 0.75rem 0.5rem;
+}
+
+.live-betting-dashboard .team-bets-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.live-betting-dashboard .bets-count {
+  font-weight: 700;
+  color: #374151;
+  font-size: 0.85rem;
+}
+
+.live-betting-dashboard .bets-amount {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.live-betting-dashboard .total-amount-cell {
+  padding: 0.75rem 0.5rem;
+}
+
+.live-betting-dashboard .total-amount-value {
+  font-weight: 800;
+  color: #3b82f6;
+  font-size: 0.9rem;
+}
+
+.live-betting-dashboard .total-bets-cell {
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+}
+
+.live-betting-dashboard .total-bets-value {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 0.9rem;
+}
+
+.live-betting-dashboard .actions-cell {
+  padding: 0.75rem 0.5rem;
+}
+
+.live-betting-dashboard .admin-actions-compact {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.live-betting-dashboard .winner-btn-compact {
+  padding: 0.375rem 0.625rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 35px;
+}
+
+.live-betting-dashboard .winner-btn-compact:hover {
+  border-color: #667eea;
+  background: #eff6ff;
+}
+
+.live-betting-dashboard .winner-btn-compact.active {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+}
+
+.live-betting-dashboard .settle-btn-compact {
+  padding: 0.375rem 0.625rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 35px;
+}
+
+.live-betting-dashboard .settle-btn-compact:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.live-betting-dashboard .settle-btn-compact:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.live-betting-dashboard .bets-detail-row {
+  background: #f9fafb;
+}
+
+.live-betting-dashboard .bets-detail-cell {
+  padding: 0;
+  border: none;
+}
+
+.live-betting-dashboard .bets-detail-content {
+  padding: 0.75rem;
+}
+
+.live-betting-dashboard .bets-detail-header {
+  margin-bottom: 0.5rem;
+  visibility: visible;
+  opacity: 1;
+  display: block;
+  overflow: visible;
+}
+
+.live-betting-dashboard .bets-detail-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #374151;
+  visibility: visible;
+  opacity: 1;
+  display: block;
+  white-space: normal;
+  overflow: visible;
+  word-wrap: break-word;
+}
+
+.live-betting-dashboard .bets-detail-table-wrapper {
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .live-betting-dashboard .bets-detail-table-wrapper {
+    max-height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .live-betting-dashboard .bets-detail-table-wrapper {
+    max-height: 120px;
+  }
+}
+
+.live-betting-dashboard .bets-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.live-betting-dashboard .bets-detail-table thead {
+  background: #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  visibility: visible;
+  opacity: 1;
+  display: table-header-group;
+}
+
+.live-betting-dashboard .bets-detail-table th {
+  padding: 0.5rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  visibility: visible;
+  opacity: 1;
+  display: table-cell;
+  white-space: normal;
+  overflow: visible;
+  word-wrap: break-word;
+}
+
+.live-betting-dashboard .bet-detail-row {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.2s;
+}
+
+.live-betting-dashboard .bet-detail-row:hover {
+  background: #ffffff;
+}
+
+.live-betting-dashboard .bet-user-cell,
+.live-betting-dashboard .bet-team-cell,
+.live-betting-dashboard .bet-amount-cell,
+.live-betting-dashboard .bet-win-cell,
+.live-betting-dashboard .bet-loss-cell {
+  padding: 0.5rem;
+}
+
+.live-betting-dashboard .bet-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.live-betting-dashboard .bet-user-name {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 0.8rem;
+}
+
+.live-betting-dashboard .bet-time {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.live-betting-dashboard .bet-team-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .bet-team-badge.team1 {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+}
+
+.live-betting-dashboard .bet-team-badge.team2 {
+  background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+  color: #9f1239;
+}
+
+.live-betting-dashboard .bet-win-cell {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .bet-loss-cell {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .loading {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  color: #6b7280;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* My Bets Section */
+.live-betting-dashboard .my-bets-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: visible;
+  overflow-y: visible;
+}
+
+.live-betting-dashboard .my-bets-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+  padding: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.live-betting-dashboard .summary-card {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.75rem 0.5rem;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.3s;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+  word-wrap: break-word;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: auto;
+  height: auto;
+  width: 100%;
+}
+
+.live-betting-dashboard .summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.live-betting-dashboard .summary-card.win {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+
+.live-betting-dashboard .summary-card.loss {
+  border-color: #ef4444;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+}
+
+.live-betting-dashboard .summary-card.total {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.live-betting-dashboard .summary-label {
+  font-size: 0.7rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.375rem;
+  white-space: normal;
+  overflow: visible;
+  word-wrap: break-word;
+  line-height: 1.3;
+  width: 100%;
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  text-overflow: clip;
+}
+
+.live-betting-dashboard .summary-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+  white-space: normal;
+  overflow: visible;
+  word-wrap: break-word;
+  line-height: 1.3;
+  width: 100%;
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  text-overflow: clip;
+}
+
+.live-betting-dashboard .summary-card.win .summary-value {
+  color: #10b981;
+}
+
+.live-betting-dashboard .summary-card.loss .summary-value {
+  color: #ef4444;
+}
+
+.live-betting-dashboard .summary-card.total .summary-value {
+  color: #667eea;
+  font-size: 1.25rem;
+}
+
+.live-betting-dashboard .summary-amount {
+  font-size: 0.7rem;
+  color: #6b7280;
+  font-weight: 600;
+  white-space: normal;
+  overflow: visible;
+  word-wrap: break-word;
+  line-height: 1.3;
+  width: 100%;
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  text-overflow: clip;
+}
+
+/* My Bets Table */
+.live-betting-dashboard .my-bets-table-container {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+  width: 100%;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+}
+
+.live-betting-dashboard .my-bets-table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  table-layout: fixed;
+}
+
+.live-betting-dashboard .my-bets-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  visibility: visible;
+  opacity: 1;
+  display: table-header-group;
+}
+
+.live-betting-dashboard .my-bets-table th {
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: normal;
+  overflow: visible;
+  visibility: visible;
+  opacity: 1;
+  display: table-cell;
+  word-wrap: break-word;
+  text-overflow: ellipsis;
+}
+
+.live-betting-dashboard .my-bets-table th:nth-child(1) { width: 25%; }
+.live-betting-dashboard .my-bets-table th:nth-child(2) { width: 15%; }
+.live-betting-dashboard .my-bets-table th:nth-child(3) { width: 12%; }
+.live-betting-dashboard .my-bets-table th:nth-child(4) { width: 12%; }
+.live-betting-dashboard .my-bets-table th:nth-child(5) { width: 18%; }
+.live-betting-dashboard .my-bets-table th:nth-child(6) { width: 18%; }
+
+.live-betting-dashboard .my-bet-row {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.2s;
+}
+
+.live-betting-dashboard .my-bet-row:hover {
+  background: #f9fafb;
+}
+
+.live-betting-dashboard .my-bet-match-cell,
+.live-betting-dashboard .my-bet-selected-cell,
+.live-betting-dashboard .my-bet-amount-cell,
+.live-betting-dashboard .my-bet-status-cell,
+.live-betting-dashboard .my-bet-outcome-cell,
+.live-betting-dashboard .my-bet-date-cell {
+  padding: 0.75rem 0.5rem;
+}
+
+.live-betting-dashboard .my-bet-status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .my-bet-status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.live-betting-dashboard .my-bet-status-badge.won {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.live-betting-dashboard .my-bet-status-badge.lost {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.live-betting-dashboard .win-text {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .loss-text {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .my-bet-date-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.live-betting-dashboard .date-time-row {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* Settlement Summary Modal */
+.live-betting-dashboard .settlement-summary-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.live-betting-dashboard .settlement-summary-content {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.live-betting-dashboard .settlement-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.live-betting-dashboard .settlement-summary-header h2 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .close-settlement-btn {
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.live-betting-dashboard .close-settlement-btn:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+.live-betting-dashboard .settlement-match-info {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  color: #ffffff;
+}
+
+.live-betting-dashboard .settlement-match-info h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .settlement-match-info .winner-text {
+  margin: 0;
+  font-size: 1rem;
+  opacity: 0.95;
+}
+
+.live-betting-dashboard .settlement-summary-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.live-betting-dashboard .summary-stat-card {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.live-betting-dashboard .summary-stat-card.win {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+
+.live-betting-dashboard .summary-stat-card.loss {
+  border-color: #ef4444;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+}
+
+.live-betting-dashboard .summary-stat-card.total {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.live-betting-dashboard .stat-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.live-betting-dashboard .stat-value {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.live-betting-dashboard .stat-amount {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.live-betting-dashboard .settlement-details-table {
+  margin-top: 1.5rem;
+}
+
+.live-betting-dashboard .settlement-details-table h4 {
+  margin: 0 0 1rem 0;
+  color: #1f2937;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .settlement-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.live-betting-dashboard .settlement-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+}
+
+.live-betting-dashboard .settlement-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.live-betting-dashboard .settlement-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.live-betting-dashboard .settlement-table .won-row {
+  background: #f0fdf4;
+}
+
+.live-betting-dashboard .settlement-table .lost-row {
+  background: #fef2f2;
+}
+
+.live-betting-dashboard .status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .status-badge.won {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.live-betting-dashboard .status-badge.lost {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.live-betting-dashboard .win-amount {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .loss-amount {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .live-betting-dashboard {
+    padding: 0.5rem;
+  }
+
+  .live-betting-dashboard .dashboard-header {
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .live-betting-dashboard .dashboard-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .live-betting-dashboard .settle-all-btn {
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  .live-betting-dashboard .stats-bar {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.375rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .live-betting-dashboard .stat-item {
+    padding: 0.5rem;
+  }
+
+  .live-betting-dashboard .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .live-betting-dashboard .stat-value {
+    font-size: 0.95rem;
+  }
+
+  .live-betting-dashboard .message {
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  /* Table Mobile Styles */
+  .live-betting-dashboard .matches-table-container,
+  .live-betting-dashboard .my-bets-table-container {
+    padding: 0.375rem;
+  }
+
+  .live-betting-dashboard .matches-table,
+  .live-betting-dashboard .my-bets-table {
+    font-size: 0.7rem;
+    min-width: 800px;
+    width: 100%;
+    table-layout: auto;
+  }
+
+  .live-betting-dashboard .matches-table th,
+  .live-betting-dashboard .my-bets-table th {
+    padding: 0.375rem 0.25rem;
+    font-size: 0.65rem;
+  }
+
+  .live-betting-dashboard .match-cell,
+  .live-betting-dashboard .team-bets-cell,
+  .live-betting-dashboard .total-amount-cell,
+  .live-betting-dashboard .total-bets-cell,
+  .live-betting-dashboard .actions-cell,
+  .live-betting-dashboard .my-bet-match-cell,
+  .live-betting-dashboard .my-bet-selected-cell,
+  .live-betting-dashboard .my-bet-amount-cell,
+  .live-betting-dashboard .my-bet-status-cell,
+  .live-betting-dashboard .my-bet-outcome-cell,
+  .live-betting-dashboard .my-bet-date-cell {
+    padding: 0.3rem 0.25rem;
+  }
+
+  .live-betting-dashboard .bets-detail-table {
+    font-size: 0.65rem;
+    min-width: 100%;
+    width: 100%;
+    table-layout: auto;
+  }
+
+  .live-betting-dashboard .bets-detail-table th,
+  .live-betting-dashboard .bet-user-cell,
+  .live-betting-dashboard .bet-team-cell,
+  .live-betting-dashboard .bet-amount-cell,
+  .live-betting-dashboard .bet-win-cell,
+  .live-betting-dashboard .bet-loss-cell {
+    padding: 0.3rem 0.25rem;
+    font-size: 0.65rem;
+  }
+
+  .live-betting-dashboard .bet-team-badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .live-betting-dashboard .bets-detail-content {
+    padding: 0.5rem;
+  }
+
+  .live-betting-dashboard .bets-detail-title {
+    font-size: 0.75rem;
+  }
+
+  .live-betting-dashboard .my-bets-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.375rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+    margin-bottom: 0.5rem;
+    padding: 0;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .live-betting-dashboard .summary-card {
+    padding: 0.5rem 0.25rem;
+    min-width: 0;
+    overflow: visible;
+    min-height: auto;
+    height: auto;
+    width: 100%;
+  }
+
+  .live-betting-dashboard .summary-label {
+    font-size: 0.6rem;
+    margin-bottom: 0.25rem;
+    white-space: normal;
+    overflow: visible;
+    word-wrap: break-word;
+    width: 100%;
+  }
+
+  .live-betting-dashboard .summary-value {
+    font-size: 0.9rem;
+    margin-bottom: 0.15rem;
+    white-space: normal;
+    overflow: visible;
+    word-wrap: break-word;
+    width: 100%;
+  }
+
+  .live-betting-dashboard .summary-card.total .summary-value {
+    font-size: 1rem;
+  }
+
+  .live-betting-dashboard .summary-amount {
+    font-size: 0.6rem;
+    white-space: normal;
+    overflow: visible;
+    word-wrap: break-word;
+    width: 100%;
+  }
+
+  .live-betting-dashboard .settlement-summary-content {
+    padding: 1rem;
+    max-height: 95vh;
+  }
+
+  .live-betting-dashboard .settlement-summary-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .live-betting-dashboard .settlement-table {
+    font-size: 0.7rem;
+  }
+
+  .live-betting-dashboard .settlement-table th,
+  .live-betting-dashboard .settlement-table td {
+    padding: 0.5rem 0.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .live-betting-dashboard {
+    padding: 0.375rem;
+  }
+
+  .live-betting-dashboard .dashboard-header {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .live-betting-dashboard .dashboard-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .live-betting-dashboard .stats-bar {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.25rem;
+  }
+
+  .live-betting-dashboard .stat-item {
+    padding: 0.375rem;
+  }
+
+  .live-betting-dashboard .stat-label {
+    font-size: 0.65rem;
+  }
+
+  .live-betting-dashboard .stat-value {
+    font-size: 0.85rem;
+  }
+
+  .live-betting-dashboard .matches-table,
+  .live-betting-dashboard .my-bets-table {
+    width: 100%;
+    font-size: 0.6rem;
+    table-layout: auto;
+  }
+
+  .live-betting-dashboard .matches-table th,
+  .live-betting-dashboard .my-bets-table th {
+    padding: 0.3rem 0.2rem;
+    font-size: 0.6rem;
+  }
+
+  .live-betting-dashboard .match-cell,
+  .live-betting-dashboard .team-bets-cell,
+  .live-betting-dashboard .total-amount-cell,
+  .live-betting-dashboard .total-bets-cell,
+  .live-betting-dashboard .actions-cell,
+  .live-betting-dashboard .my-bet-match-cell,
+  .live-betting-dashboard .my-bet-selected-cell,
+  .live-betting-dashboard .my-bet-amount-cell,
+  .live-betting-dashboard .my-bet-status-cell,
+  .live-betting-dashboard .my-bet-outcome-cell,
+  .live-betting-dashboard .my-bet-date-cell {
+    padding: 0.3rem 0.2rem;
+  }
+
+  .live-betting-dashboard .bets-detail-table {
+    min-width: 100%;
+    width: 100%;
+    font-size: 0.6rem;
+    table-layout: auto;
+  }
+
+  .live-betting-dashboard .my-bets-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.25rem;
+    margin-bottom: 0.375rem;
+    overflow: visible;
+  }
+
+  .live-betting-dashboard .summary-card {
+    padding: 0.375rem 0.2rem;
+    overflow: visible;
+    min-height: auto;
+    height: auto;
+    width: 100%;
+  }
+
+  .live-betting-dashboard .summary-label {
+    font-size: 0.55rem;
+    margin-bottom: 0.2rem;
+    white-space: normal;
+    overflow: visible;
+    word-wrap: break-word;
+    width: 100%;
+    display: block;
+  }
+
+  .live-betting-dashboard .summary-value {
+    font-size: 0.8rem;
+    margin-bottom: 0.1rem;
+    white-space: normal;
+    overflow: visible;
+    word-wrap: break-word;
+    width: 100%;
+    display: block;
+  }
+
+  .live-betting-dashboard .summary-card.total .summary-value {
+    font-size: 0.9rem;
+  }
+
+  .live-betting-dashboard .summary-amount {
+    font-size: 0.55rem;
+    white-space: normal;
+    overflow: visible;
+    word-wrap: break-word;
+    width: 100%;
+    display: block;
+  }
+
+  .live-betting-dashboard .settlement-summary-content {
+    padding: 0.75rem;
+  }
+
+  .live-betting-dashboard .settlement-summary-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.375rem;
+  }
+
+  .live-betting-dashboard .settlement-table {
+    font-size: 0.65rem;
+  }
+
+  .live-betting-dashboard .settlement-table th,
+  .live-betting-dashboard .settlement-table td {
+    padding: 0.4rem 0.25rem;
+  }
+}
+
+/* Settled Bets Styles */
+.live-betting-dashboard .winner-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.live-betting-dashboard .won-lost-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.live-betting-dashboard .won-count {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .lost-count {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.live-betting-dashboard .settled-date-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.live-betting-dashboard .view-details-btn {
+  padding: 0.375rem 0.625rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.live-betting-dashboard .view-details-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.live-betting-dashboard .bet-status-cell {
+  padding: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .live-betting-dashboard .won-lost-stats {
+    font-size: 0.7rem;
+  }
+
+  .live-betting-dashboard .settled-date-compact {
+    font-size: 0.7rem;
+  }
+
+  .live-betting-dashboard .view-details-btn {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .live-betting-dashboard .won-lost-stats {
+    font-size: 0.65rem;
+  }
+
+  .live-betting-dashboard .settled-date-compact {
+    font-size: 0.65rem;
+  }
+
+  .live-betting-dashboard .view-details-btn {
+    font-size: 0.65rem;
+    padding: 0.25rem 0.4rem;
+  }
+}

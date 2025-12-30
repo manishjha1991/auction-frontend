@@ -22,7 +22,7 @@ import {
   FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen, FaTrophy, FaMedal,
   FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
-  FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes
+  FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaCoins, FaChartLine
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
@@ -37,6 +37,8 @@ import TrophyHall from './components/TrophyHall';
 import AdminMatchResults from './components/AdminMatchResults';
 import OcrExtractor from './components/OcrExtractor';
 import LiveBiddingDashboard from './components/LiveBiddingDashboard';
+import Betting from './components/Betting';
+import LiveBettingDashboard from './components/LiveBettingDashboard';
 
 // AdminDashboard removed - performance dashboard disabled
 
@@ -288,6 +290,18 @@ function App() {
                         <span>Team Directory</span>
                       </Link>
                     </li>
+                    <li>
+                      <Link to="/betting" onClick={closeSidebar} className={`menu-item ${isActive('/betting') ? 'active' : ''}`}>
+                        <FaCoins className="menu-icon" />
+                        <span>Place Bet</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/live-betting" onClick={closeSidebar} className={`menu-item ${isActive('/live-betting') ? 'active' : ''}`}>
+                        <FaChartLine className="menu-icon" />
+                        <span>Live Betting</span>
+                      </Link>
+                    </li>
                   </ul>
                 </div>
 
@@ -463,6 +477,8 @@ function App() {
             <Route path="/team-directory" element={<PrivateRoute><TeamDirectory /></PrivateRoute>} />
             <Route path="/tournaments" element={<PrivateRoute><TournamentList /></PrivateRoute>} />
             <Route path="/trophy-hall" element={<PrivateRoute><TrophyHall /></PrivateRoute>} />
+            <Route path="/betting" element={<PrivateRoute><Betting /></PrivateRoute>} />
+            <Route path="/live-betting" element={<PrivateRoute><LiveBettingDashboard /></PrivateRoute>} />
             <Route path="/admin-match-results" element={<PrivateRoute><AdminMatchResults /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
             <Route path="/player-insights" element={<PrivateRoute><PlayerInsightsPage /></PrivateRoute>} />
