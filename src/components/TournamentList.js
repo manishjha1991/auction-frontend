@@ -79,7 +79,7 @@ const TournamentList = () => {
         throw new Error('User not authenticated - no user ID found');
       }
       
-      const response = await fetch(`${API_ENDPOINTS}/api/tournaments`, {
+      const response = await fetch(`${API_ENDPOINTS}/api/tournaments?limit=100`, {
         headers: {
           'user-id': userId
         }
@@ -92,6 +92,7 @@ const TournamentList = () => {
       }
 
       const data = await response.json();
+      console.log('Tournaments API Response:', data); // Debug log
 
       // Backend can return either:
       // - an array of tournaments (default for limit >= 100 or no limit)
@@ -101,6 +102,7 @@ const TournamentList = () => {
       } else if (data && Array.isArray(data.tournaments)) {
         setTournaments(data.tournaments);
       } else {
+        console.warn('Unexpected data format:', data);
         setTournaments([]);
       }
     } catch (error) {
@@ -284,6 +286,41 @@ const TournamentList = () => {
     return (
       <div className="tournament-container">
         <div className="loading">Loading tournaments...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="tournament-container">
+        <div className="error-message" style={{ 
+          padding: '2rem', 
+          textAlign: 'center', 
+          color: '#dc3545',
+          background: '#f8d7da',
+          borderRadius: '8px',
+          margin: '2rem'
+        }}>
+          <h3>Error Loading Tournaments</h3>
+          <p>{error}</p>
+          <button 
+            onClick={() => {
+              setError(null);
+              fetchTournaments();
+            }}
+            style={{
+              marginTop: '1rem',
+              padding: '0.5rem 1rem',
+              background: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
