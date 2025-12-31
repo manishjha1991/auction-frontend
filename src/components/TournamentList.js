@@ -1546,9 +1546,9 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     // Base percentage based on current position and wins
     if (teamWins === 4) {
       // Won 4 matches (lost 3) - need to check scenarios
-      if (index < 4) {
+    if (index < 4) {
         basePercentage = 70 - (index * 8); // 70% for 1st, 62% for 2nd, 54% for 3rd, 46% for 4th
-      } else {
+    } else {
         basePercentage = 40 - ((index - 3) * 6); // Decreasing for lower positions
       }
     } else if (teamWins === 3) {
@@ -2112,18 +2112,104 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                   return true;
                                 });
                                 
-                                const matchLabel = fixture.team1 === 'Winner of Semi-Final 1' 
+                                // Detect final: Final is always the last fixture in knockoutFixtures array
+                                const isFinal = knockoutFixtures.length > 0 && index === knockoutFixtures.length - 1;
+                                
+                                // Debug logging
+                                console.log(`Knockout fixture ${index + 1}/${knockoutFixtures.length}:`, {
+                                  isFinal,
+                                  team1: fixture.team1,
+                                  team2: fixture.team2,
+                                  isLast: index === knockoutFixtures.length - 1
+                                });
+                                
+                                const matchLabel = isFinal
                                   ? '🏆 FINAL' 
                                   : (index === 0 ? '⚡ SEMI-FINAL 1 (Top 1 vs Top 4)' : '⚡ SEMI-FINAL 2 (Top 2 vs Top 3)');
                                 
+                                // Get team data for final fixture - check both tournament.subscribedTeams and also try to fetch from userId
+                                const getTeamData = (teamName) => {
+                                  if (!teamName) {
+                                    console.log('No team name provided');
+                                    return null;
+                                  }
+                                  
+                                  // First try tournament.subscribedTeams
+                                  if (tournament.subscribedTeams && tournament.subscribedTeams.length > 0) {
+                                    const team = tournament.subscribedTeams.find(t => {
+                                      const exactMatch = t.teamName === teamName;
+                                      const caseMatch = t.teamName?.toLowerCase() === teamName?.toLowerCase();
+                                      return exactMatch || caseMatch;
+                                    });
+                                    
+                                    if (team) {
+                                      return team;
+                                    }
+                                  }
+                                  
+                                  // If not found, try to get from fixture's userId if available
+                                  // For team1, check fixture.team1UserId
+                                  // For team2, check fixture.team2UserId
+                                  // But we need to match the team name, so this might not work directly
+                                  
+                                  console.log('Team not found in subscribedTeams:', { 
+                                    teamName,
+                                    hasSubscribedTeams: !!tournament.subscribedTeams,
+                                    subscribedTeamsCount: tournament.subscribedTeams?.length || 0,
+                                    availableTeams: tournament.subscribedTeams?.map(t => ({
+                                      name: t.teamName,
+                                      abbreviation: t.abbreviation,
+                                      hasImage: !!t.teamImage
+                                    })) || []
+                                  });
+                                  
+                                  return null;
+                                };
+                                
+                                const team1Data = isFinal ? getTeamData(fixture.team1) : null;
+                                const team2Data = isFinal ? getTeamData(fixture.team2) : null;
+                                
+                                // Debug logging for final
+                                if (isFinal) {
+                                  console.log('🏆 FINAL FIXTURE DETECTED:', {
+                                    fixtureIndex: index,
+                                    knockoutFixturesLength: knockoutFixtures.length,
+                                    team1: fixture.team1,
+                                    team2: fixture.team2,
+                                    team1UserId: fixture.team1UserId,
+                                    team2UserId: fixture.team2UserId,
+                                    team1Data: team1Data ? { 
+                                      name: team1Data.teamName, 
+                                      abbreviation: team1Data.abbreviation, 
+                                      hasImage: !!team1Data.teamImage,
+                                      imagePath: team1Data.teamImage
+                                    } : null,
+                                    team2Data: team2Data ? { 
+                                      name: team2Data.teamName, 
+                                      abbreviation: team2Data.abbreviation, 
+                                      hasImage: !!team2Data.teamImage,
+                                      imagePath: team2Data.teamImage
+                                    } : null,
+                                    tournamentId: tournament._id,
+                                    subscribedTeams: tournament.subscribedTeams?.map(t => ({
+                                      name: t.teamName,
+                                      abbreviation: t.abbreviation,
+                                      hasImage: !!t.teamImage
+                                    })) || []
+                                  });
+                                }
+                                
                                 return (
                                   <div key={actualIndex !== -1 ? actualIndex : index} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`} style={{ 
-                                    border: '3px solid #FFD700', 
-                                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%)',
-                                    marginBottom: '1rem'
+                                    border: isFinal ? '4px solid #FFD700' : '3px solid #FFD700', 
+                                    background: isFinal 
+                                      ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 140, 0, 0.15) 100%)'
+                                      : 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%)',
+                                    marginBottom: '1rem',
+                                    boxShadow: isFinal ? '0 8px 24px rgba(255, 215, 0, 0.3)' : 'none'
                                   }}>
                                     <div className="fixture-header">
-                                      <span className="match-number" style={{ color: '#FF8C00', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                                      <span className="match-number" style={{ color: '#FF8C00', fontWeight: 'bold', fontSize: isFinal ? '1.3rem' : '1.1rem' }}>
                                         {matchLabel}
                                       </span>
                                       {(() => {
@@ -2147,7 +2233,192 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                         return null;
                                       })()}
                                     </div>
-                                    <div className="fixture-body">
+                                    <div className="fixture-body" style={isFinal ? { 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      justifyContent: 'space-around',
+                                      padding: '1.5rem',
+                                      gap: '2rem',
+                                      flexDirection: 'row'
+                                    } : {}}>
+                                      {isFinal ? (
+                                        // FINAL - Special display with logos and abbreviations
+                                        <>
+                                          {/* Final - Special display with logos and abbreviations */}
+                                          <div className={`team-section ${fixture.winner === fixture.team1 ? 'winner' : fixture.winner ? 'loser' : ''}`} style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: '0.75rem',
+                                            flex: 1,
+                                            minWidth: '150px'
+                                          }}>
+                                            {/* Team 1 Logo/Badge - Always show something */}
+                                            {team1Data?.teamImage ? (
+                                              <img 
+                                                src={`${API_ENDPOINTS}${team1Data.teamImage}`}
+                                                alt={fixture.team1}
+                                                style={{
+                                                  width: '80px',
+                                                  height: '80px',
+                                                  borderRadius: '50%',
+                                                  objectFit: 'cover',
+                                                  border: fixture.winner === fixture.team1 ? '4px solid #28a745' : fixture.winner ? '4px solid #dc3545' : '4px solid #FFD700',
+                                                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                                }}
+                                                onError={(e) => {
+                                                  console.error('Failed to load team1 image:', team1Data.teamImage);
+                                                  e.target.style.display = 'none';
+                                                }}
+                                              />
+                                            ) : (
+                                              <div style={{
+                                                width: '80px',
+                                                height: '80px',
+                                                borderRadius: '50%',
+                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: 'white',
+                                                fontSize: '1.5rem',
+                                                fontWeight: 'bold',
+                                                border: '4px solid #FFD700',
+                                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                              }}>
+                                                {(team1Data?.abbreviation || fixture.team1 || '?').substring(0, 2).toUpperCase()}
+                                              </div>
+                                            )}
+                                            <div style={{ textAlign: 'center' }}>
+                                              <div style={{ 
+                                                fontSize: '1.1rem', 
+                                                fontWeight: 'bold', 
+                                                color: '#1f2937',
+                                                marginBottom: '0.25rem'
+                                              }}>
+                                                {team1Data?.abbreviation || fixture.team1}
+                                              </div>
+                                              <div style={{ 
+                                                fontSize: '0.85rem', 
+                                                color: '#6b7280',
+                                                marginBottom: '0.5rem'
+                                              }}>
+                                                {fixture.team1}
+                                              </div>
+                                            </div>
+                                            {fixture.team1Score !== undefined && (
+                                              <span className="team-score" style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{fixture.team1Score}</span>
+                                            )}
+                                            {fixture.team1Fairness !== undefined && fixture.team1Fairness !== null && (
+                                              <span className="team-fairness" style={{
+                                                fontSize: '0.8rem',
+                                                padding: '4px 8px',
+                                                borderRadius: '6px',
+                                                background: fixture.winner === fixture.team1 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                                color: fixture.winner === fixture.team1 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                                fontWeight: '600'
+                                              }}>
+                                                Fairness: {fixture.team1Fairness}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="vs-section" style={{ 
+                                            fontSize: '1.5rem', 
+                                            fontWeight: 'bold', 
+                                            color: '#FF8C00',
+                                            padding: '0 1rem'
+                                          }}>
+                                            VS
+                                          </div>
+                                          <div className={`team-section ${fixture.winner === fixture.team2 ? 'winner' : fixture.winner ? 'loser' : ''}`} style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: '0.75rem',
+                                            flex: 1
+                                          }}>
+                                            {/* Always show logo/badge for team2 */}
+                                            {team2Data?.teamImage ? (
+                                              <img 
+                                                src={`${API_ENDPOINTS}${team2Data.teamImage}`}
+                                                alt={fixture.team2}
+                                                style={{
+                                                  width: '80px',
+                                                  height: '80px',
+                                                  borderRadius: '50%',
+                                                  objectFit: 'cover',
+                                                  border: fixture.winner === fixture.team2 ? '4px solid #28a745' : fixture.winner ? '4px solid #dc3545' : '4px solid #FFD700',
+                                                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                                }}
+                                                onError={(e) => {
+                                                  console.error('Failed to load team2 image:', team2Data.teamImage);
+                                                  // Show fallback on error
+                                                  e.target.style.display = 'none';
+                                                  const parent = e.target.parentElement;
+                                                  if (parent && !parent.querySelector('.fallback-badge')) {
+                                                    const fallback = document.createElement('div');
+                                                    fallback.className = 'fallback-badge';
+                                                    fallback.style.cssText = 'width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: bold; border: 4px solid #FFD700; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
+                                                    fallback.textContent = (team2Data?.abbreviation || fixture.team2 || '?').substring(0, 2).toUpperCase();
+                                                    parent.insertBefore(fallback, e.target);
+                                                  }
+                                                }}
+                                              />
+                                            ) : (
+                                              <div style={{
+                                                width: '80px',
+                                                height: '80px',
+                                                borderRadius: '50%',
+                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: 'white',
+                                                fontSize: '1.5rem',
+                                                fontWeight: 'bold',
+                                                border: '4px solid #FFD700',
+                                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                              }}>
+                                                {(team2Data?.abbreviation || fixture.team2 || '?').substring(0, 2).toUpperCase()}
+                                              </div>
+                                            )}
+                                            <div style={{ textAlign: 'center' }}>
+                                              <div style={{ 
+                                                fontSize: '1.1rem', 
+                                                fontWeight: 'bold', 
+                                                color: '#1f2937',
+                                                marginBottom: '0.25rem'
+                                              }}>
+                                                {team2Data?.abbreviation || fixture.team2}
+                                              </div>
+                                              <div style={{ 
+                                                fontSize: '0.85rem', 
+                                                color: '#6b7280',
+                                                marginBottom: '0.5rem'
+                                              }}>
+                                                {fixture.team2}
+                                              </div>
+                                            </div>
+                                            {fixture.team2Score !== undefined && (
+                                              <span className="team-score" style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{fixture.team2Score}</span>
+                                            )}
+                                            {fixture.team2Fairness !== undefined && fixture.team2Fairness !== null && (
+                                              <span className="team-fairness" style={{
+                                                fontSize: '0.8rem',
+                                                padding: '4px 8px',
+                                                borderRadius: '6px',
+                                                background: fixture.winner === fixture.team2 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                                color: fixture.winner === fixture.team2 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                                fontWeight: '600'
+                                              }}>
+                                                Fairness: {fixture.team2Fairness}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <>
+                                          {/* Semi-finals - Regular display */}
                                       <div className={`team-section ${fixture.winner === fixture.team1 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
                                         <span className="team-name">{fixture.team1}</span>
                                         {fixture.team1Score !== undefined && (
@@ -2187,6 +2458,8 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                           </span>
                                         )}
                                       </div>
+                                        </>
+                                      )}
                                     </div>
                                     {fixture.margin && (
                                       <div className="fixture-margin">
