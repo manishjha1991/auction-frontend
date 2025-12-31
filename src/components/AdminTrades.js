@@ -99,12 +99,24 @@ function AdminTrades() {
   }
 
   async function loadPickHistory() {
-    const r = await fetch(`${API_ENDPOINTS}/api/picks/admin/history`);
-    const j = await r.json();
-    setPickHistory(j || []);
+    try {
+      const r = await fetch(`${API_ENDPOINTS}/api/picks/admin/history`);
+      const j = await r.json();
+      setPickHistory(j || []);
+    } catch (error) {
+      console.error('Error loading pick history:', error);
+      setPickHistory([]);
+    }
   }
 
-  useEffect(() => { loadPending(); loadHistory(); loadReleasePending(); loadReleaseHistory(); loadPickPending(); loadPickHistory(); }, []);
+  useEffect(() => { 
+    loadPending(); 
+    loadHistory(); 
+    loadReleasePending(); 
+    loadReleaseHistory(); 
+    loadPickPending(); 
+    loadPickHistory(); 
+  }, []);
 
   async function decide(tradeId, decision) {
     const loadingKey = decision === 'approve' ? 'tradeApprove' : 'tradeReject';
