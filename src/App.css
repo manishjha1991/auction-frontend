@@ -158,6 +158,19 @@
   transform: rotate(90deg);
 }
 
+.logout-header-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+}
+
+.logout-header-btn:hover {
+  background: rgba(231, 76, 60, 0.3);
+  color: #e74c3c;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+}
+
 /* Welcome Message */
 .welcome-message {
   text-align: center;

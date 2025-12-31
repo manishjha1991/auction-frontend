@@ -1365,11 +1365,6 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
   };
 
   const calculateQualificationPercentage = (team, index, allTeams) => {
-    // If all round-robin matches are complete, show 100% for top 4, 0% for others
-    if (roundRobinStatus?.allComplete) {
-      return index < 4 ? 100 : 0;
-    }
-
     const teamPoints = Number(team.points) || 0;
     const teamMatches = Number(team.matches) || 0;
     const teamFairness = Number(team.fairness) || 0;
@@ -1383,6 +1378,48 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
       return 50;
     }
 
+    // If all round-robin matches are complete, calculate based on actual standings
+    if (roundRobinStatus?.allComplete) {
+      // After all matches, only top 4 qualify
+      // But we need to check if team can still be pushed out by others
+      // Sort all teams by points (desc), then fairness (desc)
+      const sortedAllTeams = [...allTeams].sort((a, b) => {
+        const pointsDiff = (Number(b.points) || 0) - (Number(a.points) || 0);
+        if (pointsDiff !== 0) return pointsDiff;
+        return (Number(b.fairness) || 0) - (Number(a.fairness) || 0);
+      });
+      
+      // Find current team's position in sorted list
+      const currentTeamIndex = sortedAllTeams.findIndex(t => 
+        t.teamName === team.teamName || t._id === team._id
+      );
+      
+      if (currentTeamIndex < 4) {
+        // Team is in top 4 - check if they can be pushed out
+        // Check if teams below can catch up with fairness tie-breaker
+        const teamInTop4 = currentTeamIndex < 4;
+        if (teamInTop4) {
+          // Check if 5th place team can catch up with same points + better fairness
+          const fifthPlaceTeam = sortedAllTeams[4];
+          if (fifthPlaceTeam) {
+            const fifthPoints = Number(fifthPlaceTeam.points) || 0;
+            const fifthFairness = Number(fifthPlaceTeam.fairness) || 0;
+            
+            // If 5th place has same points but better fairness, current team can be pushed out
+            if (teamPoints === fifthPoints && teamFairness < fifthFairness) {
+              return 0; // Can be pushed out
+            }
+            // If 5th place has more points, current team is definitely out
+            if (teamPoints < fifthPoints) {
+              return 0;
+            }
+          }
+          return 100; // Secured top 4 position
+        }
+      }
+      return 0; // Not in top 4
+    }
+
     // Calculate average fairness per match
     const avgFairnessPerMatch = teamMatches > 0 ? teamFairness / teamMatches : 0;
     const targetAvgFairness = 550; // Average fairness target
@@ -1391,10 +1428,6 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     // Calculate min and max possible points
     const minPoints = teamPoints; // If lose all remaining
     const maxPoints = teamPoints + (remainingMatches * 2); // If win all remaining
-    
-    // Calculate min and max possible fairness
-    const minFairness = teamFairness; // If get 0 fairness in remaining
-    const maxFairness = teamFairness + (remainingMatches * targetAvgFairness); // If get average fairness
     
     // Get other teams' data (excluding current team)
     const otherTeams = allTeams.filter((t, i) => i !== index);
@@ -1415,6 +1448,35 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     // Calculate 4th place team's max possible points
     const fourthPlaceMaxPoints = fourthPlacePoints + (fourthPlaceRemaining * 2);
     
+    // Check ALL possible scenarios: Can any team below push this team out?
+    // Consider all teams that can potentially finish with same or more points
+    let canBePushedOut = false;
+    let worstCasePosition = index + 1;
+    
+    // Check each team below current position
+    for (let i = index + 1; i < otherTeams.length; i++) {
+      const otherTeam = sortedOthers[i - (index < sortedOthers.length ? 1 : 0)] || otherTeams[i];
+      if (!otherTeam) continue;
+      
+      const otherPoints = Number(otherTeam.points) || 0;
+      const otherFairness = Number(otherTeam.fairness) || 0;
+      const otherMatches = Number(otherTeam.matches) || 0;
+      const otherRemaining = maxMatches - otherMatches;
+      const otherMaxPoints = otherPoints + (otherRemaining * 2);
+      
+      // If other team can reach same or more points
+      if (otherMaxPoints >= teamPoints) {
+        // If they can reach same points, check fairness tie-breaker
+        if (otherMaxPoints === teamPoints && otherFairness > teamFairness) {
+          canBePushedOut = true;
+          worstCasePosition = Math.max(worstCasePosition, i + 1);
+        } else if (otherMaxPoints > teamPoints) {
+          canBePushedOut = true;
+          worstCasePosition = Math.max(worstCasePosition, i + 1);
+        }
+      }
+    }
+    
     // Check if team is mathematically eliminated
     if (maxPoints < fourthPlacePoints) {
       // Even if team wins all remaining, can't catch 4th place
@@ -1422,9 +1484,18 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     }
     
     // Check if team has already clinched (mathematically)
+    // Team clinches if: even if they lose all remaining, and 4th place wins all remaining,
+    // team still finishes ahead (considering fairness tie-breaker)
     if (minPoints > fourthPlaceMaxPoints) {
       // Even if 4th place wins all remaining, can't catch this team
       return 100;
+    }
+    
+    // If team can be pushed out of top 4, calculate probability
+    if (canBePushedOut && worstCasePosition > 4) {
+      // Team can be pushed out - calculate probability they stay in top 4
+      const probabilityStayInTop4 = Math.max(0, 100 - ((worstCasePosition - 4) * 15));
+      return Math.round(Math.max(0, Math.min(100, probabilityStayInTop4)));
     }
     
     // Calculate probability based on multiple factors

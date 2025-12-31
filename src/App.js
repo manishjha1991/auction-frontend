@@ -184,8 +184,8 @@ function App() {
                     <FaTrophy className="logo-icon" />
                     <span className="logo-text">{appSettings.worldCupMode ? 'World Cup' : 'CPL'}</span>
                   </div>
-                  <button className="close-btn" onClick={closeSidebar} aria-label="Close menu">
-                    <FaTimes />
+                  <button className="close-btn logout-header-btn" onClick={handleLogout} aria-label="Logout">
+                    <FaSignOutAlt />
                   </button>
                 </div>
               <div className="welcome-message">
