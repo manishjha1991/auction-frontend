@@ -401,6 +401,11 @@ function AdminTrades() {
       {/* Group release requests by user */}
       {(() => {
         const groupedReleases = {};
+        // Ensure releasePending is an array
+        if (!Array.isArray(releasePending)) {
+          console.error('releasePending is not an array:', releasePending);
+          return <div className="empty">Error loading release requests</div>;
+        }
         releasePending.forEach(release => {
           const userId = release.user?._id;
           if (!groupedReleases[userId]) {
@@ -542,6 +547,11 @@ function AdminTrades() {
       {/* Group pick requests by user */}
       {(() => {
         const groupedPicks = {};
+        // Ensure pickPending is an array
+        if (!Array.isArray(pickPending)) {
+          console.error('pickPending is not an array:', pickPending);
+          return <div className="empty">Error loading pick requests</div>;
+        }
         pickPending.forEach(pick => {
           const userId = pick.user?._id;
           if (!groupedPicks[userId]) {
