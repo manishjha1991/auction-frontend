@@ -1922,12 +1922,76 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                         };
 
                       // Separate round-robin and knockout fixtures
-                        let roundRobinFixtures = fixtures.filter(f => 
-                        !f.team1?.includes('Winner of') && !f.team1?.includes('Top ')
-                      );
-                        let knockoutFixtures = fixtures.filter(f => 
-                        f.team1?.includes('Winner of') || f.team1?.includes('Top ')
-                      );
+                        // Strategy: Identify knockout fixtures by position, not just placeholder text
+                        // For 8 teams: 28 round-robin matches (7 matches per team * 8 teams / 2)
+                        // Then 3 knockout matches: 2 semi-finals + 1 final
+                        
+                        // Method 1: Count fixtures with placeholders (for semi-finals that haven't been updated)
+                        const fixturesWithPlaceholders = fixtures.filter(f => 
+                          f.team1?.includes('Winner of') || f.team1?.includes('Top ') ||
+                          f.team2?.includes('Winner of') || f.team2?.includes('Top ')
+                        );
+                        
+                        // Method 2: Calculate expected round-robin count based on tournament structure
+                        // For 8 teams in round-robin: n*(n-1)/2 = 8*7/2 = 28 matches
+                        const expectedRoundRobinCount = 28; // 8 teams * 7 matches per team / 2
+                        
+                        // Method 3: Find the last fixture without placeholder (this is the boundary)
+                        // Everything after this is knockout
+                        let lastRoundRobinIndex = -1;
+                        for (let i = fixtures.length - 1; i >= 0; i--) {
+                          const hasPlaceholder = fixtures[i].team1?.includes('Winner of') || 
+                                                fixtures[i].team1?.includes('Top ') ||
+                                                fixtures[i].team2?.includes('Winner of') || 
+                                                fixtures[i].team2?.includes('Top ');
+                          if (!hasPlaceholder) {
+                            lastRoundRobinIndex = i;
+                            break;
+                          }
+                        }
+                        
+                        // FIXED: Use expectedRoundRobinCount (28) as the PRIMARY separator
+                        // For 8 teams: 28 round-robin matches, then 3 knockout matches (2 semis + 1 final)
+                        // This ensures the final (index 30) is always in knockoutFixtures, even if it has real team names
+                        // DO NOT use lastRoundRobinIndex + 1 because the final has no placeholder and would be counted as round-robin
+                        let roundRobinCount = expectedRoundRobinCount; // Always 28 for 8 teams
+                        
+                        // Safety check: If we have fewer than 28 fixtures, adjust
+                        if (fixtures.length < expectedRoundRobinCount) {
+                          // If we have fewer fixtures than expected, use all but last 3 as round-robin
+                          roundRobinCount = Math.max(0, fixtures.length - 3);
+                        }
+                        
+                        // Ensure we always have at least 3 knockout fixtures (2 semis + 1 final)
+                        if (roundRobinCount > fixtures.length - 3) {
+                          roundRobinCount = Math.max(0, fixtures.length - 3);
+                        }
+                        
+                        // Round-robin fixtures: first N fixtures (indices 0-27 for 8 teams)
+                        let roundRobinFixtures = fixtures.slice(0, roundRobinCount);
+                        
+                        // Knockout fixtures: everything after round-robin (indices 28, 29, 30 for 8 teams)
+                        // This includes semi-finals and final, even if they have real team names now
+                        let knockoutFixtures = fixtures.slice(roundRobinCount);
+                        
+                        console.log('🔧 FIXED Fixture Separation:', {
+                          totalFixtures: fixtures.length,
+                          expectedRoundRobinCount,
+                          lastRoundRobinIndex,
+                          calculatedRoundRobinCount: roundRobinCount,
+                          expectedKnockoutCount: fixtures.length - roundRobinCount,
+                          actualRoundRobinCount: roundRobinFixtures.length,
+                          actualKnockoutCount: knockoutFixtures.length
+                        });
+                        
+                        console.log('🔍 Fixture Separation:', {
+                          totalFixtures: fixtures.length,
+                          roundRobinCount,
+                          roundRobinFixtures: roundRobinFixtures.length,
+                          knockoutFixtures: knockoutFixtures.length,
+                          lastRoundRobinIndex,
+                          expectedRoundRobinCount
+                        });
 
                         // Sort both lists
                         roundRobinFixtures = sortFixtures(roundRobinFixtures);
@@ -2093,17 +2157,20 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                 🏆 Knockout Stage ({knockoutFixtures.length} matches)
                               </h4>
                               {knockoutFixtures.map((fixture, index) => {
+                                // CRITICAL: The last fixture in knockoutFixtures is ALWAYS the final
+                                // For 31 fixtures: indices 28, 29, 30 are knockout (2 semis + 1 final)
+                                // Index 30 (match 31) is the FINAL
+                                const isLastKnockoutFixture = knockoutFixtures.length > 0 && index === knockoutFixtures.length - 1;
+                                
                                 // Find the actual index in the original fixtures array
-                                // Match by team names and knockout stage identifiers
-                                const actualIndex = fixtures.findIndex(f => {
-                                  // Must match both teams exactly
+                                // Since knockoutFixtures is a slice of fixtures starting at roundRobinCount,
+                                // the actual index is roundRobinCount + index
+                                const actualIndex = roundRobinCount + index;
+                                
+                                // Also try to find by matching team names (fallback)
+                                const foundIndex = fixtures.findIndex(f => {
                                   const teamsMatch = f.team1 === fixture.team1 && f.team2 === fixture.team2;
                                   if (!teamsMatch) return false;
-                                  
-                                  // Must be knockout (has Winner of or Top)
-                                  const isKnockout = f.team1?.includes('Winner of') || f.team1?.includes('Top ') || 
-                                                    f.team2?.includes('Winner of') || f.team2?.includes('Top ');
-                                  if (!isKnockout) return false;
                                   
                                   // If scores exist, they should match
                                   if (fixture.team1Score !== undefined && f.team1Score !== fixture.team1Score) return false;
@@ -2112,19 +2179,67 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                   return true;
                                 });
                                 
-                                // Detect final: Final is always the last fixture in knockoutFixtures array
-                                const isFinal = knockoutFixtures.length > 0 && index === knockoutFixtures.length - 1;
+                                // Use found index if it's valid, otherwise use calculated index
+                                const finalActualIndex = foundIndex !== -1 ? foundIndex : actualIndex;
                                 
-                                // Debug logging
-                                console.log(`Knockout fixture ${index + 1}/${knockoutFixtures.length}:`, {
-                                  isFinal,
-                                  team1: fixture.team1,
-                                  team2: fixture.team2,
-                                  isLast: index === knockoutFixtures.length - 1
-                                });
+                                // DETECT FINAL: Multiple reliable checks
+                                // For 8 teams tournament structure:
+                                // - Round-robin: indices 0-27 (28 matches)
+                                // - Semi-finals: indices 28-29 (2 matches)
+                                // - Final: index 30 (1 match) - THIS IS ALWAYS THE LAST FIXTURE
                                 
+                                // Check 1: Is it the last fixture in knockoutFixtures array?
+                                // (knockoutFixtures contains indices 28, 29, 30, so index 2 = final)
+                                const isLastKnockout = knockoutFixtures.length > 0 && index === knockoutFixtures.length - 1;
+                                
+                                // Check 2: Is it the last fixture in the entire fixtures array?
+                                // (For 31 fixtures, index 30 is the last = FINAL)
+                                const isLastOverall = finalActualIndex === fixtures.length - 1;
+                                
+                                // Check 3: Is it at the expected final position?
+                                // (After 28 round-robin + 2 semi-finals = index 30)
+                                const isAtFinalPosition = finalActualIndex === 30;
+                                
+                                // Check 4: Does it have no winner/stats and is the last knockout?
+                                // (Pending final match - no stats yet)
+                                const hasNoStats = !fixture.winner && !fixture.team1Score && !fixture.team2Score;
+                                const isPendingFinal = isLastKnockout && hasNoStats;
+                                
+                                // Final is detected if ANY of these checks pass
+                                // Primary check: isLastKnockout (most reliable)
+                                let isFinal = isLastKnockout || isLastOverall || isAtFinalPosition || isPendingFinal;
+                                
+                                // FORCE FINAL: If it's the last fixture in knockoutFixtures, it's ALWAYS the final
+                                // This ensures match 30 (index 30) is always identified as the final
+                                // This is the most reliable check - the last knockout fixture is always the final
+                                if (knockoutFixtures.length > 0 && index === knockoutFixtures.length - 1) {
+                                  isFinal = true;
+                                }
+                                
+                                if (isFinal) {
+                                  console.log('🏆 FINAL DETECTED:', {
+                                    index,
+                                    actualIndex: finalActualIndex,
+                                    calculatedIndex: actualIndex,
+                                    foundIndex,
+                                    knockoutLength: knockoutFixtures.length,
+                                    totalFixtures: fixtures.length,
+                                    roundRobinCount,
+                                    team1: fixture.team1,
+                                    team2: fixture.team2,
+                                    isLastKnockout,
+                                    isLastOverall,
+                                    isAtFinalPosition,
+                                    isPendingFinal,
+                                    hasWinner: !!fixture.winner,
+                                    isFinal: isFinal
+                                  });
+                                }
+                                
+                                // Match label - ALWAYS show FINAL for the last knockout fixture
+                                // For 31 fixtures: index 30 = match 31 = FINAL
                                 const matchLabel = isFinal
-                                  ? '🏆 FINAL' 
+                                  ? 'FINAL' 
                                   : (index === 0 ? '⚡ SEMI-FINAL 1 (Top 1 vs Top 4)' : '⚡ SEMI-FINAL 2 (Top 2 vs Top 3)');
                                 
                                 // Get team data for final fixture - check both tournament.subscribedTeams and also try to fetch from userId
@@ -2136,13 +2251,17 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                   
                                   // First try tournament.subscribedTeams
                                   if (tournament.subscribedTeams && tournament.subscribedTeams.length > 0) {
+                                    // Try multiple matching strategies
                                     const team = tournament.subscribedTeams.find(t => {
                                       const exactMatch = t.teamName === teamName;
-                                      const caseMatch = t.teamName?.toLowerCase() === teamName?.toLowerCase();
-                                      return exactMatch || caseMatch;
+                                      const caseMatch = t.teamName?.toLowerCase().trim() === teamName?.toLowerCase().trim();
+                                      const includesMatch = t.teamName?.toLowerCase().includes(teamName?.toLowerCase()) || 
+                                                           teamName?.toLowerCase().includes(t.teamName?.toLowerCase());
+                                      return exactMatch || caseMatch || includesMatch;
                                     });
                                     
                                     if (team) {
+                                      console.log('✅ Team data found:', { teamName, foundTeam: team.teamName, hasImage: !!team.teamImage, abbreviation: team.abbreviation });
                                       return team;
                                     }
                                   }
@@ -2200,17 +2319,63 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                 }
                                 
                                 return (
-                                  <div key={actualIndex !== -1 ? actualIndex : index} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`} style={{ 
+                                  <div key={finalActualIndex !== -1 ? finalActualIndex : index} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`} style={{ 
                                     border: isFinal ? '4px solid #FFD700' : '3px solid #FFD700', 
                                     background: isFinal 
                                       ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 140, 0, 0.15) 100%)'
                                       : 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%)',
                                     marginBottom: '1rem',
-                                    boxShadow: isFinal ? '0 8px 24px rgba(255, 215, 0, 0.3)' : 'none'
+                                    boxShadow: isFinal ? '0 8px 24px rgba(255, 215, 0, 0.3)' : 'none',
+                                    position: 'relative'
                                   }}>
-                                    <div className="fixture-header">
-                                      <span className="match-number" style={{ color: '#FF8C00', fontWeight: 'bold', fontSize: isFinal ? '1.3rem' : '1.1rem' }}>
-                                        {matchLabel}
+                                    <div className="fixture-header" style={isFinal ? { 
+                                      background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(255, 140, 0, 0.25) 100%)',
+                                      padding: '1.5rem',
+                                      borderRadius: '8px 8px 0 0',
+                                      borderBottom: '3px solid #FFD700',
+                                      textAlign: 'center'
+                                    } : {}}>
+                                      <span className="match-number" style={{ 
+                                        color: isFinal ? '#FFD700' : '#FF8C00', 
+                                        fontWeight: '900', 
+                                        fontSize: isFinal ? '2.5rem' : '1.1rem',
+                                        textShadow: isFinal ? '0 2px 8px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3)' : 'none',
+                                        letterSpacing: isFinal ? '5px' : 'normal',
+                                        display: 'block',
+                                        width: '100%',
+                                        textAlign: 'center',
+                                        marginBottom: isFinal ? '0.5rem' : '0'
+                                      }}>
+                                        {/* FORCE FINAL DISPLAY: Always show FINAL for last knockout fixture */}
+                                        {(() => {
+                                          // Triple-check: is it the last knockout fixture?
+                                          const isLastKnockout = knockoutFixtures.length > 0 && index === knockoutFixtures.length - 1;
+                                          // Is it at position 30 (match 31)?
+                                          const isPosition30 = finalActualIndex === 30;
+                                          // Is it the last fixture overall?
+                                          const isLastOverall = finalActualIndex === fixtures.length - 1;
+                                          
+                                          // If ANY of these are true, it's the final
+                                          const displayFinal = isFinal || isLastKnockout || isPosition30 || isLastOverall;
+                                          
+                                          if (displayFinal) {
+                                            console.log('🎯 FORCING FINAL DISPLAY:', { 
+                                              isFinal, 
+                                              isLastKnockout, 
+                                              isPosition30,
+                                              isLastOverall,
+                                              index, 
+                                              finalActualIndex,
+                                              knockoutLength: knockoutFixtures.length,
+                                              totalFixtures: fixtures.length,
+                                              team1: fixture.team1,
+                                              team2: fixture.team2
+                                            });
+                                            return 'FINAL';
+                                          }
+                                          
+                                          return matchLabel;
+                                        })()}
                                       </span>
                                       {(() => {
                                         const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
@@ -2233,13 +2398,13 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                         return null;
                                       })()}
                                     </div>
-                                    <div className="fixture-body" style={isFinal ? { 
+                                    <div className={`fixture-body ${isFinal ? 'final-fixture-body' : ''}`} style={isFinal ? { 
                                       display: 'flex', 
                                       alignItems: 'center', 
                                       justifyContent: 'space-around',
                                       padding: '1.5rem',
                                       gap: '2rem',
-                                      flexDirection: 'row'
+                                      width: '100%'
                                     } : {}}>
                                       {isFinal ? (
                                         // FINAL - Special display with logos and abbreviations
@@ -2268,7 +2433,16 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                 }}
                                                 onError={(e) => {
                                                   console.error('Failed to load team1 image:', team1Data.teamImage);
+                                                  // Hide image and show fallback badge
                                                   e.target.style.display = 'none';
+                                                  const parent = e.target.parentElement;
+                                                  if (parent && !parent.querySelector('.fallback-badge')) {
+                                                    const fallback = document.createElement('div');
+                                                    fallback.className = 'fallback-badge';
+                                                    fallback.style.cssText = 'width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: bold; border: 4px solid #FFD700; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
+                                                    fallback.textContent = (team1Data?.abbreviation || fixture.team1 || '?').substring(0, 2).toUpperCase();
+                                                    parent.insertBefore(fallback, e.target);
+                                                  }
                                                 }}
                                               />
                                             ) : (
@@ -2290,20 +2464,14 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                               </div>
                                             )}
                                             <div style={{ textAlign: 'center' }}>
+                                              {/* Show only abbreviation in final */}
                                               <div style={{ 
-                                                fontSize: '1.1rem', 
+                                                fontSize: '1.2rem', 
                                                 fontWeight: 'bold', 
                                                 color: '#1f2937',
-                                                marginBottom: '0.25rem'
-                                              }}>
-                                                {team1Data?.abbreviation || fixture.team1}
-                                              </div>
-                                              <div style={{ 
-                                                fontSize: '0.85rem', 
-                                                color: '#6b7280',
                                                 marginBottom: '0.5rem'
                                               }}>
-                                                {fixture.team1}
+                                                {team1Data?.abbreviation || (fixture.team1 ? fixture.team1.substring(0, 3).toUpperCase() : 'N/A')}
                                               </div>
                                             </div>
                                             {fixture.team1Score !== undefined && (
@@ -2330,7 +2498,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                           }}>
                                             VS
                                           </div>
-                                          <div className={`team-section ${fixture.winner === fixture.team2 ? 'winner' : fixture.winner ? 'loser' : ''}`} style={{
+                                          <div className={`team-section final-team-section ${fixture.winner === fixture.team2 ? 'winner' : fixture.winner ? 'loser' : ''}`} style={{
                                             display: 'flex',
                                             flexDirection: 'column',
                                             alignItems: 'center',
@@ -2383,20 +2551,14 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                               </div>
                                             )}
                                             <div style={{ textAlign: 'center' }}>
+                                              {/* Show only abbreviation in final */}
                                               <div style={{ 
-                                                fontSize: '1.1rem', 
+                                                fontSize: '1.2rem', 
                                                 fontWeight: 'bold', 
                                                 color: '#1f2937',
-                                                marginBottom: '0.25rem'
-                                              }}>
-                                                {team2Data?.abbreviation || fixture.team2}
-                                              </div>
-                                              <div style={{ 
-                                                fontSize: '0.85rem', 
-                                                color: '#6b7280',
                                                 marginBottom: '0.5rem'
                                               }}>
-                                                {fixture.team2}
+                                                {team2Data?.abbreviation || (fixture.team2 ? fixture.team2.substring(0, 3).toUpperCase() : 'N/A')}
                                               </div>
                                             </div>
                                             {fixture.team2Score !== undefined && (

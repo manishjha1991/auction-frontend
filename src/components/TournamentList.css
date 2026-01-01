@@ -1632,6 +1632,35 @@
     padding: 15px;
   }
 
+  /* Final fixture: stack teams vertically on mobile */
+  .final-fixture-body {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    padding: 1rem !important;
+  }
+
+  .final-fixture-body .team-section,
+  .final-fixture-body .final-team-section {
+    width: 100% !important;
+    min-width: unset !important;
+    max-width: 100%;
+    flex: 1 1 100% !important;
+  }
+
+  .final-fixture-body .vs-section {
+    margin: 0.5rem 0;
+    font-size: 1.2rem !important;
+    order: 2; /* VS appears between teams */
+  }
+
+  .final-fixture-body .final-team-section:first-of-type {
+    order: 1; /* Team 1 first */
+  }
+
+  .final-fixture-body .final-team-section:last-of-type {
+    order: 3; /* Team 2 last */
+  }
+
   .team-section {
     width: 100%;
   }
@@ -1876,6 +1905,18 @@
   .fixture-body {
     padding: 12px 8px;
     gap: 8px;
+  }
+
+  /* Final fixture: smaller on very small screens */
+  .final-fixture-body {
+    padding: 0.75rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .final-fixture-body .team-section img,
+  .final-fixture-body .team-section > div[style*="width: 80px"] {
+    width: 60px !important;
+    height: 60px !important;
   }
 
   .team-section .team-name {

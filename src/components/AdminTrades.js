@@ -53,6 +53,7 @@ function AdminTrades() {
   const [pickPending, setPickPending] = useState([]);
   const [pickHistory, setPickHistory] = useState([]);
   const [toast, setToast] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loadingStates, setLoadingStates] = useState({
     tradeApprove: {},
     tradeReject: {},
@@ -257,16 +258,75 @@ function AdminTrades() {
     return `₹${Number(value || 0).toFixed(2)} Cr`;
   };
 
+  // Filter trades based on search query
+  const filterTrades = (trades) => {
+    if (!searchQuery.trim()) return trades;
+    const query = searchQuery.toLowerCase();
+    return trades.filter(trade => {
+      const team1 = trade.fromUser?.teamName || '';
+      const team2 = trade.toUser?.teamName || '';
+      const player1 = trade.offeredPlayer?.name || '';
+      const player2 = trade.requestedPlayer?.name || '';
+      return team1.toLowerCase().includes(query) ||
+             team2.toLowerCase().includes(query) ||
+             player1.toLowerCase().includes(query) ||
+             player2.toLowerCase().includes(query);
+    });
+  };
+
+  const filterReleases = (releases) => {
+    if (!searchQuery.trim()) return releases;
+    const query = searchQuery.toLowerCase();
+    return releases.filter(release => {
+      const team = release.user?.teamName || '';
+      const player = release.player?.name || '';
+      return team.toLowerCase().includes(query) ||
+             player.toLowerCase().includes(query);
+    });
+  };
+
+  const filterPicks = (picks) => {
+    if (!searchQuery.trim()) return picks;
+    const query = searchQuery.toLowerCase();
+    return picks.filter(pick => {
+      const team = pick.user?.teamName || '';
+      const player = pick.player?.name || '';
+      return team.toLowerCase().includes(query) ||
+             player.toLowerCase().includes(query);
+    });
+  };
+
   return (
     <div className="admin-trades-page">
       {toast && <div className="toast">{toast}</div>}
       <SexyAlert alert={alert} onClose={() => setAlert(null)} />
-      <h1 className="gradient-title"><FaShieldAlt style={{ marginRight: 10 }} />Admin Trade Approvals</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h1 className="gradient-title"><FaShieldAlt style={{ marginRight: 10 }} />Admin Trade Approvals</h1>
+        <input
+          type="text"
+          placeholder="🔍 Search by team or player name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            padding: '0.75rem 1rem',
+            fontSize: '1rem',
+            border: '2px solid #667eea',
+            borderRadius: '8px',
+            minWidth: '250px',
+            flex: '1',
+            maxWidth: '400px',
+            outline: 'none',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.2)'
+          }}
+        />
+      </div>
       
       {/* Group trades by user */}
       {(() => {
+        const filteredPending = filterTrades(pending);
         const groupedTrades = {};
-        pending.forEach(trade => {
+        filteredPending.forEach(trade => {
           const userId = trade.fromUser?._id;
           if (!groupedTrades[userId]) {
             groupedTrades[userId] = [];
@@ -350,10 +410,10 @@ function AdminTrades() {
         });
       })()}
       
-      {pending.length === 0 && <div className="empty">No pending trades</div>}
+      {filterTrades(pending).length === 0 && <div className="empty">No pending trades{searchQuery ? ' matching search' : ''}</div>}
       <h2>Admin Decisions</h2>
       <div className="history-grid">
-        {history.map(t => {
+        {filterTrades(history).map(t => {
           const approved = t.adminDecision?.status === 'approved';
           return (
             <div className="decision-card" key={t._id}>
@@ -400,13 +460,14 @@ function AdminTrades() {
       
       {/* Group release requests by user */}
       {(() => {
+        const filteredReleasePending = filterReleases(releasePending);
         const groupedReleases = {};
         // Ensure releasePending is an array
-        if (!Array.isArray(releasePending)) {
-          console.error('releasePending is not an array:', releasePending);
+        if (!Array.isArray(filteredReleasePending)) {
+          console.error('releasePending is not an array:', filteredReleasePending);
           return <div className="empty">Error loading release requests</div>;
         }
-        releasePending.forEach(release => {
+        filteredReleasePending.forEach(release => {
           const userId = release.user?._id;
           if (!groupedReleases[userId]) {
             groupedReleases[userId] = [];
@@ -495,11 +556,11 @@ function AdminTrades() {
         });
       })()}
       
-      {releasePending.length === 0 && <div className="empty">No pending release requests</div>}
+      {filterReleases(releasePending).length === 0 && <div className="empty">No pending release requests{searchQuery ? ' matching search' : ''}</div>}
 
       <h2>Release Decisions</h2>
       <div className="history-grid">
-        {releaseHistory.map(r => (
+        {filterReleases(releaseHistory).map(r => (
           <div className="decision-card" key={r._id}>
             <div className="decision-header">
               <div className="status-wrap">
@@ -546,13 +607,14 @@ function AdminTrades() {
       
       {/* Group pick requests by user */}
       {(() => {
+        const filteredPickPending = filterPicks(pickPending);
         const groupedPicks = {};
         // Ensure pickPending is an array
-        if (!Array.isArray(pickPending)) {
-          console.error('pickPending is not an array:', pickPending);
+        if (!Array.isArray(filteredPickPending)) {
+          console.error('pickPending is not an array:', filteredPickPending);
           return <div className="empty">Error loading pick requests</div>;
         }
-        pickPending.forEach(pick => {
+        filteredPickPending.forEach(pick => {
           const userId = pick.user?._id;
           if (!groupedPicks[userId]) {
             groupedPicks[userId] = [];
@@ -615,11 +677,11 @@ function AdminTrades() {
         });
       })()}
       
-      {pickPending.length === 0 && <div className="empty">No pending pick requests</div>}
+      {filterPicks(pickPending).length === 0 && <div className="empty">No pending pick requests{searchQuery ? ' matching search' : ''}</div>}
 
       <h2>Pick Decisions</h2>
       <div className="history-grid">
-        {pickHistory.map(p => (
+        {filterPicks(pickHistory).map(p => (
           <div className="decision-card" key={p._id}>
             <div className="decision-header">
               <div className="status-wrap">

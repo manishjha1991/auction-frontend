@@ -59,8 +59,10 @@ const PlayerList = () => {
             return {
               ...player,
               biddingPrice: update.bidAmount || update.currentBid || player.biddingPrice,
+              currentBid: update.currentBid || update.bidAmount || player.currentBid,
               currentBidder: update.currentBidder || player.currentBidder,
-              basePrice: update.bidAmount || update.currentBid || player.basePrice
+              basePrice: update.bidAmount || update.currentBid || player.basePrice,
+              isBidOn: update.currentBidder ? true : (player.isBidOn || false) // Mark as bidding if there's a current bidder
             };
           }
           return player;
@@ -158,8 +160,13 @@ const PlayerList = () => {
 
         </span>
       );
-    } else
-      if (player.currentBidder !== "N/A" && player.currentBidder) {
+    } else {
+      // Show "Bidding is On" if player has currentBidder OR isBidOn flag OR has active bids
+      const isBidding = (player.currentBidder && player.currentBidder !== "N/A") || 
+                       player.isBidOn || 
+                       (player.currentBid && player.currentBid > 0);
+      
+      if (isBidding && player.status !== "Sold") {
         return (
           <span style={{ color: "#000000", fontWeight: "bold" }}>
             🎯 Bidding is On
@@ -172,6 +179,7 @@ const PlayerList = () => {
           </span>
         );
       }
+    }
   }, []);
 
 
