@@ -2336,10 +2336,10 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                       textAlign: 'center'
                                     } : {}}>
                                       <span className="match-number" style={{ 
-                                        color: isFinal ? '#FFD700' : '#FF8C00', 
+                                        color: isFinal ? '#8B0000' : '#FF8C00', 
                                         fontWeight: '900', 
                                         fontSize: isFinal ? '2.5rem' : '1.1rem',
-                                        textShadow: isFinal ? '0 2px 8px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3)' : 'none',
+                                        textShadow: isFinal ? '0 2px 8px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.5), 2px 2px 4px rgba(0, 0, 0, 0.8)' : 'none',
                                         letterSpacing: isFinal ? '5px' : 'normal',
                                         display: 'block',
                                         width: '100%',
@@ -2639,8 +2639,16 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                       </div>
                                     )}
                                     {fixture.winner && (
-                                      <div className="fixture-winner-badge">
-                                        🏆 Winner: {fixture.winner}
+                                      <div className={isFinal ? "fixture-champion-badge" : "fixture-winner-badge"}>
+                                        {isFinal ? (
+                                          <>
+                                            <div className="champion-trophy">🏆</div>
+                                            <div className="champion-title">CHAMPION</div>
+                                            <div className="champion-name">{fixture.winner}</div>
+                                          </>
+                                        ) : (
+                                          <>🏆 Winner: {fixture.winner}</>
+                                        )}
                                       </div>
                                     )}
                                   </div>

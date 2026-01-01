@@ -1161,6 +1161,52 @@
   font-size: 0.95rem;
 }
 
+.fixture-champion-badge {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #000;
+  text-align: center;
+  font-weight: 900;
+  font-size: 1.3rem;
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+  border: 3px solid #FF8C00;
+  margin-top: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  position: relative;
+  overflow: hidden;
+  animation: championGlow 2s ease-in-out infinite;
+}
+
+.fixture-champion-badge .champion-trophy {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.fixture-champion-badge .champion-title {
+  font-size: 1.5rem;
+  margin-bottom: 0.3rem;
+  display: block;
+  font-weight: 900;
+}
+
+.fixture-champion-badge .champion-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: block;
+}
+
+@keyframes championGlow {
+  0%, 100% {
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+  }
+  50% {
+    box-shadow: 0 8px 35px rgba(255, 215, 0, 0.9), 0 0 20px rgba(255, 215, 0, 0.5);
+  }
+}
+
 .no-fixtures {
   text-align: center;
   padding: 40px 20px;
@@ -1807,6 +1853,23 @@
   .fixture-winner-badge {
     font-size: 0.75rem;
     padding: 8px 12px;
+  }
+
+  .fixture-champion-badge {
+    font-size: 1rem;
+    padding: 0.75rem 1.5rem;
+  }
+
+  .fixture-champion-badge .champion-trophy {
+    font-size: 1.5rem !important;
+  }
+
+  .fixture-champion-badge .champion-title {
+    font-size: 1.2rem !important;
+  }
+
+  .fixture-champion-badge .champion-name {
+    font-size: 1rem !important;
   }
 }
 
