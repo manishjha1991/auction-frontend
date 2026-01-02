@@ -115,10 +115,37 @@ const TrophyHall = () => {
       
       setWorldCupWinners(fetchedWorldCupWinners);
       
+      // Fetch tournaments again to calculate World Cup runner-ups (need tournamentFixtures)
+      let allWorldCupTournaments = [];
+      if (userId) {
+        try {
+          const tournamentsResponse = await fetch(`${API_ENDPOINTS}/api/tournaments?status=completed&limit=100`, {
+            headers: {
+              'user-id': userId
+            }
+          });
+          if (tournamentsResponse.ok) {
+            const tournamentsData = await tournamentsResponse.json();
+            const tournaments = tournamentsData.tournaments || tournamentsData || [];
+            allWorldCupTournaments = tournaments.filter(t => 
+              t.name && t.name.startsWith('World Cup') && t.status === 'completed' && t.winner && t.winner.teamName
+            );
+          }
+        } catch (error) {
+          console.warn('Error fetching tournaments for runner-up calculation:', error);
+        }
+      }
+      
       // Ensure teamsData is an array
       if (!Array.isArray(teamsData)) {
         throw new Error('Teams data is not in expected format');
       }
+      
+      // Helper function to normalize team names
+      const normalizeTeamName = (name) => {
+        if (!name) return '';
+        return name.trim().toLowerCase();
+      };
       
       // Calculate trophy counts and runner-up data
       const teamsWithData = teamsData.map(team => {
@@ -141,13 +168,43 @@ const TrophyHall = () => {
         const trophyCount = teamWins.length;
         const runnerUpCount = teamLosses.length;
 
+        const normalizedTeamName = normalizeTeamName(team.teamName);
+        
+        // World Cup wins
+        const worldCupWins = fetchedWorldCupWinners.filter(wc => {
+          const normalizedWinner = normalizeTeamName(wc.winner.teamName);
+          return normalizedWinner === normalizedTeamName;
+        });
+        const worldCupCount = worldCupWins.length;
+        
+        // World Cup runner-ups (teams that reached final but lost)
+        const worldCupRunnerUpCount = allWorldCupTournaments.filter(tournament => {
+          const normalizedTournamentWinner = normalizeTeamName(tournament.winner.teamName);
+          // If this team is the winner, they're not a runner-up
+          if (normalizedTeamName === normalizedTournamentWinner) return false;
+          
+          // Check if this team was in the final match
+          if (tournament.tournamentFixtures && tournament.tournamentFixtures.length > 0) {
+            const finalFixture = tournament.tournamentFixtures[tournament.tournamentFixtures.length - 1];
+            if (finalFixture) {
+              const normalizedTeam1 = normalizeTeamName(finalFixture.team1);
+              const normalizedTeam2 = normalizeTeamName(finalFixture.team2);
+              const wasInFinal = (normalizedTeam1 === normalizedTeamName || normalizedTeam2 === normalizedTeamName);
+              return wasInFinal;
+            }
+          }
+          return false;
+        }).length;
+
         return {
           _id: team._id,
           teamName: team.teamName,
           teamImage: team.teamImage,
           abbreviation: team.abbreviation,
           trophyCount,
-          runnerUpCount
+          runnerUpCount,
+          worldCupCount,
+          worldCupRunnerUpCount
         };
       });
       
@@ -156,9 +213,20 @@ const TrophyHall = () => {
         // No match results yet, show all teams with 0 trophies and 0 runner-ups
         setTeams(teamsWithData.sort((a, b) => a.teamName.localeCompare(b.teamName)));
       } else {
-        // Filter out teams with 0 trophies and 0 runner-ups
-        const teamsWithTrophiesOrRunnerUps = teamsWithData.filter(team => team.trophyCount > 0 || team.runnerUpCount > 0);
-        setTeams(teamsWithTrophiesOrRunnerUps.sort((a, b) => b.trophyCount - a.trophyCount));
+        // Filter out teams with 0 trophies, 0 runner-ups, 0 World Cup wins, and 0 World Cup runner-ups
+        const teamsWithTrophiesOrRunnerUps = teamsWithData.filter(team => 
+          team.trophyCount > 0 || 
+          team.runnerUpCount > 0 || 
+          team.worldCupCount > 0 || 
+          team.worldCupRunnerUpCount > 0
+        );
+        setTeams(teamsWithTrophiesOrRunnerUps.sort((a, b) => {
+          // Sort by total achievements (CPL + World Cup)
+          const totalA = a.trophyCount + a.worldCupCount;
+          const totalB = b.trophyCount + b.worldCupCount;
+          if (totalB !== totalA) return totalB - totalA;
+          return b.trophyCount - a.trophyCount;
+        }));
       }
       
     } catch (error) {
@@ -505,14 +573,16 @@ const TrophyHall = () => {
           }}>
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: '2fr 1fr 1fr',
+              gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
               gap: '15px',
               fontWeight: '700',
               fontSize: '1rem'
             }}>
               <div style={{ textAlign: 'left' }}>🏆</div>
-              <div style={{ textAlign: 'center' }}>🥇</div>
-              <div style={{ textAlign: 'center' }}>🥈</div>
+              <div style={{ textAlign: 'center' }}>🥇 CPL</div>
+              <div style={{ textAlign: 'center' }}>🥈 CPL</div>
+              <div style={{ textAlign: 'center' }}>🌍 WC</div>
+              <div style={{ textAlign: 'center' }}>🌍🥈 WC</div>
             </div>
           </div>
           
@@ -534,7 +604,7 @@ const TrophyHall = () => {
               teams.map((team, index) => (
                 <div key={team._id} style={{
                   display: 'grid',
-                  gridTemplateColumns: '2fr 1fr 1fr',
+                  gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
                   gap: '15px',
                   padding: '15px',
                   borderBottom: index < teams.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
@@ -657,6 +727,40 @@ const TrophyHall = () => {
                       textShadow: '0 2px 4px rgba(0,0,0,0.1)'
                     }}>
                       {team.runnerUpCount}
+                    </div>
+                  </div>
+                  
+                  <div style={{ 
+                    textAlign: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <div style={{
+                      fontSize: '1.5rem',
+                      fontWeight: '800',
+                      background: 'linear-gradient(135deg, #ff8c00, #ffa500)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                      {team.worldCupCount || 0}
+                    </div>
+                  </div>
+                  
+                  <div style={{ 
+                    textAlign: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <div style={{
+                      fontSize: '1.5rem',
+                      fontWeight: '800',
+                      color: '#ff8c00',
+                      textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                      {team.worldCupRunnerUpCount || 0}
                     </div>
                   </div>
                 </div>

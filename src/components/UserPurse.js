@@ -1520,7 +1520,7 @@ const UserPursePage = () => {
                 </PurseContainer>
 
             {/* Trophy Display */}
-            {(user.trophyCount > 0 || user.runnerUpCount > 0) && (
+            {(user.trophyCount > 0 || user.runnerUpCount > 0 || (user.worldCupCount > 0) || (user.worldCupRunnerUpCount > 0)) && (
               <div style={{ 
                 marginBottom: '15px',
                 padding: '12px',
@@ -1541,7 +1541,8 @@ const UserPursePage = () => {
                   display: 'flex',
                   gap: '10px',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  flexWrap: 'wrap'
                 }}>
                   {user.trophyCount > 0 && (
                     <div style={{
@@ -1558,7 +1559,44 @@ const UserPursePage = () => {
                         fontSize: '0.9rem', 
                         fontWeight: '700', 
                         color: '#ffd700' 
-                      }}>{user.trophyCount}</span>
+                      }}>CPL: {user.trophyCount}</span>
+                    </div>
+                  )}
+                  {user.worldCupCount > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: 'rgba(255, 140, 0, 0.2)',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 140, 0, 0.4)',
+                      position: 'relative'
+                    }}>
+                      <span style={{ fontSize: '1.2rem' }}>🌍</span>
+                      <span style={{ 
+                        fontSize: '0.9rem', 
+                        fontWeight: '700', 
+                        color: '#ff8c00' 
+                      }}>World Cup: {user.worldCupCount}</span>
+                    </div>
+                  )}
+                  {user.worldCupRunnerUpCount > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: 'rgba(255, 140, 0, 0.15)',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 140, 0, 0.3)'
+                    }}>
+                      <span style={{ fontSize: '1.2rem' }}>🌍🥈</span>
+                      <span style={{ 
+                        fontSize: '0.9rem', 
+                        fontWeight: '700', 
+                        color: '#ff8c00' 
+                      }}>WC Runner-up: {user.worldCupRunnerUpCount}</span>
                     </div>
                   )}
                   {user.runnerUpCount > 0 && (
@@ -1576,7 +1614,7 @@ const UserPursePage = () => {
                         fontSize: '0.9rem', 
                         fontWeight: '700', 
                         color: '#c0c0c0' 
-                      }}>{user.runnerUpCount}</span>
+                      }}>CPL Runner-up: {user.runnerUpCount}</span>
                     </div>
                   )}
                 </div>
