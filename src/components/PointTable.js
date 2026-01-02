@@ -447,7 +447,12 @@ const PointsTable = () => {
       // If both eliminated or both not eliminated, sort by points (descending)
       if (pointsB !== pointsA) return pointsB - pointsA;
       
-      // If points are equal, sort by fairness (descending)
+      // If points are equal, sort by NRR (descending)
+      const nrrA = Number(a.nrr) || 0;
+      const nrrB = Number(b.nrr) || 0;
+      if (nrrB !== nrrA) return nrrB - nrrA;
+      
+      // If NRR is equal, sort by fairness (descending)
       const fairnessA = Number(a.fairness) || 0;
       const fairnessB = Number(b.fairness) || 0;
       return fairnessB - fairnessA;
