@@ -39,6 +39,7 @@ import OcrExtractor from './components/OcrExtractor';
 import LiveBiddingDashboard from './components/LiveBiddingDashboard';
 import Betting from './components/Betting';
 import LiveBettingDashboard from './components/LiveBettingDashboard';
+import PositionCalculator from './components/PositionCalculator';
 
 // AdminDashboard removed - performance dashboard disabled
 
@@ -263,6 +264,12 @@ function App() {
                       </Link>
                     </li>
                     <li>
+                      <Link to="/position-calculator" onClick={closeSidebar} className={`menu-item ${isActive('/position-calculator') ? 'active' : ''}`}>
+                        <FaChartLine className="menu-icon" />
+                        <span>Position Calculator</span>
+                      </Link>
+                    </li>
+                    <li>
                       <Link to="/fixtures" onClick={closeSidebar} className={`menu-item ${isActive('/fixtures') ? 'active' : ''}`}>
                         <FaCalendarAlt className="menu-icon" />
                         <span>Fixtures</span>
@@ -474,6 +481,7 @@ function App() {
             <Route path="/add-player" element={<PrivateRoute><AddPlayer /></PrivateRoute>} />
             <Route path="/user-purses" element={<PrivateRoute><UserPursePage /></PrivateRoute>} />
             <Route path="/points-table" element={<PrivateRoute><PointTable /></PrivateRoute>} />
+            <Route path="/position-calculator" element={<PrivateRoute><PositionCalculator /></PrivateRoute>} />
             <Route path="/sold-playerslist" element={<PrivateRoute><SoldPlayersList /></PrivateRoute>} />
             <Route path="/fixtures" element={<PrivateRoute><Fixtures user={user} /></PrivateRoute>} />
             <Route path="/match-scheduler" element={<PrivateRoute><MatchScheduler /></PrivateRoute>} />
