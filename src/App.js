@@ -22,7 +22,7 @@ import {
   FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen, FaTrophy, FaMedal,
   FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
-  FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaCoins, FaChartLine
+  FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaCoins, FaChartLine, FaBook
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
@@ -40,6 +40,7 @@ import LiveBiddingDashboard from './components/LiveBiddingDashboard';
 import Betting from './components/Betting';
 import LiveBettingDashboard from './components/LiveBettingDashboard';
 import PositionCalculator from './components/PositionCalculator';
+import RulesBook from './components/RulesBook';
 
 // AdminDashboard removed - performance dashboard disabled
 
@@ -400,6 +401,12 @@ function App() {
                   <h3 className="menu-section-title">Tools</h3>
                   <ul className="menu">
                     <li>
+                      <Link to="/rules-book" onClick={closeSidebar} className={`menu-item ${isActive('/rules-book') ? 'active' : ''}`}>
+                        <FaBook className="menu-icon" />
+                        <span>Rules Book</span>
+                      </Link>
+                    </li>
+                    <li>
                       <Link to="/ocr" onClick={closeSidebar} className={`menu-item ${isActive('/ocr') ? 'active' : ''}`}>
                         <FaImage className="menu-icon" />
                         <span>OCR Extractor</span>
@@ -482,6 +489,7 @@ function App() {
             <Route path="/user-purses" element={<PrivateRoute><UserPursePage /></PrivateRoute>} />
             <Route path="/points-table" element={<PrivateRoute><PointTable /></PrivateRoute>} />
             <Route path="/position-calculator" element={<PrivateRoute><PositionCalculator /></PrivateRoute>} />
+            <Route path="/rules-book" element={<PrivateRoute><RulesBook /></PrivateRoute>} />
             <Route path="/sold-playerslist" element={<PrivateRoute><SoldPlayersList /></PrivateRoute>} />
             <Route path="/fixtures" element={<PrivateRoute><Fixtures user={user} /></PrivateRoute>} />
             <Route path="/match-scheduler" element={<PrivateRoute><MatchScheduler /></PrivateRoute>} />

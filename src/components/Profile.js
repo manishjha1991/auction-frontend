@@ -533,11 +533,13 @@ const Profile = () => {
     }
   };
 
+
   if (isAdmin) {
     return (
       <div className="admin-profile-container">
         <NotificationBell />
         <AdminControlPanel adminUser={adminProfileUser || userData?.user} />
+        
       </div>
     );
   }
