@@ -407,6 +407,13 @@ const ErrorContainer = styled.div`
   border: 1px solid #f5c6cb;
 `;
 
+// Detect iOS device
+const isIOS = () => {
+  if (typeof window === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
 const RulesBook = () => {
   const [numPages, setNumPages] = useState(null);
   const [textContent, setTextContent] = useState('');
@@ -415,11 +422,13 @@ const RulesBook = () => {
   const [downloading, setDownloading] = useState(false);
   const [showAsImages, setShowAsImages] = useState(true); // Show PDF as images by default to preserve images
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
   const contentRef = useRef(null);
   const pdfPath = '/images/CPL RULES UPDATED.pdf';
 
   useEffect(() => {
-    if (!showAsImages) {
+    setIsIOSDevice(isIOS());
+    if (!showAsImages && !isIOS()) {
       loadPDFText();
     } else {
       setLoading(false);
@@ -638,13 +647,69 @@ const RulesBook = () => {
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
     setLoading(false);
+    setError(null);
   };
 
   const onDocumentLoadError = (error) => {
-    console.error('Error loading PDF:', error);
-    setError(`Failed to load PDF: ${error.message}`);
+    console.error('PDF load error:', error);
+    setError(`Failed to load PDF: ${error.message || 'Unknown error'}. Please try downloading the PDF or viewing it directly.`);
     setLoading(false);
   };
+
+  // For iOS, use native PDF viewer (iframe) - iOS Safari handles PDFs natively better
+  if (isIOSDevice) {
+    return (
+      <Container>
+        <Header>
+          <Title>
+            <FaBook />
+            Rules Book
+          </Title>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <DownloadButton onClick={handleDownloadPDF} disabled={downloading}>
+              <FaDownload />
+              {downloading ? 'Downloading...' : 'Download PDF'}
+            </DownloadButton>
+          </div>
+        </Header>
+
+        <ContentWrapper>
+          <div style={{ 
+            width: '100%', 
+            height: '80vh', 
+            minHeight: '600px',
+            border: '1px solid #dee2e6',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            background: '#f8f9fa'
+          }}>
+            <iframe
+              src={pdfPath}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none'
+              }}
+              title="CPL Rules Book PDF"
+            />
+          </div>
+          <div style={{ 
+            marginTop: '1rem', 
+            padding: '1rem', 
+            background: '#e7f3ff', 
+            borderRadius: '8px',
+            fontSize: '0.9rem',
+            color: '#004085',
+            lineHeight: '1.6'
+          }}>
+            <strong>📱 iOS Users:</strong> The PDF is displayed using Safari's native viewer. 
+            You can pinch to zoom and scroll through the document. Use the download button above to save a copy.
+          </div>
+        </ContentWrapper>
+      </Container>
+    );
+  }
 
   if (loading && !showAsImages) {
     return (
