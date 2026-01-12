@@ -22,7 +22,8 @@ import {
   FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen, FaTrophy, FaMedal,
   FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
-  FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaCoins, FaChartLine, FaBook
+  FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaCoins, FaChartLine, FaBook,
+  FaCalculator, FaCloudRain
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
@@ -41,6 +42,7 @@ import Betting from './components/Betting';
 import LiveBettingDashboard from './components/LiveBettingDashboard';
 import PositionCalculator from './components/PositionCalculator';
 import RulesBook from './components/RulesBook';
+import DLSCalculator from './components/DLSCalculator';
 
 // AdminDashboard removed - performance dashboard disabled
 
@@ -442,6 +444,12 @@ function App() {
                         </Link>
                       </li>
                       <li>
+                        <Link to="/dls-calculator" onClick={closeSidebar} className={`menu-item ${isActive('/dls-calculator') ? 'active' : ''}`}>
+                          <FaCalculator className="menu-icon" />
+                          <span>Target Calculator</span>
+                        </Link>
+                      </li>
+                      <li>
                         <Link to="/admin/retained-players" onClick={closeSidebar} className={`menu-item ${isActive('/admin/retained-players') ? 'active' : ''}`}>
                           <FaGem className="menu-icon" />
                           <span>Retained Players</span>
@@ -502,6 +510,7 @@ function App() {
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
             <Route path="/player-insights" element={<PrivateRoute><PlayerInsightsPage /></PrivateRoute>} />
             <Route path="/ocr" element={<PrivateRoute><OcrExtractor /></PrivateRoute>} />
+            <Route path="/dls-calculator" element={<PrivateRoute><DLSCalculator /></PrivateRoute>} />
             
 
             {/* NEW: StatsOverview Route */}
