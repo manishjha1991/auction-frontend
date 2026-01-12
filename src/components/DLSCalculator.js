@@ -331,10 +331,27 @@ const DLSCalculator = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [name]: value
+      };
+      
+      // If wickets changed, clear all next player fields to avoid stale data
+      if (name === 'team1Wickets') {
+        const wicketsLost = parseInt(value) || 0;
+        const totalPlayers = 11;
+        const remainingBatsmen = totalPlayers - wicketsLost;
+        const nextPlayersCount = Math.max(0, remainingBatsmen - 2);
+        
+        // Clear fields beyond the new count
+        for (let i = nextPlayersCount + 1; i <= 9; i++) {
+          updated[`nextPlayer${i}Power`] = '';
+        }
+      }
+      
+      return updated;
+    });
     setError(null);
     setResult(null);
   };
@@ -357,6 +374,25 @@ const DLSCalculator = () => {
 
     try {
       const adminUserId = user.id || user._id;
+      
+      // Build next players array dynamically (only include non-empty values)
+      const nextPlayersPower = [];
+      const wicketsLost = parseInt(formData.team1Wickets) || 0;
+      const totalPlayers = 11;
+      const remainingBatsmen = totalPlayers - wicketsLost;
+      const nextPlayersCount = Math.max(0, remainingBatsmen - 2);
+      
+      // Collect all next player power ratings
+      for (let i = 1; i <= nextPlayersCount; i++) {
+        const fieldName = `nextPlayer${i}Power`;
+        if (formData[fieldName]) {
+          nextPlayersPower.push(parseInt(formData[fieldName]));
+        } else {
+          // If not provided, default to 60 (bowler)
+          nextPlayersPower.push(60);
+        }
+      }
+      
       const response = await fetch(`${API_ENDPOINTS}/api/admin-tools/target/calculate`, {
         method: 'POST',
         headers: {
@@ -370,10 +406,9 @@ const DLSCalculator = () => {
             team1Overs: formData.team1Overs,
             team2OversAvailable: formData.team2OversAvailable,
             groundSize: formData.groundSize,
-            batsmenLeft: parseInt(formData.batsmenLeft) || 0,
-            batsmenCanBat: parseInt(formData.batsmenCanBat) || 0,
-            bowlersLeft: parseInt(formData.bowlersLeft) || 0,
-            allRoundersLeft: parseInt(formData.allRoundersLeft) || 0
+            onStrikePower: parseInt(formData.onStrikePower) || 60,
+            nonStrikePower: parseInt(formData.nonStrikePower) || 60,
+            nextPlayersPower: nextPlayersPower
           }
         })
       });
@@ -530,6 +565,11 @@ const DLSCalculator = () => {
           color: '#666'
         }}>
           <strong>Power Rating Guide:</strong> 80+ = Excellent hitter, 78 = Good hitter, 60 = Bowler (rarely bats)
+          <br />
+          <small style={{ color: '#888', marginTop: '0.5rem', display: 'block' }}>
+            <strong>Normalization:</strong> &lt;70 → 60, 70-79 → 78, 80+ → as entered. 
+            If all players have the same power, calculations are adjusted for realism.
+          </small>
         </div>
 
         <FormGrid>
@@ -567,46 +607,64 @@ const DLSCalculator = () => {
         <SectionTitle style={{ marginTop: '1.5rem', fontSize: '1.2rem' }}>
           Next Players (If Wickets Fall)
         </SectionTitle>
-        <FormGrid>
-          <FormGroup>
-            <label><FaUsers /> Next Player 1 Power</label>
-            <input
-              type="number"
-              name="nextPlayer1Power"
-              value={formData.nextPlayer1Power}
-              onChange={handleInputChange}
-              placeholder="e.g., 60 (bowler)"
-              min="0"
-              max="100"
-            />
-          </FormGroup>
+        {(() => {
+          const wicketsLost = parseInt(formData.team1Wickets) || 0;
+          const totalPlayers = 11;
+          const remainingBatsmen = totalPlayers - wicketsLost;
+          const nextPlayersCount = Math.max(0, remainingBatsmen - 2); // Minus on-strike and non-strike
+          
+          if (nextPlayersCount === 0) {
+            return (
+              <div style={{ 
+                padding: '1rem', 
+                background: '#fff3cd', 
+                borderRadius: '10px',
+                color: '#856404',
+                fontSize: '0.9rem'
+              }}>
+                ⚠️ No remaining players. All 11 players have been used or wickets lost is invalid.
+              </div>
+            );
+          }
 
-          <FormGroup>
-            <label><FaUsers /> Next Player 2 Power</label>
-            <input
-              type="number"
-              name="nextPlayer2Power"
-              value={formData.nextPlayer2Power}
-              onChange={handleInputChange}
-              placeholder="e.g., 60 (bowler)"
-              min="0"
-              max="100"
-            />
-          </FormGroup>
-
-          <FormGroup>
-            <label><FaUsers /> Next Player 3 Power</label>
-            <input
-              type="number"
-              name="nextPlayer3Power"
-              value={formData.nextPlayer3Power}
-              onChange={handleInputChange}
-              placeholder="e.g., 60 (bowler)"
-              min="0"
-              max="100"
-            />
-          </FormGroup>
-        </FormGrid>
+          return (
+            <div>
+          <div style={{ 
+            marginBottom: '1rem', 
+            padding: '0.75rem', 
+            background: '#e7f3ff', 
+            borderRadius: '8px',
+            fontSize: '0.9rem',
+            color: '#004085'
+          }}>
+            <strong>Remaining Players:</strong> {remainingBatsmen} total - 2 (on-strike & non-strike) = <strong>{nextPlayersCount} next players</strong>
+            <br />
+            <small style={{ color: '#666', marginTop: '0.25rem', display: 'block' }}>
+              Power normalization: &lt;70 → 60, 70-79 → 78, 80+ → as entered
+            </small>
+          </div>
+              <FormGrid>
+                {Array.from({ length: nextPlayersCount }, (_, index) => {
+                  const fieldName = `nextPlayer${index + 1}Power`;
+                  return (
+                    <FormGroup key={index}>
+                      <label><FaUsers /> Next Player {index + 1} Power</label>
+                      <input
+                        type="number"
+                        name={fieldName}
+                        value={formData[fieldName] || ''}
+                        onChange={handleInputChange}
+                        placeholder="e.g., 60 (bowler)"
+                        min="0"
+                        max="100"
+                      />
+                    </FormGroup>
+                  );
+                })}
+              </FormGrid>
+            </div>
+          );
+        })()}
 
         {error && <ErrorMessage>{error}</ErrorMessage>}
 
@@ -696,20 +754,30 @@ const DLSCalculator = () => {
             }}>
               <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#155724' }}>Player Contribution Analysis</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                {result.powerAnalysis.map((player, index) => (
-                  <div key={index} style={{ 
-                    background: 'white', 
-                    padding: '1rem', 
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                  }}>
-                    <div style={{ fontWeight: '600', color: '#333' }}>{player.player}</div>
-                    <div style={{ fontSize: '0.9rem', color: '#666' }}>Power: {player.power}</div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#155724', marginTop: '0.5rem' }}>
-                      ~{Math.round(player.expectedRuns)} runs
+                {result.powerAnalysis.map((player, index) => {
+                  const showOriginal = player.originalPower && player.originalPower !== player.power;
+                  return (
+                    <div key={index} style={{ 
+                      background: 'white', 
+                      padding: '1rem', 
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }}>
+                      <div style={{ fontWeight: '600', color: '#333' }}>{player.player}</div>
+                      <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                        Power: {player.power}
+                        {showOriginal && (
+                          <span style={{ color: '#999', marginLeft: '0.5rem' }}>
+                            (normalized from {player.originalPower})
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#155724', marginTop: '0.5rem' }}>
+                        ~{Math.round(player.expectedRuns)} runs
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
