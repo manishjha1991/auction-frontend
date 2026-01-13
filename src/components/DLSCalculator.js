@@ -322,9 +322,6 @@ const DLSCalculator = () => {
     if (cached) {
       const userData = JSON.parse(cached);
       setUser(userData);
-      if (!userData.isAdmin) {
-        setError('Access Denied: This page is only available to administrators.');
-      }
     }
   }, []);
 
@@ -362,8 +359,8 @@ const DLSCalculator = () => {
       return;
     }
 
-    if (!user || !user.isAdmin) {
-      setError('Access Denied: Admin privileges required');
+    if (!user) {
+      setError('Please log in to use the calculator');
       return;
     }
 
@@ -372,7 +369,7 @@ const DLSCalculator = () => {
     setResult(null);
 
     try {
-      const adminUserId = user.id || user._id;
+      const userId = user.id || user._id;
       
       // Build next players array dynamically (only include non-empty values)
       const nextPlayersPower = [];
@@ -398,7 +395,7 @@ const DLSCalculator = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          adminUserId,
+          userId,
           matchData: {
             team1Score: formData.team1Score,
             team1Wickets: parseInt(formData.team1Wickets) || 0,
@@ -437,19 +434,6 @@ const DLSCalculator = () => {
     );
   }
 
-  if (!user.isAdmin) {
-    return (
-      <Container>
-        <Header>
-          <h1><FaCalculator /> Target Calculator</h1>
-          <p>Run Rate Based Target Calculation for Rain-Affected Matches</p>
-        </Header>
-        <ErrorMessage>
-          ⚠️ Access Denied: This page is only available to administrators.
-        </ErrorMessage>
-      </Container>
-    );
-  }
 
   return (
     <Container>
