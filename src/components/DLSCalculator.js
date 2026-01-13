@@ -506,11 +506,10 @@ const DLSCalculator = () => {
           fontSize: '0.9rem',
           color: '#666'
         }}>
-          <strong>Power Rating Guide:</strong> 80+ = Excellent hitter, 78 = Good hitter, 60 = Bowler (rarely bats)
+          <strong>Power Rating Guide:</strong> 80+ = Excellent hitter (10 runs bonus), 70-79 = Good hitter (6 runs bonus), 60-69 = Bowler/Moderate (2 runs bonus)
           <br />
           <small style={{ color: '#888', marginTop: '0.5rem', display: 'block' }}>
-            <strong>Normalization:</strong> &lt;70 → 60, 70-79 → 78, 80+ → as entered. 
-            If all players have the same power, calculations are adjusted for realism.
+            <strong>Note:</strong> 60-69 power players & any bowler = 2 runs bonus. 70+ power = 6 runs/over for remaining overs.
           </small>
         </div>
 
