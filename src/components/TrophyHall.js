@@ -27,6 +27,7 @@ const TrophyHall = () => {
   const [showMatchDetails, setShowMatchDetails] = useState(false);
   const [matchResultsData, setMatchResultsData] = useState([]);
   const [worldCupWinners, setWorldCupWinners] = useState([]);
+  const [worldCupTournaments, setWorldCupTournaments] = useState([]); // Store full tournament data
 
   useEffect(() => {
     fetchData();
@@ -130,6 +131,8 @@ const TrophyHall = () => {
             allWorldCupTournaments = tournaments.filter(t => 
               t.name && t.name.startsWith('World Cup') && t.status === 'completed' && t.winner && t.winner.teamName
             );
+            // Store full tournament data for match display
+            setWorldCupTournaments(allWorldCupTournaments);
           }
         } catch (error) {
           console.warn('Error fetching tournaments for runner-up calculation:', error);
@@ -243,11 +246,47 @@ const TrophyHall = () => {
   };
 
   const getTeamMatches = (teamName) => {
-    const matches = matchResultsData.filter(match => 
+    // Get CPL matches
+    const cplMatches = matchResultsData.filter(match => 
       match.team1 === teamName || match.team2 === teamName
     );
-    console.log('Team matches for', teamName, ':', matches);
-    return matches;
+    
+    // Get World Cup tournament final matches where this team participated
+    const worldCupMatches = [];
+    worldCupTournaments.forEach(tournament => {
+      if (tournament.tournamentFixtures && tournament.tournamentFixtures.length > 0) {
+        // Find final match
+        const finalFixture = tournament.tournamentFixtures.find(f => 
+          f.isFinal || f.matchType === 'final' || tournament.tournamentFixtures.indexOf(f) === tournament.tournamentFixtures.length - 1
+        ) || tournament.tournamentFixtures[tournament.tournamentFixtures.length - 1];
+        
+        if (finalFixture && (finalFixture.team1 === teamName || finalFixture.team2 === teamName)) {
+          // Create a match object similar to CPL matches for consistency
+          worldCupMatches.push({
+            team1: finalFixture.team1,
+            team2: finalFixture.team2,
+            winner: finalFixture.winner === finalFixture.team1 ? 'team1' : 
+                   finalFixture.winner === finalFixture.team2 ? 'team2' : null,
+            team1Score: finalFixture.team1Score || '',
+            team2Score: finalFixture.team2Score || '',
+            team1Overs: finalFixture.team1Overs || '',
+            team2Overs: finalFixture.team2Overs || '',
+            team1Wickets: finalFixture.team1Wickets,
+            team2Wickets: finalFixture.team2Wickets,
+            matchDate: finalFixture.matchDate || tournament.endDate || tournament.startDate,
+            tournamentName: tournament.name,
+            isWorldCup: true,
+            venue: finalFixture.venue || tournament.venue || 'World Cup Final',
+            matchVenue: finalFixture.venue || tournament.venue || 'World Cup Final'
+          });
+        }
+      }
+    });
+    
+    // Combine CPL and World Cup matches
+    const allMatches = [...cplMatches, ...worldCupMatches];
+    console.log('Team matches for', teamName, ':', allMatches);
+    return allMatches;
   };
 
   const closeMatchDetails = () => {
@@ -447,12 +486,28 @@ const TrophyHall = () => {
                     <div style={{
                       textAlign: 'center'
                     }}>
-                      <div style={{
-                        fontSize: '1.1rem',
-                        fontWeight: '700',
-                        color: '#1a1a1a',
-                        marginBottom: '5px'
-                      }}>
+                      <div 
+                        style={{
+                          fontSize: '1.1rem',
+                          fontWeight: '700',
+                          color: '#1a1a1a',
+                          marginBottom: '5px',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          textDecorationColor: 'rgba(0, 0, 0, 0.3)'
+                        }}
+                        onClick={() => {
+                          // Find the team from teams list
+                          const team = teams.find(t => {
+                            const normalizeTeamName = (name) => name ? name.trim().toLowerCase() : '';
+                            return normalizeTeamName(t.teamName) === normalizeTeamName(worldCup.winner.teamName);
+                          });
+                          if (team) {
+                            handleTeamClick(team);
+                          }
+                        }}
+                        title="Click to view match details"
+                      >
                         {worldCup.winner.teamName}
                       </div>
                       <div style={{
@@ -884,8 +939,14 @@ const TrophyHall = () => {
                             alignItems: 'center',
                             gap: '8px'
                           }}>
+                            {match.isWorldCup ? '🌍' : ''}
                             {isWinner ? '🏆' : isRunnerUp ? '🥈' : '⚔️'}
                             <span>{match.team1} vs {match.team2}</span>
+                            {match.isWorldCup && (
+                              <span style={{ fontSize: '0.75rem', opacity: 0.7, marginLeft: '5px' }}>
+                                ({match.tournamentName || 'World Cup'})
+                              </span>
+                            )}
                           </div>
                           <div style={{
                             fontSize: '0.8rem',
@@ -968,6 +1029,20 @@ const TrophyHall = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                               <span>🏆</span>
                               <span>{match.trophyName}</span>
+                            </div>
+                          )}
+                          {match.isWorldCup && (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '3px 8px',
+                              background: 'rgba(255, 215, 0, 0.2)',
+                              borderRadius: '5px',
+                              fontWeight: '600'
+                            }}>
+                              <span>🌍</span>
+                              <span>World Cup Final</span>
                             </div>
                           )}
                         </div>

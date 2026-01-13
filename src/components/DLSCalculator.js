@@ -310,7 +310,6 @@ const DLSCalculator = () => {
     team1Wickets: '',
     team1Overs: '',
     team2OversAvailable: '20',
-    groundSize: 'medium',
     onStrikePower: '',
     nonStrikePower: '',
     nextPlayer1Power: '',
@@ -405,7 +404,6 @@ const DLSCalculator = () => {
             team1Wickets: parseInt(formData.team1Wickets) || 0,
             team1Overs: formData.team1Overs,
             team2OversAvailable: formData.team2OversAvailable,
-            groundSize: formData.groundSize,
             onStrikePower: parseInt(formData.onStrikePower) || 60,
             nonStrikePower: parseInt(formData.nonStrikePower) || 60,
             nextPlayersPower: nextPlayersPower
@@ -513,47 +511,7 @@ const DLSCalculator = () => {
           </FormGroup>
         </FormGrid>
 
-        <SectionTitle>
-          <FaCloudRain /> Match Context
-        </SectionTitle>
-
-        <FormGroup style={{ marginBottom: '1.5rem' }}>
-          <label>Ground Size</label>
-          <RadioGroup>
-            <RadioOption>
-              <input
-                type="radio"
-                name="groundSize"
-                value="small"
-                checked={formData.groundSize === 'small'}
-                onChange={handleInputChange}
-              />
-              <span>Small (Higher Scores)</span>
-            </RadioOption>
-            <RadioOption>
-              <input
-                type="radio"
-                name="groundSize"
-                value="medium"
-                checked={formData.groundSize === 'medium'}
-                onChange={handleInputChange}
-              />
-              <span>Medium</span>
-            </RadioOption>
-            <RadioOption>
-              <input
-                type="radio"
-                name="groundSize"
-                value="big"
-                checked={formData.groundSize === 'big'}
-                onChange={handleInputChange}
-              />
-              <span>Big (Lower Scores)</span>
-            </RadioOption>
-          </RadioGroup>
-        </FormGroup>
-
-        <SectionTitle style={{ marginTop: '2rem' }}>
+        <SectionTitle style={{ marginTop: '1.5rem' }}>
           <FaUsers /> Player Power Ratings
         </SectionTitle>
         <div style={{ 
@@ -697,33 +655,35 @@ const DLSCalculator = () => {
             </ResultItem>
 
             <ResultItem>
-              <div className="label">Current Run Rate</div>
-              <div className="value">{result.currentRunRate}</div>
-              <div className="sub-value">runs per over</div>
-            </ResultItem>
-
-            <ResultItem>
               <div className="label">Remaining Overs</div>
               <div className="value">{result.remainingOvers}</div>
               <div className="sub-value">overs left to play</div>
             </ResultItem>
 
             <ResultItem>
-              <div className="label">Expected Runs from Players</div>
-              <div className="value">{result.expectedRunsFromRemaining}</div>
-              <div className="sub-value">based on power ratings</div>
+              <div className="label">Runs Per Over</div>
+              <div className="value">{result.runsPerOver}</div>
+              <div className="sub-value">
+                {result.has70PlusPlayer ? '70+ power player exists' : 'No 70+ power players'}
+              </div>
+            </ResultItem>
+
+            <ResultItem>
+              <div className="label">Remaining Overs Runs</div>
+              <div className="value">{result.remainingOversRuns}</div>
+              <div className="sub-value">{result.remainingOvers} × {result.runsPerOver}</div>
+            </ResultItem>
+
+            <ResultItem>
+              <div className="label">Total Power Bonus</div>
+              <div className="value">{result.totalPowerBonus}</div>
+              <div className="sub-value">from all remaining players</div>
             </ResultItem>
 
             <ResultItem>
               <div className="label">Projected Total</div>
               <div className="value">{result.projectedTotal}</div>
-              <div className="sub-value">before ground adjustment</div>
-            </ResultItem>
-
-            <ResultItem>
-              <div className="label">Ground Multiplier</div>
-              <div className="value">{result.groundMultiplier}x</div>
-              <div className="sub-value">{result.groundSize} ground</div>
+              <div className="sub-value">Score + Overs Runs + Bonus</div>
             </ResultItem>
 
             <ResultItem>
@@ -755,7 +715,6 @@ const DLSCalculator = () => {
               <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#155724' }}>Player Contribution Analysis</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 {result.powerAnalysis.map((player, index) => {
-                  const showOriginal = player.originalPower && player.originalPower !== player.power;
                   return (
                     <div key={index} style={{ 
                       background: 'white', 
@@ -766,14 +725,9 @@ const DLSCalculator = () => {
                       <div style={{ fontWeight: '600', color: '#333' }}>{player.player}</div>
                       <div style={{ fontSize: '0.9rem', color: '#666' }}>
                         Power: {player.power}
-                        {showOriginal && (
-                          <span style={{ color: '#999', marginLeft: '0.5rem' }}>
-                            (normalized from {player.originalPower})
-                          </span>
-                        )}
                       </div>
                       <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#155724', marginTop: '0.5rem' }}>
-                        ~{Math.round(player.expectedRuns)} runs
+                        +{player.bonus} runs bonus
                       </div>
                     </div>
                   );
@@ -790,7 +744,11 @@ const DLSCalculator = () => {
             fontSize: '0.9rem',
             color: '#155724'
           }}>
-            <strong>Calculation Details:</strong> {result.adjustmentReason}
+            <strong>Calculation Details:</strong> {result.calculationDetails}
+            <br />
+            <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
+              <strong>Formula:</strong> Target = {result.team1Score} (Current) + {result.remainingOversRuns} (Overs) + {result.totalPowerBonus} (Power Bonus) = {result.projectedTotal} + 1 = <strong>{result.target}</strong>
+            </div>
           </div>
         </ResultCard>
       )}
