@@ -506,10 +506,12 @@ const DLSCalculator = () => {
           fontSize: '0.9rem',
           color: '#666'
         }}>
-          <strong>Power Rating Guide:</strong> 80+ = Excellent hitter (10 runs bonus), 70-79 = Good hitter (6 runs bonus), 60-69 = Bowler/Moderate (2 runs bonus)
+          <strong>Power Rating Guide:</strong> 80+ (includes 80) = Excellent hitter (10 runs bonus), 70-79 (includes 70) = Good hitter (6 runs bonus), 60-69 = Bowler/Moderate (2 runs bonus)
           <br />
           <small style={{ color: '#888', marginTop: '0.5rem', display: 'block' }}>
-            <strong>Note:</strong> 60-69 power players & any bowler = 2 runs bonus. 70+ power = 6 runs/over for remaining overs.
+            <strong>RPO Rule:</strong> 6 runs/over if on-strike OR non-strike OR batsman left to bat has 70+ power (70 included). Otherwise 3 runs/over.
+            <br />
+            <strong>Power Bonus:</strong> 60-69 power players & any bowler = 2 runs bonus.
           </small>
         </div>
 
@@ -647,7 +649,15 @@ const DLSCalculator = () => {
               <div className="label">Runs Per Over</div>
               <div className="value">{result.runsPerOver}</div>
               <div className="sub-value">
-                {result.has70PlusPlayer ? '70+ power player exists' : 'No 70+ power players'}
+                {result.has70PlusAnywhere ? (
+                  <>
+                    {result.has70PlusOnStrike && 'On-strike 70+'}
+                    {result.has70PlusOnStrike && result.has70PlusNonStrike && ' & '}
+                    {result.has70PlusNonStrike && 'Non-strike 70+'}
+                    {((result.has70PlusOnStrike || result.has70PlusNonStrike) && result.has70PlusBatsmanLeft) && ' & '}
+                    {result.has70PlusBatsmanLeft && 'Batsmen left 70+'}
+                  </>
+                ) : 'No 70+ power players'}
               </div>
             </ResultItem>
 
