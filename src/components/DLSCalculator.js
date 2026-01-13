@@ -304,8 +304,12 @@ const DLSCalculator = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [teams, setTeams] = useState([]);
+  const [loadingTeams, setLoadingTeams] = useState(true);
   
   const [formData, setFormData] = useState({
+    team1Id: '',
+    team2Id: '',
     team1Score: '',
     team1Wickets: '',
     team1Overs: '',
@@ -323,6 +327,25 @@ const DLSCalculator = () => {
       const userData = JSON.parse(cached);
       setUser(userData);
     }
+    
+    // Fetch teams
+    const fetchTeams = async () => {
+      try {
+        setLoadingTeams(true);
+        const response = await fetch(`${API_ENDPOINTS}/api/users/teams`);
+        if (response.ok) {
+          const data = await response.json();
+          const teamsData = Array.isArray(data) ? data : (data?.teams || []);
+          setTeams(teamsData);
+        }
+      } catch (err) {
+        console.error('Error fetching teams:', err);
+      } finally {
+        setLoadingTeams(false);
+      }
+    };
+    
+    fetchTeams();
   }, []);
 
   const handleInputChange = (e) => {
@@ -356,6 +379,29 @@ const DLSCalculator = () => {
     // Validation
     if (!formData.team1Score || !formData.team1Overs || !formData.team2OversAvailable) {
       setError('Please fill in all required fields: Team 1 Score, Team 1 Overs, and Team 2 Overs Available');
+      return;
+    }
+
+    // Parse overs to check if more than 10
+    const parseOvers = (overs) => {
+      if (typeof overs === 'number') return overs;
+      if (typeof overs === 'string') {
+        const parts = overs.split('.');
+        const fullOvers = parseInt(parts[0]) || 0;
+        const balls = parseInt(parts[1]) || 0;
+        return fullOvers + (balls / 6);
+      }
+      return 0;
+    };
+
+    const oversFaced = parseOvers(formData.team1Overs);
+    if (oversFaced <= 10) {
+      setError(`CPL METHOD can only be applied if match is disconnected after MORE than 10 overs. Current overs: ${oversFaced.toFixed(1)}. Please enter overs greater than 10 (e.g., 10.1, 11, 12, etc.).`);
+      return;
+    }
+
+    if (!formData.onStrikePower || !formData.nonStrikePower) {
+      setError('Please enter power ratings for both on-strike and non-strike players');
       return;
     }
 
@@ -439,17 +485,78 @@ const DLSCalculator = () => {
     <Container>
       <Header>
         <h1><FaCalculator /> Target Calculator</h1>
-        <p>Run Rate Based Target Calculation for Rain-Affected Matches</p>
+        <p>Calculate target for disconnected matches in multiplayer cricket game due to server issues or game glitches</p>
       </Header>
 
       <FormCard>
         <SectionTitle>
+          <FaUsers /> Team Selection (Optional)
+        </SectionTitle>
+        <FormGrid>
+          <FormGroup>
+            <label><FaUsers /> Team 1 Name</label>
+            <select
+              name="team1Id"
+              value={formData.team1Id}
+              onChange={handleInputChange}
+              style={{
+                padding: '0.75rem 1rem',
+                border: '2px solid #e0e0e0',
+                borderRadius: '10px',
+                fontSize: '1rem',
+                transition: 'all 0.3s ease',
+                background: 'white',
+                cursor: 'pointer'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+            >
+              <option value="">Team 1 (Default)</option>
+              {teams.map(team => (
+                <option key={team._id} value={team._id}>
+                  {team.teamName}
+                </option>
+              ))}
+            </select>
+            <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>Optional: Select team name or leave as "Team 1"</small>
+          </FormGroup>
+
+          <FormGroup>
+            <label><FaUsers /> Team 2 Name</label>
+            <select
+              name="team2Id"
+              value={formData.team2Id}
+              onChange={handleInputChange}
+              style={{
+                padding: '0.75rem 1rem',
+                border: '2px solid #e0e0e0',
+                borderRadius: '10px',
+                fontSize: '1rem',
+                transition: 'all 0.3s ease',
+                background: 'white',
+                cursor: 'pointer'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+            >
+              <option value="">Team 2 (Default)</option>
+              {teams.map(team => (
+                <option key={team._id} value={team._id}>
+                  {team.teamName}
+                </option>
+              ))}
+            </select>
+            <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>Optional: Select team name or leave as "Team 2"</small>
+          </FormGroup>
+        </FormGrid>
+
+        <SectionTitle style={{ marginTop: '2rem' }}>
           <FaBaseballBall /> Match Details
         </SectionTitle>
         
         <FormGrid>
           <FormGroup>
-            <label><FaChartLine /> Team 1 Score (Runs)</label>
+            <label><FaChartLine /> {formData.team1Id ? teams.find(t => t._id === formData.team1Id)?.teamName || 'Team 1' : 'Team 1'} Score (Runs)</label>
             <input
               type="text"
               name="team1Score"
@@ -460,7 +567,7 @@ const DLSCalculator = () => {
           </FormGroup>
 
           <FormGroup>
-            <label><FaUsers /> Team 1 Wickets Lost</label>
+            <label><FaUsers /> {formData.team1Id ? teams.find(t => t._id === formData.team1Id)?.teamName || 'Team 1' : 'Team 1'} Wickets Lost</label>
             <input
               type="number"
               name="team1Wickets"
@@ -473,7 +580,7 @@ const DLSCalculator = () => {
           </FormGroup>
 
           <FormGroup>
-            <label><FaBaseballBall /> Team 1 Overs Faced</label>
+            <label><FaBaseballBall /> {formData.team1Id ? teams.find(t => t._id === formData.team1Id)?.teamName || 'Team 1' : 'Team 1'} Overs Faced</label>
             <input
               type="text"
               name="team1Overs"
@@ -481,10 +588,13 @@ const DLSCalculator = () => {
               onChange={handleInputChange}
               placeholder="e.g., 15.3 or 15"
             />
+            <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
+              ⚠️ Must be MORE than 10 overs (e.g., 10.1, 11, 12, etc.)
+            </small>
           </FormGroup>
 
           <FormGroup>
-            <label><FaBaseballBall /> Team 2 Overs Available</label>
+            <label><FaBaseballBall /> {formData.team2Id ? teams.find(t => t._id === formData.team2Id)?.teamName || 'Team 2' : 'Team 2'} Overs Available</label>
             <input
               type="text"
               name="team2OversAvailable"
@@ -688,14 +798,14 @@ const DLSCalculator = () => {
             <ResultItem>
               <div className="label">Overs Available</div>
               <div className="value">{result.team2OversAvailable}</div>
-              <div className="sub-value">for Team 2</div>
+              <div className="sub-value">for {formData.team2Id ? teams.find(t => t._id === formData.team2Id)?.teamName || 'Team 2' : 'Team 2'}</div>
             </ResultItem>
           </ResultGrid>
 
           <TargetDisplay>
             <div className="target-label">TARGET FOR TEAM 2</div>
             <div className="target-value">{result.target}</div>
-            <div className="target-sub">runs in {result.team2OversAvailable} overs</div>
+            <div className="target-sub">runs in {result.team2OversAvailable} overs for {formData.team2Id ? teams.find(t => t._id === formData.team2Id)?.teamName || 'Team 2' : 'Team 2'}</div>
           </TargetDisplay>
 
           {result.powerAnalysis && result.powerAnalysis.length > 0 && (
