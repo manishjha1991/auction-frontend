@@ -434,6 +434,7 @@ const RulesBook = () => {
       try {
         return isIOS();
       } catch (e) {
+        console.error('Error in iOS detection:', e);
         return false;
       }
     }
@@ -495,7 +496,7 @@ const RulesBook = () => {
   useEffect(() => {
     let isMounted = true;
     
-    const initialize = async () => {
+    const initialize = () => {
       try {
         if (typeof window === 'undefined') {
           if (isMounted) {
@@ -505,19 +506,19 @@ const RulesBook = () => {
           return;
         }
         
+        // Always set loading to false immediately to ensure component renders
         if (isMounted) {
-          try {
-            setIsIOSDevice(isIOS());
-          } catch (iosErr) {
-            console.error('Error detecting iOS:', iosErr);
-            setIsIOSDevice(false);
-          }
-          
-          if (!showAsImages) {
-            await loadPDFText();
-          } else {
-            setLoading(false);
-          }
+          setLoading(false);
+        }
+        
+        // Only load PDF text if explicitly requested (not on iOS iframe mode)
+        if (!showAsImages && !(isIOSDevice && useIOSIframe)) {
+          loadPDFText().catch((pdfErr) => {
+            console.error('Error loading PDF text:', pdfErr);
+            if (isMounted) {
+              setError(`Failed to load PDF: ${pdfErr.message || 'Unknown error'}`);
+            }
+          });
         }
       } catch (err) {
         console.error('Error in useEffect:', err);
@@ -528,16 +529,14 @@ const RulesBook = () => {
       }
     };
     
-    // Add a small delay to ensure DOM is ready (helps with iOS Safari)
-    const timer = setTimeout(() => {
-      initialize();
-    }, 100);
+    // Initialize immediately without delay
+    initialize();
     
     return () => {
       isMounted = false;
-      clearTimeout(timer);
     };
-  }, [showAsImages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAsImages, useIOSIframe]);
 
   // Handle window resize for responsive PDF scaling
   useEffect(() => {
@@ -823,6 +822,12 @@ const RulesBook = () => {
               onError={(e) => {
                 console.error('Iframe load error:', e);
                 setError('Failed to load PDF in iframe. Try switching to "Show as Pages" view.');
+                setLoading(false);
+              }}
+              onLoad={() => {
+                // Iframe loaded successfully
+                setLoading(false);
+                setError(null);
               }}
             />
           </div>
@@ -1005,4 +1010,30 @@ const RulesBook = () => {
   );
 };
 
-export default RulesBook;
+// Wrap component in error boundary
+const RulesBookWithErrorBoundary = () => {
+  try {
+    return <RulesBook />;
+  } catch (error) {
+    console.error('RulesBook error:', error);
+    return (
+      <Container>
+        <Header>
+          <Title>
+            <FaBook />
+            Rules Book
+          </Title>
+        </Header>
+        <ContentWrapper>
+          <ErrorContainer>
+            <strong>Error:</strong> An unexpected error occurred. Please refresh the page or try again later.
+            <br />
+            <small>{error.message}</small>
+          </ErrorContainer>
+        </ContentWrapper>
+      </Container>
+    );
+  }
+};
+
+export default RulesBookWithErrorBoundary;
