@@ -983,17 +983,54 @@ const RulesBook = () => {
       <ContentWrapper>
         {showAsImages ? (
           <div ref={contentRef} style={{ width: '100%' }}>
-            <Document
-              file={pdfPath}
-              onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
-              loading={
-                <LoadingContainer>
-                  <FaSpinner style={{ fontSize: '3rem', animation: 'spin 1s linear infinite', marginBottom: '1rem' }} />
-                  <p>Loading PDF pages...</p>
-                </LoadingContainer>
+            {(() => {
+              // Try to load PDF libraries if not already loaded
+              loadPdfLibraries();
+              
+              // Check if Document and Page are available
+              if (!Document || !Page) {
+                return (
+                  <ErrorContainer>
+                    <strong>PDF Viewer Not Available:</strong> PDF.js is not available on this device. 
+                    Please use the iframe view or download the PDF.
+                    {isIOSDevice && (
+                      <div style={{ marginTop: '1rem' }}>
+                        <button
+                          onClick={() => {
+                            setUseIOSIframe(true);
+                            setShowAsImages(true);
+                          }}
+                          style={{
+                            background: '#667eea',
+                            color: 'white',
+                            border: 'none',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            fontWeight: '600'
+                          }}
+                        >
+                          📱 Use Safari Viewer
+                        </button>
+                      </div>
+                    )}
+                  </ErrorContainer>
+                );
               }
-            >
+              
+              return (
+                <Document
+                  file={pdfPath}
+                  onLoadSuccess={onDocumentLoadSuccess}
+                  onLoadError={onDocumentLoadError}
+                  loading={
+                    <LoadingContainer>
+                      <FaSpinner style={{ fontSize: '3rem', animation: 'spin 1s linear infinite', marginBottom: '1rem' }} />
+                      <p>Loading PDF pages...</p>
+                    </LoadingContainer>
+                  }
+                >
               {numPages && Array.from(new Array(numPages), (el, index) => {
                 // Calculate responsive scale based on screen width
                 const getScale = () => {
@@ -1032,14 +1069,10 @@ const RulesBook = () => {
                     {index < numPages - 1 && <div style={{ height: windowWidth < 768 ? '0.5rem' : '1rem' }} />}
                   </div>
                 );
-              })}
-              </Document>
-            ) : (
-              <ErrorContainer>
-                <strong>PDF Viewer Not Available:</strong> PDF.js is not available on this device. 
-                Please use the iframe view or download the PDF.
-              </ErrorContainer>
-            )}
+                })}
+                </Document>
+              );
+            })()}
           </div>
         ) : (
           <PDFContent 
