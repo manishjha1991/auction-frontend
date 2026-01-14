@@ -407,11 +407,17 @@ const ErrorContainer = styled.div`
   border: 1px solid #f5c6cb;
 `;
 
-// Detect iOS device
+// Detect iOS device - only actual iOS devices, not MacBook Safari
 const isIOS = () => {
   if (typeof window === 'undefined') return false;
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const ua = navigator.userAgent;
+  const isIPad = /iPad/.test(ua);
+  const isIPhone = /iPhone/.test(ua);
+  const isIPod = /iPod/.test(ua);
+  // Exclude MacBook Safari - only detect actual iOS devices
+  // MacBook Safari might have touch points but shouldn't be treated as iOS
+  const isMacOS = /Mac OS X/.test(ua) && !isIPad;
+  return (isIPad || isIPhone || isIPod) && !isMacOS;
 };
 
 const RulesBook = () => {
@@ -423,28 +429,57 @@ const RulesBook = () => {
   const [showAsImages, setShowAsImages] = useState(true); // Show PDF as images by default to preserve images
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [useIOSIframe, setUseIOSIframe] = useState(true); // For iOS: use iframe by default
   const contentRef = useRef(null);
   const pdfPath = '/images/CPL RULES UPDATED.pdf';
 
   useEffect(() => {
-    setIsIOSDevice(isIOS());
-    if (!showAsImages && !isIOS()) {
-      loadPDFText();
-    } else {
-      setLoading(false);
-    }
+    let isMounted = true;
+    
+    const initialize = async () => {
+      try {
+        if (isMounted) {
+          setIsIOSDevice(isIOS());
+          if (!showAsImages) {
+            await loadPDFText();
+          } else {
+            setLoading(false);
+          }
+        }
+      } catch (err) {
+        console.error('Error in useEffect:', err);
+        if (isMounted) {
+          setError('An error occurred while initializing the PDF viewer.');
+          setLoading(false);
+        }
+      }
+    };
+    
+    initialize();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [showAsImages]);
 
   // Handle window resize for responsive PDF scaling
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const handleResize = () => {
-      setWindowWidth(window.innerWidth);
+      try {
+        setWindowWidth(window.innerWidth);
+      } catch (err) {
+        console.error('Error handling resize:', err);
+      }
     };
     
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }
+    window.addEventListener('resize', handleResize);
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
   }, []);
 
   const loadPDFText = async () => {
@@ -654,10 +689,35 @@ const RulesBook = () => {
     console.error('PDF load error:', error);
     setError(`Failed to load PDF: ${error.message || 'Unknown error'}. Please try downloading the PDF or viewing it directly.`);
     setLoading(false);
+    // On iOS, if react-pdf fails, fall back to iframe
+    if (isIOSDevice) {
+      setUseIOSIframe(true);
+      setShowAsImages(true);
+    }
   };
 
-  // For iOS, use native PDF viewer (iframe) - iOS Safari handles PDFs natively better
-  if (isIOSDevice) {
+  // Safety check for window object - must be after all hooks
+  if (typeof window === 'undefined') {
+    return (
+      <Container>
+        <Header>
+          <Title>
+            <FaBook />
+            Rules Book
+          </Title>
+        </Header>
+        <ContentWrapper>
+          <ErrorContainer>
+            <strong>Error:</strong> This component requires a browser environment.
+          </ErrorContainer>
+        </ContentWrapper>
+      </Container>
+    );
+  }
+
+  // For iOS, use native PDF viewer (iframe) by default - iOS Safari handles PDFs natively better
+  // But allow users to switch to react-pdf view if they want
+  if (isIOSDevice && useIOSIframe && showAsImages) {
     return (
       <Container>
         <Header>
@@ -666,6 +726,25 @@ const RulesBook = () => {
             Rules Book
           </Title>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => {
+                setUseIOSIframe(false);
+                setShowAsImages(true);
+                setLoading(true);
+              }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: '2px solid white',
+                color: 'white',
+                padding: '0.5rem 1rem',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '600'
+              }}
+            >
+              📄 Show as Pages
+            </button>
             <DownloadButton onClick={handleDownloadPDF} disabled={downloading}>
               <FaDownload />
               {downloading ? 'Downloading...' : 'Download PDF'}
@@ -692,6 +771,10 @@ const RulesBook = () => {
                 border: 'none'
               }}
               title="CPL Rules Book PDF"
+              onError={(e) => {
+                console.error('Iframe load error:', e);
+                setError('Failed to load PDF in iframe. Try switching to "Show as Pages" view.');
+              }}
             />
           </div>
           <div style={{ 
@@ -705,6 +788,7 @@ const RulesBook = () => {
           }}>
             <strong>📱 iOS Users:</strong> The PDF is displayed using Safari's native viewer. 
             You can pinch to zoom and scroll through the document. Use the download button above to save a copy.
+            Click "Show as Pages" to view using the page-by-page renderer.
           </div>
         </ContentWrapper>
       </Container>
@@ -756,8 +840,33 @@ const RulesBook = () => {
           Rules Book
         </Title>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {isIOSDevice && (
+            <button
+              onClick={() => {
+                setUseIOSIframe(true);
+                setShowAsImages(true);
+                setLoading(false);
+                setError(null);
+              }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: '2px solid white',
+                color: 'white',
+                padding: '0.5rem 1rem',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '600'
+              }}
+            >
+              📱 Show in Safari Viewer
+            </button>
+          )}
           <button
             onClick={() => {
+              if (isIOSDevice) {
+                setUseIOSIframe(false);
+              }
               setShowAsImages(!showAsImages);
               setLoading(true);
             }}
