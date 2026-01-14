@@ -428,59 +428,20 @@ const RulesBook = () => {
   const [downloading, setDownloading] = useState(false);
   const [showAsImages, setShowAsImages] = useState(true); // Show PDF as images by default to preserve images
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
-  const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [isIOSDevice, setIsIOSDevice] = useState(() => {
+    // Initialize iOS detection immediately if window is available
+    if (typeof window !== 'undefined') {
+      try {
+        return isIOS();
+      } catch (e) {
+        return false;
+      }
+    }
+    return false;
+  });
   const [useIOSIframe, setUseIOSIframe] = useState(true); // For iOS: use iframe by default
   const contentRef = useRef(null);
   const pdfPath = '/images/CPL RULES UPDATED.pdf';
-
-  useEffect(() => {
-    let isMounted = true;
-    
-    const initialize = async () => {
-      try {
-        if (isMounted) {
-          setIsIOSDevice(isIOS());
-          if (!showAsImages) {
-            await loadPDFText();
-          } else {
-            setLoading(false);
-          }
-        }
-      } catch (err) {
-        console.error('Error in useEffect:', err);
-        if (isMounted) {
-          setError('An error occurred while initializing the PDF viewer.');
-          setLoading(false);
-        }
-      }
-    };
-    
-    initialize();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [showAsImages]);
-
-  // Handle window resize for responsive PDF scaling
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    const handleResize = () => {
-      try {
-        setWindowWidth(window.innerWidth);
-      } catch (err) {
-        console.error('Error handling resize:', err);
-      }
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('resize', handleResize);
-      }
-    };
-  }, []);
 
   const loadPDFText = async () => {
     try {
@@ -525,11 +486,78 @@ const RulesBook = () => {
       setTextContent(formattedText);
     } catch (err) {
       console.error('Error loading PDF:', err);
-      setError(`Failed to load PDF: ${err.message}. Please make sure the file exists at ${pdfPath}`);
+      setError(`Failed to load PDF: ${err.message || 'Unknown error'}. Please make sure the file exists at ${pdfPath}`);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const initialize = async () => {
+      try {
+        if (typeof window === 'undefined') {
+          if (isMounted) {
+            setError('This component requires a browser environment.');
+            setLoading(false);
+          }
+          return;
+        }
+        
+        if (isMounted) {
+          try {
+            setIsIOSDevice(isIOS());
+          } catch (iosErr) {
+            console.error('Error detecting iOS:', iosErr);
+            setIsIOSDevice(false);
+          }
+          
+          if (!showAsImages) {
+            await loadPDFText();
+          } else {
+            setLoading(false);
+          }
+        }
+      } catch (err) {
+        console.error('Error in useEffect:', err);
+        if (isMounted) {
+          setError(`An error occurred: ${err.message || 'Unknown error'}`);
+          setLoading(false);
+        }
+      }
+    };
+    
+    // Add a small delay to ensure DOM is ready (helps with iOS Safari)
+    const timer = setTimeout(() => {
+      initialize();
+    }, 100);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [showAsImages]);
+
+  // Handle window resize for responsive PDF scaling
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleResize = () => {
+      try {
+        setWindowWidth(window.innerWidth);
+      } catch (err) {
+        console.error('Error handling resize:', err);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []);
 
   const formatTextWithStructure = (textItems, images = []) => {
     if (!textItems || textItems.length === 0) return '<p>No content available</p>';
@@ -697,6 +725,7 @@ const RulesBook = () => {
   };
 
   // Safety check for window object - must be after all hooks
+  // Always render something, even if there's an error
   if (typeof window === 'undefined') {
     return (
       <Container>
@@ -710,6 +739,26 @@ const RulesBook = () => {
           <ErrorContainer>
             <strong>Error:</strong> This component requires a browser environment.
           </ErrorContainer>
+        </ContentWrapper>
+      </Container>
+    );
+  }
+
+  // Show loading state initially
+  if (loading && !error && !isIOSDevice) {
+    return (
+      <Container>
+        <Header>
+          <Title>
+            <FaBook />
+            Rules Book
+          </Title>
+        </Header>
+        <ContentWrapper>
+          <LoadingContainer>
+            <FaSpinner style={{ fontSize: '3rem', animation: 'spin 1s linear infinite', marginBottom: '1rem' }} />
+            <p>Loading PDF content...</p>
+          </LoadingContainer>
         </ContentWrapper>
       </Container>
     );
