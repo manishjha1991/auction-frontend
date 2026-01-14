@@ -1,12 +1,40 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { FaBook, FaDownload, FaSpinner } from 'react-icons/fa';
-import { Document, Page, pdfjs } from 'react-pdf';
-import html2pdf from 'html2pdf.js';
 
-// Set up PDF.js worker - use local worker file from public folder
-// This matches the version used by react-pdf (5.4.296)
-pdfjs.GlobalWorkerOptions.workerSrc = '/js/pdf.worker.min.mjs';
+// Lazy load PDF libraries to prevent crashes on iOS
+let Document, Page, pdfjs;
+let html2pdf;
+let pdfLibrariesLoaded = false;
+
+const loadPdfLibraries = () => {
+  if (pdfLibrariesLoaded) return;
+  
+  try {
+    // Only try to load if not on iOS
+    if (typeof window !== 'undefined') {
+      const ua = navigator.userAgent;
+      const isIOSDevice = /iPad|iPhone|iPod/.test(ua) && !(/Mac OS X/.test(ua) && !/iPad/.test(ua));
+      
+      if (!isIOSDevice) {
+        const reactPdf = require('react-pdf');
+        Document = reactPdf.Document;
+        Page = reactPdf.Page;
+        pdfjs = reactPdf.pdfjs;
+        html2pdf = require('html2pdf.js').default;
+        
+        // Set up PDF.js worker - use local worker file from public folder
+        if (pdfjs && pdfjs.GlobalWorkerOptions) {
+          pdfjs.GlobalWorkerOptions.workerSrc = '/js/pdf.worker.min.mjs';
+        }
+        pdfLibrariesLoaded = true;
+      }
+    }
+  } catch (e) {
+    console.error('Error loading PDF libraries:', e);
+    // Don't throw - just log the error
+  }
+};
 
 const Container = styled.div`
   padding: 1rem;
@@ -448,6 +476,14 @@ const RulesBook = () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Try to load PDF libraries if not already loaded
+      loadPdfLibraries();
+      
+      // Check if PDF.js is available
+      if (!pdfjs || !pdfjs.getDocument) {
+        throw new Error('PDF.js is not available on this device. Please use the iframe view.');
+      }
       
       // Load PDF document with proper configuration
       const loadingTask = pdfjs.getDocument({
@@ -997,7 +1033,13 @@ const RulesBook = () => {
                   </div>
                 );
               })}
-            </Document>
+              </Document>
+            ) : (
+              <ErrorContainer>
+                <strong>PDF Viewer Not Available:</strong> PDF.js is not available on this device. 
+                Please use the iframe view or download the PDF.
+              </ErrorContainer>
+            )}
           </div>
         ) : (
           <PDFContent 
