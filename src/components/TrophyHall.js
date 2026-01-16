@@ -483,29 +483,40 @@ const TrophyHall = () => {
                       boxSizing: 'border-box'
                     }}>
                       {worldCup.winner.teamImage ? (
-                        <img
-                          src={`${API_ENDPOINTS}${worldCup.winner.teamImage}`}
-                          alt={worldCup.winner.teamName}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'contain',
-                            objectPosition: 'center center',
-                            display: 'block',
-                            margin: 0,
-                            padding: 0
-                          }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            const fallback = e.target.parentElement;
-                            if (fallback) {
-                              const fallbackDiv = fallback.querySelector('.fallback-initial');
-                              if (fallbackDiv) {
-                                fallbackDiv.style.display = 'flex';
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          borderRadius: '50%',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'transparent'
+                        }}>
+                          <img
+                            src={`${API_ENDPOINTS}${worldCup.winner.teamImage}`}
+                            alt={worldCup.winner.teamName}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              objectPosition: 'center center',
+                              display: 'block',
+                              margin: 0,
+                              padding: 0
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              const fallback = e.target.closest('div[style*="position: relative"]');
+                              if (fallback) {
+                                const fallbackDiv = fallback.querySelector('.fallback-initial');
+                                if (fallbackDiv) {
+                                  fallbackDiv.style.display = 'flex';
+                                }
                               }
-                            }
-                          }}
-                        />
+                            }}
+                          />
+                        </div>
                       ) : null}
                       <div 
                         className="fallback-initial"
