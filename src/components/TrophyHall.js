@@ -478,7 +478,9 @@ const TrophyHall = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      flexShrink: 0
+                      flexShrink: 0,
+                      padding: '10px',
+                      boxSizing: 'border-box'
                     }}>
                       {worldCup.winner.teamImage ? (
                         <img
@@ -487,16 +489,11 @@ const TrophyHall = () => {
                           style={{
                             width: '100%',
                             height: '100%',
-                            objectFit: 'cover',
+                            objectFit: 'contain',
                             objectPosition: 'center center',
-                            borderRadius: '50%',
                             display: 'block',
                             margin: 0,
-                            padding: 0,
-                            minWidth: '100%',
-                            minHeight: '100%',
-                            maxWidth: '100%',
-                            maxHeight: '100%'
+                            padding: 0
                           }}
                           onError={(e) => {
                             e.target.style.display = 'none';
