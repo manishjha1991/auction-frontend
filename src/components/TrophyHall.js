@@ -94,16 +94,33 @@ const TrophyHall = () => {
                 
                 return isWorldCup && isCompleted && hasWinner;
               })
-              .map(t => ({
-                tournamentName: t.name,
-                winner: {
-                  teamName: t.winner.teamName,
-                  teamImage: t.winner.teamImage || null,
-                  wonAt: t.winner.wonAt || t.endDate || new Date()
-                },
-                endDate: t.endDate,
-                startDate: t.startDate
-              }))
+              .map(t => {
+                // Helper function to normalize team names for matching
+                const normalizeTeamName = (name) => {
+                  if (!name) return '';
+                  return name.trim().toLowerCase();
+                };
+                
+                // Try to find the team in teamsData to get teamImage
+                const winnerTeamName = t.winner.teamName;
+                const matchingTeam = teamsData.find(team => 
+                  normalizeTeamName(team.teamName) === normalizeTeamName(winnerTeamName)
+                );
+                
+                // Use teamImage from matching team, or from tournament winner, or null
+                const teamImage = matchingTeam?.teamImage || t.winner.teamImage || null;
+                
+                return {
+                  tournamentName: t.name,
+                  winner: {
+                    teamName: winnerTeamName,
+                    teamImage: teamImage,
+                    wonAt: t.winner.wonAt || t.endDate || new Date()
+                  },
+                  endDate: t.endDate,
+                  startDate: t.startDate
+                };
+              })
               .sort((a, b) => new Date(b.wonAt || b.endDate) - new Date(a.wonAt || a.endDate)); // Most recent first
             
             console.log('World Cup winners found:', fetchedWorldCupWinners.length);
