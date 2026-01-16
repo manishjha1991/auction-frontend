@@ -474,7 +474,7 @@ const TrophyHall = () => {
                       border: '5px solid #ffd700',
                       boxShadow: '0 6px 20px rgba(255, 215, 0, 0.6), inset 0 0 20px rgba(255, 215, 0, 0.2)',
                       overflow: 'hidden',
-                      background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
+                      background: 'white',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -485,12 +485,12 @@ const TrophyHall = () => {
                           src={`${API_ENDPOINTS}${worldCup.winner.teamImage}`}
                           alt={worldCup.winner.teamName}
                           style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
+                            width: '90%',
+                            height: '90%',
+                            objectFit: 'contain',
                             objectPosition: 'center center',
-                            borderRadius: '50%',
-                            display: 'block'
+                            display: 'block',
+                            borderRadius: '50%'
                           }}
                           onError={(e) => {
                             e.target.style.display = 'none';
