@@ -477,7 +477,8 @@ const TrophyHall = () => {
                       background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      flexShrink: 0
                     }}>
                       {worldCup.winner.teamImage ? (
                         <img
@@ -487,32 +488,49 @@ const TrophyHall = () => {
                             width: '100%',
                             height: '100%',
                             objectFit: 'cover',
-                            borderRadius: '50%'
+                            objectPosition: 'center center',
+                            borderRadius: '50%',
+                            display: 'block',
+                            margin: 0,
+                            padding: 0,
+                            minWidth: '100%',
+                            minHeight: '100%',
+                            maxWidth: '100%',
+                            maxHeight: '100%'
                           }}
                           onError={(e) => {
                             e.target.style.display = 'none';
                             const fallback = e.target.parentElement;
                             if (fallback) {
-                              fallback.style.background = 'linear-gradient(135deg, #ffd700, #ffed4e)';
+                              const fallbackDiv = fallback.querySelector('.fallback-initial');
+                              if (fallbackDiv) {
+                                fallbackDiv.style.display = 'flex';
+                              }
                             }
                           }}
                         />
                       ) : null}
-                      {!worldCup.winner.teamImage && (
-                        <div style={{
+                      <div 
+                        className="fallback-initial"
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
                           width: '100%',
                           height: '100%',
-                          display: 'flex',
+                          display: worldCup.winner.teamImage ? 'none' : 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           color: '#1a1a1a',
                           fontWeight: 'bold',
                           fontSize: '2rem',
-                          textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
-                        }}>
-                          {worldCup.winner.teamName.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                          textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                          background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
+                          borderRadius: '50%'
+                        }}
+                      >
+                        {worldCup.winner.teamName.charAt(0).toUpperCase()}
+                      </div>
                     </div>
 
                     <div style={{
