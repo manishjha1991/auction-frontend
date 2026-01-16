@@ -1,8 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_ENDPOINTS } from '../const';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { FaCalculator, FaTrophy, FaChartLine, FaInfoCircle, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+
+// Animation keyframes
+const fadeInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const pulse = keyframes`
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+`;
+
+const sparkle = keyframes`
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1) rotate(180deg);
+  }
+`;
+
+const spin = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+`;
 
 const Container = styled.div`
   padding: 2rem;
@@ -361,6 +404,9 @@ const PositionCalculator = () => {
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
+  const [advancedMode, setAdvancedMode] = useState(false);
+  const [qualifyFor, setQualifyFor] = useState('top1');
+  const [showAnimations, setShowAnimations] = useState(true);
 
   useEffect(() => {
     // Get current user
@@ -401,19 +447,39 @@ const PositionCalculator = () => {
     }
 
     const targetPos = parseInt(targetPosition);
-    if (isNaN(targetPos) || targetPos < 1) {
-      setError('Target position must be a valid number');
+    if (isNaN(targetPos) || targetPos < 1 || targetPos > 6) {
+      setError('Target position must be a number between 1 and 6');
       return;
     }
 
     try {
       setCalculating(true);
       setError(null);
-      const response = await axios.get(
-        `${API_ENDPOINTS}/api/users/position-calculator/${selectedTeam}`,
-        { params: { targetPosition: targetPos } }
-      );
+      
+      // Use advanced endpoint if advanced mode is enabled
+      const endpoint = advancedMode 
+        ? `${API_ENDPOINTS}/api/users/position-calculator-advanced/${selectedTeam}`
+        : `${API_ENDPOINTS}/api/users/position-calculator/${selectedTeam}`;
+      
+      const params = advancedMode 
+        ? { targetPosition: targetPos, qualifyFor }
+        : { targetPosition: targetPos };
+      
+      const response = await axios.get(endpoint, { params });
       setResults(response.data);
+      
+      // Trigger animation if enabled
+      if (showAnimations && advancedMode) {
+        // Animation will be handled by CSS
+        setTimeout(() => {
+          const elements = document.querySelectorAll('.scenario-card, .permutation-card');
+          elements.forEach((el, index) => {
+            setTimeout(() => {
+              el.style.animation = 'fadeInUp 0.5s ease forwards';
+            }, index * 100);
+          });
+        }, 100);
+      }
     } catch (err) {
       console.error('Error calculating requirements:', err);
       setError(err.response?.data?.message || 'Failed to calculate requirements. Please try again.');
@@ -463,24 +529,64 @@ const PositionCalculator = () => {
         </FormGroup>
 
         {selectedTeamData && (
-          <FormGroup>
-            <Label>Target Position</Label>
+          <>
+            <FormGroup>
+              <Label>Target Position</Label>
             <Input
               type="number"
               min="1"
-              max={pointTable.length}
+              max="6"
               value={targetPosition}
-              onChange={(e) => setTargetPosition(e.target.value)}
-              placeholder={`Enter position (1-${pointTable.length})`}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '' || (parseInt(val) >= 1 && parseInt(val) <= 6)) {
+                  setTargetPosition(val);
+                }
+              }}
+              placeholder="Enter position (1-6 only)"
             />
-            <InfoBox>
-              <FaInfoCircle />
+              <InfoBox>
+                <FaInfoCircle />
               <InfoText>
                 Your current position is <strong>{currentPosition}</strong>. 
-                Enter a position number lower than {currentPosition} to see what's needed to reach it.
+                Enter a position number (1-6 only) to see all possible scenarios to reach it, including which matches to watch and what needs to happen if you win or lose your remaining matches.
               </InfoText>
-            </InfoBox>
-          </FormGroup>
+              </InfoBox>
+            </FormGroup>
+
+            <FormGroup>
+              <Label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={advancedMode}
+                  onChange={(e) => setAdvancedMode(e.target.checked)}
+                  style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                />
+                <span>✨ Advanced Mode - Show All Permutations & Match Scenarios</span>
+              </Label>
+              {advancedMode && (
+                <>
+                  <Label style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>Qualify For:</Label>
+                  <Select
+                    value={qualifyFor}
+                    onChange={(e) => setQualifyFor(e.target.value)}
+                    style={{ marginBottom: '0.5rem' }}
+                  >
+                    <option value="top1">Top 1 (Champion)</option>
+                    <option value="top2">Top 2</option>
+                    <option value="top3">Top 3</option>
+                    <option value={targetPosition || '1'}>Position {targetPosition || 1}</option>
+                  </Select>
+                  <InfoBox style={{ background: '#fff3cd', borderLeftColor: '#ffc107' }}>
+                    <FaInfoCircle />
+                    <InfoText style={{ color: '#856404' }}>
+                      Advanced mode calculates all possible match outcome combinations and shows you exactly what needs to happen in each match for you to qualify. This includes considering all teams' remaining matches.
+                    </InfoText>
+                  </InfoBox>
+                </>
+              )}
+            </FormGroup>
+          </>
         )}
 
         {error && (
@@ -512,24 +618,39 @@ const PositionCalculator = () => {
             </InfoBox>
           )}
 
-          {results.requirements && (
-            <>
-              <StatsGrid>
-                <StatCard highlight>
-                  <StatLabel>Current Position</StatLabel>
-                  <StatValue>#{results.currentPosition}</StatValue>
-                </StatCard>
-                <StatCard highlight>
-                  <StatLabel>Target Position</StatLabel>
-                  <StatValue>#{results.targetPosition}</StatValue>
-                </StatCard>
-                <StatCard>
-                  <StatLabel>Remaining Matches</StatLabel>
-                  <StatValue>{results.remainingMatches}</StatValue>
-                </StatCard>
-              </StatsGrid>
+          {/* Show basic stats for both modes */}
+          {(results.currentPosition || results.currentStats) && (
+            <StatsGrid>
+              <StatCard highlight>
+                <StatLabel>Current Position</StatLabel>
+                <StatValue>#{results.currentPosition || 'N/A'}</StatValue>
+              </StatCard>
+              <StatCard highlight>
+                <StatLabel>Target Position</StatLabel>
+                <StatValue>#{results.targetPosition || 'N/A'}</StatValue>
+              </StatCard>
+              <StatCard>
+                <StatLabel>Remaining Matches</StatLabel>
+                <StatValue>{results.remainingMatches || results.currentStats?.remainingMatches || 0}</StatValue>
+              </StatCard>
+              {results.currentStats && (
+                <>
+                  <StatCard>
+                    <StatLabel>Current Points</StatLabel>
+                    <StatValue>{results.currentStats.points || 0}</StatValue>
+                  </StatCard>
+                  <StatCard>
+                    <StatLabel>Current NRR</StatLabel>
+                    <StatValue>{results.currentStats.nrr?.toFixed(3) || '0.000'}</StatValue>
+                  </StatCard>
+                </>
+              )}
+            </StatsGrid>
+          )}
 
-              <RequirementsSection>
+          {/* Regular mode requirements - only show if not in advanced mode */}
+          {!advancedMode && results.requirements && (
+            <RequirementsSection>
                 <RequirementsTitle>
                   <FaChartLine />
                   What You Need to Achieve
@@ -555,8 +676,9 @@ const PositionCalculator = () => {
                   </RequirementItem>
                 )}
               </RequirementsSection>
+            )}
 
-              {results.matchScenarios && results.matchScenarios.length > 0 && (
+              {!advancedMode && results.matchScenarios && results.matchScenarios.length > 0 && (
                 <div style={{ marginTop: '2rem' }}>
                   <SectionHeader>
                     <FaChartLine />
@@ -688,37 +810,397 @@ const PositionCalculator = () => {
                 </div>
               )}
 
-              <div style={{ marginTop: '2rem', background: '#f8f9fa', padding: '1.5rem', borderRadius: '8px' }}>
-                <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#333' }}>Target Team Stats</h3>
-                <StatsGrid>
-                  <StatCard>
-                    <StatLabel>Team</StatLabel>
-                    <StatValue>{results.targetStats.teamName}</StatValue>
-                  </StatCard>
-                  <StatCard>
-                    <StatLabel>Points</StatLabel>
-                    <StatValue>{results.targetStats.points}</StatValue>
-                  </StatCard>
-                  <StatCard>
-                    <StatLabel>NRR</StatLabel>
-                    <StatValue>{results.targetStats.nrr.toFixed(3)}</StatValue>
-                  </StatCard>
-                  <StatCard>
-                    <StatLabel>Fairness</StatLabel>
-                    <StatValue>{results.targetStats.fairness}</StatValue>
-                  </StatCard>
-                  <StatCard>
-                    <StatLabel>Wins</StatLabel>
-                    <StatValue>{results.targetStats.wins}</StatValue>
-                  </StatCard>
-                  <StatCard>
-                    <StatLabel>Losses</StatLabel>
-                    <StatValue>{results.targetStats.losses}</StatValue>
-                  </StatCard>
-                </StatsGrid>
-              </div>
-            </>
-          )}
+              {/* Advanced Mode - Permutation Scenarios */}
+              {advancedMode && results && (
+                <>
+                  {results.qualificationScenarios && Array.isArray(results.qualificationScenarios) && results.qualificationScenarios.length > 0 ? (
+                    <div style={{ marginTop: '2rem' }}>
+                      <SectionHeader>
+                        <FaTrophy />
+                        🎯 Qualification Scenarios (All Permutations)
+                      </SectionHeader>
+                      <InfoBox style={{ background: '#e8f5e9', borderLeftColor: '#4caf50' }}>
+                        <FaInfoCircle />
+                        <InfoText style={{ color: '#2e7d32' }}>
+                          <strong>Magic Calculation Complete! ✨</strong> These scenarios show all possible match outcome combinations. 
+                          Each scenario considers your matches AND all other teams' remaining matches. 
+                          <Badge type="success">Green scenarios</Badge> guarantee qualification, while others show what else might be needed.
+                        </InfoText>
+                      </InfoBox>
+                      
+                      {results.qualificationScenarios.map((scenario, index) => (
+                    <ScenarioCard 
+                      key={index} 
+                      willReach={scenario.qualifies}
+                      className="scenario-card"
+                      style={{
+                        animation: showAnimations ? 'fadeInUp 0.5s ease forwards' : 'none',
+                        animationDelay: `${index * 0.1}s`,
+                        opacity: showAnimations ? 0 : 1
+                      }}
+                    >
+                      <ScenarioTitle willReach={scenario.qualifies}>
+                        {scenario.qualifies ? (
+                          <>
+                            <FaCheckCircle style={{ color: '#28a745', fontSize: '1.2rem' }} /> 
+                            Scenario {scenario.scenarioNumber}: {scenario.userWins} Wins, {scenario.userLosses} Losses
+                            <Badge type="success">✅ QUALIFIES</Badge>
+                          </>
+                        ) : (
+                          <>
+                            <FaExclamationTriangle style={{ color: '#ffc107', fontSize: '1.2rem' }} /> 
+                            Scenario {scenario.scenarioNumber}: {scenario.userWins} Wins, {scenario.userLosses} Losses
+                            <Badge type="warning">⚠️ May Not Qualify</Badge>
+                          </>
+                        )}
+                      </ScenarioTitle>
+                      
+                      <ScenarioGrid>
+                        <ScenarioStat>
+                          <ScenarioStatLabel>Your Wins</ScenarioStatLabel>
+                          <ScenarioStatValue highlight={scenario.qualifies}>
+                            {scenario.userWins} / {results.remainingFixtures?.length || 0}
+                          </ScenarioStatValue>
+                        </ScenarioStat>
+                        <ScenarioStat>
+                          <ScenarioStatLabel>New Points</ScenarioStatLabel>
+                          <ScenarioStatValue highlight={scenario.qualifies}>
+                            {scenario.newUserPoints}
+                            <span style={{ fontSize: '0.75rem', color: '#28a745' }}>
+                              (+{scenario.userWins * 2})
+                            </span>
+                          </ScenarioStatValue>
+                        </ScenarioStat>
+                        <ScenarioStat>
+                          <ScenarioStatLabel>New NRR</ScenarioStatLabel>
+                          <ScenarioStatValue highlight={scenario.newUserNRR > results.currentStats.nrr}>
+                            {scenario.newUserNRR > 0 ? '+' : ''}{scenario.newUserNRR.toFixed(3)}
+                            {scenario.newUserNRR > results.currentStats.nrr && (
+                              <span style={{ fontSize: '0.75rem', color: '#28a745' }}>↑</span>
+                            )}
+                          </ScenarioStatValue>
+                        </ScenarioStat>
+                        <ScenarioStat>
+                          <ScenarioStatLabel>New Rank</ScenarioStatLabel>
+                          <ScenarioStatValue highlight={scenario.newRank <= parseInt(results.targetPosition || 6)}>
+                            #{scenario.newRank}
+                            {scenario.newRank < results.currentPosition && (
+                              <span style={{ fontSize: '0.75rem', color: '#28a745' }}>↑</span>
+                            )}
+                          </ScenarioStatValue>
+                        </ScenarioStat>
+                        <ScenarioStat>
+                          <ScenarioStatLabel>Status</ScenarioStatLabel>
+                          <ScenarioStatValue>
+                            {scenario.qualifies ? (
+                              <Badge type="success">🎉 QUALIFIED</Badge>
+                            ) : (
+                              <Badge type="warning">Need More Wins/NRR</Badge>
+                            )}
+                          </ScenarioStatValue>
+                        </ScenarioStat>
+                      </ScenarioGrid>
+
+                      {/* Detailed Match Scenarios */}
+                      {scenario.matchScenarios && scenario.matchScenarios.length > 0 && (
+                        <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255, 255, 255, 0.8)', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)' }}>
+                          <strong style={{ color: '#333', fontSize: '0.95rem', display: 'block', marginBottom: '0.75rem' }}>
+                            📋 Match-by-Match Breakdown:
+                          </strong>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {scenario.matchScenarios.map((match, matchIdx) => (
+                              <div 
+                                key={matchIdx}
+                                style={{
+                                  padding: '0.75rem',
+                                  background: match.matchType === 'your_match' 
+                                    ? (match.outcome === 'win' ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)')
+                                    : 'rgba(255, 193, 7, 0.1)',
+                                  borderRadius: '6px',
+                                  borderLeft: `3px solid ${
+                                    match.matchType === 'your_match' 
+                                      ? (match.outcome === 'win' ? '#28a745' : '#dc3545')
+                                      : '#ffc107'
+                                  }`,
+                                  fontSize: '0.85rem'
+                                }}
+                              >
+                                {match.matchType === 'your_match' ? (
+                                  <div>
+                                    <strong style={{ color: match.outcome === 'win' ? '#28a745' : '#dc3545' }}>
+                                      {match.outcome === 'win' ? '✅ WIN' : '❌ LOSE'}
+                                    </strong>
+                                    {' '}vs <strong>{match.opponent}</strong>
+                                    {match.yourScore && (
+                                      <div style={{ marginTop: '0.25rem', color: '#666', fontSize: '0.8rem' }}>
+                                        You: {match.yourScore} runs ({match.yourOvers?.toFixed(1)} ov) | 
+                                        {match.opponent}: {match.opponentScore} runs ({match.opponentOvers?.toFixed(1)} ov)
+                                        {match.battingFirst === 'yes' && ' | Batting First'}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <span style={{ color: '#ffc107', fontWeight: 'bold' }}>🎯 CRITICAL:</span>
+                                    {' '}<strong>{match.teamAbove}</strong> must <strong style={{ color: '#dc3545' }}>LOSE</strong> to <strong>{match.opponent}</strong>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Critical Matches to Watch */}
+                      {scenario.criticalMatches && scenario.criticalMatches.length > 0 && (
+                        <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255, 193, 7, 0.15)', borderRadius: '8px', border: '2px solid #ffc107' }}>
+                          <strong style={{ color: '#856404', fontSize: '0.95rem', display: 'block', marginBottom: '0.75rem' }}>
+                            👀 CRITICAL MATCHES TO WATCH:
+                          </strong>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {scenario.criticalMatches.map((match, matchIdx) => (
+                              <div 
+                                key={matchIdx}
+                                style={{
+                                  padding: '0.75rem',
+                                  background: 'white',
+                                  borderRadius: '6px',
+                                  borderLeft: '4px solid #ffc107',
+                                  fontSize: '0.85rem'
+                                }}
+                              >
+                                <div style={{ fontWeight: 'bold', color: '#856404', marginBottom: '0.25rem' }}>
+                                  {match.teamAbove} vs {match.opponent}
+                                </div>
+                                <div style={{ color: '#666', fontSize: '0.8rem' }}>
+                                  <div>Required: <strong style={{ color: '#dc3545' }}>{match.requiredOutcome}</strong></div>
+                                  <div>Reason: {match.reason}</div>
+                                  <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#999' }}>
+                                    {match.teamAbove}: {match.teamAbovePoints} pts, NRR: {match.teamAboveNRR?.toFixed(3) || '0.000'} | 
+                                    {match.opponent}: {match.opponentPoints} pts, NRR: {match.opponentNRR?.toFixed(3) || '0.000'}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {scenario.summary && (
+                        <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(102, 126, 234, 0.1)', borderRadius: '6px', fontSize: '0.85rem' }}>
+                          <strong style={{ color: '#667eea' }}>Summary:</strong>
+                          <div style={{ marginTop: '0.25rem', color: '#666' }}>
+                            <div>Scenario Type: <strong>{scenario.scenarioType || 'Standard'}</strong></div>
+                            <div>Your Matches: {scenario.summary.yourMatches} | 
+                            Critical Matches: {scenario.summary.criticalMatches} | 
+                            New Rank: <strong>#{scenario.newRank || results.currentPosition}</strong></div>
+                            <div>Teams That Must Lose: {scenario.summary.teamsThatMustLose?.join(', ') || 'None'}</div>
+                            {scenario.summary.matchesToWatch && scenario.summary.matchesToWatch.length > 0 && (
+                              <div style={{ marginTop: '0.25rem', fontSize: '0.8rem' }}>
+                                Matches to Watch: {scenario.summary.matchesToWatch.join('; ')}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {scenario.requirements && (
+                        <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '8px' }}>
+                          <strong style={{ color: '#333', fontSize: '0.9rem' }}>Requirements:</strong>
+                          <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
+                            <div>Min Wins Needed: {scenario.requirements.minWinsNeeded}</div>
+                            <div>NRR Needed: +{scenario.requirements.nrrNeeded.toFixed(3)}</div>
+                          </div>
+                        </div>
+                      )}
+                    </ScenarioCard>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: '2rem', padding: '2rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                      <FaInfoCircle style={{ fontSize: '2rem', color: '#6c757d', marginBottom: '1rem' }} />
+                      <h3 style={{ color: '#333', marginBottom: '0.5rem' }}>No Qualification Scenarios Found</h3>
+                      <p style={{ color: '#666' }}>
+                        {results.qualificationScenarios 
+                          ? 'No scenarios were generated. This might mean there are no remaining matches or the calculation could not find viable paths to qualification.'
+                          : 'The advanced calculator did not return qualification scenarios. Please check the browser console for errors.'}
+                      </p>
+                      {results.remainingFixtures && results.remainingFixtures.length === 0 && (
+                        <p style={{ color: '#dc3545', marginTop: '0.5rem' }}>
+                          ⚠️ You have no remaining matches. Cannot calculate qualification scenarios.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Show ALL remaining matches with required outcomes */}
+              {advancedMode && results.allRemainingMatchesAnalysis && results.allRemainingMatchesAnalysis.length > 0 && (
+                <div style={{ marginTop: '2rem' }}>
+                  <SectionHeader>
+                    <FaChartLine />
+                    📋 ALL Remaining Matches - Who Should Win/Lose
+                  </SectionHeader>
+                  <InfoBox style={{ background: '#e3f2fd', borderLeftColor: '#2196F3' }}>
+                    <FaInfoCircle />
+                    <InfoText style={{ color: '#1565C0' }}>
+                      <strong>Complete Match Analysis:</strong> This shows ALL remaining matches across ALL teams and what needs to happen in each match for you to qualify. 
+                      <Badge type="success">Critical matches</Badge> are where teams above you must lose.
+                    </InfoText>
+                  </InfoBox>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                    {results.allRemainingMatchesAnalysis.map((match, idx) => (
+                      <div 
+                        key={match.matchId || idx}
+                        style={{
+                          background: match.importance === 'critical' 
+                            ? 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)'
+                            : match.importance === 'high'
+                            ? 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)'
+                            : 'white',
+                          padding: '1rem',
+                          borderRadius: '8px',
+                          border: `2px solid ${
+                            match.importance === 'critical' ? '#ffc107' :
+                            match.importance === 'high' ? '#2196F3' : '#e0e0e0'
+                          }`,
+                          boxShadow: match.importance === 'critical' 
+                            ? '0 4px 12px rgba(255, 193, 7, 0.3)'
+                            : '0 2px 4px rgba(0,0,0,0.1)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ 
+                              fontSize: '1.1rem', 
+                              fontWeight: 'bold', 
+                              color: match.importance === 'critical' ? '#856404' : '#333',
+                              marginBottom: '0.5rem'
+                            }}>
+                              {match.team1} <span style={{ color: '#999' }}>vs</span> {match.team2}
+                            </div>
+                            <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
+                              <strong>Required Outcome:</strong> <span style={{ 
+                                color: match.importance === 'critical' ? '#dc3545' : '#333',
+                                fontWeight: 'bold'
+                              }}>{match.requiredOutcome}</span>
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic' }}>
+                              {match.reason}
+                            </div>
+                          </div>
+                          <div style={{ 
+                            padding: '0.5rem 1rem', 
+                            background: match.importance === 'critical' ? '#ffc107' : '#e0e0e0',
+                            borderRadius: '20px',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            color: match.importance === 'critical' ? '#856404' : '#666',
+                            textTransform: 'uppercase'
+                          }}>
+                            {match.importance}
+                          </div>
+                        </div>
+                        <div style={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                          gap: '0.75rem',
+                          marginTop: '0.75rem',
+                          padding: '0.75rem',
+                          background: 'rgba(255, 255, 255, 0.5)',
+                          borderRadius: '6px',
+                          fontSize: '0.85rem'
+                        }}>
+                          <div>
+                            <strong>{match.team1}:</strong><br/>
+                            Rank: {match.team1Rank} | Points: {match.team1Points} | NRR: {match.team1NRR?.toFixed(3) || '0.000'}
+                          </div>
+                          <div>
+                            <strong>{match.team2}:</strong><br/>
+                            Rank: {match.team2Rank} | Points: {match.team2Points} | NRR: {match.team2NRR?.toFixed(3) || '0.000'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Show remaining fixtures for all teams (simplified view) */}
+              {advancedMode && results.allTeamsRemainingFixtures && (
+                <div style={{ marginTop: '2rem' }}>
+                  <SectionHeader>
+                    <FaChartLine />
+                    📅 All Teams' Remaining Matches (Quick View)
+                  </SectionHeader>
+                  <InfoBox>
+                    <FaInfoCircle />
+                    <InfoText>
+                      Quick reference: Remaining matches for each team. See the detailed analysis above for required outcomes.
+                    </InfoText>
+                  </InfoBox>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                    {Object.entries(results.allTeamsRemainingFixtures).map(([teamName, fixtures]) => (
+                      <div key={teamName} style={{ 
+                        background: 'white', 
+                        padding: '1rem', 
+                        borderRadius: '8px', 
+                        border: '1px solid #e0e0e0',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}>
+                        <strong style={{ color: '#667eea', display: 'block', marginBottom: '0.5rem' }}>
+                          {teamName}
+                        </strong>
+                        <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                          {fixtures.length > 0 ? (
+                            fixtures.map((f, idx) => (
+                              <div key={idx} style={{ marginBottom: '0.25rem' }}>
+                                vs {f.opponent}
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ color: '#999', fontStyle: 'italic' }}>No remaining matches</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Target Team Stats - only show in regular mode */}
+              {!advancedMode && results.targetStats && (
+                <div style={{ marginTop: '2rem', background: '#f8f9fa', padding: '1.5rem', borderRadius: '8px' }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#333' }}>Target Team Stats</h3>
+                  <StatsGrid>
+                    <StatCard>
+                      <StatLabel>Team</StatLabel>
+                      <StatValue>{results.targetStats.teamName}</StatValue>
+                    </StatCard>
+                    <StatCard>
+                      <StatLabel>Points</StatLabel>
+                      <StatValue>{results.targetStats.points}</StatValue>
+                    </StatCard>
+                    <StatCard>
+                      <StatLabel>NRR</StatLabel>
+                      <StatValue>{results.targetStats.nrr.toFixed(3)}</StatValue>
+                    </StatCard>
+                    <StatCard>
+                      <StatLabel>Fairness</StatLabel>
+                      <StatValue>{results.targetStats.fairness}</StatValue>
+                    </StatCard>
+                    <StatCard>
+                      <StatLabel>Wins</StatLabel>
+                      <StatValue>{results.targetStats.wins}</StatValue>
+                    </StatCard>
+                    <StatCard>
+                      <StatLabel>Losses</StatLabel>
+                      <StatValue>{results.targetStats.losses}</StatValue>
+                    </StatCard>
+                  </StatsGrid>
+                </div>
+              )}
         </ResultsCard>
       )}
     </Container>
