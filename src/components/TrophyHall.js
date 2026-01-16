@@ -448,39 +448,54 @@ const TrophyHall = () => {
                     alignItems: 'center',
                     gap: '12px'
                   }}>
-                    {worldCup.winner.teamImage ? (
-                      <img
-                        src={`${API_ENDPOINTS}${worldCup.winner.teamImage}`}
-                        alt={worldCup.winner.teamName}
-                        style={{
-                          width: '80px',
-                          height: '80px',
-                          borderRadius: '50%',
-                          border: '4px solid #ffd700',
-                          boxShadow: '0 4px 15px rgba(255, 215, 0, 0.5)',
-                          objectFit: 'cover'
-                        }}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
+                    {/* Team Logo/Image in Circle */}
                     <div style={{
-                      width: '80px',
-                      height: '80px',
+                      position: 'relative',
+                      width: '100px',
+                      height: '100px',
                       borderRadius: '50%',
+                      border: '5px solid #ffd700',
+                      boxShadow: '0 6px 20px rgba(255, 215, 0, 0.6), inset 0 0 20px rgba(255, 215, 0, 0.2)',
+                      overflow: 'hidden',
                       background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
-                      display: worldCup.winner.teamImage ? 'none' : 'flex',
+                      display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#1a1a1a',
-                      fontWeight: 'bold',
-                      fontSize: '1.5rem',
-                      border: '4px solid #ffd700',
-                      boxShadow: '0 4px 15px rgba(255, 215, 0, 0.5)'
+                      justifyContent: 'center'
                     }}>
-                      {worldCup.winner.teamName.charAt(0).toUpperCase()}
+                      {worldCup.winner.teamImage ? (
+                        <img
+                          src={`${API_ENDPOINTS}${worldCup.winner.teamImage}`}
+                          alt={worldCup.winner.teamName}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            borderRadius: '50%'
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            const fallback = e.target.parentElement;
+                            if (fallback) {
+                              fallback.style.background = 'linear-gradient(135deg, #ffd700, #ffed4e)';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      {!worldCup.winner.teamImage && (
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#1a1a1a',
+                          fontWeight: 'bold',
+                          fontSize: '2rem',
+                          textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                        }}>
+                          {worldCup.winner.teamName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                     </div>
 
                     <div style={{
