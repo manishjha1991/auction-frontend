@@ -1033,19 +1033,25 @@ const Fixtures = () => {
             const team1Wickets = parseWickets(fixture.team1Score);
             const team2Wickets = parseWickets(fixture.team2Score);
             
-            let team1Overs = parseOvers(fixture.team1Overs);
-            let team2Overs = parseOvers(fixture.team2Overs);
+            let team1OversActual = parseOvers(fixture.team1Overs);
+            let team2OversActual = parseOvers(fixture.team2Overs);
 
-            // ICC Rule: If all out (10 wickets), use 20.0 overs
-            if (team1Wickets === 10) team1Overs = 20.0;
-            if (team2Wickets === 10) team2Overs = 20.0;
+            // ICC Rule 1 & 2: Overs FACED
+            // If team is all out (10 wickets), use 20.0 overs, otherwise use actual overs
+            let team1OversFaced = (team1Wickets === 10) ? 20.0 : team1OversActual;
+            let team2OversFaced = (team2Wickets === 10) ? 20.0 : team2OversActual;
 
-            // Calculate NRR for each team
-            const team1NRR = team1Overs > 0 && team2Overs > 0 
-              ? (team1Runs / team1Overs) - (team2Runs / team2Overs)
+            // ICC Rule 3: Overs BOWLED
+            // If opposition is all out, use 20.0 overs, otherwise use actual overs
+            let team1OversBowled = (team2Wickets === 10) ? 20.0 : team2OversActual;
+            let team2OversBowled = (team1Wickets === 10) ? 20.0 : team1OversActual;
+
+            // Calculate NRR for each team: (Runs Scored / Overs Faced) - (Runs Conceded / Overs Bowled)
+            const team1NRR = team1OversFaced > 0 && team1OversBowled > 0 
+              ? (team1Runs / team1OversFaced) - (team2Runs / team1OversBowled)
               : 0;
-            const team2NRR = team2Overs > 0 && team1Overs > 0
-              ? (team2Runs / team2Overs) - (team1Runs / team1Overs)
+            const team2NRR = team2OversFaced > 0 && team2OversBowled > 0
+              ? (team2Runs / team2OversFaced) - (team1Runs / team2OversBowled)
               : 0;
 
             return (
