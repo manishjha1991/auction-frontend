@@ -59,6 +59,33 @@ const OversTag = styled.div`
   }
 `;
 
+const NRRTag = styled.div`
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  background: ${(props) => {
+    if (props.nrr > 0) return "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+    if (props.nrr < 0) return "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)";
+    return "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)";
+  }};
+  border: 1px solid ${(props) => {
+    if (props.nrr > 0) return "#10b981";
+    if (props.nrr < 0) return "#ef4444";
+    return "#6b7280";
+  }};
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  }
+`;
+
 // Tab styles
 const TabContainer = styled.div`
   margin: 2rem auto;
@@ -950,6 +977,157 @@ const Fixtures = () => {
               </div>
             </div>
           )}
+
+          {/* Show NRR gained/lost for both teams */}
+          {fixture.winner && fixture.team1Score && fixture.team2Score && fixture.team1Overs && fixture.team2Overs && (() => {
+            // Helper function to parse runs from score string
+            const parseRuns = (scoreString) => {
+              if (!scoreString) return 0;
+              const scoreStr = String(scoreString).trim();
+              if (scoreStr === 'null' || scoreStr === 'TBD' || scoreStr === 'NA' || scoreStr === '' || scoreStr === 'undefined') return 0;
+              const match = scoreStr.match(/^(\d+)/);
+              if (match) {
+                const runs = parseInt(match[1], 10);
+                return isNaN(runs) ? 0 : runs;
+              }
+              const num = parseFloat(scoreStr);
+              return isNaN(num) ? 0 : Math.floor(num);
+            };
+
+            // Helper function to parse overs
+            const parseOvers = (oversString) => {
+              if (!oversString) return 20;
+              const oversStr = String(oversString).trim();
+              if (oversStr === 'null' || oversStr === 'TBD' || oversStr === 'NA' || oversStr === '' || oversStr === 'undefined') return 20;
+              const decimalMatch = oversStr.match(/^(\d+)\.(\d+)$/);
+              if (decimalMatch) {
+                const overs = parseInt(decimalMatch[1], 10);
+                const balls = parseInt(decimalMatch[2], 10);
+                if (!isNaN(overs) && !isNaN(balls) && balls >= 0 && balls <= 5) {
+                  return overs + (balls / 6);
+                }
+              }
+              const wholeMatch = oversStr.match(/^(\d+)$/);
+              if (wholeMatch) {
+                const overs = parseInt(wholeMatch[1], 10);
+                if (!isNaN(overs)) return overs;
+              }
+              const num = parseFloat(oversStr);
+              return isNaN(num) ? 20 : num;
+            };
+
+            // Parse wickets to check for all-out
+            const parseWickets = (scoreString) => {
+              if (!scoreString) return 0;
+              const scoreStr = String(scoreString).trim();
+              const slashMatch = scoreStr.match(/\/(\d+)/);
+              if (slashMatch) {
+                const wickets = parseInt(slashMatch[1], 10);
+                if (!isNaN(wickets) && wickets >= 0 && wickets <= 10) return wickets;
+              }
+              return 0;
+            };
+
+            const team1Runs = parseRuns(fixture.team1Score);
+            const team2Runs = parseRuns(fixture.team2Score);
+            const team1Wickets = parseWickets(fixture.team1Score);
+            const team2Wickets = parseWickets(fixture.team2Score);
+            
+            let team1Overs = parseOvers(fixture.team1Overs);
+            let team2Overs = parseOvers(fixture.team2Overs);
+
+            // ICC Rule: If all out (10 wickets), use 20.0 overs
+            if (team1Wickets === 10) team1Overs = 20.0;
+            if (team2Wickets === 10) team2Overs = 20.0;
+
+            // Calculate NRR for each team
+            const team1NRR = team1Overs > 0 && team2Overs > 0 
+              ? (team1Runs / team1Overs) - (team2Runs / team2Overs)
+              : 0;
+            const team2NRR = team2Overs > 0 && team1Overs > 0
+              ? (team2Runs / team2Overs) - (team1Runs / team1Overs)
+              : 0;
+
+            return (
+              <div
+                style={{
+                  marginTop: "0.75rem",
+                  padding: "0.75rem",
+                  background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                  borderRadius: "8px",
+                  border: "1px solid #fbbf24",
+                  textAlign: "left",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
+                }}
+              >
+                <span style={{ 
+                  fontSize: "0.75rem", 
+                  color: "#92400e", 
+                  fontWeight: "600",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px"
+                }}>
+                  NRR (This Match)
+                </span>
+                <div style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: "0.75rem",
+                  alignItems: "center"
+                }}>
+                  <div style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "0.5rem",
+                    padding: "0.25rem 0.75rem",
+                    background: "white",
+                    borderRadius: "6px",
+                    border: "1px solid #fbbf24",
+                    flex: "1 1 auto",
+                    minWidth: 0
+                  }}>
+                    <span style={{ 
+                      fontSize: "0.75rem", 
+                      color: "#475569", 
+                      fontWeight: "600",
+                      whiteSpace: "nowrap"
+                    }}>
+                      {getAbbreviation(fixture.team1)}
+                    </span>
+                    <NRRTag nrr={team1NRR}>
+                      {team1NRR > 0 ? '+' : ''}{team1NRR.toFixed(3)}
+                    </NRRTag>
+                  </div>
+                  <div style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "0.5rem",
+                    padding: "0.25rem 0.75rem",
+                    background: "white",
+                    borderRadius: "6px",
+                    border: "1px solid #fbbf24",
+                    flex: "1 1 auto",
+                    minWidth: 0
+                  }}>
+                    <span style={{ 
+                      fontSize: "0.75rem", 
+                      color: "#475569", 
+                      fontWeight: "600",
+                      whiteSpace: "nowrap"
+                    }}>
+                      {getAbbreviation(fixture.team2)}
+                    </span>
+                    <NRRTag nrr={team2NRR}>
+                      {team2NRR > 0 ? '+' : ''}{team2NRR.toFixed(3)}
+                    </NRRTag>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {fixture.mom?.name && (
             <MomDetails>
