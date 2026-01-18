@@ -40,6 +40,25 @@ const FairnessTag = styled.div`
   }};
 `;
 
+const OversTag = styled.div`
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1f2937;
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  border: 1px solid #a5b4fc;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.1);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(99, 102, 241, 0.15);
+  }
+`;
+
 // Tab styles
 const TabContainer = styled.div`
   margin: 2rem auto;
@@ -850,6 +869,87 @@ const Fixtures = () => {
               </FairnessTag>
             </div>
           </div>
+
+          {/* Show both teams' overs played on the same line */}
+          {fixture.winner && (fixture.team1Overs || fixture.team2Overs) && (
+            <div
+              style={{
+                marginTop: "0.75rem",
+                padding: "0.75rem",
+                background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+                borderRadius: "8px",
+                border: "1px solid #e2e8f0",
+                textAlign: "left",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem",
+              }}
+            >
+              <span style={{ 
+                fontSize: "0.75rem", 
+                color: "#64748b", 
+                fontWeight: "600",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px"
+              }}>
+                Overs
+              </span>
+              <div style={{
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: "0.75rem",
+                alignItems: "center"
+              }}>
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.5rem",
+                  padding: "0.25rem 0.75rem",
+                  background: "white",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  flex: "1 1 auto",
+                  minWidth: 0
+                }}>
+                  <span style={{ 
+                    fontSize: "0.75rem", 
+                    color: "#475569", 
+                    fontWeight: "600",
+                    whiteSpace: "nowrap"
+                  }}>
+                    {getAbbreviation(fixture.team1)}
+                  </span>
+                  <OversTag>
+                    {fixture.team1Overs || "N/A"}
+                  </OversTag>
+                </div>
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.5rem",
+                  padding: "0.25rem 0.75rem",
+                  background: "white",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  flex: "1 1 auto",
+                  minWidth: 0
+                }}>
+                  <span style={{ 
+                    fontSize: "0.75rem", 
+                    color: "#475569", 
+                    fontWeight: "600",
+                    whiteSpace: "nowrap"
+                  }}>
+                    {getAbbreviation(fixture.team2)}
+                  </span>
+                  <OversTag>
+                    {fixture.team2Overs || "N/A"}
+                  </OversTag>
+                </div>
+              </div>
+            </div>
+          )}
 
           {fixture.mom?.name && (
             <MomDetails>
