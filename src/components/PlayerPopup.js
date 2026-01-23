@@ -45,7 +45,7 @@ const getPopupTypeStyles = (type) => {
   }
 };
 
-const PlayerPopup = ({ player, onClose }) => {
+const PlayerPopup = ({ player, onClose, onDeactivated }) => {
   const [playerDetails, setPlayerDetails] = useState(null);
   const [topTwoBids, setTopTwoBids] = useState([]);
   const [allBids, setAllBids] = useState([]);
@@ -226,6 +226,46 @@ const PlayerPopup = ({ player, onClose }) => {
     }
   };
 
+  const handleDeactivatePlayer = async () => {
+    try {
+      setBidAlert(null);
+      const admin = JSON.parse(localStorage.getItem("user"));
+      const adminUserId = admin?.id;
+      if (!adminUserId) {
+        throw new Error("Admin user ID not found.");
+      }
+
+      const response = await fetch(`${API_ENDPOINTS}/api/player/${player.id}/deactivate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminUserId }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to deactivate player.");
+      }
+
+      setPlayerDetails((prev) => (prev ? { ...prev, isActive: false } : prev));
+      if (onDeactivated) {
+        onDeactivated(player.id || player._id);
+      }
+      setBidAlert({
+        message: result.message || "Player deactivated successfully.",
+        amount: null,
+        playerName: playerDetails.name,
+        isSuccess: true,
+      });
+    } catch (err) {
+      setBidAlert({
+        message: err.message || "Failed to deactivate player. Please try again.",
+        amount: null,
+        playerName: playerDetails?.name || "",
+        isSuccess: false,
+      });
+    }
+  };
+
   const determineBidIncrement = (playerType, lastBidAmount) => {
     if (playerType === "Sapphire" || playerType === "Gold" || playerType === "Emerald") {
       return 5000000; // ₹50,00,000
@@ -360,6 +400,7 @@ const PlayerPopup = ({ player, onClose }) => {
   }
 
   const isSold = playerDetails?.status === true;
+  const isActive = playerDetails?.isActive !== false;
   const popupTypeStyles = getPopupTypeStyles(playerDetails?.type);
   const getPlayerStatValue = (field) => {
     const detailValue = playerDetails?.[field];
@@ -613,6 +654,26 @@ const PlayerPopup = ({ player, onClose }) => {
                 >
                   SOLD
                 </button>
+                {isActive && (
+                  <button
+                    className="deactivate-btn"
+                    onClick={handleDeactivatePlayer}
+                    style={{
+                      padding: "10px 20px",
+                      fontSize: "18px",
+                      fontWeight: "bold",
+                      color: "#fff",
+                      background: "linear-gradient(to right, #6c757d, #495057)",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                      marginLeft: "10px",
+                    }}
+                  >
+                    DEACTIVATE
+                  </button>
+                )}
                 <button
                   className="exit-btn"
                   onClick={handleExitAuction}

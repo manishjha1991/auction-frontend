@@ -322,6 +322,14 @@ const PlayerList = () => {
           player={selectedPlayer}
           onClose={handleClosePopup}
           isAdmin={isAdmin}
+          onDeactivated={(playerId) => {
+            setPlayers((prevPlayers) =>
+              prevPlayers.filter(
+                (p) => (p.id || p._id) !== playerId
+              )
+            );
+            handleClosePopup();
+          }}
         />
       )}
     </div>

@@ -192,6 +192,10 @@ const SoldPlayers = () => {
           player={selectedPlayer}
           onClose={handleClosePopup}
           isAdmin={isAdmin}
+          onDeactivated={() => {
+            // Sold list is not affected by deactivations
+            handleClosePopup();
+          }}
         />
       )}
     </div>
