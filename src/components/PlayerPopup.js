@@ -581,7 +581,7 @@ const PlayerPopup = ({ player, onClose, onDeactivated }) => {
             {topTwoBids.length > 0 && (
               <div className="bids-section">
                 <h3>Last Two Bids</h3>
-                {topTwoBids.map((bid, index) => {
+                    {topTwoBids.map((bid, index) => {
                   return (
                     <div key={bid.id} className={`bid-row ${index === 0 ? 'first-bid' : 'second-bid'}`}>
                       <p>
@@ -610,6 +610,21 @@ const PlayerPopup = ({ player, onClose, onDeactivated }) => {
                   );
                 })}
               </div>
+            )}
+            {playerDetails?.lastExitTime && (
+              <p className="bid-time">
+                <FaClock className="timer-icon" /> Last Exit Time:{" "}
+                {new Date(playerDetails.lastExitTime).toLocaleString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: true,
+                })}
+                {playerDetails?.lastExitUser ? ` — ${playerDetails.lastExitUser}` : ''}
+              </p>
             )}
 
             {!isAdmin && !isSold && (
