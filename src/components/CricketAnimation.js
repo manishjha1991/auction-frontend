@@ -2,7 +2,7 @@
 import React from "react";
 import Lottie from "react-lottie-player";
 
-const CricketAnimation = ({ animationFile }) => {
+const CricketAnimation = ({ animationFile = "Profile.json" }) => {
   const animationData = require(`./animations/${animationFile}`); // Dynamically load JSON file
 
   return (

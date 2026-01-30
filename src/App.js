@@ -22,7 +22,7 @@ import {
   FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen, FaTrophy, FaMedal,
   FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
-  FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaCoins, FaChartLine, FaBook,
+  FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaBook,
   FaCalculator, FaCloudRain
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
@@ -38,8 +38,7 @@ import TrophyHall from './components/TrophyHall';
 import AdminMatchResults from './components/AdminMatchResults';
 import OcrExtractor from './components/OcrExtractor';
 import LiveBiddingDashboard from './components/LiveBiddingDashboard';
-import Betting from './components/Betting';
-import LiveBettingDashboard from './components/LiveBettingDashboard';
+import MyBids from './components/MyBids';
 import PositionCalculator from './components/PositionCalculator';
 import RulesBook from './components/RulesBook';
 import DLSCalculator from './components/DLSCalculator';
@@ -268,7 +267,7 @@ function App() {
                     </li>
                     <li>
                       <Link to="/position-calculator" onClick={closeSidebar} className={`menu-item ${isActive('/position-calculator') ? 'active' : ''}`}>
-                        <FaChartLine className="menu-icon" />
+                        <FaBook className="menu-icon" />
                         <span>Position Calculator</span>
                       </Link>
                     </li>
@@ -303,15 +302,9 @@ function App() {
                       </Link>
                     </li>
                     <li>
-                      <Link to="/betting" onClick={closeSidebar} className={`menu-item ${isActive('/betting') ? 'active' : ''}`}>
-                        <FaCoins className="menu-icon" />
-                        <span>Place Bet</span>
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/live-betting" onClick={closeSidebar} className={`menu-item ${isActive('/live-betting') ? 'active' : ''}`}>
-                        <FaChartLine className="menu-icon" />
-                        <span>Live Betting</span>
+                      <Link to="/my-bids" onClick={closeSidebar} className={`menu-item ${isActive('/my-bids') ? 'active' : ''}`}>
+                        <FaBook className="menu-icon" />
+                        <span>My Bids</span>
                       </Link>
                     </li>
                   </ul>
@@ -504,8 +497,7 @@ function App() {
             <Route path="/team-directory" element={<PrivateRoute><TeamDirectory /></PrivateRoute>} />
             <Route path="/tournaments" element={<PrivateRoute><TournamentList /></PrivateRoute>} />
             <Route path="/trophy-hall" element={<PrivateRoute><TrophyHall /></PrivateRoute>} />
-            <Route path="/betting" element={<PrivateRoute><Betting /></PrivateRoute>} />
-            <Route path="/live-betting" element={<PrivateRoute><LiveBettingDashboard /></PrivateRoute>} />
+            <Route path="/my-bids" element={<PrivateRoute><MyBids /></PrivateRoute>} />
             <Route path="/admin-match-results" element={<PrivateRoute><AdminMatchResults /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
             <Route path="/player-insights" element={<PrivateRoute><PlayerInsightsPage /></PrivateRoute>} />
