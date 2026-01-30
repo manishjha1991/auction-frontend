@@ -80,6 +80,20 @@
   font-weight: bold;
 }
 
+.my-bid-indicator {
+  margin-left: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.my-bid-indicator.up {
+  color: #2ecc71;
+}
+
+.my-bid-indicator.down {
+  color: #e74c3c;
+}
+
 /* Colors for player type */
 .sapphire {
   background-color: #1565c0; /* Darker blue */

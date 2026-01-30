@@ -45,7 +45,7 @@ const getPopupTypeStyles = (type) => {
   }
 };
 
-const PlayerPopup = ({ player, onClose, onDeactivated }) => {
+const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited }) => {
   const [playerDetails, setPlayerDetails] = useState(null);
   const [topTwoBids, setTopTwoBids] = useState([]);
   const [allBids, setAllBids] = useState([]);
@@ -337,6 +337,9 @@ const PlayerPopup = ({ player, onClose, onDeactivated }) => {
         playerName: playerDetails.name,
         isSuccess: true
       });
+      if (onBidPlaced) {
+        onBidPlaced(playerDetails.id || playerDetails._id);
+      }
       setAllBids([...allBids, result.newBid]);
     } catch (err) {
       // Display the error message from the server or a default error
@@ -381,6 +384,9 @@ const PlayerPopup = ({ player, onClose, onDeactivated }) => {
         isSuccess: true,
         isExit: true
       });
+      if (onBidExited) {
+        onBidExited(player.id || player._id);
+      }
     } catch (err) {
       setBidAlert({
         message: err.message || "Failed to exit the auction. Please try again.",

@@ -20,6 +20,9 @@ const PlayerList = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentUserName, setCurrentUserName] = useState("");
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [myActiveBidPlayerIds, setMyActiveBidPlayerIds] = useState([]);
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -45,6 +48,28 @@ const PlayerList = () => {
 
     fetchPlayers();
   }, []);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    setCurrentUserName(user?.name || "");
+    setCurrentUserId(user?.id || "");
+    const userId = user?.id;
+    if (!userId) return;
+    const fetchMyActiveBids = async () => {
+      try {
+        const response = await fetch(`${API_ENDPOINTS}/api/users/${userId}/details`, {
+          headers: { "Content-Type": "application/json" },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const activeIds = (data.activeBids || [])
+          .map((b) => b.player?._id || b.player?.id)
+          .filter(Boolean);
+        setMyActiveBidPlayerIds(activeIds);
+      } catch {}
+    };
+    fetchMyActiveBids();
+  }, []);
   
   // 🚀 REALTIME: Listen for real-time bid updates using shared socket
   const { on } = useSocket();
@@ -61,6 +86,7 @@ const PlayerList = () => {
               biddingPrice: update.bidAmount || update.currentBid || player.biddingPrice,
               currentBid: update.currentBid || update.bidAmount || player.currentBid,
               currentBidder: update.currentBidder || player.currentBidder,
+              currentBidderId: update.currentBidder || player.currentBidderId,
               basePrice: update.bidAmount || update.currentBid || player.basePrice,
               isBidOn: update.currentBidder ? true : (player.isBidOn || false) // Mark as bidding if there's a current bidder
             };
@@ -68,6 +94,12 @@ const PlayerList = () => {
           return player;
         });
       });
+
+      if (update.currentBidder && currentUserId && String(update.currentBidder) === String(currentUserId)) {
+        setMyActiveBidPlayerIds((prev) =>
+          prev.includes(update.playerId) ? prev : [...prev, update.playerId]
+        );
+      }
     });
     
     const cleanup2 = on('player_sold_update', (update) => {
@@ -88,7 +120,7 @@ const PlayerList = () => {
       cleanup1();
       cleanup2();
     };
-  }, [on]);
+  }, [on, currentUserId]);
 
   const handlePlayerClick = useCallback((player) => {
     setSelectedPlayer(player);
@@ -191,6 +223,20 @@ const PlayerList = () => {
       player.status !== "Sold"
     );
   }, []);
+
+  const getMyBidIndicator = useCallback((player) => {
+    if (!currentUserName) return null;
+    const playerId = player.id || player._id;
+    if (!myActiveBidPlayerIds.includes(playerId)) return null;
+    const isWinning =
+      (currentUserId && String(player.currentBidderId || player.currentBidder) === String(currentUserId)) ||
+      (currentUserName && player.currentBidder === currentUserName);
+    return (
+      <span className={`my-bid-indicator ${isWinning ? "up" : "down"}`}>
+        {isWinning ? "▲" : "▼"}
+      </span>
+    );
+  }, [myActiveBidPlayerIds, currentUserName]);
 
   if (loading) {
     return <TrophyLoader message="Loading player board…" />;
@@ -307,7 +353,10 @@ const PlayerList = () => {
                   <span className="price-amount">{formatBasePrice(player.biddingPrice || player.basePrice || 0)}</span>
                 </div>
               </div>
-              <div className="player-cell team-sold">{getStatusIcon(player)}</div>
+              <div className="player-cell team-sold">
+                {getStatusIcon(player)}
+                {getMyBidIndicator(player)}
+              </div>
             </div>
           );
         })}
@@ -329,6 +378,16 @@ const PlayerList = () => {
               )
             );
             handleClosePopup();
+          }}
+          onBidPlaced={(playerId) => {
+            setMyActiveBidPlayerIds((prev) =>
+              prev.includes(playerId) ? prev : [...prev, playerId]
+            );
+          }}
+          onBidExited={(playerId) => {
+            setMyActiveBidPlayerIds((prev) =>
+              prev.filter((id) => id !== playerId)
+            );
           }}
         />
       )}
