@@ -32,6 +32,7 @@
 .user-info {
   display: flex;
   align-items: center;
+  gap: 18px;
 }
 
 .profile-image {
@@ -39,12 +40,47 @@
   height: 100px;
   border-radius: 50%;
   margin-right: 20px;
-  border: 2px solid #007bff;
+  border: 3px solid rgba(102, 126, 234, 0.8);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.35);
 }
 
-.purse-amount {
-  font-weight: bold;
-  color: #28a745;
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-name {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1a1f35;
+}
+
+.purse-card {
+  background: linear-gradient(135deg, #1e90ff 0%, #00bcd4 100%);
+  border-radius: 14px;
+  padding: 12px 18px;
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(0, 188, 212, 0.35);
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.purse-label {
+  font-size: 0.9rem;
+  color: #f2f8ff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  opacity: 1;
+  letter-spacing: 0.3px;
+}
+
+.purse-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 /* Search Bar */

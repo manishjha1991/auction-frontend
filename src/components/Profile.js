@@ -44,6 +44,22 @@ const Profile = () => {
   const [selectedRetainedForWithdraw, setSelectedRetainedForWithdraw] = useState(null);
   
 
+  const updateLocalPurse = (delta) => {
+    if (!userData?.user) return;
+    const current = parseFloat(userData.user.purse?.["$numberDecimal"] || userData.user.purse || 0);
+    const next = current + delta;
+    setUserData((prev) => ({
+      ...prev,
+      user: {
+        ...prev.user,
+        purse: next,
+      },
+    }));
+    const cached = JSON.parse(localStorage.getItem('user'));
+    if (cached) {
+      localStorage.setItem('user', JSON.stringify({ ...cached, purse: next }));
+    }
+  };
 
   // Check localStorage for user.isAdmin
   useEffect(() => {
@@ -57,46 +73,58 @@ const Profile = () => {
     }
   }, []);
 
+  const fetchUserData = async (showLoading = true) => {
+    try {
+      if (showLoading) setLoading(true);
+      const user = JSON.parse(localStorage.getItem('user'));
+      const userId = user?.id;
+      if (!userId) {
+        throw new Error('User ID not found in local storage.');
+      }
+      const response = await fetch(`${API_ENDPOINTS}/api/users/${userId}/details`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Fetched user data from API:', data);
+      setUserData(data);
+      setEditData({
+        name: data.user.name,
+        teamName: data.user.teamName,
+        timezone: data.user.timezone || 'Asia/Kolkata',
+        streamLink: data.user.streamLink || '',
+        abbreviation: data.user.abbreviation || '',
+      });
+      
+      // Set retention lock status from initial data
+      setIsRetentionLocked(data.user.isRetentionLocked === true);
+      
+      // Set allPlayersReleased status from initial data
+      setAllPlayersReleased(data.user.allPlayersReleased === true);
+
+      // Keep localStorage in sync for quick reads
+      if (user) {
+        const updatedUser = {
+          ...user,
+          purse: data.user.purse,
+          isRetentionLocked: data.user.isRetentionLocked,
+          allPlayersReleased: data.user.allPlayersReleased
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    } catch (err) {
+      console.error('Failed to fetch user data:', err);
+      setError('Failed to load profile. Please try again later.');
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  };
+
   // Fetch user data
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        setLoading(true);
-        const user = JSON.parse(localStorage.getItem('user'));
-        const userId = user?.id;
-        if (!userId) {
-          throw new Error('User ID not found in local storage.');
-        }
-        const response = await fetch(`${API_ENDPOINTS}/api/users/${userId}/details`, {
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log('Fetched user data from API:', data);
-        setUserData(data);
-        setEditData({
-          name: data.user.name,
-          teamName: data.user.teamName,
-          timezone: data.user.timezone || 'Asia/Kolkata',
-          streamLink: data.user.streamLink || '',
-          abbreviation: data.user.abbreviation || '',
-        });
-        
-        // Set retention lock status from initial data
-        setIsRetentionLocked(data.user.isRetentionLocked === true);
-        
-        // Set allPlayersReleased status from initial data
-        setAllPlayersReleased(data.user.allPlayersReleased === true);
-      } catch (err) {
-        console.error('Failed to fetch user data:', err);
-        setError('Failed to load profile. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUserData();
+    fetchUserData(true);
   }, []);
 
 
@@ -366,8 +394,11 @@ const Profile = () => {
           setRetainedPlayers(retainedData);
         }
         
-        // Note: Purse will be updated when admin releases all other players
-        // No need to refresh user data now
+        // Optimistically update purse, then refresh user data
+        if (result?.retainedPlayer?.retainedValue) {
+          updateLocalPurse(-Number(result.retainedPlayer.retainedValue));
+        }
+        await fetchUserData(false);
         
         setShowRetainConfirm(false);
         setSelectedPlayerForRetain(null);
@@ -395,13 +426,7 @@ const Profile = () => {
       return;
     }
 
-    // Check if admin has released players
-    // Use allPlayersReleased instead of adminReleasedPlayers since that's what we track
-    // The backend will also check settings.adminReleasedPlayers
-    if (allPlayersReleased) {
-      setError('Cannot remove retained players after admin has released all other players. This action is no longer available.');
-      return;
-    }
+    // Allow retention changes whenever retention is enabled (admin toggle)
 
     // Check if retention is enabled
     if (!retentionEnabled) {
@@ -410,7 +435,7 @@ const Profile = () => {
     }
 
     // Only proceed if all conditions are met
-    if (!isRetentionLocked && !allPlayersReleased && retentionEnabled) {
+    if (!isRetentionLocked && retentionEnabled) {
       setSelectedRetainedForWithdraw(retained);
       setShowWithdrawConfirm(true);
     }
@@ -441,6 +466,12 @@ const Profile = () => {
         setShowWithdrawConfirm(false);
         setSelectedRetainedForWithdraw(null);
         setError('Player removed from retention successfully. You can now retain another player.');
+
+        // Optimistically update purse, then refresh user data
+        if (selectedRetainedForWithdraw?.retainedValue) {
+          updateLocalPurse(Number(selectedRetainedForWithdraw.retainedValue));
+        }
+        await fetchUserData(false);
         
         // Auto-refresh the page after 2 seconds
         setTimeout(() => {
@@ -919,14 +950,14 @@ const Profile = () => {
             alt="User"
             className="profile-image"
           />
-          <div>
-            <h2>{userData.user.name}</h2>
-            <p>
-              Total Purse Remaining:{' '}
-              <span className="purse-amount">
+          <div className="user-meta">
+            <h2 className="user-name">{userData.user.name}</h2>
+            <div className="purse-card">
+              <div className="purse-label">Total Purse Remaining</div>
+              <div className="purse-value">
                 {formatAmount(parseFloat(userData.user.purse?.["$numberDecimal"] || userData.user.purse || 0))}
-              </span>
-            </p>
+              </div>
+            </div>
           </div>
         </div>
         <div className="additional-info">
@@ -1216,7 +1247,7 @@ const Profile = () => {
                       cursor: (() => {
                         if (isRetained) {
                           // Allow click if withdrawal is possible
-                          if (!isRetentionLocked && !allPlayersReleased && retentionEnabled) {
+                          if (!isRetentionLocked && retentionEnabled) {
                             return 'pointer';
                           }
                           return 'not-allowed';
@@ -1232,7 +1263,7 @@ const Profile = () => {
                     onMouseEnter={(e) => {
                       if (isRetained) {
                         // If retained and withdrawal is allowed, show hover effect
-                        if (!isRetentionLocked && !allPlayersReleased && retentionEnabled) {
+                        if (!isRetentionLocked && retentionEnabled) {
                           e.currentTarget.style.transform = 'translateY(-5px)';
                           e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
                         }
@@ -1249,7 +1280,7 @@ const Profile = () => {
                     onMouseLeave={(e) => {
                       if (isRetained) {
                         // If retained and withdrawal is allowed, reset hover effect
-                        if (!isRetentionLocked && !allPlayersReleased && retentionEnabled) {
+                        if (!isRetentionLocked && retentionEnabled) {
                           e.currentTarget.style.transform = 'translateY(0)';
                           e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
                         }
@@ -1566,8 +1597,8 @@ const Profile = () => {
             )}
 
 
-            {/* Admin Released Players Banner - Show when all players are released */}
-            {allPlayersReleased && !isRetentionLocked && (
+            {/* Admin Released Players Banner - show only if retention is disabled */}
+            {allPlayersReleased && !isRetentionLocked && !retentionEnabled && (
               <div style={{
                 background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
                 borderRadius: '15px',
@@ -1597,6 +1628,23 @@ const Profile = () => {
                   ❌ Cannot undo retained players<br/>
                   🔒 All retention functionality is disabled
                 </div>
+              </div>
+            )}
+            {retentionEnabled && !isRetentionLocked && (
+              <div style={{
+                background: 'linear-gradient(135deg, #1e90ff 0%, #00bcd4 100%)',
+                borderRadius: '15px',
+                padding: '20px',
+                marginBottom: '20px',
+                color: 'white',
+                textAlign: 'center',
+                border: '2px solid rgba(30, 144, 255, 0.6)',
+                boxShadow: '0 4px 20px rgba(30, 144, 255, 0.3)'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '10px' }}>✅</div>
+                <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>
+                  Retention enabled by admin
+                </h4>
               </div>
             )}
             
@@ -1670,8 +1718,8 @@ const Profile = () => {
                     <p><strong>Retention Value:</strong> {formatAmount(retained.retainedValue)}</p>
                     <p><strong>Retained On:</strong> {new Date(retained.retainedAt).toLocaleDateString()}</p>
                     
-                    {/* Withdraw Button - Only show when not locked and all players not released */}
-                    {!isRetentionLocked && !allPlayersReleased && retentionEnabled && (
+                    {/* Withdraw Button - Only show when not locked and retention enabled */}
+                    {!isRetentionLocked && retentionEnabled && (
                       <div style={{
                         marginTop: '15px',
                         textAlign: 'center'
