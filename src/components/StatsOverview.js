@@ -123,6 +123,8 @@ const StatsOverview = () => {
     highestScore = {},
     leadingWicketTaker = {},
     leadingRunScorer = {},
+    highestTeamTotal = {},
+    lowestTeamTotal = {},
     highestFiveWicketHauls = [],
     highestFourWicketHauls = [],
     centuries = [],
@@ -283,6 +285,48 @@ const StatsOverview = () => {
                   {highestScore.strikeRate !== undefined && highestScore.strikeRate > 0 && <span>SR: {highestScore.strikeRate}</span>}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Team Totals Section */}
+      <div className="top-performers-section fade-in-up">
+        <h2 className="performance-section-title">
+          <FaChartLine /> Team Totals
+        </h2>
+        <div className="top-performers-grid">
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaFireAlt className="icon" />
+                <span>Highest Total</span>
+              </div>
+            </div>
+            <div className="highlight-card-content">
+              <div className="highlight-player-name">{highestTeamTotal.teamName || 'N/A'}</div>
+              <div className="highlight-stat-value">{highestTeamTotal.runs || 0}</div>
+              <div className="highlight-match-stats">
+                <span>{highestTeamTotal.overs || 0} overs</span>
+                <span>{highestTeamTotal.wickets ?? 0} wkts</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaShieldAlt className="icon" />
+                <span>Lowest Total</span>
+              </div>
+            </div>
+            <div className="highlight-card-content">
+              <div className="highlight-player-name">{lowestTeamTotal.teamName || 'N/A'}</div>
+              <div className="highlight-stat-value">{lowestTeamTotal.runs || 0}</div>
+              <div className="highlight-match-stats">
+                <span>{lowestTeamTotal.overs || 0} overs</span>
+                <span>{lowestTeamTotal.wickets ?? 0} wkts</span>
+              </div>
             </div>
           </div>
         </div>
