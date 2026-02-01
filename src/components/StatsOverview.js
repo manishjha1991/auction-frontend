@@ -304,7 +304,10 @@ const StatsOverview = () => {
               </div>
             </div>
             <div className="highlight-card-content">
-              <div className="highlight-player-name">{highestTeamTotal.teamName || 'N/A'}</div>
+              <div className="highlight-player-name">
+                {highestTeamTotal.teamName || 'N/A'}
+                {highestTeamTotal.opponentTeam ? ` vs ${highestTeamTotal.opponentTeam}` : ''}
+              </div>
               <div className="highlight-stat-value">{highestTeamTotal.runs || 0}</div>
               <div className="highlight-match-stats">
                 <span>{highestTeamTotal.overs || 0} overs</span>
@@ -321,7 +324,10 @@ const StatsOverview = () => {
               </div>
             </div>
             <div className="highlight-card-content">
-              <div className="highlight-player-name">{lowestTeamTotal.teamName || 'N/A'}</div>
+              <div className="highlight-player-name">
+                {lowestTeamTotal.teamName || 'N/A'}
+                {lowestTeamTotal.opponentTeam ? ` vs ${lowestTeamTotal.opponentTeam}` : ''}
+              </div>
               <div className="highlight-stat-value">{lowestTeamTotal.runs || 0}</div>
               <div className="highlight-match-stats">
                 <span>{lowestTeamTotal.overs || 0} overs</span>
