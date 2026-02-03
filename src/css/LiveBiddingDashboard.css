@@ -1,10 +1,10 @@
 /* Live Bidding Dashboard - User Grouped View */
 .live-bidding-dashboard {
   min-height: 100vh;
-  max-height: 100vh;
+  max-height: none;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   padding: 4px;
-  overflow: hidden;
+  overflow-y: auto;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
   flex-direction: column;
@@ -86,18 +86,18 @@
 /* Main Content - NO SCROLL */
 .dashboard-content-no-scroll {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 
 .users-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 6px;
   padding: 4px;
-  height: 100%;
-  overflow: hidden;
+  height: auto;
+  overflow: visible;
   align-content: start;
 }
 
@@ -105,15 +105,15 @@
 .user-card {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 6px;
-  padding: 5px;
+  padding: 4px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
   border: 2px solid transparent;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  height: calc((100vh - 70px) / 3);
-  max-height: calc((100vh - 70px) / 3);
+  gap: 2px;
+  height: auto;
+  max-height: none;
 }
 
 .user-card:hover {
@@ -149,9 +149,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 6px;
+  padding-bottom: 4px;
   border-bottom: 1px solid #f0f0f0;
-  min-height: 40px;
+  min-height: 34px;
 }
 
 .user-info {
@@ -163,7 +163,7 @@
 
 .user-abbreviation {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #333;
   line-height: 1.2;
@@ -173,35 +173,46 @@
 
 .user-card.my-user .user-abbreviation {
   color: #4CAF50;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
 }
 
 .purse-display {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  padding: 6px 10px;
-  background: #f8f9fa;
+  padding: 4px 6px;
   border-radius: 4px;
-  min-width: 90px;
+  min-width: 78px;
 }
 
 .purse-label {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: #666;
   margin-bottom: 2px;
 }
 
 .purse-value {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: bold;
-  color: #4CAF50;
+  color: #ffffff;
   line-height: 1.1;
+}
+
+.purse-display.purse-low {
+  background: #b91c1c;
+}
+
+.purse-display.purse-mid {
+  background: #f59e0b;
+}
+
+.purse-display.purse-high {
+  background: #16a34a;
 }
 
 .user-card.my-user .purse-value {
   color: #4CAF50;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 /* Active Bids Section */
@@ -220,7 +231,7 @@
 }
 
 .bids-count {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #666;
 }
@@ -237,25 +248,46 @@
   font-style: italic;
 }
 
+.bids-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bids-subheader {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #333;
+}
+
+.bids-subheader.winning {
+  color: #2e7d32;
+}
+
+.bids-subheader.losing {
+  color: #c62828;
+}
+
 .bids-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: calc((100vh - 120px) / 3);
-  overflow-y: auto;
-  overflow-x: hidden;
+  max-height: none;
+  overflow: visible;
 }
 
 .bid-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 3px 5px;
+  padding: 2px 4px;
   background: #f8f9fa;
   border-radius: 3px;
   border-left: 2px solid #4CAF50;
-  font-size: 0.6rem;
-  min-height: 22px;
+  font-size: 0.55rem;
+  min-height: 18px;
   flex-shrink: 0;
 }
 
@@ -278,10 +310,10 @@
 }
 
 .counter-bid-badge {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   color: #333;
   background: #FFD700;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border-radius: 10px;
   font-weight: 700;
   white-space: nowrap;
@@ -290,7 +322,7 @@
 }
 
 .bid-player-name {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   font-weight: 600;
   color: #333;
   white-space: nowrap;
@@ -299,18 +331,18 @@
   line-height: 1.1;
   flex: 1;
   min-width: 0;
-  max-width: 80px;
+  max-width: 70px;
 }
 
 .bid-player-type {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   font-weight: bold;
   flex-shrink: 0;
 }
@@ -325,12 +357,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
   color: white;
-  font-size: 0.5rem;
+  font-size: 0.45rem;
   font-weight: bold;
   text-align: center;
   line-height: 1;

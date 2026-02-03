@@ -121,6 +121,13 @@ const LiveBiddingDashboard = () => {
     }
   };
 
+  const getPurseClass = (purse) => {
+    const cr = Number(purse || 0) / 10000000;
+    if (cr < 5) return 'purse-low';
+    if (cr > 15) return 'purse-high';
+    return 'purse-mid';
+  };
+
   // Render user card
   const renderUserCard = (userData) => {
     const userId = user ? (user.id || user._id)?.toString() : null;
@@ -133,7 +140,7 @@ const LiveBiddingDashboard = () => {
           <div className="user-info">
             <h3 className="user-abbreviation">{userData.abbreviation || 'N/A'}</h3>
           </div>
-          <div className="purse-display">
+          <div className={`purse-display ${getPurseClass(userData.purse)}`}>
             <span className="purse-label">Purse</span>
             <span className="purse-value">{formatCurrency(userData.purse)}</span>
           </div>
@@ -143,30 +150,59 @@ const LiveBiddingDashboard = () => {
           <div className="bids-header">
             <span className="bids-count">Bids: {userData.activeBids.length}</span>
           </div>
-          
+
           {userData.activeBids.length === 0 ? (
             <div className="no-active-bids">No active bids</div>
           ) : (
-            <div className="bids-list">
-              {userData.activeBids.map((bid, index) => (
-                <div key={`${bid.playerId}-${index}`} className={`bid-item ${bid.isWinning ? 'winning' : ''} ${bid.isLosing ? 'losing' : ''}`}>
-                  <div className="bid-player-info">
-                    <span className="bid-player-name">{bid.playerName}</span>
-                    <span className="bid-player-type" style={{ backgroundColor: getTypeColor(bid.playerType) }}>
-                      {bid.playerType.charAt(0)}
-                    </span>
-                    {bid.otherBidderAbbr && (
-                      <span className="counter-bid-badge">vs {bid.otherBidderAbbr}</span>
+            <>
+              {(() => {
+                const winningBids = userData.activeBids.filter((bid) => bid.isWinning);
+                const losingBids = userData.activeBids.filter((bid) => !bid.isWinning);
+
+                const renderBidList = (bids) => (
+                  <div className="bids-list">
+                    {bids.map((bid, index) => (
+                      <div key={`${bid.playerId}-${index}`} className={`bid-item ${bid.isWinning ? 'winning' : ''} ${bid.isLosing ? 'losing' : ''}`}>
+                        <div className="bid-player-info">
+                          <span className="bid-player-name">{bid.playerName}</span>
+                          <span className="bid-player-type" style={{ backgroundColor: getTypeColor(bid.playerType) }}>
+                            {bid.playerType.charAt(0)}
+                          </span>
+                    {bid.otherBidderName && (
+                      <span className="counter-bid-badge">
+                        {bid.isWinning ? "2nd: " : "1st: "}
+                        {bid.otherBidderName}
+                      </span>
                     )}
+                        </div>
+                        <div className="bid-amount-display">
+                          <span className={`bid-amount-circle ${bid.isWinning ? 'winning-circle' : ''} ${bid.isLosing ? 'losing-circle' : ''}`}>
+                            {formatCurrency(bid.bidAmount)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="bid-amount-display">
-                    <span className={`bid-amount-circle ${bid.isWinning ? 'winning-circle' : ''} ${bid.isLosing ? 'losing-circle' : ''}`}>
-                      {formatCurrency(bid.bidAmount)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                );
+
+                return (
+                  <>
+                    {winningBids.length > 0 && (
+                      <div className="bids-group">
+                        <div className="bids-subheader winning">Winning</div>
+                        {renderBidList(winningBids)}
+                      </div>
+                    )}
+                    {losingBids.length > 0 && (
+                      <div className="bids-group">
+                        <div className="bids-subheader losing">Losing</div>
+                        {renderBidList(losingBids)}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </>
           )}
         </div>
       </div>
