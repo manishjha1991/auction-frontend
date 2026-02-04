@@ -255,6 +255,16 @@ const PlayerCard = styled.div`
     background: linear-gradient(135deg, rgba(20, 83, 45, 0.5), rgba(34, 197, 94, 0.25));
     border: 2px solid rgba(74, 222, 128, 0.7);
   `}
+
+  ${({ variant }) => variant === 'bid-winning' && `
+    background: linear-gradient(135deg, rgba(5, 150, 105, 0.45), rgba(16, 185, 129, 0.2));
+    border: 2px solid rgba(16, 185, 129, 0.75);
+  `}
+
+  ${({ variant }) => variant === 'bid-losing' && `
+    background: linear-gradient(135deg, rgba(185, 28, 28, 0.45), rgba(239, 68, 68, 0.2));
+    border: 2px solid rgba(239, 68, 68, 0.75);
+  `}
 `;
 
 const PlayerName = styled.h3`
@@ -514,9 +524,10 @@ const MyBids = () => {
             {runningBids.map((bid) => {
               const status = bid.status === "Winning" ? "winning" : "losing";
               return (
-                <PlayerCard
+                  <PlayerCard
                   key={`${bid.playerId}-${bid.status}-${bid.bidAmount}`}
                   playerType={bid.playerType?.toLowerCase()}
+                    variant={bid.status === "Winning" ? "bid-winning" : "bid-losing"}
                   onClick={() => setSelectedPlayer({ id: bid.playerId })}
                 >
                   <PlayerName>{bid.playerName}</PlayerName>
