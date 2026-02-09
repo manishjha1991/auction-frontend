@@ -472,6 +472,18 @@ const MyBids = () => {
     [myBids]
   );
 
+  const uniqueRunningBids = useMemo(() => {
+    const byPlayer = new Map();
+    runningBids.forEach((bid) => {
+      const key = String(bid.playerId || "");
+      const prev = byPlayer.get(key);
+      if (!prev || Number(bid.bidAmount || 0) > Number(prev.bidAmount || 0)) {
+        byPlayer.set(key, bid);
+      }
+    });
+    return Array.from(byPlayer.values());
+  }, [runningBids]);
+
   const myPurse = useMemo(() => {
     const entry = allPurses.find((p) => String(p._id || p.id) === String(user?.id));
     return entry?.purseValue || 0;
@@ -518,10 +530,10 @@ const MyBids = () => {
         <PlayersSection>
           <SectionHeader>
             <SectionTitle>Winning Bids</SectionTitle>
-            <SectionCount>{runningBids.filter((b) => b.status === "Winning").length}</SectionCount>
+            <SectionCount>{uniqueRunningBids.filter((b) => b.status === "Winning").length}</SectionCount>
           </SectionHeader>
           <PlayersGrid>
-            {runningBids.filter((b) => b.status === "Winning").map((bid) => (
+            {uniqueRunningBids.filter((b) => b.status === "Winning").map((bid) => (
               <PlayerCard
                 key={`${bid.playerId}-${bid.status}-${bid.bidAmount}`}
                 playerType={bid.playerType?.toLowerCase()}
@@ -542,10 +554,10 @@ const MyBids = () => {
         <PlayersSection>
           <SectionHeader>
             <SectionTitle>Losing Bids</SectionTitle>
-            <SectionCount>{runningBids.filter((b) => b.status === "Losing").length}</SectionCount>
+            <SectionCount>{uniqueRunningBids.filter((b) => b.status === "Losing").length}</SectionCount>
           </SectionHeader>
           <PlayersGrid>
-            {runningBids.filter((b) => b.status === "Losing").map((bid) => (
+            {uniqueRunningBids.filter((b) => b.status === "Losing").map((bid) => (
               <PlayerCard
                 key={`${bid.playerId}-${bid.status}-${bid.bidAmount}`}
                 playerType={bid.playerType?.toLowerCase()}
