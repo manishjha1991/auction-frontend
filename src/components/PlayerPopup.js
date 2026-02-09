@@ -139,11 +139,14 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
     if (bidAlert) {
       const timer = setTimeout(() => {
         setBidAlert(null);
+        if (onClose) {
+          onClose();
+        }
       }, 5000);
       
       return () => clearTimeout(timer);
     }
-  }, [bidAlert]);
+  }, [bidAlert, onClose]);
 
   const formatHumanReadableAmount = (amount) => {
     if (amount >= 10000000) {
@@ -340,9 +343,6 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
       if (onBidPlaced) {
         onBidPlaced(playerDetails.id || playerDetails._id);
       }
-      if (onClose) {
-        setTimeout(() => onClose(), 3000);
-      }
       setAllBids([...allBids, result.newBid]);
     } catch (err) {
       // Display the error message from the server or a default error
@@ -389,9 +389,6 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
       });
       if (onBidExited) {
         onBidExited(player.id || player._id);
-      }
-      if (onClose) {
-        setTimeout(() => onClose(), 3000);
       }
     } catch (err) {
       setBidAlert({
@@ -531,7 +528,12 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
             </div>
             <button 
               className="bid-alert-close" 
-              onClick={() => setBidAlert(null)}
+              onClick={() => {
+                setBidAlert(null);
+                if (onClose) {
+                  onClose();
+                }
+              }}
             >
               Close
             </button>

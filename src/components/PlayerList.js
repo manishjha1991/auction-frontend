@@ -143,6 +143,7 @@ const PlayerList = () => {
         update.playerId &&
         myActiveBidPlayerIds.includes(update.playerId) &&
         currentUserId &&
+        update.currentBidder &&
         String(update.currentBidder) !== String(currentUserId)
       ) {
         showFlashNotice("counter", `Counter bid on ${update.playerName || "your player"}`);
@@ -164,6 +165,13 @@ const PlayerList = () => {
     });
     
     const cleanup3 = on('bid_exit_notification', (update) => {
+      if (
+        update.exitedUser &&
+        currentUserName &&
+        update.exitedUser.toLowerCase() === currentUserName.toLowerCase()
+      ) {
+        return;
+      }
       if (update.playerId && myActiveBidPlayerIds.includes(update.playerId)) {
         showFlashNotice("exit", `Bid exit on ${update.playername || "your player"}`);
       }
@@ -303,6 +311,12 @@ const PlayerList = () => {
       {flashNotice && (
         <div className={`player-flash ${flashNotice.type}`}>
           <div className="player-flash-card">
+            <button
+              className="player-flash-close"
+              onClick={() => setFlashNotice(null)}
+            >
+              ×
+            </button>
             <div className="player-flash-title">
               {flashNotice.type === "counter" ? "Counter Bid" : "Bid Exit"}
             </div>
