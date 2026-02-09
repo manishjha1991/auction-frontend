@@ -51,15 +51,34 @@ const PlayerList = () => {
     fetchPlayers();
   }, []);
 
+  const playNoticeTone = useCallback((type) => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = type === "counter" ? 520 : 420;
+      gain.gain.value = 0.12;
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.35);
+      oscillator.onended = () => ctx.close();
+    } catch {}
+  }, []);
+
   const showFlashNotice = useCallback((type, message) => {
     if (flashTimeoutRef.current) {
       clearTimeout(flashTimeoutRef.current);
     }
     setFlashNotice({ type, message });
+    playNoticeTone(type);
     flashTimeoutRef.current = setTimeout(() => {
       setFlashNotice(null);
     }, 4000);
-  }, []);
+  }, [playNoticeTone]);
 
   useEffect(() => {
     return () => {
