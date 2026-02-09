@@ -82,8 +82,9 @@
 
 .my-bid-indicator {
   margin-left: 6px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
+  line-height: 16px;
 }
 
 .my-bid-indicator.up {
@@ -486,8 +487,8 @@
 
 .bidding-indicator {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #22c55e;
   box-shadow: 0 0 6px rgba(34, 197, 94, 0.9);

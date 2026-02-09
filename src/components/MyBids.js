@@ -517,30 +517,49 @@ const MyBids = () => {
       <CardsContainer>
         <PlayersSection>
           <SectionHeader>
-            <SectionTitle>Active Bids</SectionTitle>
-            <SectionCount>{runningBids.length}</SectionCount>
+            <SectionTitle>Winning Bids</SectionTitle>
+            <SectionCount>{runningBids.filter((b) => b.status === "Winning").length}</SectionCount>
           </SectionHeader>
           <PlayersGrid>
-            {runningBids.map((bid) => {
-              const status = bid.status === "Winning" ? "winning" : "losing";
-              return (
-                  <PlayerCard
-                  key={`${bid.playerId}-${bid.status}-${bid.bidAmount}`}
-                  playerType={bid.playerType?.toLowerCase()}
-                    variant={bid.status === "Winning" ? "bid-winning" : "bid-losing"}
-                  onClick={() => setSelectedPlayer({ id: bid.playerId })}
-                >
-                  <PlayerName>{bid.playerName}</PlayerName>
-                  <PlayerPriceCircle>
-                    <PriceAmount>₹{(Number(bid.bidAmount || 0) / 10000000).toFixed(2)}</PriceAmount>
-                    <PriceUnit>Cr</PriceUnit>
-                  </PlayerPriceCircle>
-                  <BiddingStatus isWinning={status === "winning"} isLosing={status === "losing"}>
-                    {status === "winning" ? "W" : "L"}
-                  </BiddingStatus>
-                </PlayerCard>
-              );
-            })}
+            {runningBids.filter((b) => b.status === "Winning").map((bid) => (
+              <PlayerCard
+                key={`${bid.playerId}-${bid.status}-${bid.bidAmount}`}
+                playerType={bid.playerType?.toLowerCase()}
+                variant="bid-winning"
+                onClick={() => setSelectedPlayer({ id: bid.playerId })}
+              >
+                <PlayerName>{bid.playerName}</PlayerName>
+                <PlayerPriceCircle>
+                  <PriceAmount>₹{(Number(bid.bidAmount || 0) / 10000000).toFixed(2)}</PriceAmount>
+                  <PriceUnit>Cr</PriceUnit>
+                </PlayerPriceCircle>
+                <BiddingStatus isWinning={true} isLosing={false}>W</BiddingStatus>
+              </PlayerCard>
+            ))}
+          </PlayersGrid>
+        </PlayersSection>
+
+        <PlayersSection>
+          <SectionHeader>
+            <SectionTitle>Losing Bids</SectionTitle>
+            <SectionCount>{runningBids.filter((b) => b.status === "Losing").length}</SectionCount>
+          </SectionHeader>
+          <PlayersGrid>
+            {runningBids.filter((b) => b.status === "Losing").map((bid) => (
+              <PlayerCard
+                key={`${bid.playerId}-${bid.status}-${bid.bidAmount}`}
+                playerType={bid.playerType?.toLowerCase()}
+                variant="bid-losing"
+                onClick={() => setSelectedPlayer({ id: bid.playerId })}
+              >
+                <PlayerName>{bid.playerName}</PlayerName>
+                <PlayerPriceCircle>
+                  <PriceAmount>₹{(Number(bid.bidAmount || 0) / 10000000).toFixed(2)}</PriceAmount>
+                  <PriceUnit>Cr</PriceUnit>
+                </PlayerPriceCircle>
+                <BiddingStatus isWinning={false} isLosing={true}>L</BiddingStatus>
+              </PlayerCard>
+            ))}
           </PlayersGrid>
         </PlayersSection>
 
