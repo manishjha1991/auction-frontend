@@ -484,6 +484,25 @@
   animation: flash 3s infinite;
 }
 
+.bidding-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.9);
+}
+
+.bidding-indicator.green {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.9);
+}
+
+.bidding-indicator.yellow {
+  background: #facc15;
+  box-shadow: 0 0 6px rgba(250, 204, 21, 0.9);
+}
+
 .player-row.blinking {
   animation: blink 1s infinite;
 }

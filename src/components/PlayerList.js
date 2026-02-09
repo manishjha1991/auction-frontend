@@ -199,11 +199,9 @@ const PlayerList = () => {
                        (player.currentBid && player.currentBid > 0);
       
       if (isBidding && player.status !== "Sold") {
-        return (
-          <span style={{ color: "#000000", fontWeight: "bold" }}>
-            🎯 Bidding is On
-          </span>
-        );
+        const type = (player.type || "").toLowerCase();
+        const indicatorClass = type === "emerald" ? "bidding-indicator yellow" : "bidding-indicator green";
+        return <span className={indicatorClass} title="Bidding is on" />;
       } else {
         return (
           <span className="flash-available">
