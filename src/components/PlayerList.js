@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { useSocket } from "../contexts/SocketContext";
 import "../css/PlayerList.css";
@@ -23,6 +23,8 @@ const PlayerList = () => {
   const [currentUserName, setCurrentUserName] = useState("");
   const [currentUserId, setCurrentUserId] = useState("");
   const [myActiveBidPlayerIds, setMyActiveBidPlayerIds] = useState([]);
+  const [flashNotice, setFlashNotice] = useState(null);
+  const flashTimeoutRef = useRef(null);
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -47,6 +49,24 @@ const PlayerList = () => {
     };
 
     fetchPlayers();
+  }, []);
+
+  const showFlashNotice = useCallback((type, message) => {
+    if (flashTimeoutRef.current) {
+      clearTimeout(flashTimeoutRef.current);
+    }
+    setFlashNotice({ type, message });
+    flashTimeoutRef.current = setTimeout(() => {
+      setFlashNotice(null);
+    }, 4000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (flashTimeoutRef.current) {
+        clearTimeout(flashTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -100,6 +120,14 @@ const PlayerList = () => {
           prev.includes(update.playerId) ? prev : [...prev, update.playerId]
         );
       }
+      if (
+        update.playerId &&
+        myActiveBidPlayerIds.includes(update.playerId) &&
+        currentUserId &&
+        String(update.currentBidder) !== String(currentUserId)
+      ) {
+        showFlashNotice("counter", `Counter bid on ${update.playerName || "your player"}`);
+      }
     });
     
     const cleanup2 = on('player_sold_update', (update) => {
@@ -116,11 +144,18 @@ const PlayerList = () => {
       });
     });
     
+    const cleanup3 = on('bid_exit_notification', (update) => {
+      if (update.playerId && myActiveBidPlayerIds.includes(update.playerId)) {
+        showFlashNotice("exit", `Bid exit on ${update.playername || "your player"}`);
+      }
+    });
+
     return () => {
       cleanup1();
       cleanup2();
+      cleanup3();
     };
-  }, [on, currentUserId]);
+  }, [on, currentUserId, myActiveBidPlayerIds, showFlashNotice]);
 
   const handlePlayerClick = useCallback((player) => {
     setSelectedPlayer(player);
@@ -246,6 +281,16 @@ const PlayerList = () => {
 
   return (
     <div className="player-list">
+      {flashNotice && (
+        <div className={`player-flash ${flashNotice.type}`}>
+          <div className="player-flash-card">
+            <div className="player-flash-title">
+              {flashNotice.type === "counter" ? "Counter Bid" : "Bid Exit"}
+            </div>
+            <div className="player-flash-message">{flashNotice.message}</div>
+          </div>
+        </div>
+      )}
       <NotificationBell />
       {unsoldPlayers.length === 0 ? (
         <TrophyLoader message="No squads detected. Waiting for live feed…" />

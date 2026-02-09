@@ -485,6 +485,65 @@
   animation: flash 3s infinite;
 }
 
+@keyframes flashOverlay {
+  0% { opacity: 0; transform: scale(0.92); }
+  10% { opacity: 1; transform: scale(1); }
+  85% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.03); }
+}
+
+.player-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: flashOverlay 4s ease-in-out forwards;
+}
+
+.player-flash.counter {
+  background: radial-gradient(circle at top, rgba(255, 140, 0, 0.35), rgba(0, 0, 0, 0.85));
+}
+
+.player-flash.exit {
+  background: radial-gradient(circle at top, rgba(59, 130, 246, 0.35), rgba(0, 0, 0, 0.85));
+}
+
+.player-flash-card {
+  width: min(520px, 86vw);
+  padding: 24px 20px;
+  border-radius: 18px;
+  text-align: center;
+  color: #fff;
+  background: rgba(20, 10, 10, 0.75);
+  border: 2px solid rgba(255, 140, 0, 0.6);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+  text-transform: uppercase;
+}
+
+.player-flash.exit .player-flash-card {
+  background: rgba(8, 20, 40, 0.75);
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
+.player-flash-title {
+  font-size: 1rem;
+  letter-spacing: 1px;
+  color: #facc15;
+  margin-bottom: 10px;
+}
+
+.player-flash.exit .player-flash-title {
+  color: #93c5fd;
+}
+
+.player-flash-message {
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+}
+
 .bidding-indicator {
   display: inline-block;
   width: 16px;
