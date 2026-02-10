@@ -185,7 +185,7 @@ const TopRankingsPage = () => {
     const fetchPlayers = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_ENDPOINTS}/api/player/players/data`);
+        const response = await fetch(`${API_ENDPOINTS}/api/player/players/data?includeInactive=true`);
         if (!response.ok) {
           throw new Error('Unable to load players');
         }
@@ -225,7 +225,7 @@ const TopRankingsPage = () => {
     return players
       .filter((p) => {
         const role = (p.role || '').toLowerCase();
-        return p.totalWickets > 0 && role.includes('bowl') && !role.includes('all');
+        return role.includes('bowl') && !role.includes('all');
       })
       .sort((a, b) => b.totalWickets - a.totalWickets);
   }, [players]);

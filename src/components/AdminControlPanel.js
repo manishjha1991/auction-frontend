@@ -38,6 +38,8 @@ const AdminControlPanel = ({ adminUser }) => {
   const [fixLoading, setFixLoading] = useState(false);
   const [fixExecuting, setFixExecuting] = useState(false);
   const [fixResult, setFixResult] = useState(null);
+  const [auctionResetting, setAuctionResetting] = useState(false);
+  const [auctionResetResult, setAuctionResetResult] = useState(null);
 
   const [cronSettings, setCronSettings] = useState({
     cronSingleBidEnabled: true,
@@ -204,6 +206,31 @@ const AdminControlPanel = ({ adminUser }) => {
     }
   };
 
+  const runAuctionReset = async () => {
+    if (!adminUserId) return;
+    const confirmed = window.confirm(
+      "This will clear auction collections and reset user stats/retention flags. Continue?"
+    );
+    if (!confirmed) return;
+    setAuctionResetting(true);
+    setAuctionResetResult(null);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/auction/reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to reset auction');
+      setAuctionResetResult(data);
+      handleToast('Auction reset completed');
+    } catch (err) {
+      handleToast(err.message || 'Unable to reset auction');
+    } finally {
+      setAuctionResetting(false);
+    }
+  };
+
   const executeAuctionFix = async () => {
     if (!adminUserId) return;
     if (!fixPreview) {
@@ -333,6 +360,36 @@ const AdminControlPanel = ({ adminUser }) => {
           </div>
         </div>
         <PlayerTypeControls adminUserId={adminUserId} showHeader={false} />
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Auction Ready</h2>
+            <p>Clear auction collections and reset user stats/retention flags.</p>
+          </div>
+          <div className="section-actions">
+            <button
+              className="btn danger"
+              onClick={runAuctionReset}
+              disabled={auctionResetting || !adminUserId}
+            >
+              {auctionResetting ? 'Resetting…' : 'Make Auction Ready'}
+            </button>
+          </div>
+        </div>
+        {auctionResetResult && (
+          <div className="summary-grid">
+            <div className="summary-card">
+              <span>Collections Cleared</span>
+              <strong>{auctionResetResult.cleared?.length || 0}</strong>
+            </div>
+            <div className="summary-card">
+              <span>Users Updated</span>
+              <strong>{auctionResetResult.users?.modified || 0}</strong>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="admin-section">
