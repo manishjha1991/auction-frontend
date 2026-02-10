@@ -55,10 +55,39 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
   const [bidError, setBidError] = useState(null);
   const [bidAlert, setBidAlert] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [cronSettings, setCronSettings] = useState({
+    cronSingleBidEnabled: true,
+    cronBulkExitEnabled: true,
+  });
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     setIsAdmin(user?.isAdmin === true);
+    setCurrentUserId(user?.id || user?._id || null);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch(`${API_ENDPOINTS}/api/settings`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setCronSettings({
+          cronSingleBidEnabled: data.cronSingleBidEnabled !== false,
+          cronBulkExitEnabled: data.cronBulkExitEnabled !== false,
+        });
+      } catch (err) {
+        console.error("Failed to load cron settings:", err);
+      }
+    };
+    fetchSettings();
   }, []);
 
   useEffect(() => {
@@ -158,6 +187,111 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
     }
     return amount.toString();
   };
+
+  const formatCountdown = (ms) => {
+    if (ms <= 0) return "00:00:00";
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  };
+  const autoExitInfo = (() => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).formatToParts(now);
+    const bag = {};
+    parts.forEach((p) => {
+      if (p.type !== "literal") bag[p.type] = p.value;
+    });
+
+    const year = Number(bag.year);
+    const month = Number(bag.month);
+    const day = Number(bag.day);
+
+    const buildIstDate = (h, m, s = 0, addDays = 0) =>
+      new Date(`${year}-${String(month).padStart(2, "0")}-${String(day + addDays).padStart(2, "0")}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}+05:30`);
+
+    const nowIst = new Date(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${bag.hour}:${bag.minute}:${bag.second}+05:30`);
+
+    const windows = [
+      {
+        key: "bulk",
+        title: "Bulk Exit",
+        start: buildIstDate(18, 0),
+        end: buildIstDate(22, 0),
+        interval: 10,
+        enabled: cronSettings.cronBulkExitEnabled,
+      },
+      {
+        key: "exitOnly",
+        title: "Exit-Only",
+        start: buildIstDate(22, 30),
+        end: buildIstDate(23, 0),
+        interval: 5,
+        enabled: cronSettings.cronSingleBidEnabled,
+      },
+      {
+        key: "sellAfterExit5",
+        title: "Sell-After-Exit (5m)",
+        start: buildIstDate(23, 30),
+        end: buildIstDate(0, 30, 0, 1),
+        interval: 5,
+        enabled: cronSettings.cronSingleBidEnabled,
+      },
+      {
+        key: "sellAfterExit2",
+        title: "Sell-After-Exit (2m)",
+        start: buildIstDate(0, 30, 0, 1),
+        end: buildIstDate(2, 0, 0, 1),
+        interval: 2,
+        enabled: cronSettings.cronSingleBidEnabled,
+      },
+    ];
+
+    const enabledWindows = windows.filter((w) => w.enabled);
+    if (enabledWindows.length === 0) {
+      return { status: "OFF", nextExitAt: null };
+    }
+
+    const currentWindow = enabledWindows.find((w) => nowIst >= w.start && nowIst < w.end);
+    const getNextTick = (window) => {
+      if (!window?.interval) return null;
+      if (nowIst < window.start) return window.start;
+      const intervalMs = window.interval * 60 * 1000;
+      const elapsed = nowIst.getTime() - window.start.getTime();
+      const ticks = Math.ceil(elapsed / intervalMs);
+      const next = new Date(window.start.getTime() + ticks * intervalMs);
+      return next < window.end ? next : null;
+    };
+
+    if (currentWindow) {
+      const nextTick = getNextTick(currentWindow);
+      if (nextTick) return { status: "ACTIVE", nextExitAt: nextTick };
+    }
+
+    const nextWindow = enabledWindows.find((w) => nowIst < w.start);
+    const fallback = nextWindow || enabledWindows[0];
+    return { status: "WAITING", nextExitAt: fallback.start };
+  })();
+
+  const secondBidderId =
+    topTwoBids[1]?.bidder?._id ||
+    topTwoBids[1]?.bidder?.id ||
+    topTwoBids[1]?.bidder;
+  const isSecondHighestUser =
+    currentUserId &&
+    secondBidderId &&
+    String(secondBidderId) === String(currentUserId) &&
+    topTwoBids[1]?.isBidOn !== false;
 
   const handleReleasePlayer = async () => {
     try {
@@ -620,6 +754,16 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
                           hour12: true,
                         })}
                       </p>
+                      {index === 1 && (
+                        <p className="bid-time">
+                          <FaClock className="timer-icon" /> Auto Exit (System):{" "}
+                          {autoExitInfo.status === "OFF"
+                            ? "OFF by Admin"
+                            : autoExitInfo.nextExitAt
+                              ? formatCountdown(autoExitInfo.nextExitAt - now)
+                              : "—"}
+                        </p>
+                      )}
                     </div>
                   );
                 })}
