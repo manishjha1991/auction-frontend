@@ -325,26 +325,26 @@ const AdminControlPanel = ({ adminUser }) => {
   const cronDefinitions = [
     {
       key: 'cronSingleBidEnabled',
-      title: 'Single Bid Auto-Sell',
+      title: 'Timed Auction Windows',
       description:
-        'Every 10 minutes from 12:30 IST remove the second bidder (and sell after a full cycle) plus run the 23:30 single-bid finalizer. Enabling this pauses the bulk cleanup job automatically.',
+        '10:30–11:00 PM: exit second-highest every 5 min (no selling). 11:30 PM–12:30 AM: 5‑min sell-after-exit. 12:30 AM–2:00 AM: 2‑min sell-after-exit. Enabling this pauses bulk cleanup.',
     },
     {
       key: 'cronSingleBidFinalizerEnabled',
-      title: 'Single Bid Finalizer (23:30)',
+      title: 'Single-Bid Finalizer (10:30 PM)',
       description:
-        'At 11:30 PM IST sell players who have only ever received a single bid. Disable if you want to keep those players open past midnight.',
+        'At 10:30 PM IST sell players who have only ever received a single bid (no counter bids since start).',
     },
     {
       key: 'cronBulkExitEnabled',
       title: 'Second Bidder Cleanup',
       description:
-        'Every 15 minutes run exit-second-highest for all players. Purely cleanup—no automatic sales. Enabling this pauses the single-bid auto-sell job.',
+        '6:00–10:00 PM IST: every 10 minutes remove the second-highest bidder (no selling). Enabling this pauses timed windows.',
     },
     {
       key: 'cronLockEnabled',
       title: 'Lock Under Limit',
-      description: 'Nightly at 10 PM IST lock teams that violate roster rules.',
+      description: 'Nightly at 10:00 PM IST lock teams that violate roster rules.',
     },
   ];
 
