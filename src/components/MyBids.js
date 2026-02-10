@@ -99,6 +99,75 @@ const PlayersSection = styled.div`
   margin-top: 12px;
 `;
 
+const TimingSection = styled.div`
+  margin: 10px 0 14px;
+  padding: 10px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.35), rgba(30, 64, 175, 0.25));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+`;
+
+const TimingGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const TimingCard = styled.div`
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.75), rgba(30, 41, 59, 0.55));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 12px 12px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+`;
+
+const TimingTitle = styled.div`
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 6px;
+`;
+
+const TimingValue = styled.div`
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #38bdf8;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+`;
+
+const TimingHint = styled.div`
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 6px;
+  line-height: 1.2;
+`;
+
+const TimingBadge = styled.span`
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecaca;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+`;
+
 const SummaryRow = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -413,6 +482,16 @@ const formatAmount = (value) => {
   return `${amount}`;
 };
 
+const formatCountdown = (ms) => {
+  if (ms <= 0) return "00:00:00";
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+};
+
 const MyBids = () => {
   const [user, setUser] = useState(null);
   const [myBids, setMyBids] = useState([]);
@@ -421,6 +500,12 @@ const MyBids = () => {
   const [error, setError] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [now, setNow] = useState(new Date());
+  const [cronSettings, setCronSettings] = useState({
+    cronSingleBidEnabled: true,
+    cronSingleBidFinalizerEnabled: true,
+    cronBulkExitEnabled: true,
+  });
   const { on } = useSocket();
 
   const fetchData = useCallback(async () => {
@@ -429,9 +514,10 @@ const MyBids = () => {
       if (!cachedUser?.id) return;
       setUser(cachedUser);
 
-      const [bidsRes, pursesRes] = await Promise.all([
+      const [bidsRes, pursesRes, settingsRes] = await Promise.all([
         fetch(`${API_ENDPOINTS}/api/users/${cachedUser.id}/bids`),
-        fetch(`${API_ENDPOINTS}/api/users/purses`)
+        fetch(`${API_ENDPOINTS}/api/users/purses`),
+        fetch(`${API_ENDPOINTS}/api/settings`)
       ]);
 
       if (!bidsRes.ok || !pursesRes.ok) {
@@ -440,6 +526,14 @@ const MyBids = () => {
 
       const bidsJson = await bidsRes.json();
       const pursesJson = await pursesRes.json();
+      if (settingsRes.ok) {
+        const settingsJson = await settingsRes.json();
+        setCronSettings({
+          cronSingleBidEnabled: settingsJson.cronSingleBidEnabled !== false,
+          cronSingleBidFinalizerEnabled: settingsJson.cronSingleBidFinalizerEnabled !== false,
+          cronBulkExitEnabled: settingsJson.cronBulkExitEnabled !== false,
+        });
+      }
       setMyBids(bidsJson?.bids || []);
       const purseList = Array.isArray(pursesJson) ? pursesJson : pursesJson?.users || pursesJson?.data || [];
       setAllPurses(purseList);
@@ -454,6 +548,11 @@ const MyBids = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!on) return;
@@ -506,6 +605,125 @@ const MyBids = () => {
     return "losing";
   };
 
+  const timingInfo = useMemo(() => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).formatToParts(now);
+    const bag = {};
+    parts.forEach((p) => {
+      if (p.type !== "literal") bag[p.type] = p.value;
+    });
+
+    const year = Number(bag.year);
+    const month = Number(bag.month);
+    const day = Number(bag.day);
+
+    const buildIstDate = (h, m, s = 0, addDays = 0) =>
+      new Date(`${year}-${String(month).padStart(2, "0")}-${String(day + addDays).padStart(2, "0")}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}+05:30`);
+
+    const nowIst = new Date(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${bag.hour}:${bag.minute}:${bag.second}+05:30`);
+
+    const windows = [
+      {
+        key: "bulk",
+        title: "Second Bidder Cleanup",
+        range: "6:00–10:00 PM",
+        start: buildIstDate(18, 0),
+        end: buildIstDate(22, 0),
+        interval: 10,
+        action: "Removes second-highest (no selling).",
+        enabled: cronSettings.cronBulkExitEnabled,
+      },
+      {
+        key: "pause1",
+        title: "System Pause",
+        range: "10:00–10:30 PM",
+        start: buildIstDate(22, 0),
+        end: buildIstDate(22, 30),
+        interval: null,
+        action: "No auto exits.",
+        enabled: true,
+      },
+      {
+        key: "exitOnly",
+        title: "Exit-Only Window",
+        range: "10:30–11:00 PM",
+        start: buildIstDate(22, 30),
+        end: buildIstDate(23, 0),
+        interval: 5,
+        action: "Removes second-highest only.",
+        enabled: cronSettings.cronSingleBidEnabled,
+      },
+      {
+        key: "pause2",
+        title: "System Pause",
+        range: "11:00–11:30 PM",
+        start: buildIstDate(23, 0),
+        end: buildIstDate(23, 30),
+        interval: null,
+        action: "No auto exits.",
+        enabled: true,
+      },
+      {
+        key: "sellAfterExit5",
+        title: "Sell-After-Exit (5-min)",
+        range: "11:30 PM–12:30 AM",
+        start: buildIstDate(23, 30),
+        end: buildIstDate(0, 30, 0, 1),
+        interval: 5,
+        action: "Exit if counter bid; sell if no new bid after exit.",
+        enabled: cronSettings.cronSingleBidEnabled,
+      },
+      {
+        key: "sellAfterExit2",
+        title: "Sell-After-Exit (2-min)",
+        range: "12:30–2:00 AM",
+        start: buildIstDate(0, 30, 0, 1),
+        end: buildIstDate(2, 0, 0, 1),
+        interval: 2,
+        action: "Faster sell-after-exit checks.",
+        enabled: cronSettings.cronSingleBidEnabled,
+      },
+    ];
+
+    const singleBidFinalizer = buildIstDate(22, 30);
+    const nextSingleBidFinalizer =
+      nowIst <= singleBidFinalizer
+        ? singleBidFinalizer
+        : buildIstDate(22, 30, 0, 1);
+
+    const currentWindow = windows.find((w) => nowIst >= w.start && nowIst < w.end);
+    const nextWindow = windows.find((w) => nowIst < w.start) || windows[0];
+
+    const getNextTick = (window) => {
+      if (!window?.interval) return null;
+      if (nowIst < window.start) return window.start;
+      const intervalMs = window.interval * 60 * 1000;
+      const elapsed = nowIst.getTime() - window.start.getTime();
+      const ticks = Math.ceil(elapsed / intervalMs);
+      const next = new Date(window.start.getTime() + ticks * intervalMs);
+      return next < window.end ? next : null;
+    };
+
+    const nextTick = getNextTick(currentWindow);
+
+    return {
+      nowIst,
+      currentWindow,
+      nextWindow,
+      nextTick,
+      nextSingleBidFinalizer,
+      nextWindowStart: nextWindow?.start || null,
+    };
+  }, [now, cronSettings]);
+
   if (loading) {
     return <LoadingCube />;
   }
@@ -528,6 +746,46 @@ const MyBids = () => {
 
       <CardsContainer>
         <PlayersSection>
+          <SectionHeader>
+            <SectionTitle>Counter Bid Timing</SectionTitle>
+            <SectionCount>IST</SectionCount>
+          </SectionHeader>
+          <TimingSection>
+            <TimingGrid>
+              <TimingCard>
+                <TimingTitle>Single-Bid Finalizer</TimingTitle>
+                <TimingValue>{formatCountdown(timingInfo.nextSingleBidFinalizer - timingInfo.nowIst)}</TimingValue>
+                <TimingHint>Next run at 10:30 PM IST</TimingHint>
+                {!cronSettings.cronSingleBidFinalizerEnabled && (
+                  <TimingBadge>OFF BY ADMIN</TimingBadge>
+                )}
+              </TimingCard>
+              <TimingCard>
+                <TimingTitle>Current Phase</TimingTitle>
+                <TimingValue>{timingInfo.currentWindow ? timingInfo.currentWindow.title : "Outside Window"}</TimingValue>
+                <TimingHint>{timingInfo.currentWindow ? `${timingInfo.currentWindow.range} • ${timingInfo.currentWindow.action}` : "Waiting for next window"}</TimingHint>
+                {timingInfo.currentWindow && timingInfo.currentWindow.enabled === false && (
+                  <TimingBadge>OFF BY ADMIN</TimingBadge>
+                )}
+              </TimingCard>
+              <TimingCard>
+                <TimingTitle>Next Auto Action</TimingTitle>
+                <TimingValue>{timingInfo.nextTick ? formatCountdown(timingInfo.nextTick - timingInfo.nowIst) : "—"}</TimingValue>
+                <TimingHint>{timingInfo.nextTick ? "Next scheduled exit/sell check" : "No auto action in this phase"}</TimingHint>
+                {timingInfo.currentWindow && timingInfo.currentWindow.enabled === false && (
+                  <TimingBadge>OFF BY ADMIN</TimingBadge>
+                )}
+              </TimingCard>
+              <TimingCard>
+                <TimingTitle>Next Phase</TimingTitle>
+                <TimingValue>{timingInfo.nextWindow ? timingInfo.nextWindow.title : "—"}</TimingValue>
+                <TimingHint>{timingInfo.nextWindowStart ? `Starts in ${formatCountdown(timingInfo.nextWindowStart - timingInfo.nowIst)}` : "—"}</TimingHint>
+                {timingInfo.nextWindow && timingInfo.nextWindow.enabled === false && (
+                  <TimingBadge>OFF BY ADMIN</TimingBadge>
+                )}
+              </TimingCard>
+            </TimingGrid>
+          </TimingSection>
           <SectionHeader>
             <SectionTitle>Winning Bids</SectionTitle>
             <SectionCount>{uniqueRunningBids.filter((b) => b.status === "Winning").length}</SectionCount>
