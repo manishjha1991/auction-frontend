@@ -15,6 +15,8 @@ function AdminSettings() {
   const [pointsMode, setPointsMode] = useState('overall');
   const [teams, setTeams] = useState([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
+  const [auctionStartAt, setAuctionStartAt] = useState('');
+  const [auctionSaving, setAuctionSaving] = useState(false);
 
   useEffect(() => {
     const cached = localStorage.getItem('user');
@@ -31,6 +33,11 @@ function AdminSettings() {
       if (typeof j.enablePickButton === 'boolean') setEnablePickButton(j.enablePickButton);
       if (typeof j.enablePlayerRetention === 'boolean') setEnablePlayerRetention(j.enablePlayerRetention);
       if (typeof j.pointsMode === 'string') setPointsMode(j.pointsMode);
+      if (j.auctionStartAt) {
+        setAuctionStartAt(formatAuctionInput(j.auctionStartAt));
+      } else {
+        setAuctionStartAt('');
+      }
     } catch (e) {
       setToast('Failed to load settings');
     } finally {
@@ -41,6 +48,50 @@ function AdminSettings() {
   useEffect(() => { loadSettings(); }, []);
 
   const adminId = user?.id || user?._id || null;
+
+  const formatAuctionInput = (isoString) => {
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return '';
+    const IST_OFFSET_MS = 330 * 60 * 1000;
+    const ist = new Date(date.getTime() + IST_OFFSET_MS);
+    const pad = (v) => String(v).padStart(2, '0');
+    return `${ist.getUTCFullYear()}-${pad(ist.getUTCMonth() + 1)}-${pad(ist.getUTCDate())}T${pad(ist.getUTCHours())}:${pad(ist.getUTCMinutes())}`;
+  };
+
+  const toAuctionIsoFromInput = (value) => {
+    if (!value) return null;
+    const [datePart, timePart] = value.split('T');
+    if (!datePart || !timePart) return null;
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute] = timePart.split(':').map(Number);
+    if ([year, month, day, hour, minute].some((v) => Number.isNaN(v))) return null;
+    const istMs = Date.UTC(year, month - 1, day, hour, minute, 0);
+    const utcMs = istMs - 330 * 60 * 1000;
+    return new Date(utcMs).toISOString();
+  };
+
+  const saveAuctionStart = async () => {
+    if (!adminId || auctionSaving) return;
+    setAuctionSaving(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminUserId: adminId,
+          auctionStartAt: toAuctionIsoFromInput(auctionStartAt),
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.message || 'Failed to update auction time');
+      setAuctionStartAt(j.auctionStartAt ? formatAuctionInput(j.auctionStartAt) : '');
+      setToast('Auction start time updated');
+    } catch (e) {
+      setToast(e.message || 'Failed to update auction time');
+    } finally {
+      setAuctionSaving(false);
+    }
+  };
 
   async function save(partial) {
     try {
@@ -137,6 +188,28 @@ function AdminSettings() {
               <input type="checkbox" checked={enablePickButton} onChange={(e) => save({ enablePickButton: e.target.checked })} disabled={saving} />
               <span className="slider" />
             </label>
+          </div>
+          <div className="setting-row">
+            <div className="info">
+              <div className="label">Auction Start Time (IST)</div>
+              <div className="desc">Select the auction start date & time for the countdown on the player page.</div>
+            </div>
+            <div className="action-inline">
+              <input
+                type="datetime-local"
+                className="auction-datetime-input"
+                value={auctionStartAt}
+                onChange={(e) => setAuctionStartAt(e.target.value)}
+                disabled={saving || auctionSaving}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={saveAuctionStart}
+                disabled={saving || auctionSaving}
+              >
+                {auctionSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
           </div>
           <div className="setting-row">
             <div className="info">

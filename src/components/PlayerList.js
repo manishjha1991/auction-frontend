@@ -25,6 +25,42 @@ const PlayerList = () => {
   const [myActiveBidPlayerIds, setMyActiveBidPlayerIds] = useState([]);
   const [flashNotice, setFlashNotice] = useState(null);
   const flashTimeoutRef = useRef(null);
+  const IST_OFFSET_MS = 330 * 60 * 1000;
+  const [auctionCountdownMs, setAuctionCountdownMs] = useState(0);
+  const [auctionStartAt, setAuctionStartAt] = useState(null);
+
+  const getAuctionCountdownMs = useCallback(() => {
+    if (auctionStartAt) {
+      const targetMs = new Date(auctionStartAt).getTime();
+      if (!Number.isNaN(targetMs)) {
+        return Math.max(0, targetMs - Date.now());
+      }
+    }
+    const nowUtcMs = Date.now();
+    const nowIstMs = nowUtcMs + IST_OFFSET_MS;
+    const nowIstDate = new Date(nowIstMs);
+    const targetIstMs = Date.UTC(
+      nowIstDate.getUTCFullYear(),
+      nowIstDate.getUTCMonth(),
+      nowIstDate.getUTCDate(),
+      18,
+      0,
+      0
+    );
+    let diffMs = targetIstMs - nowIstMs;
+    if (diffMs < 0) {
+      diffMs += 24 * 60 * 60 * 1000;
+    }
+    return diffMs;
+  }, [auctionStartAt]);
+
+  const formatCountdown = useCallback((ms) => {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+    const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+    const seconds = String(totalSeconds % 60).padStart(2, "0");
+    return { hours, minutes, seconds };
+  }, []);
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -50,6 +86,31 @@ const PlayerList = () => {
 
     fetchPlayers();
   }, []);
+
+  useEffect(() => {
+    const fetchAuctionStart = async () => {
+      try {
+        const res = await fetch(`${API_ENDPOINTS}/api/settings`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.auctionStartAt) {
+          setAuctionStartAt(data.auctionStartAt);
+        } else {
+          setAuctionStartAt(null);
+        }
+      } catch {}
+    };
+    fetchAuctionStart();
+  }, []);
+
+  useEffect(() => {
+    const tick = () => {
+      setAuctionCountdownMs(getAuctionCountdownMs());
+    };
+    tick();
+    const intervalId = setInterval(tick, 1000);
+    return () => clearInterval(intervalId);
+  }, [getAuctionCountdownMs]);
 
   const playNoticeTone = useCallback((type) => {
     try {
@@ -298,6 +359,23 @@ const PlayerList = () => {
     );
   }, [myActiveBidPlayerIds, currentUserName]);
 
+  const auctionCountdown = useMemo(() => formatCountdown(auctionCountdownMs), [auctionCountdownMs, formatCountdown]);
+  const auctionStartLabel = useMemo(() => {
+    if (!auctionStartAt) return '6:00 PM IST';
+    const target = new Date(auctionStartAt);
+    if (Number.isNaN(target.getTime())) return '6:00 PM IST';
+    const ist = new Date(target.getTime() + IST_OFFSET_MS);
+    return ist.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'UTC'
+    }) + ' IST';
+  }, [auctionStartAt]);
+
   if (loading) {
     return <TrophyLoader message="Loading player board…" />;
   }
@@ -326,7 +404,32 @@ const PlayerList = () => {
       )}
       <NotificationBell />
       {unsoldPlayers.length === 0 ? (
-        <TrophyLoader message="No squads detected. Waiting for live feed…" />
+        <div className="auction-countdown-wrap">
+          <div className="auction-countdown-card">
+            <div className="auction-countdown-header">
+              Auction starts at <span>{auctionStartLabel}</span>
+            </div>
+            <div className="auction-countdown-timer">
+              <div className="auction-countdown-segment">
+                <div className="countdown-value">{auctionCountdown.hours}</div>
+                <div className="countdown-label">Hours</div>
+              </div>
+              <div className="countdown-separator">:</div>
+              <div className="auction-countdown-segment">
+                <div className="countdown-value">{auctionCountdown.minutes}</div>
+                <div className="countdown-label">Minutes</div>
+              </div>
+              <div className="countdown-separator">:</div>
+              <div className="auction-countdown-segment">
+                <div className="countdown-value">{auctionCountdown.seconds}</div>
+                <div className="countdown-label">Seconds</div>
+              </div>
+            </div>
+            <div className="auction-countdown-note">
+              Player list is empty. Countdown follows the admin-set start time.
+            </div>
+          </div>
+        </div>
       ) : (
       <>
       <div className="list-header">
