@@ -259,7 +259,11 @@ const PlayerList = () => {
         return;
       }
       if (update.playerId && myActiveBidPlayerIds.includes(update.playerId)) {
-        showFlashNotice("exit", `Bid exit on ${update.playername || "your player"}`);
+        const exitLabel = update.exitBy === 'system' ? 'System' : update.exitBy === 'user' ? 'User' : null;
+        showFlashNotice(
+          "exit",
+          `Bid exit${exitLabel ? ` (${exitLabel})` : ""} on ${update.playername || "your player"}`
+        );
       }
     });
 

@@ -777,6 +777,9 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
                   hour12: true,
                 })}
                 {playerDetails?.lastExitUser ? ` — ${playerDetails.lastExitUser}` : ''}
+                {playerDetails?.lastExitBy
+                  ? ` (by ${playerDetails.lastExitBy === 'system' ? 'System' : 'User'})`
+                  : ''}
               </p>
             )}
 
