@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import "../css/PlayerPopup.css";
 import { FaClock } from "react-icons/fa";
@@ -61,6 +61,8 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
     cronBulkExitEnabled: true,
   });
   const [now, setNow] = useState(new Date());
+  const fetchInFlightRef = useRef(false);
+  const pendingFetchRef = useRef(false);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -90,35 +92,44 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
     fetchSettings();
   }, []);
 
-  useEffect(() => {
-    const fetchPlayerData = async (showLoading = true) => {
-      try {
-        if (showLoading) setLoading(true);
-        const response = await fetch(`${API_ENDPOINTS}/api/player/${player.id}/bids`, {
-          headers: { "Content-Type": "application/json" },
-        });
+  const fetchPlayerData = useCallback(async (showLoading = true) => {
+    if (fetchInFlightRef.current) {
+      pendingFetchRef.current = true;
+      return;
+    }
+    fetchInFlightRef.current = true;
+    try {
+      if (showLoading) setLoading(true);
+      const response = await fetch(`${API_ENDPOINTS}/api/player/${player.id}/bids`, {
+        headers: { "Content-Type": "application/json" },
+      });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setPlayerDetails(data.player);
-        setTopTwoBids(data.topTwoBids);
-        setAllBids(data.allBids);
-      } catch (err) {
-        console.error("Failed to fetch player details:", err);
-        if (showLoading) {
-          setError("Failed to load player details. Please try again later.");
-        }
-      } finally {
-        if (showLoading) setLoading(false);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
-    };
 
-    // Initial fetch with loading spinner
+      const data = await response.json();
+      setPlayerDetails(data.player);
+      setTopTwoBids(data.topTwoBids);
+      setAllBids(data.allBids);
+    } catch (err) {
+      console.error("Failed to fetch player details:", err);
+      if (showLoading) {
+        setError("Failed to load player details. Please try again later.");
+      }
+    } finally {
+      if (showLoading) setLoading(false);
+      fetchInFlightRef.current = false;
+      if (pendingFetchRef.current) {
+        pendingFetchRef.current = false;
+        fetchPlayerData(false);
+      }
+    }
+  }, [player.id]);
+
+  useEffect(() => {
     fetchPlayerData(true);
-  }, [player.id, player._id]);
+  }, [fetchPlayerData]);
   
   // 🚀 REALTIME: Listen for real-time bid updates using shared socket
   const { on } = useSocket();
@@ -127,33 +138,17 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
   useEffect(() => {
     if (!on) return;
     
-    const fetchPlayerDataSilent = async () => {
-      try {
-        const response = await fetch(`${API_ENDPOINTS}/api/player/${player.id}/bids`, {
-          headers: { "Content-Type": "application/json" },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setPlayerDetails(data.player);
-          setTopTwoBids(data.topTwoBids);
-          setAllBids(data.allBids);
-        }
-      } catch (err) {
-        console.error("Failed to refresh player details:", err);
-      }
-    };
-    
     const cleanup1 = on('player_bid_update', (update) => {
       if (update.playerId === currentPlayerId || update.playerId?.toString() === currentPlayerId?.toString()) {
         // Refresh player data when bid updates (silently, no loading spinner)
-        fetchPlayerDataSilent();
+        fetchPlayerData(false);
       }
     });
     
     const cleanup2 = on('player_sold_update', (update) => {
       if (update.playerId === currentPlayerId || update.playerId?.toString() === currentPlayerId?.toString()) {
         // Refresh player data when sold (silently, no loading spinner)
-        fetchPlayerDataSilent();
+        fetchPlayerData(false);
       }
     });
     
@@ -161,7 +156,7 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
       cleanup1();
       cleanup2();
     };
-  }, [on, currentPlayerId, player.id]);
+  }, [on, currentPlayerId, fetchPlayerData]);
 
   // Auto-hide bid alert after 5 seconds
   useEffect(() => {

@@ -28,6 +28,10 @@ const PlayerList = () => {
   const IST_OFFSET_MS = 330 * 60 * 1000;
   const [auctionCountdownMs, setAuctionCountdownMs] = useState(0);
   const [auctionStartAt, setAuctionStartAt] = useState(null);
+  const fetchPlayersInFlightRef = useRef(false);
+  const fetchPlayersPendingRef = useRef(false);
+  const fetchMyBidsInFlightRef = useRef(false);
+  const fetchMyBidsPendingRef = useRef(false);
 
   const getAuctionCountdownMs = useCallback(() => {
     if (auctionStartAt) {
@@ -62,30 +66,40 @@ const PlayerList = () => {
     return { hours, minutes, seconds };
   }, []);
 
-  useEffect(() => {
-    const fetchPlayers = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_ENDPOINTS}/api/players/data`, {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const data = await response.json();
-        setPlayers(data);
-      } catch (err) {
-        console.error("Failed to fetch players:", err);
-        setError("Failed to load players. Please try again later.");
-      } finally {
-        setLoading(false);
+  const fetchPlayers = useCallback(async () => {
+    if (fetchPlayersInFlightRef.current) {
+      fetchPlayersPendingRef.current = true;
+      return;
+    }
+    fetchPlayersInFlightRef.current = true;
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_ENDPOINTS}/api/players/data`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
-    };
-
-    fetchPlayers();
+      const data = await response.json();
+      setPlayers(data);
+    } catch (err) {
+      console.error("Failed to fetch players:", err);
+      setError("Failed to load players. Please try again later.");
+    } finally {
+      setLoading(false);
+      fetchPlayersInFlightRef.current = false;
+      if (fetchPlayersPendingRef.current) {
+        fetchPlayersPendingRef.current = false;
+        fetchPlayers();
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    fetchPlayers();
+  }, [fetchPlayers]);
 
   useEffect(() => {
     const fetchAuctionStart = async () => {
@@ -156,6 +170,11 @@ const PlayerList = () => {
     const userId = user?.id;
     if (!userId) return;
     const fetchMyActiveBids = async () => {
+      if (fetchMyBidsInFlightRef.current) {
+        fetchMyBidsPendingRef.current = true;
+        return;
+      }
+      fetchMyBidsInFlightRef.current = true;
       try {
         const response = await fetch(`${API_ENDPOINTS}/api/users/${userId}/details`, {
           headers: { "Content-Type": "application/json" },
@@ -166,7 +185,13 @@ const PlayerList = () => {
           .map((b) => b.player?._id || b.player?.id)
           .filter(Boolean);
         setMyActiveBidPlayerIds(activeIds);
-      } catch {}
+      } catch {} finally {
+        fetchMyBidsInFlightRef.current = false;
+        if (fetchMyBidsPendingRef.current) {
+          fetchMyBidsPendingRef.current = false;
+          fetchMyActiveBids();
+        }
+      }
     };
     fetchMyActiveBids();
   }, []);

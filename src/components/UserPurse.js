@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import styled from "styled-components";
 import { useSocket } from "../contexts/SocketContext";
 import { API_ENDPOINTS } from "../const";
@@ -1042,6 +1042,9 @@ const UserPursePage = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [lastBidders, setLastBidders] = useState({});
   const [userBidPositions, setUserBidPositions] = useState({});
+  const fetchInFlightRef = useRef(false);
+  const pendingFetchRef = useRef(false);
+  const competitorFetchRef = useRef(new Set());
 
   useEffect(() => {
     // Get current user from localStorage
@@ -1059,84 +1062,95 @@ const UserPursePage = () => {
     setSelectedPlayer(null);
   }, []);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        setLoading(true);
-        setLoadingProgress(0);
-        const startTime = Date.now();
-        
-        // Smooth progress updates
-        setLoadingProgress(20);
-        const response = await fetch(`${API_ENDPOINTS}/api/users/purses`);
-        setLoadingProgress(60);
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch user purse data.");
-        }
-        const data = await response.json();
-        setUsersData(data);
-        setLoadingProgress(80);
-        
-        // 🚀 PERFORMANCE: Extract bidding statuses and competitor info efficiently from API response
-        if (currentUser) {
-          // Try to find user by ID, _id, or userName (optimized lookup)
-          const currentUserData = data.find(user => 
-            user.id === currentUser.id || 
-            user._id === currentUser.id || 
-            user.userName === currentUser.name
-          );
-          
-          if (currentUserData) {
-            // OPTIMIZATION: Use reduce for better performance
-            const userStatuses = currentUserData.players.reduce((acc, player) => {
-              if (player.isBidOn && player.biddingStatus) {
-                acc[player.name] = {
-                  isHighest: player.biddingStatus.isHighest,
-                  isSecondHighest: player.biddingStatus.isSecondHighest,
-                  bidAmount: player.biddingPrice,
-                  playerName: player.name,
-                  position: player.biddingStatus.position,
-                  totalBidders: player.biddingStatus.totalBidders,
-                  bidderName: currentUserData.userName,
-                  isCurrentUser: true
-                };
-              }
-              return acc;
-            }, {});
-            
-            setBiddingStatuses(userStatuses);
-            
-            // 🚀 PERFORMANCE: Extract competitor info from API response (no separate API calls needed)
-            const competitorMap = {};
-            const positionMap = {};
-            
-            currentUserData.players.forEach(player => {
-              if (player.isBidOn && player.competitorName !== undefined) {
-                competitorMap[player.id] = player.competitorName;
-                positionMap[player.id] = player.bidPosition || player.biddingStatus?.position || null;
-              }
-            });
-            
-            setLastBidders(competitorMap);
-            setUserBidPositions(positionMap);
-          }
-        }
-        
-        setLoadingProgress(100);
-        const loadTime = Date.now() - startTime;
-        console.log(`⚡ UserPurse loaded in ${loadTime}ms`);
-        
-        // Small delay for smooth transition
-        setTimeout(() => setLoading(false), 200);
-      } catch (err) {
-        setError(err.message || "Failed to fetch data.");
-        setLoading(false);
+  const fetchUserData = useCallback(async () => {
+    if (fetchInFlightRef.current) {
+      pendingFetchRef.current = true;
+      return;
+    }
+    fetchInFlightRef.current = true;
+    try {
+      setLoading(true);
+      setLoadingProgress(0);
+      const startTime = Date.now();
+      
+      // Smooth progress updates
+      setLoadingProgress(20);
+      const response = await fetch(`${API_ENDPOINTS}/api/users/purses`);
+      setLoadingProgress(60);
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch user purse data.");
       }
-    };
-
-    fetchUserData();
+      const data = await response.json();
+      setUsersData(data);
+      setLoadingProgress(80);
+      
+      // 🚀 PERFORMANCE: Extract bidding statuses and competitor info efficiently from API response
+      if (currentUser) {
+        // Try to find user by ID, _id, or userName (optimized lookup)
+        const currentUserData = data.find(user => 
+          user.id === currentUser.id || 
+          user._id === currentUser.id || 
+          user.userName === currentUser.name
+        );
+        
+        if (currentUserData) {
+          // OPTIMIZATION: Use reduce for better performance
+          const userStatuses = currentUserData.players.reduce((acc, player) => {
+            if (player.isBidOn && player.biddingStatus) {
+              acc[player.name] = {
+                isHighest: player.biddingStatus.isHighest,
+                isSecondHighest: player.biddingStatus.isSecondHighest,
+                bidAmount: player.biddingPrice,
+                playerName: player.name,
+                position: player.biddingStatus.position,
+                totalBidders: player.biddingStatus.totalBidders,
+                bidderName: currentUserData.userName,
+                isCurrentUser: true
+              };
+            }
+            return acc;
+          }, {});
+          
+          setBiddingStatuses(userStatuses);
+          
+          // 🚀 PERFORMANCE: Extract competitor info from API response (no separate API calls needed)
+          const competitorMap = {};
+          const positionMap = {};
+          
+          currentUserData.players.forEach(player => {
+            if (player.isBidOn && player.competitorName !== undefined) {
+              competitorMap[player.id] = player.competitorName;
+              positionMap[player.id] = player.bidPosition || player.biddingStatus?.position || null;
+            }
+          });
+          
+          setLastBidders(competitorMap);
+          setUserBidPositions(positionMap);
+        }
+      }
+      
+      setLoadingProgress(100);
+      const loadTime = Date.now() - startTime;
+      console.log(`⚡ UserPurse loaded in ${loadTime}ms`);
+      
+      // Small delay for smooth transition
+      setTimeout(() => setLoading(false), 200);
+    } catch (err) {
+      setError(err.message || "Failed to fetch data.");
+      setLoading(false);
+    } finally {
+      fetchInFlightRef.current = false;
+      if (pendingFetchRef.current) {
+        pendingFetchRef.current = false;
+        fetchUserData();
+      }
+    }
   }, [currentUser]);
+
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
   
   // 🚀 REALTIME: Listen for real-time bid updates using shared socket
   const { on } = useSocket();
@@ -1179,39 +1193,45 @@ const UserPursePage = () => {
           
           if (player && player.isBidOn) {
             // Refresh competitor info by fetching updated data
-            fetch(`${API_ENDPOINTS}/api/player/${update.playerId}/bids`)
-              .then(res => res.json())
-              .then(data => {
-                const allBids = data.allBids || [];
-                if (allBids.length > 0) {
-                  const sortedBids = allBids.sort((a, b) => b.bidAmount - a.bidAmount);
-                  const currentUserId = currentUser?.id || currentUser?._id;
-                  const userBidIndex = sortedBids.findIndex(bid => 
-                    bid.bidder?.toString() === currentUserId?.toString() || 
-                    bid.bidder?._id?.toString() === currentUserId?.toString()
-                  );
-                  
-                  let competitorName = null;
-                  if (userBidIndex === 0 && sortedBids.length > 1) {
-                    competitorName = sortedBids[1].bidder?.name || sortedBids[1].bidderName || null;
-                  } else if (userBidIndex === 1) {
-                    competitorName = sortedBids[0].bidder?.name || sortedBids[0].bidderName || null;
-                  } else if (userBidIndex > 1) {
-                    competitorName = sortedBids[0].bidder?.name || sortedBids[0].bidderName || null;
+            if (!competitorFetchRef.current.has(update.playerId)) {
+              competitorFetchRef.current.add(update.playerId);
+              fetch(`${API_ENDPOINTS}/api/player/${update.playerId}/bids`)
+                .then(res => res.json())
+                .then(data => {
+                  const allBids = data.allBids || [];
+                  if (allBids.length > 0) {
+                    const sortedBids = allBids.sort((a, b) => b.bidAmount - a.bidAmount);
+                    const currentUserId = currentUser?.id || currentUser?._id;
+                    const userBidIndex = sortedBids.findIndex(bid => 
+                      bid.bidder?.toString() === currentUserId?.toString() || 
+                      bid.bidder?._id?.toString() === currentUserId?.toString()
+                    );
+                    
+                    let competitorName = null;
+                    if (userBidIndex === 0 && sortedBids.length > 1) {
+                      competitorName = sortedBids[1].bidder?.name || sortedBids[1].bidderName || null;
+                    } else if (userBidIndex === 1) {
+                      competitorName = sortedBids[0].bidder?.name || sortedBids[0].bidderName || null;
+                    } else if (userBidIndex > 1) {
+                      competitorName = sortedBids[0].bidder?.name || sortedBids[0].bidderName || null;
+                    }
+                    
+                    setLastBidders(prev => ({
+                      ...prev,
+                      [update.playerId]: competitorName
+                    }));
+                    
+                    setUserBidPositions(prev => ({
+                      ...prev,
+                      [update.playerId]: userBidIndex >= 0 ? userBidIndex : null
+                    }));
                   }
-                  
-                  setLastBidders(prev => ({
-                    ...prev,
-                    [update.playerId]: competitorName
-                  }));
-                  
-                  setUserBidPositions(prev => ({
-                    ...prev,
-                    [update.playerId]: userBidIndex >= 0 ? userBidIndex : null
-                  }));
-                }
-              })
-              .catch(err => console.error('Failed to fetch competitor info:', err));
+                })
+                .catch(err => console.error('Failed to fetch competitor info:', err))
+                .finally(() => {
+                  competitorFetchRef.current.delete(update.playerId);
+                });
+            }
           }
         }
         

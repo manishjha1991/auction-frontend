@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import styled from "styled-components";
 import { API_ENDPOINTS } from "../const";
 import { useSocket } from "../contexts/SocketContext";
@@ -507,17 +507,28 @@ const MyBids = () => {
     cronBulkExitEnabled: true,
   });
   const { on } = useSocket();
+  const fetchInFlightRef = useRef(false);
+  const pendingFetchRef = useRef(false);
+  const settingsCacheRef = useRef({ ts: 0, value: null });
+  const SETTINGS_TTL_MS = 60 * 1000;
 
   const fetchData = useCallback(async () => {
+    if (fetchInFlightRef.current) {
+      pendingFetchRef.current = true;
+      return;
+    }
+    fetchInFlightRef.current = true;
     try {
       const cachedUser = JSON.parse(localStorage.getItem("user"));
       if (!cachedUser?.id) return;
       setUser(cachedUser);
 
+      const nowTs = Date.now();
+      const shouldFetchSettings = !settingsCacheRef.current.value || (nowTs - settingsCacheRef.current.ts) > SETTINGS_TTL_MS;
       const [bidsRes, pursesRes, settingsRes] = await Promise.all([
         fetch(`${API_ENDPOINTS}/api/users/${cachedUser.id}/bids`),
         fetch(`${API_ENDPOINTS}/api/users/purses`),
-        fetch(`${API_ENDPOINTS}/api/settings`)
+        shouldFetchSettings ? fetch(`${API_ENDPOINTS}/api/settings`) : Promise.resolve(null)
       ]);
 
       if (!bidsRes.ok || !pursesRes.ok) {
@@ -526,13 +537,17 @@ const MyBids = () => {
 
       const bidsJson = await bidsRes.json();
       const pursesJson = await pursesRes.json();
-      if (settingsRes.ok) {
+      if (shouldFetchSettings && settingsRes && settingsRes.ok) {
         const settingsJson = await settingsRes.json();
-        setCronSettings({
+        const newSettings = {
           cronSingleBidEnabled: settingsJson.cronSingleBidEnabled !== false,
           cronSingleBidFinalizerEnabled: settingsJson.cronSingleBidFinalizerEnabled !== false,
           cronBulkExitEnabled: settingsJson.cronBulkExitEnabled !== false,
-        });
+        };
+        settingsCacheRef.current = { ts: nowTs, value: newSettings };
+        setCronSettings(newSettings);
+      } else if (settingsCacheRef.current.value) {
+        setCronSettings(settingsCacheRef.current.value);
       }
       setMyBids(bidsJson?.bids || []);
       const purseList = Array.isArray(pursesJson) ? pursesJson : pursesJson?.users || pursesJson?.data || [];
@@ -542,6 +557,11 @@ const MyBids = () => {
       setError(err.message || "Failed to load bids data.");
     } finally {
       setLoading(false);
+      fetchInFlightRef.current = false;
+      if (pendingFetchRef.current) {
+        pendingFetchRef.current = false;
+        fetchData();
+      }
     }
   }, []);
 

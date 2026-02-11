@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import io from 'socket.io-client';
 import { API_ENDPOINTS } from '../const';
 import '../css/LiveBiddingDashboard.css';
@@ -9,6 +9,8 @@ const LiveBiddingDashboard = () => {
   const [updatedUserIds, setUpdatedUserIds] = useState(new Set());
   const [previousPurses, setPreviousPurses] = useState(new Map());
   const user = JSON.parse(localStorage.getItem('user'));
+  const fetchInFlightRef = useRef(false);
+  const pendingFetchRef = useRef(false);
 
   // Format currency
   const formatCurrency = (amount) => {
@@ -25,7 +27,12 @@ const LiveBiddingDashboard = () => {
   };
 
   // Fetch users with purse and active bids
-  const fetchUsersData = async () => {
+  const fetchUsersData = useCallback(async () => {
+    if (fetchInFlightRef.current) {
+      pendingFetchRef.current = true;
+      return;
+    }
+    fetchInFlightRef.current = true;
     try {
       const response = await fetch(`${API_ENDPOINTS}/api/bids/users-dashboard`);
       if (response.ok) {
@@ -75,8 +82,13 @@ const LiveBiddingDashboard = () => {
       console.error('Error fetching users data:', error);
     } finally {
       setLoading(false);
+      fetchInFlightRef.current = false;
+      if (pendingFetchRef.current) {
+        pendingFetchRef.current = false;
+        fetchUsersData();
+      }
     }
-  };
+  }, [previousPurses, user]);
 
   useEffect(() => {
     fetchUsersData();
