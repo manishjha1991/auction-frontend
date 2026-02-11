@@ -321,6 +321,18 @@
   border: 1px solid #FFA500;
 }
 
+.exit-bid-badge {
+  font-size: 0.55rem;
+  color: #075985;
+  background: #e0f2fe;
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid rgba(7, 89, 133, 0.25);
+}
+
 .bid-player-name {
   font-size: 0.55rem;
   font-weight: 600;

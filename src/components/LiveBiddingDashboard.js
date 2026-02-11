@@ -186,6 +186,11 @@ const LiveBiddingDashboard = () => {
                         {bid.otherBidderName}
                       </span>
                     )}
+                    {bid.lastExitUser && (
+                      <span className="exit-bid-badge">
+                        Exit: {bid.lastExitUser}
+                      </span>
+                    )}
                         </div>
                         <div className="bid-amount-display">
                           <span className={`bid-amount-circle ${bid.isWinning ? 'winning-circle' : ''} ${bid.isLosing ? 'losing-circle' : ''}`}>
