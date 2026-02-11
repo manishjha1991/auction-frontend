@@ -505,6 +505,7 @@ const MyBids = () => {
     cronSingleBidEnabled: true,
     cronSingleBidFinalizerEnabled: true,
     cronBulkExitEnabled: true,
+    cronLockEnabled: true,
   });
   const { on } = useSocket();
   const fetchInFlightRef = useRef(false);
@@ -543,6 +544,7 @@ const MyBids = () => {
           cronSingleBidEnabled: settingsJson.cronSingleBidEnabled !== false,
           cronSingleBidFinalizerEnabled: settingsJson.cronSingleBidFinalizerEnabled !== false,
           cronBulkExitEnabled: settingsJson.cronBulkExitEnabled !== false,
+          cronLockEnabled: settingsJson.cronLockEnabled !== false,
         };
         settingsCacheRef.current = { ts: nowTs, value: newSettings };
         setCronSettings(newSettings);
@@ -733,6 +735,11 @@ const MyBids = () => {
     };
 
     const nextTick = getNextTick(currentWindow);
+    const lockTime = buildIstDate(22, 0);
+    const nextLockTime =
+      nowIst <= lockTime
+        ? lockTime
+        : buildIstDate(22, 0, 0, 1);
 
     return {
       nowIst,
@@ -740,6 +747,7 @@ const MyBids = () => {
       nextWindow,
       nextTick,
       nextSingleBidFinalizer,
+      nextLockTime,
       nextWindowStart: nextWindow?.start || null,
     };
   }, [now, cronSettings]);
@@ -801,6 +809,14 @@ const MyBids = () => {
                 <TimingValue>{timingInfo.nextWindow ? timingInfo.nextWindow.title : "—"}</TimingValue>
                 <TimingHint>{timingInfo.nextWindowStart ? `Starts in ${formatCountdown(timingInfo.nextWindowStart - timingInfo.nowIst)}` : "—"}</TimingHint>
                 {timingInfo.nextWindow && timingInfo.nextWindow.enabled === false && (
+                  <TimingBadge>OFF BY ADMIN</TimingBadge>
+                )}
+              </TimingCard>
+              <TimingCard>
+                <TimingTitle>Lock Under Limit</TimingTitle>
+                <TimingValue>{formatCountdown(timingInfo.nextLockTime - timingInfo.nowIst)}</TimingValue>
+                <TimingHint>Next lock run at 10:00 PM IST</TimingHint>
+                {!cronSettings.cronLockEnabled && (
                   <TimingBadge>OFF BY ADMIN</TimingBadge>
                 )}
               </TimingCard>
