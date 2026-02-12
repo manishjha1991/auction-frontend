@@ -155,6 +155,13 @@ const PlayerList = () => {
     }, 4000);
   }, [playNoticeTone]);
 
+  const formatBasePrice = useCallback((price) => {
+    const value = Number(price);
+    if (value >= 10000000) return `${(value / 10000000).toFixed(2)} CR`;
+    if (value >= 100000) return `${(value / 100000).toFixed(2)} Lakh`;
+    return `${(value / 1000).toFixed(2)} K`;
+  }, []);
+
   useEffect(() => {
     return () => {
       if (flashTimeoutRef.current) {
@@ -288,13 +295,6 @@ const PlayerList = () => {
     setSelectedPlayer(null);
   }, []);
 
-  const formatBasePrice = useCallback((price) => {
-    const value = Number(price);
-    if (value >= 10000000) return `${(value / 10000000).toFixed(2)} CR`;
-    if (value >= 100000) return `${(value / 100000).toFixed(2)} Lakh`;
-    return `${(value / 1000).toFixed(2)} K`;
-  }, []);
-  
   const unsoldPlayers = useMemo(() => 
     players.filter((player) => player.status !== "Sold"), 
     [players]
