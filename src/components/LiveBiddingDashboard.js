@@ -180,15 +180,11 @@ const LiveBiddingDashboard = () => {
                           <span className="bid-player-type" style={{ backgroundColor: getTypeColor(bid.playerType) }}>
                             {bid.playerType.charAt(0)}
                           </span>
-                    {bid.otherBidderName && (
+                    {/* Only show 1st/2nd bidder when it's a counter bid (no exit). Once someone exits, don't show. */}
+                    {bid.otherBidderName && !bid.lastExitUser && (
                       <span className="counter-bid-badge">
                         {bid.isWinning ? "2nd: " : "1st: "}
                         {bid.otherBidderName}
-                      </span>
-                    )}
-                    {bid.lastExitUser && (
-                      <span className="exit-bid-badge">
-                        Exit: {bid.lastExitUser}
                       </span>
                     )}
                         </div>

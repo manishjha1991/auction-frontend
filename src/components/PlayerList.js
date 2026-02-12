@@ -232,7 +232,10 @@ const PlayerList = () => {
         update.currentBidder &&
         String(update.currentBidder) !== String(currentUserId)
       ) {
-        showFlashNotice("counter", `Counter bid on ${update.playerName || "your player"}`);
+        const bidderName = update.bidderName || "someone";
+        const bidVal = (update.bidAmount ?? update.currentBid) != null ? formatBasePrice(update.bidAmount ?? update.currentBid) : "";
+        const bidPart = bidVal ? ` for ₹${bidVal}` : "";
+        showFlashNotice("counter", `Counter bid by ${bidderName}${bidPart} on ${update.playerName || "your player"}`);
       }
     });
     
@@ -260,9 +263,12 @@ const PlayerList = () => {
       }
       if (update.playerId && myActiveBidPlayerIds.includes(update.playerId)) {
         const exitLabel = update.exitBy === 'system' ? 'System' : update.exitBy === 'user' ? 'User' : null;
+        const exitedName = update.exitedUser || "someone";
+        const bidVal = (update.currentBid != null && update.currentBid !== "") ? formatBasePrice(update.currentBid) : "";
+        const bidPart = bidVal ? ` – ₹${bidVal}` : "";
         showFlashNotice(
           "exit",
-          `Bid exit${exitLabel ? ` (${exitLabel})` : ""} on ${update.playername || "your player"}`
+          `Bid exit: ${exitedName}${exitLabel ? ` (${exitLabel})` : ""} on ${update.playername || "your player"}${bidPart}`
         );
       }
     });
@@ -272,7 +278,7 @@ const PlayerList = () => {
       cleanup2();
       cleanup3();
     };
-  }, [on, currentUserId, myActiveBidPlayerIds, showFlashNotice]);
+  }, [on, currentUserId, myActiveBidPlayerIds, showFlashNotice, formatBasePrice]);
 
   const handlePlayerClick = useCallback((player) => {
     setSelectedPlayer(player);

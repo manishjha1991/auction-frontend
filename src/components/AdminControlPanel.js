@@ -46,6 +46,7 @@ const AdminControlPanel = ({ adminUser }) => {
     cronSingleBidFinalizerEnabled: true,
     cronBulkExitEnabled: true,
     cronLockEnabled: true,
+    lockCheckCategories: ['sapphireEmerald', 'gold', 'silver'],
   });
   const [cronLoading, setCronLoading] = useState(false);
   const [cronSaving, setCronSaving] = useState(false);
@@ -80,6 +81,7 @@ const AdminControlPanel = ({ adminUser }) => {
           cronSingleBidFinalizerEnabled: data.cronSingleBidFinalizerEnabled !== false,
           cronBulkExitEnabled: data.cronBulkExitEnabled !== false,
           cronLockEnabled: data.cronLockEnabled !== false,
+          lockCheckCategories: data.lockCheckCategories || ['sapphireEmerald', 'gold', 'silver'],
         });
         setWorldCupMode(data.worldCupMode === true);
       } catch (err) {
@@ -293,10 +295,39 @@ const AdminControlPanel = ({ adminUser }) => {
         cronSingleBidFinalizerEnabled: data.cronSingleBidFinalizerEnabled !== false,
         cronBulkExitEnabled: data.cronBulkExitEnabled !== false,
         cronLockEnabled: data.cronLockEnabled !== false,
+        lockCheckCategories: data.lockCheckCategories || cronSettings.lockCheckCategories,
       });
       handleToast('Cron setting updated');
     } catch (err) {
       handleToast(err.message || 'Unable to update cron setting');
+    } finally {
+      setCronSaving(false);
+    }
+  };
+
+  const updateLockCategories = async (category, checked) => {
+    if (!adminUserId || cronSaving) return;
+    const current = cronSettings.lockCheckCategories || [];
+    const next = checked
+      ? [...(current.includes(category) ? current : [...current, category])]
+      : current.filter((c) => c !== category);
+    if (next.length === 0) {
+      handleToast('At least one category must be checked');
+      return;
+    }
+    setCronSaving(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId, lockCheckCategories: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update lock categories');
+      setCronSettings((prev) => ({ ...prev, lockCheckCategories: data.lockCheckCategories || next }));
+      handleToast('Lock categories updated');
+    } catch (err) {
+      handleToast(err.message || 'Unable to update lock categories');
     } finally {
       setCronSaving(false);
     }
@@ -344,8 +375,14 @@ const AdminControlPanel = ({ adminUser }) => {
     {
       key: 'cronLockEnabled',
       title: 'Lock Under Limit',
-      description: 'Nightly at 10:00 PM IST lock teams that violate roster rules.',
+      description: 'Nightly at 10:00 PM IST lock teams that violate roster rules. Choose which categories to check (only active auction categories).',
     },
+  ];
+
+  const lockCategoryOptions = [
+    { key: 'sapphireEmerald', label: 'Sapphire + Emerald', hint: 'S≥1, E≥2, total≥4' },
+    { key: 'gold', label: 'Gold', hint: 'min 8 total' },
+    { key: 'silver', label: 'Silver', hint: 'min 6 total' },
   ];
 
   return (
@@ -426,6 +463,28 @@ const AdminControlPanel = ({ adminUser }) => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+        {!cronLoading && cronSettings.cronLockEnabled && (
+          <div className="lock-categories-wrap" style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(0,0,0,0.03)', borderRadius: 8 }}>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>Lock checks only these categories:</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+              {lockCategoryOptions.map((opt) => (
+                <label key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={(cronSettings.lockCheckCategories || []).includes(opt.key)}
+                    onChange={(e) => updateLockCategories(opt.key, e.target.checked)}
+                    disabled={cronSaving}
+                  />
+                  <span>{opt.label}</span>
+                  <span style={{ color: '#666', fontSize: 12 }}>({opt.hint})</span>
+                </label>
+              ))}
+            </div>
+            <p style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+              When only Sapphire+Emerald auction is running, uncheck Gold and Silver to avoid locking everyone.
+            </p>
           </div>
         )}
       </section>
