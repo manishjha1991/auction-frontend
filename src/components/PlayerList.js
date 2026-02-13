@@ -28,6 +28,8 @@ const PlayerList = () => {
   const IST_OFFSET_MS = 330 * 60 * 1000;
   const [auctionCountdownMs, setAuctionCountdownMs] = useState(0);
   const [auctionStartAt, setAuctionStartAt] = useState(null);
+  const [auctionAutoModeEnabled, setAuctionAutoModeEnabled] = useState(false);
+  const [auctionAutoModeCategories, setAuctionAutoModeCategories] = useState([]);
   const fetchPlayersInFlightRef = useRef(false);
   const fetchPlayersPendingRef = useRef(false);
   const fetchMyBidsInFlightRef = useRef(false);
@@ -112,6 +114,8 @@ const PlayerList = () => {
         } else {
           setAuctionStartAt(null);
         }
+        setAuctionAutoModeEnabled(data.auctionAutoModeEnabled === true);
+        setAuctionAutoModeCategories(data.auctionAutoModeCategories || ['Gold', 'Silver', 'Sapphire', 'Emerald']);
       } catch {}
     };
     fetchAuctionStart();
@@ -444,6 +448,11 @@ const PlayerList = () => {
             <div className="auction-countdown-header">
               Auction starts at <span>{auctionStartLabel}</span>
             </div>
+            {auctionAutoModeEnabled && auctionAutoModeCategories?.length > 0 && (
+              <div className="auction-countdown-categories">
+                Categories enabled at 6 PM: {auctionAutoModeCategories.join(', ')}
+              </div>
+            )}
             <div className="auction-countdown-timer">
               <div className="auction-countdown-segment">
                 <div className="countdown-value">{auctionCountdown.hours}</div>
@@ -467,6 +476,16 @@ const PlayerList = () => {
         </div>
       ) : (
       <>
+      <div className="player-section-auction-info">
+        <span className="player-section-auction-time">
+          Auction starts at <strong>{auctionStartLabel}</strong>
+        </span>
+        {auctionAutoModeEnabled && auctionAutoModeCategories?.length > 0 && (
+          <span className="player-section-categories">
+            Categories enabled at 6 PM: {auctionAutoModeCategories.join(', ')}
+          </span>
+        )}
+      </div>
       <div className="list-header">
         <div className="search-container">
           {!showSearch && (
