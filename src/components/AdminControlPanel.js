@@ -441,6 +441,15 @@ const AdminControlPanel = ({ adminUser }) => {
           <div>
             <h2>Player Availability</h2>
             <p>Toggle unsold players for each tier to quickly gate auction pools.</p>
+            {cronSettings.auctionAutoModeEnabled ? (
+              <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(46, 204, 113, 0.9)' }}>
+                ✓ Auto Mode on – toggles update every 60s to match cron schedule (6 PM, 9:40 PM, etc.)
+              </p>
+            ) : (
+              <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
+                Auto Mode off – turning it off does not change Player Availability.
+              </p>
+            )}
           </div>
         </div>
         <PlayerTypeControls adminUserId={adminUserId} showHeader={false} refreshTrigger={playerTypeRefreshTrigger} />
@@ -480,7 +489,7 @@ const AdminControlPanel = ({ adminUser }) => {
         <div className="section-header">
           <div>
             <h2>Auction Auto Mode</h2>
-            <p>When enabled: 6 PM categories + bulk; 9:40 bulk off; 10:25 finalizer on; 10:35 bulk on; 11:20 bulk off; 11:25 sell-after-exit on. No manual toggling. When disabled, you must manually control Cron Controls and Player Availability.</p>
+            <p>When enabled: 6 PM categories + bulk; 9:40 bulk off; 10:25 finalizer on; 10:35 bulk on; 11:20 bulk off; 11:25 sell-after-exit on. No manual toggling. When disabled, you must manually control Cron Controls and Player Availability. Turning Auto Mode OFF does not change Player Availability—it stays as is.</p>
           </div>
           {cronSaving && <span className="cron-saving-pill">Saving…</span>}
         </div>
@@ -547,7 +556,7 @@ const AdminControlPanel = ({ adminUser }) => {
               </p>
             ) : (
               <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
-                Auto Mode off – you must manually toggle Cron Controls and Player Availability.
+                Auto Mode off – you must manually toggle Cron Controls and Player Availability. Turning Auto Mode off does not change Player Availability.
               </p>
             )}
           </div>
