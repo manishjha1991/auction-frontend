@@ -47,6 +47,8 @@ const AdminControlPanel = ({ adminUser }) => {
     cronBulkExitEnabled: true,
     cronLockEnabled: true,
     lockCheckCategories: ['sapphireEmerald', 'gold', 'silver'],
+    auctionAutoModeEnabled: false,
+    auctionAutoModeCategories: ['Gold', 'Silver', 'Sapphire', 'Emerald'],
   });
   const [cronLoading, setCronLoading] = useState(false);
   const [cronSaving, setCronSaving] = useState(false);
@@ -82,6 +84,8 @@ const AdminControlPanel = ({ adminUser }) => {
           cronBulkExitEnabled: data.cronBulkExitEnabled !== false,
           cronLockEnabled: data.cronLockEnabled !== false,
           lockCheckCategories: data.lockCheckCategories || ['sapphireEmerald', 'gold', 'silver'],
+          auctionAutoModeEnabled: data.auctionAutoModeEnabled === true,
+          auctionAutoModeCategories: data.auctionAutoModeCategories || ['Gold', 'Silver', 'Sapphire', 'Emerald'],
         });
         setWorldCupMode(data.worldCupMode === true);
       } catch (err) {
@@ -296,6 +300,8 @@ const AdminControlPanel = ({ adminUser }) => {
         cronBulkExitEnabled: data.cronBulkExitEnabled !== false,
         cronLockEnabled: data.cronLockEnabled !== false,
         lockCheckCategories: data.lockCheckCategories || cronSettings.lockCheckCategories,
+        auctionAutoModeEnabled: data.auctionAutoModeEnabled === true,
+        auctionAutoModeCategories: data.auctionAutoModeCategories || cronSettings.auctionAutoModeCategories,
       });
       handleToast('Cron setting updated');
     } catch (err) {
@@ -328,6 +334,34 @@ const AdminControlPanel = ({ adminUser }) => {
       handleToast('Lock categories updated');
     } catch (err) {
       handleToast(err.message || 'Unable to update lock categories');
+    } finally {
+      setCronSaving(false);
+    }
+  };
+
+  const updateAuctionAutoModeCategories = async (category, checked) => {
+    if (!adminUserId || cronSaving) return;
+    const current = cronSettings.auctionAutoModeCategories || [];
+    const next = checked
+      ? [...(current.includes(category) ? current : [...current, category])]
+      : current.filter((c) => c !== category);
+    if (next.length === 0) {
+      handleToast('At least one category must be checked');
+      return;
+    }
+    setCronSaving(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId, auctionAutoModeCategories: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update auto mode categories');
+      setCronSettings((prev) => ({ ...prev, auctionAutoModeCategories: data.auctionAutoModeCategories || next }));
+      handleToast('Auto mode categories updated');
+    } catch (err) {
+      handleToast(err.message || 'Unable to update auto mode categories');
     } finally {
       setCronSaving(false);
     }
@@ -424,6 +458,58 @@ const AdminControlPanel = ({ adminUser }) => {
             <div className="summary-card">
               <span>Users Updated</span>
               <strong>{auctionResetResult.users?.modified || 0}</strong>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Auction Auto Mode</h2>
+            <p>When enabled: 6 PM categories + bulk; 9:40 bulk off; 10:25 finalizer on; 10:35 bulk on; 11:20 bulk off; 11:25 sell-after-exit on. No manual toggling.</p>
+          </div>
+          {cronSaving && <span className="cron-saving-pill">Saving…</span>}
+        </div>
+        {!cronLoading && (
+          <div className="cron-toggle-grid">
+            <div className="cron-toggle-card">
+              <div className="cron-toggle-info">
+                <div className="data-card-title">Auto Mode</div>
+                <p>6 PM: categories + bulk. 9:40: bulk off, exit-only on. 10:25: finalizer on. 10:35: bulk on. 11:20: bulk off. 11:25: sell-after-exit on.</p>
+              </div>
+              <div className="cron-toggle-switch">
+                <span className={`cron-status ${cronSettings.auctionAutoModeEnabled ? 'on' : 'off'}`}>
+                  {cronSettings.auctionAutoModeEnabled ? 'Enabled' : 'Disabled'}
+                </span>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={!!cronSettings.auctionAutoModeEnabled}
+                    onChange={(e) => updateCronToggle('auctionAutoModeEnabled', e.target.checked)}
+                    disabled={cronSaving}
+                  />
+                  <span className="slider" />
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+        {!cronLoading && cronSettings.auctionAutoModeEnabled && (
+          <div className="lock-categories-wrap" style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(0,0,0,0.03)', borderRadius: 8 }}>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>Categories to enable at 6 PM (multi-select):</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+              {['Gold', 'Silver', 'Sapphire', 'Emerald'].map((cat) => (
+                <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={(cronSettings.auctionAutoModeCategories || []).includes(cat)}
+                    onChange={(e) => updateAuctionAutoModeCategories(cat, e.target.checked)}
+                    disabled={cronSaving}
+                  />
+                  <span>{cat}</span>
+                </label>
+              ))}
             </div>
           </div>
         )}
