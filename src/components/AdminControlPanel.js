@@ -356,21 +356,21 @@ const AdminControlPanel = ({ adminUser }) => {
   const cronDefinitions = [
     {
       key: 'cronSingleBidEnabled',
-      title: 'Timed Auction Windows',
+      title: '11:30 PM–2:00 AM: Exit & Sell (5 min / 2 min cycle)',
       description:
-        '10:30–11:00 PM: exit second-highest every 5 min (no selling). 11:30 PM–12:30 AM: 5‑min sell-after-exit. 12:30 AM–2:00 AM: 2‑min sell-after-exit. Enabling this pauses bulk cleanup.',
+        '10:30–11:20 PM: exit second-highest only (no selling). 11:30 PM–12:30 AM: every 5 min – if 2 bidders → exit only; if 1 bidder + 5 min since exit → sell. 12:30–2:00 AM: same logic every 2 min. Never sells when 2 bidders active. Enabling this pauses bulk cleanup.',
     },
     {
       key: 'cronSingleBidFinalizerEnabled',
-      title: 'Single-Bid Finalizer (10:30 PM)',
+      title: '10:30 PM: Sell Single-Bid-Only Players',
       description:
-        'At 10:30 PM IST sell players who have only ever received a single bid (no counter bids since start).',
+        'At 10:30 PM IST sell players who have only ever received one bid (no counter bid since auction start). Skips if second bidder is still active.',
     },
     {
       key: 'cronBulkExitEnabled',
-      title: 'Second Bidder Cleanup',
+      title: '6:00–9:40 PM & 10:35–11:05 PM: Bulk Exit Second-Highest',
       description:
-        '6:00–10:00 PM IST: every 10 minutes remove the second-highest bidder (no selling). Enabling this pauses timed windows.',
+        'Window 1: 6:00–9:40 PM IST every 10 min. Window 2: 10:35–11:05 PM every 10 min. Then stops. No selling. Enabling this pauses the 11:30 PM–2:00 AM timed windows.',
     },
     {
       key: 'cronLockEnabled',
@@ -433,7 +433,7 @@ const AdminControlPanel = ({ adminUser }) => {
         <div className="section-header">
           <div>
             <h2>Cron Controls</h2>
-            <p>Toggle background jobs on or off. The single-bid monitor and bulk cleanup jobs cannot run at the same time.</p>
+            <p>Toggle background jobs on or off. The 11:30 PM–2:00 AM exit/sell cycle and the bulk exit (6–9:40 PM & 10:35–11:05 PM) cannot run at the same time.</p>
           </div>
           {cronSaving && <span className="cron-saving-pill">Saving…</span>}
         </div>

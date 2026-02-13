@@ -219,10 +219,18 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
 
     const windows = [
       {
-        key: "bulk",
-        title: "Bulk Exit",
+        key: "bulk1",
+        title: "Bulk Exit (6–9:40 PM)",
         start: buildIstDate(18, 0),
-        end: buildIstDate(22, 0),
+        end: buildIstDate(21, 40),
+        interval: 10,
+        enabled: cronSettings.cronBulkExitEnabled,
+      },
+      {
+        key: "bulk2",
+        title: "Bulk Exit (10:35–11:05 PM)",
+        start: buildIstDate(22, 35),
+        end: buildIstDate(23, 5),
         interval: 10,
         enabled: cronSettings.cronBulkExitEnabled,
       },

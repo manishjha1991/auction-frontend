@@ -654,11 +654,11 @@ const MyBids = () => {
 
     const windows = [
       {
-        key: "bulk",
-        title: "Second Bidder Cleanup",
-        range: "6:00–10:00 PM",
+        key: "bulk1",
+        title: "Bulk Exit (Window 1)",
+        range: "6:00–9:40 PM",
         start: buildIstDate(18, 0),
-        end: buildIstDate(22, 0),
+        end: buildIstDate(21, 40),
         interval: 10,
         action: "Removes second-highest (no selling).",
         enabled: cronSettings.cronBulkExitEnabled,
@@ -666,9 +666,29 @@ const MyBids = () => {
       {
         key: "pause1",
         title: "System Pause",
-        range: "10:00–10:30 PM",
-        start: buildIstDate(22, 0),
-        end: buildIstDate(22, 30),
+        range: "9:40–10:35 PM",
+        start: buildIstDate(21, 40),
+        end: buildIstDate(22, 35),
+        interval: null,
+        action: "No auto exits.",
+        enabled: true,
+      },
+      {
+        key: "bulk2",
+        title: "Bulk Exit (Window 2)",
+        range: "10:35–11:05 PM",
+        start: buildIstDate(22, 35),
+        end: buildIstDate(23, 5),
+        interval: 10,
+        action: "Removes second-highest (no selling).",
+        enabled: cronSettings.cronBulkExitEnabled,
+      },
+      {
+        key: "pause2a",
+        title: "System Pause",
+        range: "11:05–11:30 PM",
+        start: buildIstDate(23, 5),
+        end: buildIstDate(23, 30),
         interval: null,
         action: "No auto exits.",
         enabled: true,
@@ -676,22 +696,12 @@ const MyBids = () => {
       {
         key: "exitOnly",
         title: "Exit-Only Window",
-        range: "10:30–11:00 PM",
+        range: "10:30–11:20 PM",
         start: buildIstDate(22, 30),
-        end: buildIstDate(23, 0),
+        end: buildIstDate(23, 20),
         interval: 5,
         action: "Removes second-highest only.",
         enabled: cronSettings.cronSingleBidEnabled,
-      },
-      {
-        key: "pause2",
-        title: "System Pause",
-        range: "11:00–11:30 PM",
-        start: buildIstDate(23, 0),
-        end: buildIstDate(23, 30),
-        interval: null,
-        action: "No auto exits.",
-        enabled: true,
       },
       {
         key: "sellAfterExit5",
@@ -721,7 +731,8 @@ const MyBids = () => {
         ? singleBidFinalizer
         : buildIstDate(22, 30, 0, 1);
 
-    const currentWindow = windows.find((w) => nowIst >= w.start && nowIst < w.end);
+    const matchingWindows = windows.filter((w) => nowIst >= w.start && nowIst < w.end);
+    const currentWindow = matchingWindows.find((w) => w.enabled) || matchingWindows[0];
     const nextWindow = windows.find((w) => nowIst < w.start) || windows[0];
 
     const getNextTick = (window) => {
