@@ -52,6 +52,7 @@ const AdminControlPanel = ({ adminUser }) => {
   });
   const [cronLoading, setCronLoading] = useState(false);
   const [cronSaving, setCronSaving] = useState(false);
+  const [playerTypeRefreshTrigger, setPlayerTypeRefreshTrigger] = useState(0);
   const [worldCupMode, setWorldCupMode] = useState(false);
   const [worldCupSaving, setWorldCupSaving] = useState(false);
 
@@ -359,6 +360,7 @@ const AdminControlPanel = ({ adminUser }) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update auto mode categories');
       setCronSettings((prev) => ({ ...prev, auctionAutoModeCategories: data.auctionAutoModeCategories || next }));
+      setPlayerTypeRefreshTrigger((t) => t + 1); // refresh Player Availability to show updated state
       handleToast('Auto mode categories updated');
     } catch (err) {
       handleToast(err.message || 'Unable to update auto mode categories');
@@ -430,7 +432,7 @@ const AdminControlPanel = ({ adminUser }) => {
             <p>Toggle unsold players for each tier to quickly gate auction pools.</p>
           </div>
         </div>
-        <PlayerTypeControls adminUserId={adminUserId} showHeader={false} />
+        <PlayerTypeControls adminUserId={adminUserId} showHeader={false} refreshTrigger={playerTypeRefreshTrigger} />
       </section>
 
       <section className="admin-section">
@@ -496,20 +498,28 @@ const AdminControlPanel = ({ adminUser }) => {
           </div>
         )}
         {!cronLoading && cronSettings.auctionAutoModeEnabled && (
-          <div className="lock-categories-wrap" style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(0,0,0,0.03)', borderRadius: 8 }}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Categories to enable at 6 PM (multi-select):</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-              {['Gold', 'Silver', 'Sapphire', 'Emerald'].map((cat) => (
-                <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={(cronSettings.auctionAutoModeCategories || []).includes(cat)}
-                    onChange={(e) => updateAuctionAutoModeCategories(cat, e.target.checked)}
-                    disabled={cronSaving}
-                  />
-                  <span>{cat}</span>
-                </label>
-              ))}
+          <div className="auto-mode-categories">
+            <div className="auto-mode-categories-title">Categories to enable at 6 PM</div>
+            <p className="auto-mode-categories-hint">Tap to toggle. Checked = enabled now and at 6 PM.</p>
+            <div className="auto-mode-chips">
+              {['Gold', 'Silver', 'Sapphire', 'Emerald'].map((cat) => {
+                const checked = (cronSettings.auctionAutoModeCategories || []).includes(cat);
+                return (
+                  <label
+                    key={cat}
+                    className={`auto-mode-chip ${cat.toLowerCase()} ${checked ? 'checked' : ''} ${cronSaving ? 'disabled' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => updateAuctionAutoModeCategories(cat, e.target.checked)}
+                      disabled={cronSaving}
+                    />
+                    <span className="auto-mode-chip-check" />
+                    <span>{cat}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
         )}

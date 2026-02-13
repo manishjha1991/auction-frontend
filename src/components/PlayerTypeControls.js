@@ -9,7 +9,7 @@ const TYPE_META = {
   Silver: { accent: '#c0c0c0', gradient: 'linear-gradient(135deg, rgba(120, 120, 120, 0.3), rgba(80, 80, 80, 0.4))' },
 };
 
-const PlayerTypeControls = ({ adminUserId, showHeader = true }) => {
+const PlayerTypeControls = ({ adminUserId, showHeader = true, refreshTrigger }) => {
   const [typeStatus, setTypeStatus] = useState([]);
   const [loading, setLoading] = useState(false);
   const [actionType, setActionType] = useState('');
@@ -52,7 +52,7 @@ const PlayerTypeControls = ({ adminUserId, showHeader = true }) => {
   useEffect(() => {
     fetchStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveAdminId]);
+  }, [effectiveAdminId, refreshTrigger]);
 
   const handleToggle = async (type, enable) => {
     if (!effectiveAdminId) return;
