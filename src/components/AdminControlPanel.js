@@ -72,31 +72,42 @@ const AdminControlPanel = ({ adminUser }) => {
     return () => window.removeEventListener('resize', updateCompact);
   }, []);
 
-  useEffect(() => {
-    const fetchCronSettings = async () => {
-      setCronLoading(true);
-      try {
-        const res = await fetch(`${API_ENDPOINTS}/api/settings`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to load cron settings');
-        setCronSettings({
-          cronSingleBidEnabled: data.cronSingleBidEnabled !== false,
-          cronSingleBidFinalizerEnabled: data.cronSingleBidFinalizerEnabled !== false,
-          cronBulkExitEnabled: data.cronBulkExitEnabled !== false,
-          cronLockEnabled: data.cronLockEnabled !== false,
-          lockCheckCategories: data.lockCheckCategories || ['sapphireEmerald', 'gold', 'silver'],
-          auctionAutoModeEnabled: data.auctionAutoModeEnabled === true,
-          auctionAutoModeCategories: data.auctionAutoModeCategories || ['Gold', 'Silver', 'Sapphire', 'Emerald'],
-        });
-        setWorldCupMode(data.worldCupMode === true);
-      } catch (err) {
-        handleToast(err.message || 'Unable to load cron settings');
-      } finally {
-        setCronLoading(false);
-      }
-    };
-    fetchCronSettings();
+  const fetchCronSettings = React.useCallback(async (silent = false) => {
+    if (!silent) setCronLoading(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/settings`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load cron settings');
+      setCronSettings({
+        cronSingleBidEnabled: data.cronSingleBidEnabled !== false,
+        cronSingleBidFinalizerEnabled: data.cronSingleBidFinalizerEnabled !== false,
+        cronBulkExitEnabled: data.cronBulkExitEnabled !== false,
+        cronLockEnabled: data.cronLockEnabled !== false,
+        lockCheckCategories: data.lockCheckCategories || ['sapphireEmerald', 'gold', 'silver'],
+        auctionAutoModeEnabled: data.auctionAutoModeEnabled === true,
+        auctionAutoModeCategories: data.auctionAutoModeCategories || ['Gold', 'Silver', 'Sapphire', 'Emerald'],
+      });
+      setWorldCupMode(data.worldCupMode === true);
+    } catch (err) {
+      if (!silent) handleToast(err.message || 'Unable to load cron settings');
+    } finally {
+      if (!silent) setCronLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchCronSettings();
+  }, [fetchCronSettings]);
+
+  // When Auto Mode is on, poll every 60s so Cron Controls + Player Availability reflect cron-driven changes (6 PM, etc.)
+  useEffect(() => {
+    if (!cronSettings.auctionAutoModeEnabled) return;
+    const interval = setInterval(() => {
+      fetchCronSettings(true);
+      setPlayerTypeRefreshTrigger((t) => t + 1); // refresh Player Availability (6 PM enables categories)
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [cronSettings.auctionAutoModeEnabled, fetchCronSettings]);
 
   const requestPursePreview = async () => {
     if (!adminUserId) return;
@@ -469,7 +480,7 @@ const AdminControlPanel = ({ adminUser }) => {
         <div className="section-header">
           <div>
             <h2>Auction Auto Mode</h2>
-            <p>When enabled: 6 PM categories + bulk; 9:40 bulk off; 10:25 finalizer on; 10:35 bulk on; 11:20 bulk off; 11:25 sell-after-exit on. No manual toggling.</p>
+            <p>When enabled: 6 PM categories + bulk; 9:40 bulk off; 10:25 finalizer on; 10:35 bulk on; 11:20 bulk off; 11:25 sell-after-exit on. No manual toggling. When disabled, you must manually control Cron Controls and Player Availability.</p>
           </div>
           {cronSaving && <span className="cron-saving-pill">Saving…</span>}
         </div>
@@ -530,6 +541,15 @@ const AdminControlPanel = ({ adminUser }) => {
           <div>
             <h2>Cron Controls</h2>
             <p>Toggle background jobs on or off. The 11:30 PM–2:00 AM exit/sell cycle and the bulk exit (6–9:40 PM & 10:35–11:05 PM) cannot run at the same time.</p>
+            {cronSettings.auctionAutoModeEnabled ? (
+              <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(46, 204, 113, 0.9)' }}>
+                ✓ Auto Mode on – toggles update every 60s to match cron schedule (6 PM, 9:40 PM, etc.)
+              </p>
+            ) : (
+              <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
+                Auto Mode off – you must manually toggle Cron Controls and Player Availability.
+              </p>
+            )}
           </div>
           {cronSaving && <span className="cron-saving-pill">Saving…</span>}
         </div>
