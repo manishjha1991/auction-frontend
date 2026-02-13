@@ -1054,7 +1054,6 @@ const UserPursePage = () => {
   }, []);
 
   const handlePlayerClick = useCallback((player) => {
-    console.log('Player clicked:', player);
     setSelectedPlayer(player);
   }, []);
 
@@ -1087,12 +1086,14 @@ const UserPursePage = () => {
       
       // 🚀 PERFORMANCE: Extract bidding statuses and competitor info efficiently from API response
       if (currentUser) {
-        // Try to find user by ID, _id, or userName (optimized lookup)
-        const currentUserData = data.find(user => 
-          user.id === currentUser.id || 
-          user._id === currentUser.id || 
-          user.userName === currentUser.name
-        );
+        // Try to find user by ID, _id, or userName (robust lookup with string normalization)
+        const uid = String(currentUser.id || currentUser._id || '');
+        const uname = (currentUser.name || currentUser.userName || '').trim();
+        const currentUserData = data.find(user => {
+          const uId = String(user.id || user._id || '');
+          const uName = (user.userName || user.name || '').trim();
+          return (uid && uId && uid === uId) || (uname && uName && uname.toLowerCase() === uName.toLowerCase());
+        });
         
         if (currentUserData) {
           // OPTIMIZATION: Use reduce for better performance
@@ -1119,9 +1120,15 @@ const UserPursePage = () => {
           const positionMap = {};
           
           currentUserData.players.forEach(player => {
-            if (player.isBidOn && player.competitorName !== undefined) {
-              competitorMap[player.id] = player.competitorName;
-              positionMap[player.id] = player.bidPosition || player.biddingStatus?.position || null;
+            if (player.isBidOn) {
+              const pid = String(player.id || player._id || '');
+              if (pid) {
+                const comp = player.competitorName;
+                if (comp != null && String(comp).trim() !== '') {
+                  competitorMap[pid] = String(comp).trim();
+                  positionMap[pid] = player.bidPosition ?? player.biddingStatus?.position ?? null;
+                }
+              }
             }
           });
           
@@ -1151,7 +1158,53 @@ const UserPursePage = () => {
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData]);
-  
+
+  // Re-extract bidding statuses and competitor info when usersData or currentUser changes
+  // (handles race when fetch completes before currentUser is set from localStorage)
+  useEffect(() => {
+    if (!currentUser || !usersData?.length) return;
+    const uid = String(currentUser.id || currentUser._id || '');
+    const uname = (currentUser.name || currentUser.userName || '').trim();
+    const currentUserData = usersData.find(user => {
+      const uId = String(user.id || user._id || '');
+      const uName = (user.userName || user.name || '').trim();
+      return (uid && uId && uid === uId) || (uname && uName && uname.toLowerCase() === uName.toLowerCase());
+    });
+    if (!currentUserData) return;
+    const userStatuses = currentUserData.players.reduce((acc, player) => {
+      if (player.isBidOn && player.biddingStatus) {
+        acc[player.name] = {
+          isHighest: player.biddingStatus.isHighest,
+          isSecondHighest: player.biddingStatus.isSecondHighest,
+          bidAmount: player.biddingPrice,
+          playerName: player.name,
+          position: player.biddingStatus.position,
+          totalBidders: player.biddingStatus.totalBidders,
+          bidderName: currentUserData.userName,
+          isCurrentUser: true
+        };
+      }
+      return acc;
+    }, {});
+    setBiddingStatuses(userStatuses);
+    const competitorMap = {};
+    const positionMap = {};
+    currentUserData.players.forEach(player => {
+      if (player.isBidOn) {
+        const pid = String(player.id || player._id || '');
+        if (pid) {
+          const comp = player.competitorName;
+          if (comp != null && String(comp).trim() !== '') {
+            competitorMap[pid] = String(comp).trim();
+            positionMap[pid] = player.bidPosition ?? player.biddingStatus?.position ?? null;
+          }
+        }
+      }
+    });
+    setLastBidders(prev => ({ ...prev, ...competitorMap }));
+    setUserBidPositions(prev => ({ ...prev, ...positionMap }));
+  }, [currentUser, usersData]);
+
   // 🚀 REALTIME: Listen for real-time bid updates using shared socket
   const { on } = useSocket();
   
@@ -1216,15 +1269,17 @@ const UserPursePage = () => {
                       competitorName = sortedBids[0].bidder?.name || sortedBids[0].bidderName || null;
                     }
                     
-                    setLastBidders(prev => ({
-                      ...prev,
-                      [update.playerId]: competitorName
-                    }));
-                    
-                    setUserBidPositions(prev => ({
-                      ...prev,
-                      [update.playerId]: userBidIndex >= 0 ? userBidIndex : null
-                    }));
+                    const pid = String(update.playerId || '');
+                    if (pid) {
+                      setLastBidders(prev => ({
+                        ...prev,
+                        [pid]: competitorName && competitorName.trim() ? competitorName : null
+                      }));
+                      setUserBidPositions(prev => ({
+                        ...prev,
+                        [pid]: userBidIndex >= 0 ? userBidIndex : null
+                      }));
+                    }
                   }
                 })
                 .catch(err => console.error('Failed to fetch competitor info:', err))
@@ -1273,36 +1328,12 @@ const UserPursePage = () => {
 
   // Get bidding status for a specific player
   const getBiddingStatus = (playerName) => {
-    console.log('=== getBiddingStatus called ===');
-    console.log('Player name:', playerName);
-    console.log('Available bidding statuses:', biddingStatuses);
-    console.log('Bidding statuses keys:', Object.keys(biddingStatuses));
-    
-    if (!biddingStatuses[playerName]) {
-      console.log('❌ No status found for player:', playerName);
-      return null;
-    }
-    
+    if (!biddingStatuses[playerName]) return null;
     const status = biddingStatuses[playerName];
-    console.log('✅ Status found for player:', playerName, ':', status);
-    console.log('Status.isHighest:', status.isHighest);
-    console.log('Status.isSecondHighest:', status.isSecondHighest);
-    console.log('Status.position:', status.position);
-    
-    // Since we're only processing current user's players, determine status based on position
-    if (status.isHighest) {
-      console.log('🎯 Returning: winning (highest bid)');
-      return 'winning';
-    } else if (status.isSecondHighest) {
-      console.log('🎯 Returning: second (second highest bid)');
-      return 'second';
-    } else if (status.position > 2) {
-      console.log('🎯 Returning: losing (out of top 2)');
-      return 'losing';
-    } else {
-      console.log('🎯 Returning: neutral (no clear status)');
-      return 'neutral';
-    }
+    if (status.isHighest) return 'winning';
+    if (status.isSecondHighest) return 'second';
+    if (status.position > 2) return 'losing';
+    return 'neutral';
   };
 
   // Get status display text and icon
@@ -1794,51 +1825,66 @@ const UserPursePage = () => {
                                   <PriceUnit>Cr</PriceUnit>
                                 </PlayerPriceCircle>
                                 
-                      {isCurrentUser && displayInfo.text && (
+                      {isCurrentUser && (displayInfo.text || displayInfo.icon) && (
                                   <BiddingStatus 
                                     isWinning={status === 'winning'}
                                     isSecond={status === 'second'}
                                     isLosing={status === 'losing'}
                                   >
-                            <span className="status-icon">{displayInfo.icon}</span>
-                            <span className="status-text">{displayInfo.text}</span>
+                            {displayInfo.icon && <span className="status-icon">{displayInfo.icon}</span>}
+                            {displayInfo.text && <span className="status-text">{displayInfo.text}</span>}
                                   </BiddingStatus>
                       )}
                       
                       {isCurrentUser && (
                                   <LastBidderSection>
-                          {lastBidders[player.id] ? (
+                          {(() => {
+                            const pid = String(player.id || player._id || '');
+                            const competitor = pid ? lastBidders[pid] : null;
+                            const pos = pid ? userBidPositions[pid] : null;
+                            const totalBidders = biddingStatuses[player.name]?.totalBidders ?? 0;
+                            if (competitor) {
+                              return (
                                       <LastBidderInfo>
                                         <CompetitorArrow 
-                                          isUp={userBidPositions[player.id] !== 0}
-                                          isDown={userBidPositions[player.id] === 0}
+                                          isUp={pos !== 0}
+                                          isDown={pos === 0}
                                         >
-                                {userBidPositions[player.id] === 0 ? '↓' : '↑'}
+                                {pos === 0 ? '↓' : '↑'}
                                         </CompetitorArrow>
                                         <LastBidderName>
-                                {lastBidders[player.id]}
+                                {competitor}
                                         </LastBidderName>
                                       </LastBidderInfo>
-                          ) : (
+                              );
+                            }
+                            return (
                                       <LastBidderInfo style={{ 
                                         opacity: 0.6,
                                         fontStyle: 'italic',
                                         fontSize: '0.45rem',
                                         color: 'rgba(255, 255, 255, 0.7)'
                                       }}>
-                                        <span style={{ 
-                                          display: 'inline-block',
-                                          width: '8px',
-                                          height: '8px',
-                                          border: '2px solid rgba(255, 255, 255, 0.5)',
-                                          borderTop: '2px solid transparent',
-                                          borderRadius: '50%',
-                                          animation: 'spin 1s linear infinite',
-                                          marginRight: '4px'
-                                        }}></span>
-                                        Waiting for bid...
+                                        {totalBidders <= 1 ? (
+                                          <>Waiting for counter bid...</>
+                                        ) : (
+                                          <>
+                                            <span style={{ 
+                                              display: 'inline-block',
+                                              width: '8px',
+                                              height: '8px',
+                                              border: '2px solid rgba(255, 255, 255, 0.5)',
+                                              borderTop: '2px solid transparent',
+                                              borderRadius: '50%',
+                                              animation: 'spin 1s linear infinite',
+                                              marginRight: '4px'
+                                            }}></span>
+                                            Loading...
+                                          </>
+                                        )}
                                       </LastBidderInfo>
-                          )}
+                            );
+                          })()}
                                   </LastBidderSection>
                       )}
                               </PlayerCard>
