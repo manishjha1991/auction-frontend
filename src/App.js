@@ -397,6 +397,12 @@ function App() {
                   <h3 className="menu-section-title">Tools</h3>
                   <ul className="menu">
                     <li>
+                      <Link to="/ocr" onClick={closeSidebar} className={`menu-item ${isActive('/ocr') ? 'active' : ''}`}>
+                        <FaImage className="menu-icon" />
+                        <span>OCR Extractor</span>
+                      </Link>
+                    </li>
+                    <li>
                       <Link to="/dls-calculator" onClick={closeSidebar} className={`menu-item ${isActive('/dls-calculator') ? 'active' : ''}`}>
                         <FaCalculator className="menu-icon" />
                         <span>Target Calculator</span>
@@ -406,12 +412,6 @@ function App() {
                       <Link to="/rules-book" onClick={closeSidebar} className={`menu-item ${isActive('/rules-book') ? 'active' : ''}`}>
                         <FaBook className="menu-icon" />
                         <span>Rules Book</span>
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/ocr" onClick={closeSidebar} className={`menu-item ${isActive('/ocr') ? 'active' : ''}`}>
-                        <FaImage className="menu-icon" />
-                        <span>OCR Extractor</span>
                       </Link>
                     </li>
                   </ul>
