@@ -36,6 +36,7 @@ import AdminFairnessManagement from './components/AdminFairnessManagement';
 import TournamentList from './components/TournamentList';
 import TrophyHall from './components/TrophyHall';
 import AdminMatchResults from './components/AdminMatchResults';
+import AdminTradeActivity from './components/AdminTradeActivity';
 import OcrExtractor from './components/OcrExtractor';
 import LiveBiddingDashboard from './components/LiveBiddingDashboard';
 import MyBids from './components/MyBids';
@@ -431,6 +432,12 @@ function App() {
                         </Link>
                       </li>
                       <li>
+                        <Link to="/admin/trade-activity" onClick={closeSidebar} className={`menu-item ${isActive('/admin/trade-activity') ? 'active' : ''}`}>
+                          <FaChartBar className="menu-icon" />
+                          <span>Team Trade Activity</span>
+                        </Link>
+                      </li>
+                      <li>
                         <Link to="/admin/user-management" onClick={closeSidebar} className={`menu-item ${isActive('/admin/user-management') ? 'active' : ''}`}>
                           <FaUsersCog className="menu-icon" />
                           <span>User Management</span>
@@ -551,6 +558,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <AdminTrades />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/trade-activity"
+              element={
+                <PrivateRoute>
+                  <AdminTradeActivity />
                 </PrivateRoute>
               }
             />
