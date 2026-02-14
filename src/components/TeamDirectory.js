@@ -202,9 +202,293 @@ const StreamLink = styled.a`
   font-weight: 600;
 `;
 
+const H2HSection = styled.section`
+  margin-top: 2.5rem;
+  animation: ${fadeIn} 0.8s ease forwards;
+  max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
+`;
+
+const H2HTitle = styled.h2`
+  margin: 0 0 1.25rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+`;
+
+const TeamSelectRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 480px) {
+    gap: 0.4rem;
+  }
+`;
+
+const TeamSelectBox = styled.div`
+  flex: 1;
+  min-width: 0;
+  max-width: 160px;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: ${(p) => (p.$accent === 'gold' ? 'linear-gradient(135deg, rgba(234,179,8,0.25), rgba(202,138,4,0.2))' : p.$accent === 'red' ? 'linear-gradient(135deg, rgba(239,68,68,0.25), rgba(185,28,28,0.2))' : 'rgba(255,255,255,0.08)')};
+  color: #f8fafc;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  position: relative;
+
+  @media (max-width: 480px) {
+    max-width: 140px;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.85rem;
+  }
+`;
+
+const TeamSelect = styled.select`
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+`;
+
+const VsBall = styled.div`
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #dc2626, #991b1b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(220,38,38,0.4);
+
+  @media (max-width: 480px) {
+    width: 38px;
+    height: 38px;
+    font-size: 0.7rem;
+  }
+`;
+
+const MatchesCard = styled.div`
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 0.6rem 1rem;
+  text-align: center;
+  margin-bottom: 1.25rem;
+`;
+
+const MatchesLabel = styled.div`
+  font-size: 0.75rem;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const MatchesValue = styled.div`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f87171;
+`;
+
+const StatBarSection = styled.div`
+  margin-bottom: 1rem;
+`;
+
+const StatBarLabel = styled.div`
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  text-align: center;
+`;
+
+const StatBarRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const StatBarNum = styled.div`
+  min-width: 36px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+`;
+
+const StatBarTrack = styled.div`
+  flex: 1;
+  height: 10px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+`;
+
+const StatBarFill = styled.div`
+  height: 100%;
+  background: ${(p) => (p.$green ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #ef4444, #dc2626)')};
+  border-radius: 999px;
+  transition: width 0.3s ease;
+  min-width: ${(p) => (p.$pct > 0 && p.$pct < 100 ? '4px' : '0')};
+`;
+
+const ScorecardSection = styled.div`
+  margin-top: 1.5rem;
+`;
+
+const ScorecardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+`;
+
+const ScorecardTitle = styled.h3`
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.9;
+`;
+
+const ScrollArrows = styled.div`
+  display: flex;
+  gap: 0.35rem;
+`;
+
+const ArrowBtn = styled.button`
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.08);
+  color: #f8fafc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: background 0.2s;
+
+  &:hover:not(:disabled) {
+    background: rgba(59,130,246,0.3);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;
+
+const ScorecardScroll = styled.div`
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  padding-bottom: 0.5rem;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+  }
+`;
+
+const ScorecardTrack = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+  min-width: min-content;
+`;
+
+const MatchCard = styled.div`
+  flex: 0 0 min(280px, 85vw);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 1rem;
+  min-height: 140px;
+
+  @media (max-width: 480px) {
+    flex: 0 0 min(260px, 88vw);
+    padding: 0.85rem;
+    min-height: 130px;
+  }
+`;
+
+const MatchCardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+`;
+
+const MatchCardTeam = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+`;
+
+const MatchCardTeamName = styled.span`
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+`;
+
+const MatchCardScore = styled.span`
+  font-weight: 600;
+  color: #60a5fa;
+  margin-left: auto;
+`;
+
+const MatchCardResult = styled.div`
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  font-size: 0.85rem;
+  color: #4ade80;
+  font-weight: 600;
+`;
+
+const EmptyState = styled.p`
+  text-align: center;
+  opacity: 0.7;
+  margin: 0;
+  padding: 1rem;
+`;
+
 const TeamDirectory = () => {
   const [teams, setTeams] = useState([]);
+  const [headToHead, setHeadToHead] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedTeam1, setSelectedTeam1] = useState('');
+  const [selectedTeam2, setSelectedTeam2] = useState('');
+  const [matches, setMatches] = useState([]);
+  const [matchesLoading, setMatchesLoading] = useState(false);
+  const scorecardRef = React.useRef(null);
   const [userTimezone, setUserTimezone] = useState('Asia/Kolkata');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [loading, setLoading] = useState(true);
@@ -212,10 +496,42 @@ const TeamDirectory = () => {
 
   useEffect(() => {
     fetchTeams();
+    fetchHeadToHead();
     fetchUserTimezone();
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!selectedTeam1 || !selectedTeam2 || selectedTeam1 === selectedTeam2) {
+      setMatches([]);
+      return;
+    }
+    const fetchMatches = async () => {
+      setMatchesLoading(true);
+      try {
+        const res = await axios.get(
+          `${API_ENDPOINTS}/api/head-to-head/matches/${selectedTeam1}/${selectedTeam2}`
+        );
+        setMatches(res.data?.matches || []);
+      } catch (err) {
+        console.error('Matches fetch:', err);
+        setMatches([]);
+      } finally {
+        setMatchesLoading(false);
+      }
+    };
+    fetchMatches();
+  }, [selectedTeam1, selectedTeam2]);
+
+  const fetchHeadToHead = async () => {
+    try {
+      const res = await axios.get(`${API_ENDPOINTS}/api/head-to-head`);
+      setHeadToHead(res.data?.records || []);
+    } catch (err) {
+      console.error('Head-to-head fetch:', err);
+    }
+  };
 
   const fetchTeams = async () => {
     try {
@@ -246,6 +562,31 @@ const TeamDirectory = () => {
     () => [...teams].sort((a, b) => (a.teamName || '').localeCompare(b.teamName || '')),
     [teams]
   );
+
+  const h2hRecord = useMemo(() => {
+    if (!selectedTeam1 || !selectedTeam2 || selectedTeam1 === selectedTeam2) return null;
+    const s1 = String(selectedTeam1);
+    const s2 = String(selectedTeam2);
+    return headToHead.find(
+      (r) =>
+        (String(r.team1UserId) === s1 && String(r.team2UserId) === s2) ||
+        (String(r.team1UserId) === s2 && String(r.team2UserId) === s1)
+    );
+  }, [headToHead, selectedTeam1, selectedTeam2]);
+
+  const scrollScorecard = (dir) => {
+    const el = scorecardRef.current;
+    if (!el) return;
+    const step = Math.min(280, el.offsetWidth * 0.9);
+    el.scrollBy({ left: dir * step, behavior: 'smooth' });
+  };
+
+  const getOrdinal = (n) => {
+    const v = n % 100;
+    if (v >= 11 && v <= 13) return `${n}th`;
+    const s = ['th', 'st', 'nd', 'rd'];
+    return `${n}${s[v % 10] || 'th'}`;
+  };
 
   const timeIn = (tz) =>
     new Date().toLocaleString('en-US', {
@@ -352,6 +693,134 @@ const TeamDirectory = () => {
           </ModalCard>
         </ModalOverlay>
       )}
+
+      <H2HSection>
+        <H2HTitle>Head to Head</H2HTitle>
+
+        <TeamSelectRow>
+          <TeamSelectBox $accent="gold">
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {ringTeams.find((t) => String(t._id) === String(selectedTeam1))?.teamName || 'Select team 1'}
+            </span>
+            <span style={{ opacity: 0.7, marginLeft: 4 }}>▾</span>
+            <TeamSelect value={selectedTeam1} onChange={(e) => setSelectedTeam1(e.target.value)}>
+              <option value="">Select team 1</option>
+              {ringTeams.map((t) => (
+                <option key={t._id} value={t._id}>{t.teamName}</option>
+              ))}
+            </TeamSelect>
+          </TeamSelectBox>
+          <VsBall>VS</VsBall>
+          <TeamSelectBox $accent="red">
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {ringTeams.find((t) => String(t._id) === String(selectedTeam2))?.teamName || 'Select team 2'}
+            </span>
+            <span style={{ opacity: 0.7, marginLeft: 4 }}>▾</span>
+            <TeamSelect value={selectedTeam2} onChange={(e) => setSelectedTeam2(e.target.value)}>
+              <option value="">Select team 2</option>
+              {ringTeams.map((t) => (
+                <option key={t._id} value={t._id}>{t.teamName}</option>
+              ))}
+            </TeamSelect>
+          </TeamSelectBox>
+        </TeamSelectRow>
+
+        {selectedTeam1 && selectedTeam2 && selectedTeam1 !== selectedTeam2 && (
+          <>
+            <MatchesCard>
+              <MatchesLabel>Matches</MatchesLabel>
+              <MatchesValue>{matches.length}</MatchesValue>
+            </MatchesCard>
+
+            {!matchesLoading && matches.length > 0 && (() => {
+              const t1Name = ringTeams.find((t) => String(t._id) === String(selectedTeam1))?.teamName || '';
+              const t2Name = ringTeams.find((t) => String(t._id) === String(selectedTeam2))?.teamName || '';
+              const w1 = matches.filter((m) => m.winner === t1Name).length;
+              const w2 = matches.filter((m) => m.winner === t2Name).length;
+              const total = w1 + w2 || 1;
+              const w1Pct = total ? (w1 / total) * 100 : 50;
+              const w2Pct = total ? (w2 / total) * 100 : 50;
+              const l1 = w2;
+              const l2 = w1;
+              const l1Pct = total ? (l1 / total) * 100 : 50;
+              const l2Pct = total ? (l2 / total) * 100 : 50;
+              return (
+                <>
+                  <StatBarSection>
+                    <StatBarLabel>Won</StatBarLabel>
+                    <StatBarRow>
+                      <StatBarNum>{w1}</StatBarNum>
+                      <StatBarTrack>
+                        <StatBarFill $green $pct={w1Pct} style={{ width: `${w1Pct}%` }} />
+                      </StatBarTrack>
+                      <StatBarNum>{w2}</StatBarNum>
+                    </StatBarRow>
+                  </StatBarSection>
+                  <StatBarSection>
+                    <StatBarLabel>Lost</StatBarLabel>
+                    <StatBarRow>
+                      <StatBarNum>{l1}</StatBarNum>
+                      <StatBarTrack>
+                        <StatBarFill $pct={l1Pct} style={{ width: `${l1Pct}%` }} />
+                      </StatBarTrack>
+                      <StatBarNum>{l2}</StatBarNum>
+                    </StatBarRow>
+                  </StatBarSection>
+                </>
+              );
+            })()}
+
+            <ScorecardSection>
+              <ScorecardHeader>
+                <ScorecardTitle>Scorecard</ScorecardTitle>
+                {matches.length > 1 && (
+                  <ScrollArrows>
+                    <ArrowBtn type="button" onClick={() => scrollScorecard(-1)} aria-label="Scroll left">
+                      ‹
+                    </ArrowBtn>
+                    <ArrowBtn type="button" onClick={() => scrollScorecard(1)} aria-label="Scroll right">
+                      ›
+                    </ArrowBtn>
+                  </ScrollArrows>
+                )}
+              </ScorecardHeader>
+              {matchesLoading ? (
+                <EmptyState>Loading matches…</EmptyState>
+              ) : matches.length === 0 ? (
+                <EmptyState>No match details yet. Results from fixtures and match results will appear here.</EmptyState>
+              ) : (
+                <ScorecardScroll ref={scorecardRef}>
+                  <ScorecardTrack>
+                    {matches.map((m, i) => (
+                      <MatchCard key={i}>
+                        <MatchCardHeader>
+                          <span>{getOrdinal(i + 1)} Match</span>
+                          <span>{m.date ? new Date(m.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
+                        </MatchCardHeader>
+                        <MatchCardTeam>
+                          <MatchCardTeamName>{m.team1}</MatchCardTeamName>
+                          <MatchCardScore>{m.team1Score}</MatchCardScore>
+                        </MatchCardTeam>
+                        <MatchCardTeam>
+                          <MatchCardTeamName>{m.team2}</MatchCardTeamName>
+                          <MatchCardScore>{m.team2Score}</MatchCardScore>
+                        </MatchCardTeam>
+                        <MatchCardResult>
+                          {m.winner} won{m.margin ? ` by ${m.margin}` : ''}
+                        </MatchCardResult>
+                      </MatchCard>
+                    ))}
+                  </ScorecardTrack>
+                </ScorecardScroll>
+              )}
+            </ScorecardSection>
+          </>
+        )}
+
+        {(!selectedTeam1 || !selectedTeam2 || selectedTeam1 === selectedTeam2) && (
+          <EmptyState>Select two different teams to see head-to-head record and scorecard.</EmptyState>
+        )}
+      </H2HSection>
     </Container>
   );
 };
