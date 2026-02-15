@@ -106,6 +106,14 @@ const SexyAlert = ({ alert, onClose }) => {
   );
 };
 
+const formatSuggestionPrice = (v) => {
+  const n = Number(v) || 0;
+  if (n <= 0) return '';
+  if (n >= 1e7) return `₹${(n / 1e7).toFixed(1)} Cr`;
+  if (n >= 1e5) return `₹${(n / 1e5).toFixed(1)} L`;
+  return `₹${n} L`;
+};
+
 function TradeCenter({ user: userProp }) {
   const [user, setUser] = useState(null);
   const effectiveUser = userProp || user;
@@ -818,6 +826,9 @@ function TradeCenter({ user: userProp }) {
                     <strong>
                       {rec.acquire?.name} · {rec.acquire?.role}{' '}
                       <span className="suggestion-team">({rec.acquire?.fromTeam})</span>
+                      {rec.acquire?.bidValue != null && rec.acquire?.bidValue > 0 && (
+                        <span className="suggestion-price"> · {formatSuggestionPrice(rec.acquire.bidValue)}</span>
+                      )}
                     </strong>
                   </div>
                   {rec.offer && (
@@ -825,6 +836,9 @@ function TradeCenter({ user: userProp }) {
                       <small>Offer</small>
                       <strong>
                         {rec.offer.name} · {rec.offer.role}
+                        {rec.offer?.bidValue != null && rec.offer?.bidValue > 0 && (
+                          <span className="suggestion-price"> · {formatSuggestionPrice(rec.offer.bidValue)}</span>
+                        )}
                       </strong>
                     </div>
                   )}
