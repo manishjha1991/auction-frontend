@@ -66,7 +66,7 @@ const StatsOverview = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(`${API_ENDPOINTS}/api/player-stats/stats-overview`);
+        const response = await fetch(`${API_ENDPOINTS}/api/player-stats/stats-overview?nocache=1&t=${Date.now()}`);
         if (!response.ok) {
           throw new Error(`Request failed with status ${response.status}`);
         }
