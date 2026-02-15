@@ -106,8 +106,9 @@ const SexyAlert = ({ alert, onClose }) => {
   );
 };
 
-function TradeCenter() {
+function TradeCenter({ user: userProp }) {
   const [user, setUser] = useState(null);
+  const effectiveUser = userProp || user;
   const [teams, setTeams] = useState([]); // all teams
   const [allPlayers, setAllPlayers] = useState([]); // from /api/players/data
   const [selectedMyPlayer, setSelectedMyPlayer] = useState('');
@@ -158,14 +159,14 @@ function TradeCenter() {
     if (!user || !allPlayers.length) return [];
     
     // Use Set for faster team name comparison
-    const userTeamName = user.teamName;
+    const userTeamName = effectiveUser?.teamName;
     if (!userTeamName) return [];
     
     // Filter players efficiently
     return allPlayers
       .filter(p => p.teamName === userTeamName)
       .map(p => ({ id: p.id, name: p.name, role: p.role }));
-  }, [user?.teamName, allPlayers]);
+  }, [effectiveUser?.teamName, allPlayers]);
 
   // Derive target roster from allPlayers using selected teamName - OPTIMIZED
   const targetRoster = useMemo(() => {
@@ -182,9 +183,10 @@ function TradeCenter() {
 
   // Derive other teams - OPTIMIZED
   const otherTeams = useMemo(() => {
-    if (!teams.length || !user?.id) return [];
-    return teams.filter(t => t._id !== user.id);
-  }, [teams, user?.id]);
+    const uid = effectiveUser?.id || effectiveUser?._id;
+    if (!teams.length || !uid) return [];
+    return teams.filter(t => String(t._id) !== String(uid));
+  }, [teams, effectiveUser?.id, effectiveUser?._id]);
 
   // Simple stale data detection
   const isDataStale = (dataType) => {
@@ -206,10 +208,10 @@ function TradeCenter() {
 
   // Update loading states when data changes
   useEffect(() => {
-    if (allPlayers.length > 0 && user?.teamName) {
+    if (allPlayers.length > 0 && effectiveUser?.teamName) {
       setDropdownLoading(prev => ({ ...prev, myRoster: false }));
     }
-  }, [allPlayers, user?.teamName]);
+  }, [allPlayers, effectiveUser?.teamName]);
   
   useEffect(() => {
     if (teams.length > 0) {
@@ -236,32 +238,41 @@ function TradeCenter() {
   }, [targetTeamId]);
 
   const isMe = (maybeId) => {
-    if (!user) return false;
-    const uid = user.id || user._id;
+    if (!effectiveUser) return false;
+    const uid = effectiveUser?.id || effectiveUser?._id;
     return String(maybeId) === String(uid);
   };
   const isFromMe = (trade) => isMe(trade?.fromUser?._id || trade?.fromUser);
   const isToMe = (trade) => isMe(trade?.toUser?._id || trade?.toUser);
 
   useEffect(() => {
-    const cachedUser = localStorage.getItem('user');
-    if (cachedUser) {
-      setUser(JSON.parse(cachedUser));
+    if (!userProp) {
+      const cachedUser = localStorage.getItem('user');
+      if (cachedUser) setUser(JSON.parse(cachedUser));
     }
-  }, []);
+  }, [userProp]);
 
   const fetchTradeInsights = async (userId) => {
-    if (!userId) return;
+    const uid = userId || effectiveUser?.id || effectiveUser?._id;
+    if (!uid) return;
     try {
       setTradeInsightLoading(true);
       setTradeInsightError(null);
-      const res = await fetch(`${API_ENDPOINTS}/api/trades/insights/${userId}`);
+      const res = await fetch(`${API_ENDPOINTS}/api/trades/insights/${uid}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to load team balance');
       }
       const data = await res.json();
-      setTradeInsights(data);
+      const norm = (s) => (s || '').replace(/\p{Emoji}/gu, '').trim().toLowerCase();
+      const respTeam = norm(data?.balance?.teamName);
+      const myTeam = norm(effectiveUser?.teamName);
+      if (respTeam && myTeam && respTeam !== myTeam) {
+        setTradeInsightError(`Data mismatch: showing ${data.balance.teamName} instead of your team. Please refresh.`);
+        setTradeInsights(null);
+      } else {
+        setTradeInsights(data);
+      }
     } catch (error) {
       setTradeInsights(null);
       setTradeInsightError(error.message || 'Failed to load team balance');
@@ -271,10 +282,13 @@ function TradeCenter() {
   };
 
   useEffect(() => {
-    if (user?.id) {
-      fetchTradeInsights(user.id);
+    const uid = effectiveUser?.id || effectiveUser?._id;
+    if (uid) {
+      fetchTradeInsights(uid);
+    } else {
+      setTradeInsights(null);
     }
-  }, [user?.id]);
+  }, [effectiveUser?.id, effectiveUser?._id]);
 
   useEffect(() => {
     async function bootstrap() {
@@ -287,10 +301,11 @@ function TradeCenter() {
         const currentUser = cachedUser ? JSON.parse(cachedUser) : null;
         
         // Fetch user-specific data and general data in parallel for better performance
-        const userSpecificPromises = currentUser ? [
-          fetch(`${API_ENDPOINTS}/api/trades/user/${currentUser.id}`),
-          fetch(`${API_ENDPOINTS}/api/users/${currentUser.id}/trades-usage`),
-          fetch(`${API_ENDPOINTS}/api/releases/user/${currentUser.id}`)
+        const uid = currentUser?.id || currentUser?._id;
+        const userSpecificPromises = uid ? [
+          fetch(`${API_ENDPOINTS}/api/trades/user/${uid}`),
+          fetch(`${API_ENDPOINTS}/api/users/${uid}/trades-usage`),
+          fetch(`${API_ENDPOINTS}/api/releases/user/${uid}`)
         ] : [
           Promise.resolve({ ok: true, json: async () => [] }),
           Promise.resolve({ ok: true, json: async () => ({ tradesUsed: 0, cap: 4, remaining: 4 }) }),
@@ -358,14 +373,15 @@ function TradeCenter() {
         
         setMyReleases(Array.isArray(releasesJson) ? releasesJson : []);
         
-        if (Array.isArray(tradesJson) && currentUser) {
+        const cuid = currentUser?.id || currentUser?._id;
+        if (Array.isArray(tradesJson) && cuid) {
           const activeTrades = tradesJson.filter(t => 
             ['pending', 'admin_pending'].includes(t.status) && 
-            String(t.fromUser?._id) === String(currentUser?.id)
+            String(t.fromUser?._id) === String(cuid)
           );
           const activeReleases = releasesJson.filter(r => 
             ['pending', 'admin_pending'].includes(r.status) && 
-            String(r.user) === String(currentUser?.id)
+            String(r.user) === String(cuid)
           );
           const totalActive = activeTrades.length + activeReleases.length;
           setLimitReached(totalActive >= 6);
@@ -382,24 +398,24 @@ function TradeCenter() {
       }
     }
     
-    if (user) {
+    if (effectiveUser) {
       bootstrap();
     }
-  }, [user]);
+  }, [effectiveUser]);
 
   // periodic refresh so roster updates after admin approval are reflected without manual reload
   useEffect(() => {
     let timer;
+    const uid = effectiveUser?.id || effectiveUser?._id;
     async function refreshData() {
       try {
-        // Only refresh if user exists and component is mounted
-        if (!user) return;
+        if (!uid) return;
         
         const [tradesRes, playersRes, usageRes, releasesRes] = await Promise.all([
-          fetch(`${API_ENDPOINTS}/api/trades/user/${user.id}`),
+          fetch(`${API_ENDPOINTS}/api/trades/user/${uid}`),
           fetch(`${API_ENDPOINTS}/api/players/data`),
-          fetch(`${API_ENDPOINTS}/api/users/${user.id}/trades-usage`),
-          fetch(`${API_ENDPOINTS}/api/releases/user/${user.id}`)
+          fetch(`${API_ENDPOINTS}/api/users/${uid}/trades-usage`),
+          fetch(`${API_ENDPOINTS}/api/releases/user/${uid}`)
         ]);
         
         const tradesJson = await tradesRes.json();
@@ -420,14 +436,14 @@ function TradeCenter() {
         
         setMyReleases(Array.isArray(releasesJson) ? releasesJson : []);
 
-        if (Array.isArray(tradesJson)) {
+        if (Array.isArray(tradesJson) && uid) {
           const activeTrades = tradesJson.filter(t => 
             ['pending', 'admin_pending'].includes(t.status) && 
-            String(t.fromUser?._id) === String(user?.id)
+            String(t.fromUser?._id) === String(uid)
           );
           const activeReleases = releasesJson.filter(r => 
             ['pending', 'admin_pending'].includes(r.status) && 
-            String(r.user) === String(user?.id)
+            String(r.user) === String(uid)
           );
           const totalActive = activeTrades.length + activeReleases.length;
           setLimitReached(totalActive >= 6);
@@ -439,15 +455,14 @@ function TradeCenter() {
       }
     }
     
-    // Increase refresh interval to 15 seconds to reduce server load
-    if (user) {
+    if (uid) {
       timer = setInterval(refreshData, 15000);
     }
     
     return () => { 
       if (timer) clearInterval(timer); 
     };
-  }, [user]);
+  }, [effectiveUser?.id, effectiveUser?._id]);
 
   // Function to refresh specific data - OPTIMIZED
   const refreshData = async (dataType) => {
@@ -496,7 +511,7 @@ function TradeCenter() {
       const res = await fetch(`${API_ENDPOINTS}/api/trades`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromUserId: user.id, offeredPlayerId: selectedMyPlayer, requestedPlayerId: selectedTargetPlayer })
+        body: JSON.stringify({ fromUserId: effectiveUser?.id || effectiveUser?._id, offeredPlayerId: selectedMyPlayer, requestedPlayerId: selectedTargetPlayer })
       });
       
       if (!res.ok) {
@@ -507,7 +522,8 @@ function TradeCenter() {
       const j = await res.json();
       const updated = [j, ...trades];
       setTrades(updated);
-      const activeMine = updated.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
+      const uid = effectiveUser?.id || effectiveUser?._id;
+      const activeMine = updated.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(uid));
       setLimitReached(activeMine.length >= 6);
       setPendingTradesCount(activeMine.length);
       
@@ -520,7 +536,7 @@ function TradeCenter() {
       
       // Refresh usage (actual increment happens on admin approval, but we keep UI fresh)
       try {
-        const ures = await fetch(`${API_ENDPOINTS}/api/users/${user.id}/trades-usage`);
+        const ures = await fetch(`${API_ENDPOINTS}/api/users/${effectiveUser?.id || effectiveUser?._id}/trades-usage`);
         const ujson = await ures.json();
         if (typeof ujson.tradesUsed !== 'undefined') setTradeUsage({ tradesUsed: ujson.tradesUsed, cap: ujson.cap || 4, remaining: ujson.remaining });
       } catch {}
@@ -548,7 +564,7 @@ function TradeCenter() {
     
     try {
       const res = await fetch(`${API_ENDPOINTS}/api/releases`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, playerId: releasePlayerId })
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: effectiveUser?.id || effectiveUser?._id, playerId: releasePlayerId })
       });
       
       if (!res.ok) {
@@ -566,9 +582,9 @@ function TradeCenter() {
       // Refresh data to update pending count
       try {
         const [tradesRes, releasesRes, usageRes] = await Promise.all([
-          fetch(`${API_ENDPOINTS}/api/trades/user/${user.id}`),
-          fetch(`${API_ENDPOINTS}/api/releases/user/${user.id}`),
-          fetch(`${API_ENDPOINTS}/api/users/${user.id}/trades-usage`)
+          fetch(`${API_ENDPOINTS}/api/trades/user/${effectiveUser?.id || effectiveUser?._id}`),
+          fetch(`${API_ENDPOINTS}/api/releases/user/${effectiveUser?.id || effectiveUser?._id}`),
+          fetch(`${API_ENDPOINTS}/api/users/${effectiveUser?.id || effectiveUser?._id}/trades-usage`)
         ]);
         
         const tradesJson = await tradesRes.json();
@@ -579,8 +595,9 @@ function TradeCenter() {
         setMyReleases(Array.isArray(releasesJson) ? releasesJson : []);
         
         // Update pending count including both trades and releases
-        const activeTrades = tradesJson.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
-        const activeReleases = releasesJson.filter(r => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(user?.id));
+        const uid = effectiveUser?.id || effectiveUser?._id;
+        const activeTrades = tradesJson.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(uid));
+        const activeReleases = releasesJson.filter(r => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid));
         const totalActive = activeTrades.length + activeReleases.length;
         
         setLimitReached(totalActive >= 6);
@@ -597,8 +614,9 @@ function TradeCenter() {
         title: 'Release Request Sent! 🔓',
         message: 'Your release request has been sent to admin for approval.'
       });
-      if (user?.id) {
-        fetchTradeInsights(user.id);
+      const uid = effectiveUser?.id || effectiveUser?._id;
+      if (uid) {
+        fetchTradeInsights(uid);
       }
     } catch (e) {
       // Show sexy error alert
@@ -619,7 +637,7 @@ function TradeCenter() {
       const res = await fetch(`${API_ENDPOINTS}/api/trades/${tradeId}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ byUserId: user.id, decision })
+        body: JSON.stringify({ byUserId: effectiveUser?.id || effectiveUser?._id, decision })
       });
       
       const j = await res.json();
@@ -627,8 +645,9 @@ function TradeCenter() {
       setTrades(updated);
       
       // Update pending count including both trades and releases
-      const activeTrades = updated.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
-      const activeReleases = myReleases.filter(r => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(user?.id));
+      const uid = effectiveUser?.id || effectiveUser?._id;
+      const activeTrades = updated.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(uid));
+      const activeReleases = myReleases.filter(r => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid));
       const totalActive = activeTrades.length + activeReleases.length;
       
       setLimitReached(totalActive >= 6);
@@ -642,8 +661,9 @@ function TradeCenter() {
           ? 'Trade accepted! Awaiting admin approval.' 
           : 'Trade has been rejected.'
       });
-      if (user?.id) {
-        fetchTradeInsights(user.id);
+      const uid = effectiveUser?.id || effectiveUser?._id;
+      if (uid) {
+        fetchTradeInsights(uid);
       }
     } catch (e) {
       // Show sexy error alert
@@ -702,7 +722,7 @@ function TradeCenter() {
           </div>
           <button
             className="balance-refresh-btn"
-            onClick={() => user?.id && fetchTradeInsights(user.id)}
+            onClick={() => (effectiveUser?.id || effectiveUser?._id) && fetchTradeInsights(effectiveUser?.id || effectiveUser?._id)}
             disabled={tradeInsightLoading}
           >
             {tradeInsightLoading ? 'Analyzing...' : 'Refresh'}
@@ -1054,15 +1074,16 @@ function TradeCenter() {
                           const r = await fetch(`${API_ENDPOINTS}/api/trades/${t._id}/withdraw`, { 
                             method: 'POST', 
                             headers: { 'Content-Type': 'application/json' }, 
-                            body: JSON.stringify({ byUserId: user.id }) 
+                            body: JSON.stringify({ byUserId: effectiveUser?.id || effectiveUser?._id }) 
                           });
                           const j = await r.json();
                         const updated = trades.map(x => (x._id === t._id ? j : x));
                         setTrades(updated);
                         
                         // Update pending count including both trades and releases
-                        const activeTrades = updated.filter(u => ['pending','admin_pending'].includes(u.status) && String(u.fromUser?._id) === String(user?.id));
-                        const activeReleases = myReleases.filter(r => ['pending','admin_pending'].includes(r.status) && String(r.user) === String(user?.id));
+                        const uid = effectiveUser?.id || effectiveUser?._id;
+                        const activeTrades = updated.filter(u => ['pending','admin_pending'].includes(u.status) && String(u.fromUser?._id) === String(uid));
+                        const activeReleases = myReleases.filter(r => ['pending','admin_pending'].includes(r.status) && String(r.user) === String(uid));
                         const totalActive = activeTrades.length + activeReleases.length;
                         
                         setLimitReached(totalActive >= 6);
@@ -1148,7 +1169,7 @@ function TradeCenter() {
                     ))}
                   </div>
                   <div className="item-actions">
-                    {user && String(r.user) === String(user?.id) && ['pending', 'admin_pending'].includes(r.status) && (
+                    {effectiveUser && String(r.user) === String(effectiveUser?.id || effectiveUser?._id) && ['pending', 'admin_pending'].includes(r.status) && (
                       <button 
                         className="btn btn-withdraw" 
                         disabled={loadingStates.withdraw}
@@ -1158,7 +1179,7 @@ function TradeCenter() {
                             const res = await fetch(`${API_ENDPOINTS}/api/releases/${r._id}/withdraw`, {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ byUserId: user.id })
+                              body: JSON.stringify({ byUserId: effectiveUser?.id || effectiveUser?._id })
                             });
                             
                             if (!res.ok) {
@@ -1175,8 +1196,9 @@ function TradeCenter() {
                             setMyReleases(updatedReleases);
                             
                             // Update pending count
-                            const activeTrades = trades.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(user?.id));
-                            const activeReleases = updatedReleases.filter(rel => ['pending', 'admin_pending'].includes(rel.status) && String(rel.user) === String(user?.id));
+                            const uid = effectiveUser?.id || effectiveUser?._id;
+                            const activeTrades = trades.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(uid));
+                            const activeReleases = updatedReleases.filter(rel => ['pending', 'admin_pending'].includes(rel.status) && String(rel.user) === String(uid));
                             const totalActive = activeTrades.length + activeReleases.length;
                             
                             setLimitReached(totalActive >= 6);
@@ -1188,8 +1210,8 @@ function TradeCenter() {
                               title: 'Release Withdrawn! 🔄',
                               message: 'Release request has been successfully withdrawn.'
                             });
-                            if (user?.id) {
-                              fetchTradeInsights(user.id);
+                            if (effectiveUser?.id || effectiveUser?._id) {
+                              fetchTradeInsights(effectiveUser?.id || effectiveUser?._id);
                             }
                           } catch (e) {
                             // Show sexy error alert

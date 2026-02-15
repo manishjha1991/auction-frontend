@@ -541,7 +541,7 @@ function App() {
               path="/trade"
               element={
                 <PrivateRoute>
-                  {appSettings.enableTradeCenter ? <TradeCenter /> : <Navigate to="/profile" />}
+                  {appSettings.enableTradeCenter ? <TradeCenter user={user} /> : <Navigate to="/profile" />}
                 </PrivateRoute>
               }
             />
