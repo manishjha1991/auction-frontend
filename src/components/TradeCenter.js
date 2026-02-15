@@ -266,7 +266,7 @@ function TradeCenter({ user: userProp }) {
     try {
       setTradeInsightLoading(true);
       setTradeInsightError(null);
-      const res = await fetch(`${API_ENDPOINTS}/api/trades/insights/${uid}`);
+      const res = await fetch(`${API_ENDPOINTS}/api/trades/insights/${uid}?t=${Date.now()}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to load team balance');
