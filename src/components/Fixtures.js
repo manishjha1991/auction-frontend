@@ -765,11 +765,18 @@ const Fixtures = () => {
       <FixtureWrapper>
         <h2>Fixtures {mode === 'groups' && <span style={{ fontSize: '0.8rem', color: '#007bff', fontWeight: 'normal' }}>(Group Stage Mode)</span>}</h2>
         <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#6c757d' }}>
-          Showing {filteredFixtures.length} of {fixtures.length} fixtures
-          {activeTab === 'groupA' && ' (Group A only)'}
-          {activeTab === 'groupB' && ' (Group B only)'}
-          {activeTab === 'all' && ' (All fixtures)'}
-          {activeTab === 'playoffs' && ' (Playoff fixtures)'}
+          {activeTab === 'playoffs' ? (
+            'Playoff fixtures'
+          ) : (() => {
+            const baseList = activeTab === 'groupA' ? fixtures.filter(fx => fx.group === 'A')
+              : activeTab === 'groupB' ? fixtures.filter(fx => fx.group === 'B')
+              : fixtures;
+            const completed = baseList.filter(f => f.winner || (f.team1Score && f.team2Score)).length;
+            const remaining = baseList.length - completed;
+            return (
+              <>{remaining} matches remaining out of {baseList.length} matches</>
+            );
+          })()}
         </div>
         <SearchBar
           type="text"
