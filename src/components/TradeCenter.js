@@ -669,7 +669,6 @@ function TradeCenter({ user: userProp }) {
           ? 'Trade accepted! Awaiting admin approval.' 
           : 'Trade has been rejected.'
       });
-      const uid = effectiveUser?.id || effectiveUser?._id;
       if (uid) {
         fetchTradeInsights(uid);
       }
