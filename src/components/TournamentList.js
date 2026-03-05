@@ -1895,6 +1895,15 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                         )}
                       </div>
                     </div>
+                    {fixtures.length > 0 && (
+                      <div style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, color: '#374151' }}>
+                        {(() => {
+                          const completed = fixtures.filter(f => f.winner || (f.team1Score && f.team2Score)).length;
+                          const remaining = fixtures.length - completed;
+                          return <>{remaining} matches remaining out of {fixtures.length} matches</>;
+                        })()}
+                      </div>
+                    )}
 
                   <div className="fixtures-list">
                     {(() => {

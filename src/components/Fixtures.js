@@ -764,7 +764,7 @@ const Fixtures = () => {
       
       <FixtureWrapper>
         <h2>Fixtures {mode === 'groups' && <span style={{ fontSize: '0.8rem', color: '#007bff', fontWeight: 'normal' }}>(Group Stage Mode)</span>}</h2>
-        <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#6c757d' }}>
+        <div style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, color: '#374151' }}>
           {activeTab === 'playoffs' ? (
             'Playoff fixtures'
           ) : (() => {
