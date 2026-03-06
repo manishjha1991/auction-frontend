@@ -1115,6 +1115,12 @@ font-weight: 700;
   font-weight: 700;
 }
 
+.bowling-stats .stat-muted {
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
 .mom-badge {
   display: inline-flex;
   align-items: center;

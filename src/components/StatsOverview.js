@@ -24,6 +24,7 @@ const StatsOverview = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState(null);
   const [modalTitle, setModalTitle] = useState('');
+  const [modalViewType, setModalViewType] = useState('batting'); // 'batting' | 'bowling' - forces view when opened from economy
 
   // Helper function to get team abbreviation
   const getTeamAbbreviation = (teamName) => {
@@ -90,9 +91,10 @@ const StatsOverview = () => {
         throw new Error(`Request failed with status ${response.status}`);
       }
       const data = await response.json();
-      
-      setModalTitle(type === 'batting' ? 'Top 5 Run Scorer Details' : 'Top 5 Wicket Taker Details');
+      const titles = { batting: 'Top 5 Run Scorer Details', bowling: 'Top 5 Wicket Taker Details', economy: 'Economy by Match' };
+      setModalTitle(titles[type] || titles.bowling);
       setModalData(data);
+      setModalViewType(type === 'economy' ? 'bowling' : type);
       setShowModal(true);
     } catch (err) {
       console.error('Error fetching player details:', err);
@@ -135,6 +137,7 @@ const StatsOverview = () => {
     top5WicketTakers = [],
     top5MOM = [],
     top5BowlingStrikeRate = [],
+    top5EconomicalBowlers = [],
     top5BestBattingAverage = [],
   } = statsData || {};
 
@@ -486,6 +489,33 @@ const StatsOverview = () => {
             </ul>
           </div>
 
+          {/* Top 5 Economical Bowlers */}
+          <div className="top-performer-card clickable-card" onClick={() => top5EconomicalBowlers[0] && handleViewDetails('economy', top5EconomicalBowlers[0].playerId)}>
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaBowlingBall className="icon" />
+                <span>Best Economy</span>
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500, marginTop: '2px' }}>Min 15 overs</div>
+            </div>
+            <ul className="top-performer-list">
+              {top5EconomicalBowlers.length > 0 ? (
+                top5EconomicalBowlers.map((player, i) => (
+                  <li key={i} className="top-performer-item" onClick={(e) => { e.stopPropagation(); handleViewDetails('economy', player.playerId); }}>
+                    <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <div className="top-performer-item-info">
+                      <div className="top-performer-item-name">{player.playerName}</div>
+                      <div className="top-performer-item-team">{player.teamName}</div>
+                    </div>
+                    <div className="top-performer-stat">{player.economy.toFixed(2)} Econ</div>
+                  </li>
+                ))
+              ) : (
+                <li style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</li>
+              )}
+            </ul>
+          </div>
+
           {/* Top 5 Best Batting Average */}
           <div className="top-performer-card">
             <div className="top-performer-header">
@@ -696,7 +726,7 @@ const StatsOverview = () => {
                       <span className="player-team">{modalData.teamName}</span>
                     </div>
                     <div className="player-stats-overview">
-                      {modalData.type === 'batting' ? (
+                      {modalViewType === 'batting' ? (
                         <>
                           <div className="stat-item">
                             <FaChartLine className="stat-icon" />
@@ -746,8 +776,8 @@ const StatsOverview = () => {
                           </div>
                           <div className="stat-item">
                             <FaChartLine className="stat-icon" />
-                            <span className="stat-label">Strike Rate</span>
-                            <span className="stat-value">{modalData.strikeRate ? modalData.strikeRate.toFixed(1) : 0}</span>
+                            <span className="stat-label">Bowling S/R</span>
+                            <span className="stat-value">{modalData.bowlingStrikeRate != null ? modalData.bowlingStrikeRate.toFixed(1) : 0}</span>
                           </div>
                           {(modalData.fourWicketHauls > 0 || modalData.fiveWicketHauls > 0) && (
                             <div className="stat-item">
@@ -789,7 +819,7 @@ const StatsOverview = () => {
                                 <span className="vs">vs</span>
                                 <span className="team">{match.opponentTeam}</span>
                               </div>
-                              {modalData.type === 'batting' ? (
+                              {modalViewType === 'batting' ? (
                                 <div className="batting-stats">
                                   <div className="stat">
                                     <span className="label">Runs:</span>
@@ -807,14 +837,32 @@ const StatsOverview = () => {
                                 </div>
                               ) : (
                                 <div className="bowling-stats">
-                                  <div className="stat">
-                                    <span className="label">Wickets:</span>
-                                    <span className="value">{match.wickets || 0}</span>
-                                  </div>
-                                  <div className="stat">
-                                    <span className="label">Runs Given:</span>
-                                    <span className="value">{match.runsGiven || 0}</span>
-                                  </div>
+                                  {(match.ballsBowled || 0) === 0 ? (
+                                    <div className="stat stat-muted">
+                                      <span className="value">Did not bowl</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="stat">
+                                        <span className="label">Overs:</span>
+                                        <span className="value">{Math.floor((match.ballsBowled || 0) / 6)}.{(match.ballsBowled || 0) % 6}</span>
+                                      </div>
+                                      <div className="stat">
+                                        <span className="label">Wickets:</span>
+                                        <span className="value">{match.wickets || 0}</span>
+                                      </div>
+                                      <div className="stat">
+                                        <span className="label">Runs Given:</span>
+                                        <span className="value">{match.runsGiven || 0}</span>
+                                      </div>
+                                      {match.economy != null && (
+                                        <div className="stat">
+                                          <span className="label">Economy:</span>
+                                          <span className="value">{match.economy.toFixed(2)}</span>
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
                                   {match.isMom && (
                                     <div className="mom-badge">
                                       <FaStar /> MoM
