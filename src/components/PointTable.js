@@ -329,7 +329,7 @@ const PointsTable = () => {
   const [teamFixtures, setTeamFixtures] = useState([]);
   const [showTeamDetails, setShowTeamDetails] = useState(false);
 
-  const TOTAL_MATCHES = 12;
+  const TOTAL_MATCHES = 13;
   const [worldCupMode, setWorldCupMode] = useState(false);
   const NUM_QUALIFIERS = worldCupMode ? 8 : 6; // top-8 if World Cup enabled, top-6 otherwise
   const GROUP_MATCHES = 6; // matches per team in group stage
@@ -585,7 +585,7 @@ const PointsTable = () => {
         } else {
           // Overall mode logic
           if (allCompleted) {
-            // All teams completed 12 matches - show Q for top 6 or top 8 (based on World Cup mode)
+            // All teams completed 13 matches - show Q for top 6 or top 8 (based on World Cup mode)
             showQ = index < NUM_QUALIFIERS;
             showE = index >= NUM_QUALIFIERS; // E badges for teams not in top qualifiers
             qTitle = worldCupMode ? "Qualified (Top 8)" : "Qualified (Top 6)";

@@ -608,7 +608,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const [team1Fairness, setTeam1Fairness] = useState("");
   const [team2Fairness, setTeam2Fairness] = useState("");
   const [teams, setTeams] = useState([]);
-  const [requiredGames, setRequiredGames] = useState(12); // Configurable number of games
+  const [requiredGames, setRequiredGames] = useState(13); // Configurable number of games
   const [worldCupMode, setWorldCupMode] = useState(false);
   const [top8Teams, setTop8Teams] = useState([]);
   const [hasWorldCupTournament, setHasWorldCupTournament] = useState(false);
@@ -653,7 +653,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
         );
         setHasWorldCupTournament(!!runningWorldCup);
         
-        const games = settingsRes?.data?.requiredGames || 12;
+        const games = settingsRes?.data?.requiredGames || 13;
         setRequiredGames(games);
         const wcMode = settingsRes?.data?.worldCupMode === true || settingsRes?.data?.worldCupMode === 'true';
         setWorldCupMode(wcMode);
@@ -700,11 +700,11 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const fetchRequiredGames = async () => {
     try {
       const response = await axios.get(`${API_ENDPOINTS}/api/settings`);
-      const games = response?.data?.requiredGames || 12;
+      const games = response?.data?.requiredGames || 13;
       setRequiredGames(games);
     } catch (error) {
       console.error("Error fetching required games:", error);
-      setRequiredGames(12); // Default fallback
+      setRequiredGames(13); // Default fallback
     }
   };
 
@@ -895,7 +895,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
       // top6Teams should be [A1, A2, A3, B1, B2, B3] when in groups mode
       return top6Teams.every(team => (team.matchesPlayed || 0) >= 6);
     } else {
-      // In overall mode, check if all teams completed required games (12)
+      // In overall mode, check if all teams completed required games (13)
       return top6Teams.every(team => (team.matchesPlayed || 0) >= requiredGames);
     }
   };
