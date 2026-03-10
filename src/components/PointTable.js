@@ -585,22 +585,22 @@ const PointsTable = () => {
         } else {
           // Overall mode logic
           if (allCompleted) {
-            // All teams completed 13 matches - show Q for top 6 or top 8 (based on World Cup mode)
+            // All teams completed 13 matches - show Q for top 6/8, E for rest
             showQ = index < NUM_QUALIFIERS;
-            showE = index >= NUM_QUALIFIERS; // E badges for teams not in top qualifiers
+            showE = index >= NUM_QUALIFIERS;
             qTitle = worldCupMode ? "Qualified (Top 8)" : "Qualified (Top 6)";
             eTitle = "Eliminated";
           } else {
-            // During overall season - use existing early elimination logic
+            // During season: progressive Q for teams with 13 games + 18+ points
             const earlyEliminated = (
               (playedNow >= 12 && points <= 10) ||
               (playedNow >= 11 && points <= 8)  ||
               (playedNow >= 10 && points <= 6)  ||
               (playedNow >= 9  && points <= 4)
             );
-            showQ = points > 20;
+            showQ = playedNow >= TOTAL_MATCHES && points >= 18; // 13 games done + 18+ points = qualified early
             showE = earlyEliminated;
-            qTitle = "Qualified (20+ points)";
+            qTitle = "Qualified (13 games, 18+ pts)";
             eTitle = "Eliminated (early threshold)";
           }
         }
