@@ -162,19 +162,23 @@ function TradeCenter({ user: userProp }) {
     trades: 0
   });
   
-  // Derive my roster from allPlayers using my teamName - OPTIMIZED with memoization
+  // Derive my roster from allPlayers - match by teamName OR currentBidderId (userId) for robustness
+  // Only include SOLD players (unsold can have currentBidderId = highest bidder, not owner)
   const myRoster = useMemo(() => {
-    if (!user || !allPlayers.length) return [];
+    if (!effectiveUser || !allPlayers.length) return [];
     
-    // Use Set for faster team name comparison
     const userTeamName = effectiveUser?.teamName;
-    if (!userTeamName) return [];
+    const uid = effectiveUser?.id || effectiveUser?._id;
     
-    // Filter players efficiently
     return allPlayers
-      .filter(p => p.teamName === userTeamName)
+      .filter(p => {
+        if (p.teamName === userTeamName) return true;
+        // Fallback: sold players we own (when teamName mismatch e.g. stale cache)
+        if (p.status === 'Sold' && uid && p.currentBidderId && String(p.currentBidderId) === String(uid)) return true;
+        return false;
+      })
       .map(p => ({ id: p.id, name: p.name, role: p.role }));
-  }, [effectiveUser?.teamName, allPlayers]);
+  }, [effectiveUser?.teamName, effectiveUser?.id, effectiveUser?._id, allPlayers]);
 
   // Derive target roster from allPlayers using selected teamName - OPTIMIZED
   const targetRoster = useMemo(() => {
@@ -216,10 +220,10 @@ function TradeCenter({ user: userProp }) {
 
   // Update loading states when data changes
   useEffect(() => {
-    if (allPlayers.length > 0 && effectiveUser?.teamName) {
+    if (allPlayers.length > 0 && effectiveUser) {
       setDropdownLoading(prev => ({ ...prev, myRoster: false }));
     }
-  }, [allPlayers, effectiveUser?.teamName]);
+  }, [allPlayers, effectiveUser]);
   
   useEffect(() => {
     if (teams.length > 0) {
@@ -344,7 +348,10 @@ function TradeCenter({ user: userProp }) {
         // The /api/users/teams endpoint returns { teams: [...] }
         const teamsData = teamsJson?.teams || teamsJson;
         const teamsArray = Array.isArray(teamsData) ? teamsData : [];
-        const playersArray = Array.isArray(playersJson) ? playersJson : [];
+        // Handle both array response and { players: [...] } wrapper
+        const playersArray = Array.isArray(playersJson)
+          ? playersJson
+          : (Array.isArray(playersJson?.players) ? playersJson.players : []);
         
         console.log('📊 TradeCenter Data Loaded:', {
           teamsCount: teamsArray.length,
@@ -432,7 +439,8 @@ function TradeCenter({ user: userProp }) {
         const releasesJson = await releasesRes.json();
 
         setTrades(Array.isArray(tradesJson) ? tradesJson : []);
-        setAllPlayers(Array.isArray(playersJson) ? playersJson : []);
+        const playersArr = Array.isArray(playersJson) ? playersJson : (Array.isArray(playersJson?.players) ? playersJson.players : []);
+        setAllPlayers(playersArr);
         
         if (usageJson && typeof usageJson.tradesUsed !== 'undefined') {
           setTradeUsage({ 
@@ -476,7 +484,9 @@ function TradeCenter({ user: userProp }) {
   const refreshData = async (dataType) => {
     const startTime = performance.now();
     try {
-      setDropdownLoading(prev => ({ ...prev, [dataType]: true }));
+      // When refreshing players, show loading on myRoster (it derives from allPlayers)
+      const loadingStart = dataType === 'players' ? { myRoster: true } : { [dataType]: true };
+      setDropdownLoading(prev => ({ ...prev, ...loadingStart }));
       
       if (dataType === 'teams') {
         const teamsRes = await fetch(`${API_ENDPOINTS}/api/users/teams`);
@@ -490,14 +500,17 @@ function TradeCenter({ user: userProp }) {
         const playersRes = await fetch(`${API_ENDPOINTS}/api/players/data`);
         if (!playersRes.ok) throw new Error('Failed to fetch players');
         const playersJson = await playersRes.json();
-        setAllPlayers(Array.isArray(playersJson) ? playersJson : []);
+        const playersArr = Array.isArray(playersJson) ? playersJson : (Array.isArray(playersJson?.players) ? playersJson.players : []);
+        setAllPlayers(playersArr);
         setLastFetchTime(prev => ({ ...prev, players: Date.now() }));
       }
       
       const loadTime = performance.now() - startTime;
       console.log(`🔄 ${dataType} refreshed in ${loadTime.toFixed(2)}ms`);
       
-      setDropdownLoading(prev => ({ ...prev, [dataType]: false }));
+      // When refreshing players, also clear myRoster loading (it derives from allPlayers)
+      const loadingUpdate = dataType === 'players' ? { myRoster: false } : { [dataType]: false };
+      setDropdownLoading(prev => ({ ...prev, ...loadingUpdate }));
     } catch (error) {
       console.error(`Error refreshing ${dataType}:`, error);
       setDropdownLoading(prev => ({ ...prev, [dataType]: false }));
