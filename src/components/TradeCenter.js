@@ -520,6 +520,23 @@ function TradeCenter({ user: userProp }) {
 
   const findTeamByName = (teamName) => (teams || []).find(t => t.teamName === teamName);
 
+  const refetchTrades = async () => {
+    const uid = effectiveUser?.id || effectiveUser?._id;
+    if (!uid) return null;
+    try {
+      const r = await fetch(`${API_ENDPOINTS}/api/trades/user/${uid}`);
+      const data = await r.json();
+      if (Array.isArray(data)) {
+        setTrades(data);
+        return data;
+      }
+      return null;
+    } catch (e) {
+      console.error('Refetch trades error:', e);
+      return null;
+    }
+  };
+
   async function proposeTrade() {
     if (!selectedMyPlayer || !selectedTargetPlayer || !targetTeamId) {
       setToast('Select player, target team, and target player.');
@@ -1103,12 +1120,16 @@ function TradeCenter({ user: userProp }) {
                             body: JSON.stringify({ byUserId: effectiveUser?.id || effectiveUser?._id }) 
                           });
                           const j = await r.json();
-                        const updated = trades.map(x => (x._id === t._id ? j : x));
-                        setTrades(updated);
+                          if (!r.ok) {
+                            throw new Error(j.message || 'Withdraw failed');
+                          }
+                          // Refetch trades from server to ensure fresh state (avoids "player already has active trade" on next proposal)
+                          const freshTrades = await refetchTrades();
                         
                         // Update pending count including both trades and releases
                         const uid = effectiveUser?.id || effectiveUser?._id;
-                        const activeTrades = updated.filter(u => ['pending','admin_pending'].includes(u.status) && String(u.fromUser?._id) === String(uid));
+                        const updatedList = Array.isArray(freshTrades) ? freshTrades : trades;
+                        const activeTrades = updatedList.filter(u => ['pending','counter','admin_pending'].includes(u.status) && String(u.fromUser?._id) === String(uid));
                         const activeReleases = myReleases.filter(r => ['pending','admin_pending'].includes(r.status) && String(r.user) === String(uid));
                         const totalActive = activeTrades.length + activeReleases.length;
                         
@@ -1119,7 +1140,7 @@ function TradeCenter({ user: userProp }) {
                           setAlert({
                             type: 'success',
                             title: 'Trade Withdrawn! 🔄',
-                            message: 'Trade has been successfully withdrawn.'
+                            message: 'Trade has been successfully withdrawn. You can propose a new trade now.'
                           });
                         } catch (e) {
                           // Show sexy error alert
