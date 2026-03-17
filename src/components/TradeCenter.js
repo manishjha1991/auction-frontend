@@ -1052,7 +1052,7 @@ function TradeCenter({ user: userProp }) {
                   ))}
                 </div>
                 <div className="item-actions">
-                  {user && isToMe(t) && t.status === 'pending' && (
+                  {effectiveUser && isToMe(t) && t.status === 'pending' && (
                     <>
                       <button 
                         className="btn btn-success" 
@@ -1090,7 +1090,7 @@ function TradeCenter({ user: userProp }) {
                       </button>
                     </>
                   )}
-                  {user && isFromMe(t) && !['completed','rejected','withdrawn'].includes(t.status) && (
+                  {effectiveUser && isFromMe(t) && !['completed','rejected','withdrawn'].includes(t.status) && (
                     <button 
                       className="btn btn-withdraw" 
                       disabled={loadingStates.withdraw}
