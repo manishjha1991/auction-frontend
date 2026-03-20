@@ -23,7 +23,7 @@ import {
   FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
   FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaBook,
-  FaCalculator, FaCloudRain, FaHistory, FaWrench
+  FaCalculator, FaCloudRain, FaHistory, FaWrench, FaChartLine
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
@@ -44,6 +44,7 @@ import PositionCalculator from './components/PositionCalculator';
 import RulesBook from './components/RulesBook';
 import DLSCalculator from './components/DLSCalculator';
 import CplHistorySummary from './components/CplHistorySummary';
+import CplCompositeReport from './components/CplCompositeReport';
 import AdminRosterTools from './components/AdminRosterTools';
 
 // AdminDashboard removed - performance dashboard disabled
@@ -266,6 +267,12 @@ function App() {
                       <Link to="/points-table" onClick={closeSidebar} className={`menu-item ${isActive('/points-table') ? 'active' : ''}`}>
                         <FaTable className="menu-icon" />
                         <span>Points Table</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/cpl-composite-report" onClick={closeSidebar} className={`menu-item ${isActive('/cpl-composite-report') ? 'active' : ''}`}>
+                        <FaChartLine className="menu-icon" />
+                        <span>Qualification overview</span>
                       </Link>
                     </li>
                     <li>
@@ -519,6 +526,7 @@ function App() {
             <Route path="/tournaments" element={<PrivateRoute><TournamentList /></PrivateRoute>} />
             <Route path="/trophy-hall" element={<PrivateRoute><TrophyHall /></PrivateRoute>} />
             <Route path="/cpl-history" element={<PrivateRoute><CplHistorySummary /></PrivateRoute>} />
+            <Route path="/cpl-composite-report" element={<PrivateRoute><CplCompositeReport /></PrivateRoute>} />
             <Route path="/my-bids" element={<PrivateRoute><MyBids /></PrivateRoute>} />
             <Route path="/admin-match-results" element={<PrivateRoute><AdminMatchResults /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
