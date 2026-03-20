@@ -177,7 +177,7 @@ export default function AdminRosterTools() {
       setTradePreview(null);
       setResultModal({
         title: 'Trade completed',
-        message: `${j.team1?.name}: purse ₹${j.team1?.purseAfterCr} Cr\n${j.team2?.name}: purse ₹${j.team2?.purseAfterCr} Cr\nBoth teams: tradesUsed +1\nOther pending trades auto-rejected: ${j.otherTradeRequestsRejected ?? 0}`,
+        message: `${j.team1?.name}: purse ₹${j.team1?.purseAfterCr} Cr\n${j.team2?.name}: purse ₹${j.team2?.purseAfterCr} Cr\nOther pending trades auto-rejected: ${j.otherTradeRequestsRejected ?? 0}`,
         type: 'success',
       });
       loadTeams();
@@ -292,10 +292,9 @@ export default function AdminRosterTools() {
         <div>
           <h1>Roster tools (commissioner)</h1>
           <p>
-            <strong>Player trade:</strong> Same outcome as Trade Center → both teams agree → Admin Trades approve
-            (purse swap, type limits, 48h lock, <code>tradesUsed</code> +1 for <em>both</em> teams, other pending
-            trades involving those players auto-rejected). Skips only the trade request + opponent confirmation steps.
-            Pick / release are separate commissioner actions.
+            <strong>Player trade:</strong> Same purse swap, type limits, 48h lock, and auto-reject of conflicting
+            pending trades as Admin Trades — but <strong>no</strong> <code>tradesUsed</code> limit or increment
+            (commissioner bypass). Skips trade request + opponent steps. Pick / release are separate.
           </p>
         </div>
       </header>
@@ -330,8 +329,7 @@ export default function AdminRosterTools() {
         <section className="admin-roster-card">
           <h2>Swap two players (different teams)</h2>
           <p className="admin-roster-hint">
-            Same swap + purse + roster rules as an approved trade in Admin Trades (including trade cap and
-            auto-reject of conflicting requests).
+            Same swap, purse, type limits, 48h lock, and auto-reject as Admin Trades — without trade-quota checks.
           </p>
           <div className="admin-roster-grid2">
             <div>
@@ -502,8 +500,7 @@ export default function AdminRosterTools() {
             </div>
           </div>
           <p className="admin-roster-small">
-            Matches Admin Trades approval: 48h trade lock, both teams +1 tradesUsed, conflicting trade requests
-            rejected.
+            48h trade lock and conflicting trade requests rejected (same as Admin Trades). No tradesUsed change.
           </p>
         </Modal>
       )}
