@@ -292,8 +292,8 @@ export default function AdminRosterTools() {
         <div>
           <h1>Roster tools (commissioner)</h1>
           <p>
-            <strong>Player trade:</strong> Same purse swap, type limits, 48h lock, and auto-reject of conflicting
-            pending trades as Admin Trades — but <strong>no</strong> <code>tradesUsed</code> limit or increment
+            <strong>Player trade:</strong> Same purse swap, 48h lock, and auto-reject of conflicting pending trades
+            as Admin Trades — <strong>no</strong> <code>tradesUsed</code> and <strong>no</strong> roster type caps
             (commissioner bypass). Skips trade request + opponent steps. Pick / release are separate.
           </p>
         </div>
@@ -329,7 +329,7 @@ export default function AdminRosterTools() {
         <section className="admin-roster-card">
           <h2>Swap two players (different teams)</h2>
           <p className="admin-roster-hint">
-            Same swap, purse, type limits, 48h lock, and auto-reject as Admin Trades — without trade-quota checks.
+            Purse swap, 48h lock, auto-reject conflicting requests — no trade quota or type caps.
           </p>
           <div className="admin-roster-grid2">
             <div>
@@ -382,7 +382,7 @@ export default function AdminRosterTools() {
       {activeTab === 'pick' && (
         <section className="admin-roster-card">
           <h2>Assign unsold player to a team</h2>
-          <p className="admin-roster-hint">Cost = player base price. Purse must cover it; roster type limits apply.</p>
+          <p className="admin-roster-hint">Cost = player base price. Purse must cover it (no type-cap check here).</p>
           <label>Team</label>
           <select value={pTeam} onChange={(e) => setPTeam(e.target.value)}>
             <option value="">— Select —</option>
