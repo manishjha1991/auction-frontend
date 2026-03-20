@@ -23,7 +23,7 @@ import {
   FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
   FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaBook,
-  FaCalculator, FaCloudRain
+  FaCalculator, FaCloudRain, FaHistory
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
@@ -43,6 +43,7 @@ import MyBids from './components/MyBids';
 import PositionCalculator from './components/PositionCalculator';
 import RulesBook from './components/RulesBook';
 import DLSCalculator from './components/DLSCalculator';
+import CplHistorySummary from './components/CplHistorySummary';
 
 // AdminDashboard removed - performance dashboard disabled
 
@@ -297,6 +298,12 @@ function App() {
                       </Link>
                     </li>
                     <li>
+                      <Link to="/cpl-history" onClick={closeSidebar} className={`menu-item ${isActive('/cpl-history') ? 'active' : ''}`}>
+                        <FaHistory className="menu-icon" />
+                        <span>CPL History</span>
+                      </Link>
+                    </li>
+                    <li>
                       <Link to="/team-directory" onClick={closeSidebar} className={`menu-item ${isActive('/team-directory') ? 'active' : ''}`}>
                         <FaUsers className="menu-icon" />
                         <span>Team Directory</span>
@@ -504,6 +511,7 @@ function App() {
             <Route path="/team-directory" element={<PrivateRoute><TeamDirectory /></PrivateRoute>} />
             <Route path="/tournaments" element={<PrivateRoute><TournamentList /></PrivateRoute>} />
             <Route path="/trophy-hall" element={<PrivateRoute><TrophyHall /></PrivateRoute>} />
+            <Route path="/cpl-history" element={<PrivateRoute><CplHistorySummary /></PrivateRoute>} />
             <Route path="/my-bids" element={<PrivateRoute><MyBids /></PrivateRoute>} />
             <Route path="/admin-match-results" element={<PrivateRoute><AdminMatchResults /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
