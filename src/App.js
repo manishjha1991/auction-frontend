@@ -23,7 +23,7 @@ import {
   FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
   FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaBook,
-  FaCalculator, FaCloudRain, FaHistory
+  FaCalculator, FaCloudRain, FaHistory, FaWrench
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
@@ -44,6 +44,7 @@ import PositionCalculator from './components/PositionCalculator';
 import RulesBook from './components/RulesBook';
 import DLSCalculator from './components/DLSCalculator';
 import CplHistorySummary from './components/CplHistorySummary';
+import AdminRosterTools from './components/AdminRosterTools';
 
 // AdminDashboard removed - performance dashboard disabled
 
@@ -439,6 +440,12 @@ function App() {
                         </Link>
                       </li>
                       <li>
+                        <Link to="/admin/roster-tools" onClick={closeSidebar} className={`menu-item ${isActive('/admin/roster-tools') ? 'active' : ''}`}>
+                          <FaWrench className="menu-icon" />
+                          <span>Roster tools</span>
+                        </Link>
+                      </li>
+                      <li>
                         <Link to="/admin/trade-activity" onClick={closeSidebar} className={`menu-item ${isActive('/admin/trade-activity') ? 'active' : ''}`}>
                           <FaChartBar className="menu-icon" />
                           <span>Team Trade Activity</span>
@@ -566,6 +573,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <AdminTrades />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/roster-tools"
+              element={
+                <PrivateRoute>
+                  <AdminRosterTools />
                 </PrivateRoute>
               }
             />
