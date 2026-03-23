@@ -149,14 +149,14 @@ export default function CplCompositeReport() {
                 <FaTrophy style={{ marginRight: 8, verticalAlign: 'middle' }} />
                 Who&apos;s in the qualification mix?
               </h2>
-              <span>Live · Higher combined score = stronger run across recent CPLs</span>
+              <span>Live · Higher qualification index = stronger run across recent CPLs</span>
             </div>
             <div className="cpl-report-card-body">
               <p className="cpl-report-qual-intro">
-                This ranking blends points, NRR, and fairness across your last three season databases. It&apos;s a
-                guide for narratives like <strong>World Cup</strong> spots, playoffs, and momentum — not a substitute
-                for the official selection rules (see notes at the bottom). The top six in this table use{' '}
-                <strong className="cpl-report-top6-text">green text</strong> so they stand out.
+                <strong>Qualification index</strong> is the average of each team&apos;s per-season index (see each CPL
+                table below for that season&apos;s index). It blends points, NRR, and fairness — a guide for narratives
+                like <strong>World Cup</strong> spots, not official rules. The top six use{' '}
+                <strong className="cpl-report-top6-text">green text</strong>.
               </p>
               <div className="cpl-report-table-wrap">
                 <table className="cpl-report-table">
@@ -164,10 +164,7 @@ export default function CplCompositeReport() {
                     <tr>
                       <th>#</th>
                       <th>Team</th>
-                      {data.composite.columns.map((c) => (
-                        <th key={c.dbName}>{c.label}</th>
-                      ))}
-                      <th>Combined</th>
+                      <th title="Average of per-season indices (last three CPL DBs)">Qualification index</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -181,13 +178,8 @@ export default function CplCompositeReport() {
                         <td className="cpl-report-team" title={row.teamName}>
                           {row.teamName}
                         </td>
-                        {data.composite.columns.map((c) => (
-                          <td key={c.dbName}>
-                            {row.byDb[c.dbName] != null ? Number(row.byDb[c.dbName]).toFixed(2) : '—'}
-                          </td>
-                        ))}
                         <td>
-                          <strong>{Number(row.finalAvg).toFixed(2)}</strong>
+                          <strong title="Combined across seasons">{Number(row.finalAvg).toFixed(2)}</strong>
                         </td>
                       </tr>
                     ))}
@@ -242,6 +234,11 @@ export default function CplCompositeReport() {
                         <th>Pts</th>
                         <th>NRR</th>
                         <th>Fair</th>
+                        <th
+                          title="Blended index for this season: 0.5×Norm(Pts) + 0.3×Norm(NRR) + 0.2×Norm(Fair), then scaled 0–100"
+                        >
+                          Season index
+                        </th>
                         <th>Played</th>
                         <th>W</th>
                         <th>L</th>
@@ -257,6 +254,11 @@ export default function CplCompositeReport() {
                           <td>{row.points}</td>
                           <td>{row.nrr}</td>
                           <td>{row.fairness}</td>
+                          <td>
+                            {Number.isFinite(Number(row.seasonIndex))
+                              ? Number(row.seasonIndex).toFixed(2)
+                              : '—'}
+                          </td>
                           <td>{row.matchesPlayed}</td>
                           <td>{row.wins}</td>
                           <td>{row.losses}</td>
