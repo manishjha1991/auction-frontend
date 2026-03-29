@@ -158,6 +158,18 @@ export default function CplCompositeReport() {
                 like <strong>World Cup</strong> spots, not official rules. The top six use{' '}
                 <strong className="cpl-report-top6-text">green text</strong>.
               </p>
+              {data?.milestones && (
+                <div className="cpl-report-milestones" title={`Across ${data.milestones.dbNames?.join(', ') || ''}`}>
+                  <div className="cpl-report-milestone-pill">
+                    <span className="label">Total 100s</span>
+                    <strong>{Number(data.milestones.totalHundreds || 0)}</strong>
+                  </div>
+                  <div className="cpl-report-milestone-pill">
+                    <span className="label">Total 50s</span>
+                    <strong>{Number(data.milestones.totalFifties || 0)}</strong>
+                  </div>
+                </div>
+              )}
               <div className="cpl-report-table-wrap">
                 <table className="cpl-report-table">
                   <thead>

@@ -1,0 +1,363 @@
+.career-page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #0f172a 0%, #1e293b 35%, #334155 100%);
+  color: #f8fafc;
+}
+
+.career-hero {
+  padding: 1rem 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.career-hero h1 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: clamp(1.05rem, 4vw, 1.35rem);
+}
+
+.career-hero p {
+  margin: 0.45rem 0 0;
+  color: rgba(248, 250, 252, 0.82);
+  font-size: 0.78rem;
+}
+
+.career-meta {
+  font-size: 0.68rem !important;
+  color: rgba(248, 250, 252, 0.6) !important;
+}
+
+.career-toolbar {
+  margin-top: 0.55rem;
+}
+
+.career-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.career-refresh-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.career-refresh-btn:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.career-spin {
+  animation: career-spin 0.85s linear infinite;
+}
+
+@keyframes career-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.career-wrap {
+  padding: 0.7rem;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.career-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  border-radius: 12px;
+  padding: 0.5rem 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.career-search input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 0.85rem;
+  background: transparent;
+}
+
+.career-info,
+.career-error {
+  background: rgba(255, 255, 255, 0.96);
+  color: #1f2937;
+  border-radius: 12px;
+  padding: 0.8rem;
+  font-size: 0.82rem;
+}
+
+.career-error {
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.career-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.career-card {
+  background: rgba(255, 255, 255, 0.98);
+  color: #1f2937;
+  border-radius: 14px;
+  padding: 0.7rem;
+  border: 1px solid #e5e7eb;
+}
+
+.career-top h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.career-top p {
+  margin: 0.2rem 0 0.55rem;
+  color: #6b7280;
+  font-size: 0.72rem;
+}
+
+.career-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.career-grid div {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.45rem;
+}
+
+.career-grid span {
+  display: block;
+  font-size: 0.64rem;
+  color: #64748b;
+}
+
+.career-grid strong {
+  font-size: 0.84rem;
+}
+
+.career-expand-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #1e293b;
+  border-radius: 10px;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.career-details {
+  margin-top: 0.55rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.career-detail-block {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.career-detail-block--100 {
+  border-top: 3px solid #f59e0b;
+}
+
+.career-detail-block--50 {
+  border-top: 3px solid #3b82f6;
+}
+
+.career-detail-block--bowl {
+  border-top: 3px solid #0d9488;
+}
+
+.career-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.65rem;
+  background: rgba(248, 250, 252, 0.9);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.career-detail-head svg {
+  flex-shrink: 0;
+  width: 0.85rem;
+  height: 0.85rem;
+  opacity: 0.85;
+}
+
+.career-detail-block--100 .career-detail-head svg {
+  color: #d97706;
+}
+
+.career-detail-block--50 .career-detail-head svg {
+  color: #2563eb;
+}
+
+.career-detail-block--bowl .career-detail-head svg {
+  color: #0f766e;
+}
+
+.career-detail-head h4 {
+  margin: 0;
+  flex: 1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #0f172a;
+}
+
+.career-detail-tag {
+  font-size: 0.58rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  background: #e2e8f0;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+}
+
+.career-detail-sub {
+  margin: 0;
+  padding: 0.4rem 0.65rem 0.35rem;
+  font-size: 0.65rem;
+  line-height: 1.35;
+  color: #64748b;
+  background: rgba(241, 245, 249, 0.9);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.career-detail-empty {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.career-milestone-list {
+  padding: 0.4rem 0.45rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.career-milestone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.career-milestone-row:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.career-milestone-score {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.career-milestone-runs {
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.career-milestone-meta {
+  font-size: 0.62rem;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.career-milestone-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  text-align: right;
+}
+
+.career-opp-pill {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #334155;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border: 1px solid #cbd5e1;
+  padding: 0.2rem 0.45rem;
+  border-radius: 8px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.career-opp-pill--bowl {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+
+.career-milestone-date {
+  font-size: 0.58rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.career-milestone-row--bowl .career-bowl-figures {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.career-bowl-wk {
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #0f766e;
+  letter-spacing: 0.02em;
+}
+
+.career-bowl-sep {
+  font-weight: 600;
+  opacity: 0.5;
+  margin: 0 0.05rem;
+}
+
+@media (max-width: 520px) {
+  .career-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+

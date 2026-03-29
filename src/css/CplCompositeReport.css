@@ -208,6 +208,33 @@
   font-weight: 800;
 }
 
+.cpl-report-milestones {
+  margin: 0 0 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.cpl-report-milestone-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #78350f;
+}
+
+.cpl-report-milestone-pill .label {
+  font-size: 0.72rem;
+  opacity: 0.9;
+}
+
+.cpl-report-milestone-pill strong {
+  font-size: 0.82rem;
+}
+
 .cpl-report-card-head {
   padding: 0.9rem 1rem;
   background: linear-gradient(90deg, #1e3a5f 0%, #2c5282 100%);

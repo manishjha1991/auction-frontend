@@ -45,6 +45,7 @@ import RulesBook from './components/RulesBook';
 import DLSCalculator from './components/DLSCalculator';
 import CplHistorySummary from './components/CplHistorySummary';
 import CplCompositeReport from './components/CplCompositeReport';
+import CplPlayerCareerStats from './components/CplPlayerCareerStats';
 import AdminRosterTools from './components/AdminRosterTools';
 
 // AdminDashboard removed - performance dashboard disabled
@@ -354,6 +355,12 @@ function App() {
                         <span>Player Insights</span>
                       </Link>
                     </li>
+                    <li>
+                      <Link to="/cpl-player-career-stats" onClick={closeSidebar} className={`menu-item ${isActive('/cpl-player-career-stats') ? 'active' : ''}`}>
+                        <FaChartBar className="menu-icon" />
+                        <span>CPL Player Career</span>
+                      </Link>
+                    </li>
                     {user && user.isAdmin && (
                       <li>
                         <Link to="/admin-match-results" onClick={closeSidebar} className={`menu-item ${isActive('/admin-match-results') ? 'active' : ''}`}>
@@ -531,6 +538,7 @@ function App() {
             <Route path="/admin-match-results" element={<PrivateRoute><AdminMatchResults /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
             <Route path="/player-insights" element={<PrivateRoute><PlayerInsightsPage /></PrivateRoute>} />
+            <Route path="/cpl-player-career-stats" element={<PrivateRoute><CplPlayerCareerStats /></PrivateRoute>} />
             <Route path="/ocr" element={<PrivateRoute><OcrExtractor /></PrivateRoute>} />
             <Route path="/dls-calculator" element={<PrivateRoute><DLSCalculator /></PrivateRoute>} />
             
