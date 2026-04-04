@@ -1,7 +1,51 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { API_ENDPOINTS } from '../const';
 import '../css/TradeCenter.css';
 import { FaExchangeAlt, FaCheck,FaClock, FaBoxOpen,FaTimes, FaPaperPlane, FaRetweet, FaUsers, FaUnlock, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
+import { API_ENDPOINTS } from '../const';
+import { TRADE_SEASON_CAP } from '../constants/tradeSeasonCap';
+
+const MAX_ACTIVE_PENDING_REQUESTS = 4;
+/** Avoid stale CDN/proxy caches of JSON that still has remaining: 6 */
+const TRADES_USAGE_FETCH = { cache: 'no-store' };
+const ACTIVE_OUTGOING_TRADE_STATUSES = ['pending', 'counter', 'admin_pending'];
+
+function parseNonNegativeTradesUsed(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return n;
+}
+
+/**
+ * Normalize API usage: cap never above TRADE_SEASON_CAP; never trust raw `remaining` alone.
+ * Handles missing tradesUsed (infer from cap + remaining) and stale cap:6 / remaining:6 payloads.
+ */
+function normalizeTradeUsageFromApi(json) {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return null;
+
+  let cap = Number(json.cap);
+  if (!Number.isFinite(cap) || cap < 0) cap = TRADE_SEASON_CAP;
+  else cap = Math.min(cap, TRADE_SEASON_CAP);
+
+  let used;
+  if (typeof json.tradesUsed !== 'undefined') {
+    used = parseNonNegativeTradesUsed(json.tradesUsed);
+  } else {
+    const rem = Number(json.remaining);
+    if (Number.isFinite(rem)) {
+      used = parseNonNegativeTradesUsed(cap - Math.min(rem, cap));
+    } else {
+      used = 0;
+    }
+  }
+
+  const remaining = Math.max(0, cap - used);
+  return { tradesUsed: used, cap, remaining };
+}
+
+function defaultTradeUsageState() {
+  return { tradesUsed: 0, cap: TRADE_SEASON_CAP, remaining: TRADE_SEASON_CAP };
+}
+
 // Sexy Dropdown Loader Component
 const SexyDropdownLoader = ({ isLoading, children, placeholder = "Loading...", dataLength = 0, dataType = "", isStale = false, onRefresh, loadingProgress = 0 }) => {
   if (isLoading) {
@@ -130,7 +174,7 @@ function TradeCenter({ user: userProp }) {
   const [limitReached, setLimitReached] = useState(false);
   const [pendingTradesCount, setPendingTradesCount] = useState(0);
   const [releasePlayerId, setReleasePlayerId] = useState('');
-  const [tradeUsage, setTradeUsage] = useState({ tradesUsed: 0, cap: 4, remaining: 4 });
+  const [tradeUsage, setTradeUsage] = useState(() => defaultTradeUsageState());
   const [myReleases, setMyReleases] = useState([]);
 
   const [loadingStates, setLoadingStates] = useState({
@@ -199,6 +243,16 @@ function TradeCenter({ user: userProp }) {
     if (!teams.length || !uid) return [];
     return teams.filter(t => String(t._id) !== String(uid));
   }, [teams, effectiveUser?.id, effectiveUser?._id]);
+
+  /** Season quota UI + gating: always TRADE_SEASON_CAP (4), never a stale API cap. */
+  const { seasonTradesRemaining, seasonTradeLimitReached } = useMemo(() => {
+    const used = parseNonNegativeTradesUsed(tradeUsage.tradesUsed);
+    const rawRem = Math.max(0, TRADE_SEASON_CAP - used);
+    return {
+      seasonTradesRemaining: Math.min(TRADE_SEASON_CAP, rawRem),
+      seasonTradeLimitReached: used >= TRADE_SEASON_CAP,
+    };
+  }, [tradeUsage.tradesUsed]);
 
   // Simple stale data detection
   const isDataStale = (dataType) => {
@@ -316,11 +370,14 @@ function TradeCenter({ user: userProp }) {
         const uid = currentUser?.id || currentUser?._id;
         const userSpecificPromises = uid ? [
           fetch(`${API_ENDPOINTS}/api/trades/user/${uid}`),
-          fetch(`${API_ENDPOINTS}/api/users/${uid}/trades-usage`),
+          fetch(`${API_ENDPOINTS}/api/users/${uid}/trades-usage`, TRADES_USAGE_FETCH),
           fetch(`${API_ENDPOINTS}/api/releases/user/${uid}`)
         ] : [
           Promise.resolve({ ok: true, json: async () => [] }),
-          Promise.resolve({ ok: true, json: async () => ({ tradesUsed: 0, cap: 4, remaining: 4 }) }),
+          Promise.resolve({
+            ok: true,
+            json: async () => ({ tradesUsed: 0, cap: TRADE_SEASON_CAP, remaining: TRADE_SEASON_CAP }),
+          }),
           Promise.resolve({ ok: true, json: async () => [] })
         ];
         
@@ -378,28 +435,23 @@ function TradeCenter({ user: userProp }) {
           myRoster: false
         }));
         
-        if (usageJson && typeof usageJson.tradesUsed !== 'undefined') {
-          setTradeUsage({ 
-            tradesUsed: usageJson.tradesUsed, 
-            cap: usageJson.cap || 4, 
-            remaining: usageJson.remaining 
-          });
-        }
-        
+        const normalizedBootstrap = normalizeTradeUsageFromApi(usageJson);
+        setTradeUsage(normalizedBootstrap ?? defaultTradeUsageState());
+
         setMyReleases(Array.isArray(releasesJson) ? releasesJson : []);
         
         const cuid = currentUser?.id || currentUser?._id;
         if (Array.isArray(tradesJson) && cuid) {
-          const activeTrades = tradesJson.filter(t => 
-            ['pending', 'admin_pending'].includes(t.status) && 
+          const activeTrades = tradesJson.filter(t =>
+            ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) &&
             String(t.fromUser?._id) === String(cuid)
           );
-          const activeReleases = releasesJson.filter(r => 
-            ['pending', 'admin_pending'].includes(r.status) && 
+          const activeReleases = releasesJson.filter(r =>
+            ['pending', 'admin_pending'].includes(r.status) &&
             String(r.user) === String(cuid)
           );
           const totalActive = activeTrades.length + activeReleases.length;
-          setLimitReached(totalActive >= 6);
+          setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
           setPendingTradesCount(totalActive);
         }
         
@@ -429,7 +481,7 @@ function TradeCenter({ user: userProp }) {
         const [tradesRes, playersRes, usageRes, releasesRes] = await Promise.all([
           fetch(`${API_ENDPOINTS}/api/trades/user/${uid}`),
           fetch(`${API_ENDPOINTS}/api/players/data`),
-          fetch(`${API_ENDPOINTS}/api/users/${uid}/trades-usage`),
+          fetch(`${API_ENDPOINTS}/api/users/${uid}/trades-usage`, TRADES_USAGE_FETCH),
           fetch(`${API_ENDPOINTS}/api/releases/user/${uid}`)
         ]);
         
@@ -442,27 +494,22 @@ function TradeCenter({ user: userProp }) {
         const playersArr = Array.isArray(playersJson) ? playersJson : (Array.isArray(playersJson?.players) ? playersJson.players : []);
         setAllPlayers(playersArr);
         
-        if (usageJson && typeof usageJson.tradesUsed !== 'undefined') {
-          setTradeUsage({ 
-            tradesUsed: usageJson.tradesUsed, 
-            cap: usageJson.cap || 4, 
-            remaining: usageJson.remaining 
-          });
-        }
-        
+        const normalizedUsagePoll = normalizeTradeUsageFromApi(usageJson);
+        setTradeUsage(normalizedUsagePoll ?? defaultTradeUsageState());
+
         setMyReleases(Array.isArray(releasesJson) ? releasesJson : []);
 
         if (Array.isArray(tradesJson) && uid) {
-          const activeTrades = tradesJson.filter(t => 
-            ['pending', 'admin_pending'].includes(t.status) && 
+          const activeTrades = tradesJson.filter(t =>
+            ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) &&
             String(t.fromUser?._id) === String(uid)
           );
-          const activeReleases = releasesJson.filter(r => 
-            ['pending', 'admin_pending'].includes(r.status) && 
+          const activeReleases = releasesJson.filter(r =>
+            ['pending', 'admin_pending'].includes(r.status) &&
             String(r.user) === String(uid)
           );
           const totalActive = activeTrades.length + activeReleases.length;
-          setLimitReached(totalActive >= 6);
+          setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
           setPendingTradesCount(totalActive);
         }
       } catch (error) {
@@ -542,7 +589,11 @@ function TradeCenter({ user: userProp }) {
       setToast('Select player, target team, and target player.');
       return;
     }
-    
+    if (parseNonNegativeTradesUsed(tradeUsage.tradesUsed) >= TRADE_SEASON_CAP) {
+      setToast(`You have used all ${TRADE_SEASON_CAP} season trades.`);
+      return;
+    }
+
     setLoadingStates(prev => ({ ...prev, propose: true }));
     
     try {
@@ -561,9 +612,15 @@ function TradeCenter({ user: userProp }) {
       const updated = [j, ...trades];
       setTrades(updated);
       const uid = effectiveUser?.id || effectiveUser?._id;
-      const activeMine = updated.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(uid));
-      setLimitReached(activeMine.length >= 6);
-      setPendingTradesCount(activeMine.length);
+      const activeMine = updated.filter(
+        (t) => ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) && String(t.fromUser?._id) === String(uid)
+      );
+      const activeReleases = myReleases.filter(
+        (r) => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid)
+      );
+      const totalPending = activeMine.length + activeReleases.length;
+      setLimitReached(totalPending >= MAX_ACTIVE_PENDING_REQUESTS);
+      setPendingTradesCount(totalPending);
       
       // Show sexy success alert
       setAlert({
@@ -574,9 +631,10 @@ function TradeCenter({ user: userProp }) {
       
       // Refresh usage (actual increment happens on admin approval, but we keep UI fresh)
       try {
-        const ures = await fetch(`${API_ENDPOINTS}/api/users/${effectiveUser?.id || effectiveUser?._id}/trades-usage`);
+        const ures = await fetch(`${API_ENDPOINTS}/api/users/${effectiveUser?.id || effectiveUser?._id}/trades-usage`, TRADES_USAGE_FETCH);
         const ujson = await ures.json();
-        if (typeof ujson.tradesUsed !== 'undefined') setTradeUsage({ tradesUsed: ujson.tradesUsed, cap: ujson.cap || 4, remaining: ujson.remaining });
+        const nu = normalizeTradeUsageFromApi(ujson);
+        setTradeUsage(nu ?? defaultTradeUsageState());
       } catch {}
       
       setSelectedMyPlayer('');
@@ -597,7 +655,11 @@ function TradeCenter({ user: userProp }) {
 
   async function requestRelease() {
     if (!releasePlayerId) { setToast('Select a player to release'); return; }
-    
+    if (parseNonNegativeTradesUsed(tradeUsage.tradesUsed) >= TRADE_SEASON_CAP) {
+      setToast(`You have used all ${TRADE_SEASON_CAP} season trades.`);
+      return;
+    }
+
     setLoadingStates(prev => ({ ...prev, release: true }));
     
     try {
@@ -622,7 +684,7 @@ function TradeCenter({ user: userProp }) {
         const [tradesRes, releasesRes, usageRes] = await Promise.all([
           fetch(`${API_ENDPOINTS}/api/trades/user/${effectiveUser?.id || effectiveUser?._id}`),
           fetch(`${API_ENDPOINTS}/api/releases/user/${effectiveUser?.id || effectiveUser?._id}`),
-          fetch(`${API_ENDPOINTS}/api/users/${effectiveUser?.id || effectiveUser?._id}/trades-usage`)
+          fetch(`${API_ENDPOINTS}/api/users/${effectiveUser?.id || effectiveUser?._id}/trades-usage`, TRADES_USAGE_FETCH)
         ]);
         
         const tradesJson = await tradesRes.json();
@@ -634,16 +696,19 @@ function TradeCenter({ user: userProp }) {
         
         // Update pending count including both trades and releases
         const uid = effectiveUser?.id || effectiveUser?._id;
-        const activeTrades = tradesJson.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(uid));
-        const activeReleases = releasesJson.filter(r => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid));
+        const activeTrades = tradesJson.filter(
+          (t) => ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) && String(t.fromUser?._id) === String(uid)
+        );
+        const activeReleases = releasesJson.filter(
+          (r) => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid)
+        );
         const totalActive = activeTrades.length + activeReleases.length;
-        
-        setLimitReached(totalActive >= 6);
+
+        setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
         setPendingTradesCount(totalActive);
         
-        if (typeof usageJson.tradesUsed !== 'undefined') {
-          setTradeUsage({ tradesUsed: usageJson.tradesUsed, cap: usageJson.cap || 4, remaining: usageJson.remaining });
-        }
+        const nuRel = normalizeTradeUsageFromApi(usageJson);
+        setTradeUsage(nuRel ?? defaultTradeUsageState());
       } catch {}
       
       // Show sexy success alert
@@ -684,11 +749,15 @@ function TradeCenter({ user: userProp }) {
       
       // Update pending count including both trades and releases
       const uid = effectiveUser?.id || effectiveUser?._id;
-      const activeTrades = updated.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(uid));
-      const activeReleases = myReleases.filter(r => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid));
+      const activeTrades = updated.filter(
+        (t) => ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) && String(t.fromUser?._id) === String(uid)
+      );
+      const activeReleases = myReleases.filter(
+        (r) => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid)
+      );
       const totalActive = activeTrades.length + activeReleases.length;
-      
-      setLimitReached(totalActive >= 6);
+
+      setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
       setPendingTradesCount(totalActive);
       
       // Show sexy success alert
@@ -741,11 +810,20 @@ function TradeCenter({ user: userProp }) {
           <h1 className="gradient-title"><FaExchangeAlt style={{ marginRight: 10 }} />Trade Center</h1>
           <p>Propose trades and finalize with admin approval.</p>
           <div className="usage-row">
-            <span className="usage-badge usage-used"><FaExchangeAlt style={{ marginRight: 6 }} />Completed: {tradeUsage.tradesUsed}</span>
-            <span className="usage-badge usage-left"><FaRetweet style={{ marginRight: 6 }} />Remaining: {Math.max(0, 6 - tradeUsage.tradesUsed)}</span>
+            <span className="usage-badge usage-used"><FaExchangeAlt style={{ marginRight: 6 }} />Used: {parseNonNegativeTradesUsed(tradeUsage.tradesUsed)} / {TRADE_SEASON_CAP}</span>
+            <span className="usage-badge usage-left">
+              <FaRetweet style={{ marginRight: 6 }} />
+              Remaining: {seasonTradesRemaining}
+            </span>
             <span className="usage-badge usage-pending"><FaClock style={{ marginRight: 6 }} />Pending: {pendingTradesCount}</span>
-            {pendingTradesCount >= 6 && (<span className="usage-cap">You have reached your 4 pending requests limit (trades + releases).</span>)}
-            {tradeUsage.tradesUsed >= 6 && (<span className="usage-cap">You have used all 4 trades.</span>)}
+            {pendingTradesCount >= MAX_ACTIVE_PENDING_REQUESTS && (
+              <span className="usage-cap">
+                You have reached your {MAX_ACTIVE_PENDING_REQUESTS} pending requests limit (trades + releases).
+              </span>
+            )}
+            {seasonTradeLimitReached && (
+              <span className="usage-cap">You have used all {TRADE_SEASON_CAP} season trades.</span>
+            )}
           </div>
         </div>
         
@@ -932,7 +1010,12 @@ function TradeCenter({ user: userProp }) {
                 className="btn btn-info" 
                 title="Send trade proposal" 
                 onClick={proposeTrade} 
-                disabled={limitReached || tradeUsage.tradesUsed >= 6 || loadingStates.propose || isSelectingRelease}
+                disabled={
+                  limitReached ||
+                  seasonTradeLimitReached ||
+                  loadingStates.propose ||
+                  isSelectingRelease
+                }
               >
                 {loadingStates.propose ? (
                   <>
@@ -942,7 +1025,7 @@ function TradeCenter({ user: userProp }) {
                 ) : (
                   <>
                     <FaPaperPlane style={{ marginRight: 8 }} />
-                    {limitReached ? 'Pending Limit (4)' : isSelectingRelease ? 'Complete Release First' : 'Send Proposal'}
+                    {limitReached ? 'Pending Limit (4)' : seasonTradeLimitReached ? `Season cap (${TRADE_SEASON_CAP})` : isSelectingRelease ? 'Complete Release First' : 'Send Proposal'}
                   </>
                 )}
               </button>
@@ -966,7 +1049,7 @@ function TradeCenter({ user: userProp }) {
               <button 
                 className="btn btn-danger" 
                 onClick={requestRelease} 
-                disabled={loadingStates.release || isSelectingTrade}
+                disabled={loadingStates.release || isSelectingTrade || seasonTradeLimitReached}
               >
                 {loadingStates.release ? (
                   <>
@@ -974,7 +1057,7 @@ function TradeCenter({ user: userProp }) {
                     Requesting...
                   </>
                 ) : (
-                  isSelectingTrade ? 'Complete Trade First' : 'Request Release'
+                  isSelectingTrade ? 'Complete Trade First' : seasonTradeLimitReached ? `Season cap (${TRADE_SEASON_CAP})` : 'Request Release'
                 )}
               </button>
             </div>
@@ -1129,11 +1212,15 @@ function TradeCenter({ user: userProp }) {
                         // Update pending count including both trades and releases
                         const uid = effectiveUser?.id || effectiveUser?._id;
                         const updatedList = Array.isArray(freshTrades) ? freshTrades : trades;
-                        const activeTrades = updatedList.filter(u => ['pending','counter','admin_pending'].includes(u.status) && String(u.fromUser?._id) === String(uid));
-                        const activeReleases = myReleases.filter(r => ['pending','admin_pending'].includes(r.status) && String(r.user) === String(uid));
+                        const activeTrades = updatedList.filter(
+                          (u) => ACTIVE_OUTGOING_TRADE_STATUSES.includes(u.status) && String(u.fromUser?._id) === String(uid)
+                        );
+                        const activeReleases = myReleases.filter(
+                          (r) => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid)
+                        );
                         const totalActive = activeTrades.length + activeReleases.length;
-                        
-                        setLimitReached(totalActive >= 6);
+
+                        setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
                         setPendingTradesCount(totalActive);
                           
                           // Show sexy success alert
@@ -1244,11 +1331,15 @@ function TradeCenter({ user: userProp }) {
                             
                             // Update pending count
                             const uid = effectiveUser?.id || effectiveUser?._id;
-                            const activeTrades = trades.filter(t => ['pending', 'admin_pending'].includes(t.status) && String(t.fromUser?._id) === String(uid));
-                            const activeReleases = updatedReleases.filter(rel => ['pending', 'admin_pending'].includes(rel.status) && String(rel.user) === String(uid));
+                            const activeTrades = trades.filter(
+                              (t) => ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) && String(t.fromUser?._id) === String(uid)
+                            );
+                            const activeReleases = updatedReleases.filter(
+                              (rel) => ['pending', 'admin_pending'].includes(rel.status) && String(rel.user) === String(uid)
+                            );
                             const totalActive = activeTrades.length + activeReleases.length;
-                            
-                            setLimitReached(totalActive >= 6);
+
+                            setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
                             setPendingTradesCount(totalActive);
                             
                             // Show sexy success alert
