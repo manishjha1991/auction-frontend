@@ -46,6 +46,16 @@ function defaultTradeUsageState() {
   return { tradesUsed: 0, cap: TRADE_SEASON_CAP, remaining: TRADE_SEASON_CAP };
 }
 
+/** Aligns with backend Player.tradeLocked / tradeLockedUntil after a completed trade */
+function isPlayerInPostTradeReleaseCooldown(meta) {
+  if (!meta?.tradeLocked) return false;
+  if (meta.tradeLockedUntil) {
+    const t = new Date(meta.tradeLockedUntil).getTime();
+    if (!Number.isNaN(t)) return t > Date.now();
+  }
+  return true;
+}
+
 // Sexy Dropdown Loader Component
 const SexyDropdownLoader = ({ isLoading, children, placeholder = "Loading...", dataLength = 0, dataType = "", isStale = false, onRefresh, loadingProgress = 0 }) => {
   if (isLoading) {
@@ -253,6 +263,15 @@ function TradeCenter({ user: userProp }) {
       seasonTradeLimitReached: used >= TRADE_SEASON_CAP,
     };
   }, [tradeUsage.tradesUsed]);
+
+  const selectedReleasePlayerMeta = useMemo(
+    () => (releasePlayerId ? (allPlayers || []).find((ap) => ap.id === releasePlayerId) : null),
+    [releasePlayerId, allPlayers]
+  );
+  const releaseBlockedByPostTradeCooldown = useMemo(
+    () => isPlayerInPostTradeReleaseCooldown(selectedReleasePlayerMeta),
+    [selectedReleasePlayerMeta]
+  );
 
   // Simple stale data detection
   const isDataStale = (dataType) => {
@@ -655,6 +674,10 @@ function TradeCenter({ user: userProp }) {
 
   async function requestRelease() {
     if (!releasePlayerId) { setToast('Select a player to release'); return; }
+    if (releaseBlockedByPostTradeCooldown) {
+      setToast('This player cannot be released for 48 hours after a completed trade.');
+      return;
+    }
     if (parseNonNegativeTradesUsed(tradeUsage.tradesUsed) >= TRADE_SEASON_CAP) {
       setToast(`You have used all ${TRADE_SEASON_CAP} season trades.`);
       return;
@@ -1040,8 +1063,9 @@ function TradeCenter({ user: userProp }) {
                   {myRoster.map(p => {
                     const meta = (allPlayers || []).find(ap => ap.id === p.id);
                     const typ = meta?.type ? ` - ${meta.type}` : '';
+                    const cool = isPlayerInPostTradeReleaseCooldown(meta);
                     return (
-                      <option key={p.id} value={p.id}>{p.name} ({p.role}){typ}</option>
+                      <option key={p.id} value={p.id}>{p.name} ({p.role}){typ}{cool ? ' — trade cooldown' : ''}</option>
                     );
                   })}
                 </select>
@@ -1049,7 +1073,8 @@ function TradeCenter({ user: userProp }) {
               <button 
                 className="btn btn-danger" 
                 onClick={requestRelease} 
-                disabled={loadingStates.release || isSelectingTrade || seasonTradeLimitReached}
+                disabled={loadingStates.release || isSelectingTrade || seasonTradeLimitReached || releaseBlockedByPostTradeCooldown}
+                title={releaseBlockedByPostTradeCooldown ? 'Cannot release for 48h after a completed trade' : undefined}
               >
                 {loadingStates.release ? (
                   <>
@@ -1057,7 +1082,7 @@ function TradeCenter({ user: userProp }) {
                     Requesting...
                   </>
                 ) : (
-                  isSelectingTrade ? 'Complete Trade First' : seasonTradeLimitReached ? `Season cap (${TRADE_SEASON_CAP})` : 'Request Release'
+                  isSelectingTrade ? 'Complete Trade First' : releaseBlockedByPostTradeCooldown ? 'Trade cooldown (48h)' : seasonTradeLimitReached ? `Season cap (${TRADE_SEASON_CAP})` : 'Request Release'
                 )}
               </button>
             </div>
