@@ -4,8 +4,8 @@ import { FaExchangeAlt, FaCheck,FaClock, FaBoxOpen,FaTimes, FaPaperPlane, FaRetw
 import { API_ENDPOINTS } from '../const';
 import { TRADE_SEASON_CAP } from '../constants/tradeSeasonCap';
 
-const MAX_ACTIVE_PENDING_REQUESTS = 4;
-/** Avoid stale CDN/proxy caches of JSON that still has remaining: 6 */
+const MAX_ACTIVE_PENDING_REQUESTS = 6;
+/** Avoid stale CDN/proxy caches of trades-usage JSON */
 const TRADES_USAGE_FETCH = { cache: 'no-store' };
 const ACTIVE_OUTGOING_TRADE_STATUSES = ['pending', 'counter', 'admin_pending'];
 
@@ -17,7 +17,7 @@ function parseNonNegativeTradesUsed(raw) {
 
 /**
  * Normalize API usage: cap never above TRADE_SEASON_CAP; never trust raw `remaining` alone.
- * Handles missing tradesUsed (infer from cap + remaining) and stale cap:6 / remaining:6 payloads.
+ * Handles missing tradesUsed (infer from cap + remaining) and stale API cap/remaining payloads.
  */
 function normalizeTradeUsageFromApi(json) {
   if (!json || typeof json !== 'object' || Array.isArray(json)) return null;
@@ -244,7 +244,7 @@ function TradeCenter({ user: userProp }) {
     return teams.filter(t => String(t._id) !== String(uid));
   }, [teams, effectiveUser?.id, effectiveUser?._id]);
 
-  /** Season quota UI + gating: always TRADE_SEASON_CAP (4), never a stale API cap. */
+  /** Season quota UI + gating: always TRADE_SEASON_CAP, never a stale API cap. */
   const { seasonTradesRemaining, seasonTradeLimitReached } = useMemo(() => {
     const used = parseNonNegativeTradesUsed(tradeUsage.tradesUsed);
     const rawRem = Math.max(0, TRADE_SEASON_CAP - used);
@@ -1025,7 +1025,7 @@ function TradeCenter({ user: userProp }) {
                 ) : (
                   <>
                     <FaPaperPlane style={{ marginRight: 8 }} />
-                    {limitReached ? 'Pending Limit (4)' : seasonTradeLimitReached ? `Season cap (${TRADE_SEASON_CAP})` : isSelectingRelease ? 'Complete Release First' : 'Send Proposal'}
+                    {limitReached ? `Pending Limit (${MAX_ACTIVE_PENDING_REQUESTS})` : seasonTradeLimitReached ? `Season cap (${TRADE_SEASON_CAP})` : isSelectingRelease ? 'Complete Release First' : 'Send Proposal'}
                   </>
                 )}
               </button>
