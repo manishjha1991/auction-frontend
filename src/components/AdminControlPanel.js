@@ -34,6 +34,23 @@ const AdminControlPanel = ({ adminUser }) => {
   const [syncExecuting, setSyncExecuting] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
 
+  const [careerHistoryExecuting, setCareerHistoryExecuting] = useState(false);
+  const [careerHistoryResult, setCareerHistoryResult] = useState(null);
+  const [careerConfigPreview, setCareerConfigPreview] = useState(null);
+  const [careerConfigLoading, setCareerConfigLoading] = useState(false);
+
+  const [dupPreview, setDupPreview] = useState(null);
+  const [dupPreviewLoading, setDupPreviewLoading] = useState(false);
+  const [dupExecuting, setDupExecuting] = useState(false);
+  const [dupResult, setDupResult] = useState(null);
+  const [dupBattingOnly, setDupBattingOnly] = useState(false);
+  const [dupKeepNewest, setDupKeepNewest] = useState(false);
+
+  const [migratePreview, setMigratePreview] = useState(null);
+  const [migratePreviewLoading, setMigratePreviewLoading] = useState(false);
+  const [migrateExecuting, setMigrateExecuting] = useState(false);
+  const [migrateResult, setMigrateResult] = useState(null);
+
   const [fixPreview, setFixPreview] = useState(null);
   const [fixLoading, setFixLoading] = useState(false);
   const [fixExecuting, setFixExecuting] = useState(false);
@@ -192,6 +209,152 @@ const AdminControlPanel = ({ adminUser }) => {
       setSyncExecuting(false);
     }
   };
+
+  const requestDupPlayerStatsPreview = async () => {
+    if (!adminUserId) return;
+    setDupPreviewLoading(true);
+    setDupResult(null);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/scripts/duplicate-player-stats/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId, battingOnly: dupBattingOnly }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to scan for duplicates');
+      setDupPreview(data);
+      handleToast('Duplicate scan complete');
+    } catch (err) {
+      handleToast(err.message || 'Unable to scan for duplicate stats');
+    } finally {
+      setDupPreviewLoading(false);
+    }
+  };
+
+  const executeDupPlayerStatsDelete = async () => {
+    if (!adminUserId || !dupPreview) return;
+    const groups = dupPreview.summary?.duplicateGroups ?? 0;
+    const extra = dupPreview.summary?.extraDocumentsToDelete ?? 0;
+    if (groups === 0) return;
+    const ok = window.confirm(
+      `Delete ${extra} duplicate PlayerStats row(s) across ${groups} group(s)? One row per group will be kept (${dupKeepNewest ? 'newest' : 'oldest'}). This cannot be undone.`
+    );
+    if (!ok) return;
+    setDupExecuting(true);
+    setDupResult(null);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/scripts/duplicate-player-stats/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminUserId,
+          battingOnly: dupBattingOnly,
+          keepNewest: dupKeepNewest,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to delete duplicates');
+      setDupResult(data);
+      handleToast('Duplicate stats removed');
+      await requestDupPlayerStatsPreview();
+    } catch (err) {
+      handleToast(err.message || 'Unable to delete duplicate stats');
+    } finally {
+      setDupExecuting(false);
+    }
+  };
+
+  const requestMigratePlayerTotalsPreview = async () => {
+    if (!adminUserId) return;
+    setMigratePreviewLoading(true);
+    setMigrateResult(null);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/scripts/player-totals-migrate/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to preview migration');
+      setMigratePreview(data);
+      handleToast('Top Rankings migration preview ready');
+    } catch (err) {
+      handleToast(err.message || 'Unable to preview migration');
+    } finally {
+      setMigratePreviewLoading(false);
+    }
+  };
+
+  const confirmMigratePlayerTotalsFromHistory = async () => {
+    if (!adminUserId || !migratePreview?.summary?.uniqueNamesFromSources) return;
+    const ok = window.confirm(
+      'This resets ALL active players’ totalRuns, totalWickets, and matchesPlayed to 0, then sets them from aggregated PlayerStats across the configured historical databases (name-matched to current players). This replaces Player-level totals used on Top Rankings — it does not copy PlayerStats rows. Continue?'
+    );
+    if (!ok) return;
+    setMigrateExecuting(true);
+    setMigrateResult(null);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/scripts/player-totals-migrate/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to run migration');
+      setMigrateResult(data);
+      handleToast(data.aborted ? 'Migration skipped (no source data)' : 'Top Rankings totals migration completed');
+      await requestMigratePlayerTotalsPreview();
+    } catch (err) {
+      handleToast(err.message || 'Unable to run migration');
+    } finally {
+      setMigrateExecuting(false);
+    }
+  };
+
+  const requestCareerHistoryConfigPreview = async () => {
+    if (!adminUserId) return;
+    setCareerConfigLoading(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/scripts/career-history-sync/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load config');
+      setCareerConfigPreview(data);
+      handleToast('Career seed config loaded');
+    } catch (err) {
+      handleToast(err.message || 'Unable to load career seed config');
+    } finally {
+      setCareerConfigLoading(false);
+    }
+  };
+
+  const runCareerHistorySync = async () => {
+    if (!adminUserId) return;
+    setCareerHistoryExecuting(true);
+    setCareerHistoryResult(null);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/scripts/career-history-sync/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to run career history sync');
+      setCareerHistoryResult(data);
+      handleToast('Historical career seed & rankings refresh completed');
+    } catch (err) {
+      handleToast(err.message || 'Unable to run career history sync');
+    } finally {
+      setCareerHistoryExecuting(false);
+    }
+  };
+
+  const dupDeletableGroups = dupPreview?.summary?.duplicateGroups ?? 0;
+  const migrateCanRun =
+    (migratePreview?.summary?.uniqueNamesFromSources ?? 0) > 0;
 
   const actionableTeams =
     pursePreview?.updates.filter((row) => Math.abs(row.differenceCr) > 0.01) || [];
@@ -899,6 +1062,278 @@ const AdminControlPanel = ({ adminUser }) => {
         {syncResult && (
           <div className="result-banner">
             <strong>{syncResult.usersUpdated} teams updated • {syncResult.playersUpdated} players marked active.</strong>
+          </div>
+        )}
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Duplicate match stat rows</h2>
+            <p>
+              Finds extra <code>PlayerStats</code> documents for the same player vs same opponent with the same score
+              line (full batting + bowling match by default). Preview first, then delete extras — keeps one row per group
+              (oldest by default).
+            </p>
+          </div>
+          <div className="section-actions">
+            <label className="admin-check-label muted">
+              <input
+                type="checkbox"
+                checked={dupBattingOnly}
+                onChange={(e) => {
+                  setDupBattingOnly(e.target.checked);
+                  setDupPreview(null);
+                  setDupResult(null);
+                }}
+              />
+              Batting-only (ignore bowling numbers)
+            </label>
+            <label className="admin-check-label muted">
+              <input type="checkbox" checked={dupKeepNewest} onChange={(e) => setDupKeepNewest(e.target.checked)} />
+              Keep newest when deleting
+            </label>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={requestDupPlayerStatsPreview}
+              disabled={dupPreviewLoading || !adminUserId}
+            >
+              {dupPreviewLoading ? 'Scanning…' : 'Preview duplicate rows'}
+            </button>
+            <button
+              type="button"
+              className="btn danger"
+              onClick={executeDupPlayerStatsDelete}
+              disabled={dupExecuting || dupDeletableGroups === 0 || !adminUserId}
+            >
+              {dupExecuting ? 'Deleting…' : 'Confirm: delete duplicate rows'}
+            </button>
+          </div>
+        </div>
+
+        {dupPreview && (
+          <>
+            <div className="summary-grid">
+              <div className="summary-card">
+                <span>Duplicate groups</span>
+                <strong>{dupPreview.summary?.duplicateGroups ?? 0}</strong>
+              </div>
+              <div className="summary-card">
+                <span>Extra rows to remove</span>
+                <strong>{dupPreview.summary?.extraDocumentsToDelete ?? 0}</strong>
+              </div>
+            </div>
+            <p className="muted" style={{ marginTop: '0.5rem' }}>
+              <strong>Scan mode:</strong> {dupPreview.modeLabel}
+            </p>
+          </>
+        )}
+
+        {dupPreview?.summary?.groupsTruncated && (
+          <p className="muted" style={{ marginTop: '0.75rem' }}>
+            Showing first {dupPreview.summary.groupsShown} groups in the table below (list truncated for performance).
+          </p>
+        )}
+
+        {dupPreview && dupPreview.groups?.length > 0 && (
+          <div className="table-wrapper" style={{ marginTop: '0.75rem' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>vs Opponent</th>
+                  <th>Line</th>
+                  <th>Rows</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dupPreview.groups.map((g, idx) => (
+                  <tr key={`dup-row-${idx}-${g.playerId}-${g.opponentUserId}`}>
+                    <td>{g.playerName}</td>
+                    <td>{g.opponentName || '—'}</td>
+                    <td>
+                      {g.battingLine}
+                      {g.bowlingLine ? ` · ${g.bowlingLine}` : ''}
+                    </td>
+                    <td>{g.duplicateCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {dupPreview && dupPreview.summary?.duplicateGroups === 0 && (
+          <div className="result-banner" style={{ opacity: 0.85 }}>
+            No duplicate stat rows found for the current mode.
+          </div>
+        )}
+
+        {dupResult && (
+          <div className="result-banner">
+            <strong>
+              Deleted {dupResult.deletedCount ?? 0} row(s) • {dupResult.affectedPlayerCount ?? 0} player(s) updated
+              (totals + career).
+            </strong>
+          </div>
+        )}
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Top Rankings — migrate from historical DBs</h2>
+            <p>
+              Reads <code>PlayerStats</code> from each database in <code>CPL_PLAYER_TOTALS_MIGRATE_DBS</code> (default{' '}
+              cpl_12–cpl_19, same cluster as this app). Aggregates runs / wickets / matches by player name across those
+              DBs, then writes those three fields onto active players in the <strong>current</strong> database.{' '}
+              <strong>Preview first.</strong> Destructive: it resets all active players’ totals before applying.
+            </p>
+          </div>
+          <div className="section-actions">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={requestMigratePlayerTotalsPreview}
+              disabled={migratePreviewLoading || !adminUserId}
+            >
+              {migratePreviewLoading ? 'Scanning…' : 'Preview migration (Top Rankings totals)'}
+            </button>
+            <button
+              type="button"
+              className="btn danger"
+              onClick={confirmMigratePlayerTotalsFromHistory}
+              disabled={migrateExecuting || !migrateCanRun || !adminUserId}
+            >
+              {migrateExecuting ? 'Migrating…' : 'Confirm: reset & apply historical totals'}
+            </button>
+          </div>
+        </div>
+
+        {migratePreview && (
+          <>
+            <div className="summary-grid">
+              <div className="summary-card">
+                <span>Current DB</span>
+                <strong style={{ fontSize: '1rem' }}>{migratePreview.currentDatabase ?? '—'}</strong>
+              </div>
+              <div className="summary-card">
+                <span>Stat rows read (all sources)</span>
+                <strong>{migratePreview.summary?.totalStatRowsRead ?? 0}</strong>
+              </div>
+              <div className="summary-card">
+                <span>Unique names in sources</span>
+                <strong>{migratePreview.summary?.uniqueNamesFromSources ?? 0}</strong>
+              </div>
+              <div className="summary-card">
+                <span>Would match players</span>
+                <strong>{migratePreview.summary?.wouldMatchTargetPlayers ?? 0}</strong>
+              </div>
+              <div className="summary-card">
+                <span>Names not in current DB</span>
+                <strong>{migratePreview.summary?.wouldNotFindInTarget ?? 0}</strong>
+              </div>
+              <div className="summary-card">
+                <span>Active players (target)</span>
+                <strong>{migratePreview.summary?.activePlayersInTarget ?? 0}</strong>
+              </div>
+            </div>
+            <p className="muted" style={{ marginTop: '0.75rem' }}>
+              <strong>Source DBs:</strong>{' '}
+              {(migratePreview.sourceDatabases || []).join(', ') || '—'}
+            </p>
+            {migratePreview.perDb?.length > 0 && (
+              <div className="table-wrapper" style={{ marginTop: '0.75rem' }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Database</th>
+                      <th>Innings rows</th>
+                      <th>Distinct players</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {migratePreview.perDb.map((row) => (
+                      <tr key={row.database}>
+                        <td>{row.database}</td>
+                        <td>{row.inningsCount}</td>
+                        <td>{row.distinctPlayersInDb}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {migratePreview.notFoundSample?.length > 0 && (
+              <p className="muted" style={{ marginTop: '0.75rem' }}>
+                Sample names from sources with no matching player in current DB (first{' '}
+                {migratePreview.notFoundSample.length}):{' '}
+                {migratePreview.notFoundSample.map((p) => p.name).join(', ')}
+              </p>
+            )}
+          </>
+        )}
+
+        {migrateResult && (
+          <div className="result-banner">
+            <strong>
+              {migrateResult.aborted
+                ? migrateResult.message || 'Aborted.'
+                : `Updated ${migrateResult.playersUpdated ?? 0} player(s) • ${migrateResult.playersNotFoundInTarget ?? 0} source name(s) had no match.`}
+            </strong>
+          </div>
+        )}
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Historical career + Top Rankings</h2>
+            <p>
+              Pulls past-season innings from other MongoDB databases (<code>CPL_HISTORY_SEED_DBS</code>, default{' '}
+              cpl_12–cpl_18) into <code>PlayerCareerSummary</code>, rebuilds live career from this DB&apos;s{' '}
+              <code>playerstats</code>, then refreshes each <code>Player</code>&apos;s totals used on Top Rankings.
+              Use <strong>Preview DB list</strong> to see which databases the server will read.
+            </p>
+          </div>
+          <div className="section-actions">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={requestCareerHistoryConfigPreview}
+              disabled={careerConfigLoading || !adminUserId}
+            >
+              {careerConfigLoading ? 'Loading…' : 'Preview DB list'}
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={runCareerHistorySync}
+              disabled={careerHistoryExecuting || !adminUserId}
+            >
+              {careerHistoryExecuting
+                ? 'Running…'
+                : 'Seed historical career (past seasons) + refresh Top Rankings'}
+            </button>
+          </div>
+        </div>
+
+        {careerConfigPreview && (
+          <div className="muted" style={{ marginTop: '0.75rem' }}>
+            <strong>Current database:</strong> {careerConfigPreview.currentDatabase ?? '—'}
+            <br />
+            <strong>Historical sources:</strong>{' '}
+            {(careerConfigPreview.sourceDatabases || []).join(', ') || '(none configured)'}
+          </div>
+        )}
+
+        {careerHistoryResult && (
+          <div className="result-banner">
+            <strong>
+              Career summaries upserted: {careerHistoryResult.career?.upserts ?? '—'} • Player totals rebuilt from
+              stats: {careerHistoryResult.playerTotals?.playersUpdated ?? '—'}
+            </strong>
           </div>
         )}
       </section>

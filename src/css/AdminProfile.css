@@ -50,6 +50,20 @@
   gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
+}
+
+.admin-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-check-label input {
+  margin: 0;
 }
 
 .btn {
