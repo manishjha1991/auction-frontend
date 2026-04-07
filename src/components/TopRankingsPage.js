@@ -185,7 +185,9 @@ const TopRankingsPage = () => {
     const fetchPlayers = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_ENDPOINTS}/api/player/players/data?includeInactive=true`);
+        const response = await fetch(
+          `${API_ENDPOINTS}/api/player/players/data?includeInactive=true&nocache=1&t=${Date.now()}`
+        );
         if (!response.ok) {
           throw new Error('Unable to load players');
         }
@@ -215,8 +217,12 @@ const TopRankingsPage = () => {
     return players
       .filter((p) => {
         const role = (p.role || '').toLowerCase();
-        const isBatterRole = role.includes('bat') || role.includes('keeper');
-        return p.totalRuns > 0 && isBatterRole && !role.includes('all');
+        // Batsman/WicketKeeper; Allrounder has no "bat" substring so must be listed explicitly.
+        const isBatterRole =
+          role.includes('bat') ||
+          role.includes('keeper') ||
+          role.includes('allrounder');
+        return p.totalRuns > 0 && isBatterRole;
       })
       .sort((a, b) => b.totalRuns - a.totalRuns);
   }, [players]);
