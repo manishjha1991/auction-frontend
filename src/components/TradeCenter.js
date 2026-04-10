@@ -858,6 +858,16 @@ function TradeCenter({ user: userProp }) {
               </span>
             )}
           </div>
+          <details className="trade-slots-help">
+            <summary>How season trade slots work</summary>
+            <p>
+              Each completed trade with another team uses one slot for your side. Each admin-approved{' '}
+              <strong>release</strong> uses one slot. Each admin-approved <strong>unsold pick</strong> uses one slot,
+              unless you already released a player of the <strong>same tier</strong> and this pick replaces that tier—in
+              that case the pick does not add another slot. Releasing one tier and picking a different tier counts as two
+              slots. Pending trade proposals and release requests count toward your active outgoing limit.
+            </p>
+          </details>
         </div>
         
       </div>

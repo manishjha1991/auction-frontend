@@ -696,9 +696,13 @@ const AdminControlPanel = ({ adminUser }) => {
           <div>
             <h2>Trade Center rules</h2>
             <p>
-              Season trade cap counts completed trades and approved releases per team. The same cap limits how many
-              outgoing trade proposals a team can have active at once. The opponent limit counts completed and pending
-              deals between any two teams (both directions).
+              Season trade slots count: each <strong>completed</strong> player-for-player trade (+1 per team), each{' '}
+              <strong>approved release</strong> (+1), and each <strong>approved unsold pick</strong> (+1) unless it
+              replaces a release of the <strong>same tier</strong> (Gold / Sapphire / Silver / Emerald)—then release +
+              pick still use only <strong>one</strong> slot together. Releasing one tier and picking another tier uses{' '}
+              <strong>two</strong> slots. The season cap also limits how many outgoing trade proposals plus pending
+              releases a team may have at once. The opponent limit counts completed and pending deals between any two
+              teams (both directions).
             </p>
           </div>
           {tradeRulesSaving && <span className="cron-saving-pill">Saving…</span>}
