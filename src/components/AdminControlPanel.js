@@ -72,6 +72,10 @@ const AdminControlPanel = ({ adminUser }) => {
   const [cronLoading, setCronLoading] = useState(false);
   const [cronSaving, setCronSaving] = useState(false);
   const [tradeRulesSaving, setTradeRulesSaving] = useState(false);
+  const [releasePickRepairPreview, setReleasePickRepairPreview] = useState(null);
+  const [releasePickRepairLoading, setReleasePickRepairLoading] = useState(false);
+  const [releasePickRepairApplying, setReleasePickRepairApplying] = useState(false);
+  const [releasePickRepairSelected, setReleasePickRepairSelected] = useState({});
   const [playerTypeRefreshTrigger, setPlayerTypeRefreshTrigger] = useState(0);
   const [worldCupMode, setWorldCupMode] = useState(false);
   const [worldCupSaving, setWorldCupSaving] = useState(false);
@@ -120,6 +124,67 @@ const AdminControlPanel = ({ adminUser }) => {
   useEffect(() => {
     fetchCronSettings();
   }, [fetchCronSettings]);
+
+  const loadReleasePickRepairPreview = React.useCallback(async () => {
+    if (!adminUserId) {
+      handleToast('Admin session required');
+      return;
+    }
+    setReleasePickRepairLoading(true);
+    setReleasePickRepairPreview(null);
+    try {
+      const r = await fetch(
+        `${API_ENDPOINTS}/api/admin-tools/release-pick-repair/preview?adminUserId=${encodeURIComponent(adminUserId)}`
+      );
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.message || 'Scan failed');
+      setReleasePickRepairPreview(j);
+      const sel = {};
+      (j.teams || []).forEach((t) => {
+        sel[t.userId] = true;
+      });
+      setReleasePickRepairSelected(sel);
+    } catch (err) {
+      handleToast(err.message || 'Scan failed');
+    } finally {
+      setReleasePickRepairLoading(false);
+    }
+  }, [adminUserId]);
+
+  const toggleReleasePickRepairTeam = (userId) => {
+    setReleasePickRepairSelected((prev) => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
+  const applyReleasePickRepair = async () => {
+    if (!adminUserId) return;
+    const userIds = Object.entries(releasePickRepairSelected)
+      .filter(([, on]) => on)
+      .map(([id]) => id);
+    if (!userIds.length) {
+      handleToast('Select at least one team');
+      return;
+    }
+    const msg = `Apply repair to ${userIds.length} team(s)? This will link each suggested release-to-pick pair and reduce tradesUsed by the number of pairs per team.`;
+    if (!window.confirm(msg)) return;
+    setReleasePickRepairApplying(true);
+    try {
+      const r = await fetch(`${API_ENDPOINTS}/api/admin-tools/release-pick-repair/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId, userIds }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.message || 'Apply failed');
+      handleToast(
+        `Done: ${j.summary?.pairsApplied ?? 0} pair(s) applied across ${j.summary?.teamsProcessed ?? 0} team(s).`
+      );
+      await loadReleasePickRepairPreview();
+    } catch (err) {
+      handleToast(err.message || 'Apply failed');
+    } finally {
+      setReleasePickRepairApplying(false);
+    }
+  };
 
   // When Auto Mode is on, poll every 60s so Cron Controls + Player Availability reflect cron-driven changes (6 PM, etc.)
   useEffect(() => {
@@ -754,6 +819,126 @@ const AdminControlPanel = ({ adminUser }) => {
             {tradeRulesSaving ? 'Saving…' : 'Save trade rules'}
           </button>
         </div>
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Fix release + same-tier pick double count</h2>
+            <p>
+              If a team has a <strong>completed release</strong> and a <strong>completed unsold pick</strong> of the
+              same tier (Gold / Sapphire / etc.) but they were never linked, <code>tradesUsed</code> is often too high
+              by one per such pair. Scan finds candidates (oldest release ↔ oldest unpaired pick per tier). Select teams
+              and confirm to link rows and lower <code>tradesUsed</code>. Prefer this over manual DB edits.
+            </p>
+          </div>
+        </div>
+        <div className="cron-toggle-grid" style={{ alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={loadReleasePickRepairPreview}
+            disabled={releasePickRepairLoading || !adminUserId}
+          >
+            {releasePickRepairLoading ? 'Scanning…' : 'Scan for teams needing fix'}
+          </button>
+          {releasePickRepairPreview?.totalTeams > 0 && (
+            <>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  const sel = {};
+                  (releasePickRepairPreview.teams || []).forEach((t) => {
+                    sel[t.userId] = true;
+                  });
+                  setReleasePickRepairSelected(sel);
+                }}
+                disabled={releasePickRepairApplying}
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  const sel = {};
+                  (releasePickRepairPreview.teams || []).forEach((t) => {
+                    sel[t.userId] = false;
+                  });
+                  setReleasePickRepairSelected(sel);
+                }}
+                disabled={releasePickRepairApplying}
+              >
+                Clear selection
+              </button>
+              <button
+                type="button"
+                className="btn danger"
+                onClick={applyReleasePickRepair}
+                disabled={
+                  releasePickRepairApplying ||
+                  !adminUserId ||
+                  !Object.values(releasePickRepairSelected).some(Boolean)
+                }
+              >
+                {releasePickRepairApplying ? 'Applying…' : 'Apply fix to selected teams'}
+              </button>
+            </>
+          )}
+        </div>
+        {releasePickRepairPreview?.note && (
+          <p className="admin-hint" style={{ marginTop: 12, color: '#64748b', fontSize: 13 }}>
+            {releasePickRepairPreview.note}
+          </p>
+        )}
+        {releasePickRepairPreview?.teams?.length > 0 && (
+          <div className="release-pick-repair-table-wrap" style={{ marginTop: 16, overflowX: 'auto' }}>
+            <table className="release-pick-repair-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '8px 6px' }}>Include</th>
+                  <th style={{ padding: '8px 6px' }}>Team</th>
+                  <th style={{ padding: '8px 6px' }}>Pairs</th>
+                  <th style={{ padding: '8px 6px' }}>tradesUsed now → after</th>
+                  <th style={{ padding: '8px 6px' }}>Suggested links</th>
+                </tr>
+              </thead>
+              <tbody>
+                {releasePickRepairPreview.teams.map((t) => (
+                  <tr key={t.userId} style={{ borderBottom: '1px solid #f1f5f9', verticalAlign: 'top' }}>
+                    <td style={{ padding: '10px 6px' }}>
+                      <input
+                        type="checkbox"
+                        checked={!!releasePickRepairSelected[t.userId]}
+                        onChange={() => toggleReleasePickRepairTeam(t.userId)}
+                        aria-label={`Include ${t.teamName}`}
+                      />
+                    </td>
+                    <td style={{ padding: '10px 6px', fontWeight: 600 }}>{t.teamName}</td>
+                    <td style={{ padding: '10px 6px' }}>{t.pairs.length}</td>
+                    <td style={{ padding: '10px 6px' }}>
+                      {t.tradesUsedBefore} → {t.tradesUsedAfter}
+                    </td>
+                    <td style={{ padding: '10px 6px' }}>
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {t.pairs.map((p, i) => (
+                          <li key={`${p.releaseId}-${p.pickId}-${i}`}>
+                            <span style={{ fontWeight: 600, color: '#0d6efd' }}>{p.tier}</span>: release{' '}
+                            {p.releasePlayerName} ↔ pick {p.pickPlayerName}
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {releasePickRepairPreview && releasePickRepairPreview.totalTeams === 0 && !releasePickRepairLoading && (
+          <p style={{ marginTop: 12, color: '#16a34a' }}>No unlinked same-tier release/pick pairs found.</p>
+        )}
       </section>
 
       <section className="admin-section">
