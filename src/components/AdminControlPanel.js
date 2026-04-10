@@ -76,6 +76,10 @@ const AdminControlPanel = ({ adminUser }) => {
   const [releasePickRepairLoading, setReleasePickRepairLoading] = useState(false);
   const [releasePickRepairApplying, setReleasePickRepairApplying] = useState(false);
   const [releasePickRepairSelected, setReleasePickRepairSelected] = useState({});
+  const [tradesUsedReconcilePreview, setTradesUsedReconcilePreview] = useState(null);
+  const [tradesUsedReconcileLoading, setTradesUsedReconcileLoading] = useState(false);
+  const [tradesUsedReconcileApplying, setTradesUsedReconcileApplying] = useState(false);
+  const [tradesUsedReconcileSelected, setTradesUsedReconcileSelected] = useState({});
   const [playerTypeRefreshTrigger, setPlayerTypeRefreshTrigger] = useState(0);
   const [worldCupMode, setWorldCupMode] = useState(false);
   const [worldCupSaving, setWorldCupSaving] = useState(false);
@@ -183,6 +187,69 @@ const AdminControlPanel = ({ adminUser }) => {
       handleToast(err.message || 'Apply failed');
     } finally {
       setReleasePickRepairApplying(false);
+    }
+  };
+
+  const loadTradesUsedReconcilePreview = React.useCallback(async () => {
+    if (!adminUserId) {
+      handleToast('Admin session required');
+      return;
+    }
+    setTradesUsedReconcileLoading(true);
+    setTradesUsedReconcilePreview(null);
+    try {
+      const r = await fetch(
+        `${API_ENDPOINTS}/api/admin-tools/trades-used-reconcile/preview?adminUserId=${encodeURIComponent(adminUserId)}`
+      );
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.message || 'Scan failed');
+      setTradesUsedReconcilePreview(j);
+      const sel = {};
+      (j.teams || []).forEach((t) => {
+        sel[t.userId] = true;
+      });
+      setTradesUsedReconcileSelected(sel);
+    } catch (err) {
+      handleToast(err.message || 'Scan failed');
+    } finally {
+      setTradesUsedReconcileLoading(false);
+    }
+  }, [adminUserId]);
+
+  const toggleTradesUsedReconcileTeam = (userId) => {
+    setTradesUsedReconcileSelected((prev) => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
+  const applyTradesUsedReconcile = async () => {
+    if (!adminUserId) return;
+    const userIds = Object.entries(tradesUsedReconcileSelected)
+      .filter(([, on]) => on)
+      .map(([id]) => id);
+    if (!userIds.length) {
+      handleToast('Select at least one team');
+      return;
+    }
+    if (
+      !window.confirm(
+        `Set tradesUsed to the event-based expected value for ${userIds.length} team(s)? This only raises under-counted values (capped at season cap).`
+      )
+    )
+      return;
+    setTradesUsedReconcileApplying(true);
+    try {
+      const r = await fetch(`${API_ENDPOINTS}/api/admin-tools/trades-used-reconcile/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId, userIds }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.message || 'Apply failed');
+      handleToast(`Updated ${j.updated ?? 0} team(s).`);
+      await loadTradesUsedReconcilePreview();
+    } catch (err) {
+      handleToast(err.message || 'Apply failed');
+    } finally {
+      setTradesUsedReconcileApplying(false);
     }
   };
 
@@ -824,12 +891,13 @@ const AdminControlPanel = ({ adminUser }) => {
       <section className="admin-section">
         <div className="section-header">
           <div>
-            <h2>Fix release + same-tier pick double count</h2>
+            <h2>Fix release + same-tier pick double count (over-count only)</h2>
             <p>
-              If a team has a <strong>completed release</strong> and a <strong>completed unsold pick</strong> of the
-              same tier (Gold / Sapphire / etc.) but they were never linked, <code>tradesUsed</code> is often too high
-              by one per such pair. Scan finds candidates (oldest release ↔ oldest unpaired pick per tier). Select teams
-              and confirm to link rows and lower <code>tradesUsed</code>. Prefer this over manual DB edits.
+              Use this only when <code>tradesUsed</code> is <strong>too high</strong>: a same-tier release and pick
+              should share one slot but were never linked in the database. Scan links them and <strong>lowers</strong>{' '}
+              <code>tradesUsed</code>. It does <strong>not</strong> help teams like FXD where the count is{' '}
+              <strong>too low</strong> (wrong pairing ate a slot)—use <strong>Sync under-counted trades used</strong>{' '}
+              below instead.
             </p>
           </div>
         </div>
@@ -939,6 +1007,118 @@ const AdminControlPanel = ({ adminUser }) => {
         {releasePickRepairPreview && releasePickRepairPreview.totalTeams === 0 && !releasePickRepairLoading && (
           <p style={{ marginTop: 12, color: '#16a34a' }}>No unlinked same-tier release/pick pairs found.</p>
         )}
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Sync under-counted trades used</h2>
+            <p>
+              Compares <code>tradesUsed</code> to completed <strong>trades + releases + standalone picks</strong> (same
+              formula as Team Trade Activity). If stored usage is <strong>lower</strong> than events imply—e.g. a pick
+              wrongly paired to an old release and never charged—scan lists those teams. Apply sets{' '}
+              <code>tradesUsed</code> to <code>min(expected, season cap)</code>. Review Team Trade Activity first; this
+              does not change release/pick rows, only the user counter.
+            </p>
+          </div>
+        </div>
+        <div className="cron-toggle-grid" style={{ alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={loadTradesUsedReconcilePreview}
+            disabled={tradesUsedReconcileLoading || !adminUserId}
+          >
+            {tradesUsedReconcileLoading ? 'Scanning…' : 'Scan for under-counted teams'}
+          </button>
+          {tradesUsedReconcilePreview?.totalTeams > 0 && (
+            <>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  const sel = {};
+                  (tradesUsedReconcilePreview.teams || []).forEach((t) => {
+                    sel[t.userId] = true;
+                  });
+                  setTradesUsedReconcileSelected(sel);
+                }}
+                disabled={tradesUsedReconcileApplying}
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  const sel = {};
+                  (tradesUsedReconcilePreview.teams || []).forEach((t) => {
+                    sel[t.userId] = false;
+                  });
+                  setTradesUsedReconcileSelected(sel);
+                }}
+                disabled={tradesUsedReconcileApplying}
+              >
+                Clear selection
+              </button>
+              <button
+                type="button"
+                className="btn danger"
+                onClick={applyTradesUsedReconcile}
+                disabled={
+                  tradesUsedReconcileApplying ||
+                  !adminUserId ||
+                  !Object.values(tradesUsedReconcileSelected).some(Boolean)
+                }
+              >
+                {tradesUsedReconcileApplying ? 'Applying…' : 'Apply sync to selected teams'}
+              </button>
+            </>
+          )}
+        </div>
+        {tradesUsedReconcilePreview?.note && (
+          <p className="admin-hint" style={{ marginTop: 12, color: '#64748b', fontSize: 13 }}>
+            {tradesUsedReconcilePreview.note}
+          </p>
+        )}
+        {tradesUsedReconcilePreview?.teams?.length > 0 && (
+          <div style={{ marginTop: 16, overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '8px 6px' }}>Include</th>
+                  <th style={{ padding: '8px 6px' }}>Team</th>
+                  <th style={{ padding: '8px 6px' }}>Stored</th>
+                  <th style={{ padding: '8px 6px' }}>Expected</th>
+                  <th style={{ padding: '8px 6px' }}>After sync</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tradesUsedReconcilePreview.teams.map((t) => (
+                  <tr key={t.userId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px 6px' }}>
+                      <input
+                        type="checkbox"
+                        checked={!!tradesUsedReconcileSelected[t.userId]}
+                        onChange={() => toggleTradesUsedReconcileTeam(t.userId)}
+                        aria-label={`Include ${t.teamName}`}
+                      />
+                    </td>
+                    <td style={{ padding: '10px 6px', fontWeight: 600 }}>{t.teamName}</td>
+                    <td style={{ padding: '10px 6px' }}>{t.tradesUsed}</td>
+                    <td style={{ padding: '10px 6px' }}>{t.expectedTradesUsed}</td>
+                    <td style={{ padding: '10px 6px' }}>{t.suggestedTradesUsed}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {tradesUsedReconcilePreview &&
+          tradesUsedReconcilePreview.totalTeams === 0 &&
+          !tradesUsedReconcileLoading && (
+            <p style={{ marginTop: 12, color: '#16a34a' }}>No under-counted teams found.</p>
+          )}
       </section>
 
       <section className="admin-section">
