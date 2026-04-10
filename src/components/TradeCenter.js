@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import '../css/TradeCenter.css';
-import { FaExchangeAlt, FaCheck,FaClock, FaBoxOpen,FaTimes, FaPaperPlane, FaRetweet, FaUsers, FaUnlock, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
 import { API_ENDPOINTS } from '../const';
-import { TRADE_SEASON_CAP } from '../constants/tradeSeasonCap';
+import '../css/TradeCenter.css';
+import { FaExchangeAlt, FaCheck,FaClock, FaTimes, FaPaperPlane, FaRetweet, FaUsers, FaUnlock, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
+import {
+  FALLBACK_TRADE_SEASON_CAP,
+  FALLBACK_MAX_TRADES_PER_OPPONENT_PAIR,
+} from '../constants/tradeSeasonCap';
 
-const MAX_ACTIVE_PENDING_REQUESTS = 6;
-/** Avoid stale CDN/proxy caches of trades-usage JSON */
+const RULE_UI_MAX = 10;
 const TRADES_USAGE_FETCH = { cache: 'no-store' };
 const ACTIVE_OUTGOING_TRADE_STATUSES = ['pending', 'counter', 'admin_pending'];
 
@@ -15,38 +17,39 @@ function parseNonNegativeTradesUsed(raw) {
   return n;
 }
 
-/**
- * Normalize API usage: cap never above TRADE_SEASON_CAP; never trust raw `remaining` alone.
- * Handles missing tradesUsed (infer from cap + remaining) and stale API cap/remaining payloads.
- */
 function normalizeTradeUsageFromApi(json) {
   if (!json || typeof json !== 'object' || Array.isArray(json)) return null;
-
   let cap = Number(json.cap);
-  if (!Number.isFinite(cap) || cap < 0) cap = TRADE_SEASON_CAP;
-  else cap = Math.min(cap, TRADE_SEASON_CAP);
-
+  if (!Number.isFinite(cap) || cap < 1) cap = FALLBACK_TRADE_SEASON_CAP;
+  else cap = Math.min(RULE_UI_MAX, Math.max(1, Math.floor(cap)));
+  let maxActive = Number(json.maxActiveOutgoing);
+  if (!Number.isFinite(maxActive) || maxActive < 1) maxActive = cap;
+  else maxActive = Math.min(RULE_UI_MAX, Math.max(1, Math.floor(maxActive)));
+  let maxPair = Number(json.maxTradesPerOpponentPair);
+  if (!Number.isFinite(maxPair) || maxPair < 1) maxPair = FALLBACK_MAX_TRADES_PER_OPPONENT_PAIR;
+  else maxPair = Math.min(RULE_UI_MAX, Math.max(1, Math.floor(maxPair)));
   let used;
   if (typeof json.tradesUsed !== 'undefined') {
     used = parseNonNegativeTradesUsed(json.tradesUsed);
   } else {
     const rem = Number(json.remaining);
-    if (Number.isFinite(rem)) {
-      used = parseNonNegativeTradesUsed(cap - Math.min(rem, cap));
-    } else {
-      used = 0;
-    }
+    if (Number.isFinite(rem)) used = parseNonNegativeTradesUsed(cap - Math.min(rem, cap));
+    else used = 0;
   }
-
   const remaining = Math.max(0, cap - used);
-  return { tradesUsed: used, cap, remaining };
+  return { tradesUsed: used, cap, remaining, maxActiveOutgoing: maxActive, maxTradesPerOpponentPair: maxPair };
 }
 
 function defaultTradeUsageState() {
-  return { tradesUsed: 0, cap: TRADE_SEASON_CAP, remaining: TRADE_SEASON_CAP };
+  return {
+    tradesUsed: 0,
+    cap: FALLBACK_TRADE_SEASON_CAP,
+    remaining: FALLBACK_TRADE_SEASON_CAP,
+    maxActiveOutgoing: FALLBACK_TRADE_SEASON_CAP,
+    maxTradesPerOpponentPair: FALLBACK_MAX_TRADES_PER_OPPONENT_PAIR,
+  };
 }
 
-/** Aligns with backend Player.tradeLocked / tradeLockedUntil after a completed trade */
 function isPlayerInPostTradeReleaseCooldown(meta) {
   if (!meta?.tradeLocked) return false;
   if (meta.tradeLockedUntil) {
@@ -160,17 +163,10 @@ const SexyAlert = ({ alert, onClose }) => {
   );
 };
 
-const formatSuggestionPrice = (v) => {
-  const n = Number(v) || 0;
-  if (n <= 0) return '';
-  if (n >= 1e7) return `₹${(n / 1e7).toFixed(1)} Cr`;
-  if (n >= 1e5) return `₹${(n / 1e5).toFixed(1)} L`;
-  return `₹${n} L`;
-};
-
 function TradeCenter({ user: userProp }) {
   const [user, setUser] = useState(null);
   const effectiveUser = userProp || user;
+  const uid = effectiveUser?.id || effectiveUser?._id;
   const [teams, setTeams] = useState([]); // all teams
   const [allPlayers, setAllPlayers] = useState([]); // from /api/players/data
   const [selectedMyPlayer, setSelectedMyPlayer] = useState('');
@@ -215,24 +211,34 @@ function TradeCenter({ user: userProp }) {
     players: 0,
     trades: 0
   });
+
+  const { seasonTradesRemaining, seasonTradeLimitReached } = useMemo(() => {
+    const used = parseNonNegativeTradesUsed(tradeUsage.tradesUsed);
+    const cap = tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP;
+    const rawRem = Math.max(0, cap - used);
+    return {
+      seasonTradesRemaining: Math.min(cap, rawRem),
+      seasonTradeLimitReached: used >= cap,
+    };
+  }, [tradeUsage.tradesUsed, tradeUsage.cap]);
+
+  const maxPendingCombined = tradeUsage.maxActiveOutgoing ?? tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP;
   
-  // Derive my roster from allPlayers - match by teamName OR currentBidderId (userId) for robustness
-  // Only include SOLD players (unsold can have currentBidderId = highest bidder, not owner)
+  // Derive my roster from allPlayers using my teamName - OPTIMIZED with memoization
   const myRoster = useMemo(() => {
     if (!effectiveUser || !allPlayers.length) return [];
     
-    const userTeamName = effectiveUser?.teamName;
-    const uid = effectiveUser?.id || effectiveUser?._id;
+    const userTeamName = effectiveUser.teamName;
+    if (!userTeamName) return [];
     
     return allPlayers
       .filter(p => {
         if (p.teamName === userTeamName) return true;
-        // Fallback: sold players we own (when teamName mismatch e.g. stale cache)
         if (p.status === 'Sold' && uid && p.currentBidderId && String(p.currentBidderId) === String(uid)) return true;
         return false;
       })
       .map(p => ({ id: p.id, name: p.name, role: p.role }));
-  }, [effectiveUser?.teamName, effectiveUser?.id, effectiveUser?._id, allPlayers]);
+  }, [effectiveUser, allPlayers, uid]);
 
   // Derive target roster from allPlayers using selected teamName - OPTIMIZED
   const targetRoster = useMemo(() => {
@@ -249,20 +255,9 @@ function TradeCenter({ user: userProp }) {
 
   // Derive other teams - OPTIMIZED
   const otherTeams = useMemo(() => {
-    const uid = effectiveUser?.id || effectiveUser?._id;
     if (!teams.length || !uid) return [];
-    return teams.filter(t => String(t._id) !== String(uid));
-  }, [teams, effectiveUser?.id, effectiveUser?._id]);
-
-  /** Season quota UI + gating: always TRADE_SEASON_CAP, never a stale API cap. */
-  const { seasonTradesRemaining, seasonTradeLimitReached } = useMemo(() => {
-    const used = parseNonNegativeTradesUsed(tradeUsage.tradesUsed);
-    const rawRem = Math.max(0, TRADE_SEASON_CAP - used);
-    return {
-      seasonTradesRemaining: Math.min(TRADE_SEASON_CAP, rawRem),
-      seasonTradeLimitReached: used >= TRADE_SEASON_CAP,
-    };
-  }, [tradeUsage.tradesUsed]);
+    return teams.filter((t) => String(t._id) !== String(uid));
+  }, [teams, uid]);
 
   const selectedReleasePlayerMeta = useMemo(
     () => (releasePlayerId ? (allPlayers || []).find((ap) => ap.id === releasePlayerId) : null),
@@ -293,10 +288,10 @@ function TradeCenter({ user: userProp }) {
 
   // Update loading states when data changes
   useEffect(() => {
-    if (allPlayers.length > 0 && effectiveUser) {
+    if (allPlayers.length > 0 && effectiveUser?.teamName) {
       setDropdownLoading(prev => ({ ...prev, myRoster: false }));
     }
-  }, [allPlayers, effectiveUser]);
+  }, [allPlayers, effectiveUser?.teamName]);
   
   useEffect(() => {
     if (teams.length > 0) {
@@ -323,8 +318,7 @@ function TradeCenter({ user: userProp }) {
   }, [targetTeamId]);
 
   const isMe = (maybeId) => {
-    if (!effectiveUser) return false;
-    const uid = effectiveUser?.id || effectiveUser?._id;
+    if (!uid) return false;
     return String(maybeId) === String(uid);
   };
   const isFromMe = (trade) => isMe(trade?.fromUser?._id || trade?.fromUser);
@@ -333,17 +327,22 @@ function TradeCenter({ user: userProp }) {
   useEffect(() => {
     if (!userProp) {
       const cachedUser = localStorage.getItem('user');
-      if (cachedUser) setUser(JSON.parse(cachedUser));
+      if (cachedUser) {
+        try {
+          setUser(JSON.parse(cachedUser));
+        } catch {
+          setUser(null);
+        }
+      }
     }
   }, [userProp]);
 
   const fetchTradeInsights = async (userId) => {
-    const uid = userId || effectiveUser?.id || effectiveUser?._id;
-    if (!uid) return;
+    if (!userId) return;
     try {
       setTradeInsightLoading(true);
       setTradeInsightError(null);
-      const res = await fetch(`${API_ENDPOINTS}/api/trades/insights/${uid}?t=${Date.now()}`);
+      const res = await fetch(`${API_ENDPOINTS}/api/trades/insights/${userId}?t=${Date.now()}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to load team balance');
@@ -367,113 +366,101 @@ function TradeCenter({ user: userProp }) {
   };
 
   useEffect(() => {
-    const uid = effectiveUser?.id || effectiveUser?._id;
     if (uid) {
       fetchTradeInsights(uid);
     } else {
       setTradeInsights(null);
     }
-  }, [effectiveUser?.id, effectiveUser?._id]);
+  }, [uid, effectiveUser?.teamName]);
 
   useEffect(() => {
     async function bootstrap() {
       try {
         setLoading(true);
         setLoadingProgress(10);
-        
-        // Cache user data to avoid repeated localStorage access
-        const cachedUser = localStorage.getItem('user');
-        const currentUser = cachedUser ? JSON.parse(cachedUser) : null;
-        
-        // Fetch user-specific data and general data in parallel for better performance
-        const uid = currentUser?.id || currentUser?._id;
-        const userSpecificPromises = uid ? [
-          fetch(`${API_ENDPOINTS}/api/trades/user/${uid}`),
-          fetch(`${API_ENDPOINTS}/api/users/${uid}/trades-usage`, TRADES_USAGE_FETCH),
-          fetch(`${API_ENDPOINTS}/api/releases/user/${uid}`)
-        ] : [
-          Promise.resolve({ ok: true, json: async () => [] }),
-          Promise.resolve({
-            ok: true,
-            json: async () => ({ tradesUsed: 0, cap: TRADE_SEASON_CAP, remaining: TRADE_SEASON_CAP }),
-          }),
-          Promise.resolve({ ok: true, json: async () => [] })
-        ];
-        
-        // Fetch teams and players data in parallel
+
+        const userSpecificPromises = uid
+          ? [
+              fetch(`${API_ENDPOINTS}/api/trades/user/${uid}`),
+              fetch(`${API_ENDPOINTS}/api/users/${uid}/trades-usage`, TRADES_USAGE_FETCH),
+              fetch(`${API_ENDPOINTS}/api/releases/user/${uid}`),
+            ]
+          : [
+              Promise.resolve({ ok: true, json: async () => [] }),
+              Promise.resolve({
+                ok: true,
+                json: async () => defaultTradeUsageState(),
+              }),
+              Promise.resolve({ ok: true, json: async () => [] }),
+            ];
+
         const [teamsRes, playersRes, ...userSpecificResults] = await Promise.all([
           fetch(`${API_ENDPOINTS}/api/users/teams`),
           fetch(`${API_ENDPOINTS}/api/players/data`),
-          ...userSpecificPromises
+          ...userSpecificPromises,
         ]);
-        
+
         setLoadingProgress(30);
-        
-        // Parse responses in parallel
+
         const [teamsJson, playersJson, tradesJson, usageJson, releasesJson] = await Promise.all([
           teamsRes.json(),
           playersRes.json(),
           userSpecificResults[0].json(),
           userSpecificResults[1].json(),
-          userSpecificResults[2].json()
+          userSpecificResults[2].json(),
         ]);
-        
+
         setLoadingProgress(70);
-        
-        // Set all data at once to reduce re-renders
-        // The /api/users/teams endpoint returns { teams: [...] }
+
         const teamsData = teamsJson?.teams || teamsJson;
         const teamsArray = Array.isArray(teamsData) ? teamsData : [];
-        // Handle both array response and { players: [...] } wrapper
         const playersArray = Array.isArray(playersJson)
           ? playersJson
-          : (Array.isArray(playersJson?.players) ? playersJson.players : []);
-        
-        console.log('📊 TradeCenter Data Loaded:', {
-          teamsCount: teamsArray.length,
-          playersCount: playersArray.length,
-          userTeamName: currentUser?.teamName
-        });
-        
+          : Array.isArray(playersJson?.players)
+            ? playersJson.players
+            : [];
+
         setTeams(teamsArray);
         setTrades(tradesJson || []);
         setAllPlayers(playersArray);
-        
-        // Set fetch times
+
         const now = Date.now();
         setLastFetchTime({
           teams: now,
           players: now,
-          trades: now
+          trades: now,
         });
-        
-        // Set dropdown loading states to false when data is loaded
-        setDropdownLoading(prev => ({
+
+        setDropdownLoading((prev) => ({
           ...prev,
           teams: false,
-          myRoster: false
+          myRoster: false,
         }));
-        
+
         const normalizedBootstrap = normalizeTradeUsageFromApi(usageJson);
         setTradeUsage(normalizedBootstrap ?? defaultTradeUsageState());
+        const pendingCap =
+          normalizedBootstrap?.maxActiveOutgoing ??
+          normalizedBootstrap?.cap ??
+          FALLBACK_TRADE_SEASON_CAP;
 
         setMyReleases(Array.isArray(releasesJson) ? releasesJson : []);
-        
-        const cuid = currentUser?.id || currentUser?._id;
-        if (Array.isArray(tradesJson) && cuid) {
-          const activeTrades = tradesJson.filter(t =>
-            ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) &&
-            String(t.fromUser?._id) === String(cuid)
+
+        if (Array.isArray(tradesJson) && uid) {
+          const activeTrades = tradesJson.filter(
+            (t) =>
+              ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) &&
+              String(t.fromUser?._id) === String(uid)
           );
-          const activeReleases = releasesJson.filter(r =>
-            ['pending', 'admin_pending'].includes(r.status) &&
-            String(r.user) === String(cuid)
+          const activeReleases = releasesJson.filter(
+            (r) =>
+              ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid)
           );
           const totalActive = activeTrades.length + activeReleases.length;
-          setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
+          setLimitReached(totalActive >= pendingCap);
           setPendingTradesCount(totalActive);
         }
-        
+
         setLoadingProgress(100);
       } catch (e) {
         console.error('Bootstrap error:', e);
@@ -483,103 +470,114 @@ function TradeCenter({ user: userProp }) {
         setLoadingProgress(0);
       }
     }
-    
+
     if (effectiveUser) {
       bootstrap();
     }
-  }, [effectiveUser]);
+  }, [effectiveUser, uid]);
 
   // periodic refresh so roster updates after admin approval are reflected without manual reload
   useEffect(() => {
     let timer;
-    const uid = effectiveUser?.id || effectiveUser?._id;
     async function refreshData() {
       try {
         if (!uid) return;
-        
+
         const [tradesRes, playersRes, usageRes, releasesRes] = await Promise.all([
           fetch(`${API_ENDPOINTS}/api/trades/user/${uid}`),
           fetch(`${API_ENDPOINTS}/api/players/data`),
           fetch(`${API_ENDPOINTS}/api/users/${uid}/trades-usage`, TRADES_USAGE_FETCH),
-          fetch(`${API_ENDPOINTS}/api/releases/user/${uid}`)
+          fetch(`${API_ENDPOINTS}/api/releases/user/${uid}`),
         ]);
-        
+
         const tradesJson = await tradesRes.json();
         const playersJson = await playersRes.json();
         const usageJson = await usageRes.json();
         const releasesJson = await releasesRes.json();
 
         setTrades(Array.isArray(tradesJson) ? tradesJson : []);
-        const playersArr = Array.isArray(playersJson) ? playersJson : (Array.isArray(playersJson?.players) ? playersJson.players : []);
+        const playersArr = Array.isArray(playersJson)
+          ? playersJson
+          : Array.isArray(playersJson?.players)
+            ? playersJson.players
+            : [];
         setAllPlayers(playersArr);
-        
+
         const normalizedUsagePoll = normalizeTradeUsageFromApi(usageJson);
         setTradeUsage(normalizedUsagePoll ?? defaultTradeUsageState());
+        const pendingCapPoll =
+          normalizedUsagePoll?.maxActiveOutgoing ??
+          normalizedUsagePoll?.cap ??
+          FALLBACK_TRADE_SEASON_CAP;
 
         setMyReleases(Array.isArray(releasesJson) ? releasesJson : []);
 
-        if (Array.isArray(tradesJson) && uid) {
-          const activeTrades = tradesJson.filter(t =>
-            ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) &&
-            String(t.fromUser?._id) === String(uid)
+        if (Array.isArray(tradesJson)) {
+          const activeTrades = tradesJson.filter(
+            (t) =>
+              ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) &&
+              String(t.fromUser?._id) === String(uid)
           );
-          const activeReleases = releasesJson.filter(r =>
-            ['pending', 'admin_pending'].includes(r.status) &&
-            String(r.user) === String(uid)
+          const activeReleases = releasesJson.filter(
+            (r) =>
+              ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid)
           );
           const totalActive = activeTrades.length + activeReleases.length;
-          setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
+          setLimitReached(totalActive >= pendingCapPoll);
           setPendingTradesCount(totalActive);
         }
       } catch (error) {
         console.error('Refresh error:', error);
-        // Don't show error to user for background refresh
       }
     }
-    
+
     if (uid) {
       timer = setInterval(refreshData, 15000);
     }
-    
-    return () => { 
-      if (timer) clearInterval(timer); 
+
+    return () => {
+      if (timer) clearInterval(timer);
     };
-  }, [effectiveUser?.id, effectiveUser?._id]);
+  }, [uid]);
 
   // Function to refresh specific data - OPTIMIZED
   const refreshData = async (dataType) => {
     const startTime = performance.now();
     try {
-      // When refreshing players, show loading on myRoster (it derives from allPlayers)
       const loadingStart = dataType === 'players' ? { myRoster: true } : { [dataType]: true };
-      setDropdownLoading(prev => ({ ...prev, ...loadingStart }));
+      setDropdownLoading((prev) => ({ ...prev, ...loadingStart }));
       
       if (dataType === 'teams') {
         const teamsRes = await fetch(`${API_ENDPOINTS}/api/users/teams`);
         if (!teamsRes.ok) throw new Error('Failed to fetch teams');
         const teamsJson = await teamsRes.json();
-        // The /api/users/teams endpoint returns { teams: [...] }
         const teamsData = teamsJson?.teams || teamsJson;
         setTeams(Array.isArray(teamsData) ? teamsData : []);
-        setLastFetchTime(prev => ({ ...prev, teams: Date.now() }));
+        setLastFetchTime((prev) => ({ ...prev, teams: Date.now() }));
       } else if (dataType === 'players') {
         const playersRes = await fetch(`${API_ENDPOINTS}/api/players/data`);
         if (!playersRes.ok) throw new Error('Failed to fetch players');
         const playersJson = await playersRes.json();
-        const playersArr = Array.isArray(playersJson) ? playersJson : (Array.isArray(playersJson?.players) ? playersJson.players : []);
+        const playersArr = Array.isArray(playersJson)
+          ? playersJson
+          : Array.isArray(playersJson?.players)
+            ? playersJson.players
+            : [];
         setAllPlayers(playersArr);
-        setLastFetchTime(prev => ({ ...prev, players: Date.now() }));
+        setLastFetchTime((prev) => ({ ...prev, players: Date.now() }));
       }
       
       const loadTime = performance.now() - startTime;
       console.log(`🔄 ${dataType} refreshed in ${loadTime.toFixed(2)}ms`);
       
-      // When refreshing players, also clear myRoster loading (it derives from allPlayers)
       const loadingUpdate = dataType === 'players' ? { myRoster: false } : { [dataType]: false };
-      setDropdownLoading(prev => ({ ...prev, ...loadingUpdate }));
+      setDropdownLoading((prev) => ({ ...prev, ...loadingUpdate }));
     } catch (error) {
       console.error(`Error refreshing ${dataType}:`, error);
-      setDropdownLoading(prev => ({ ...prev, [dataType]: false }));
+      setDropdownLoading((prev) => ({
+        ...prev,
+        ...(dataType === 'players' ? { myRoster: false } : { [dataType]: false }),
+      }));
       setToast(`Failed to refresh ${dataType}. Please try again.`);
     }
   };
@@ -587,7 +585,6 @@ function TradeCenter({ user: userProp }) {
   const findTeamByName = (teamName) => (teams || []).find(t => t.teamName === teamName);
 
   const refetchTrades = async () => {
-    const uid = effectiveUser?.id || effectiveUser?._id;
     if (!uid) return null;
     try {
       const r = await fetch(`${API_ENDPOINTS}/api/trades/user/${uid}`);
@@ -608,18 +605,18 @@ function TradeCenter({ user: userProp }) {
       setToast('Select player, target team, and target player.');
       return;
     }
-    if (parseNonNegativeTradesUsed(tradeUsage.tradesUsed) >= TRADE_SEASON_CAP) {
-      setToast(`You have used all ${TRADE_SEASON_CAP} season trades.`);
+    if (parseNonNegativeTradesUsed(tradeUsage.tradesUsed) >= (tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP)) {
+      setToast(`You have used all ${tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP} season trades.`);
       return;
     }
 
-    setLoadingStates(prev => ({ ...prev, propose: true }));
+    setLoadingStates((prev) => ({ ...prev, propose: true }));
     
     try {
       const res = await fetch(`${API_ENDPOINTS}/api/trades`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromUserId: effectiveUser?.id || effectiveUser?._id, offeredPlayerId: selectedMyPlayer, requestedPlayerId: selectedTargetPlayer })
+        body: JSON.stringify({ fromUserId: uid, offeredPlayerId: selectedMyPlayer, requestedPlayerId: selectedTargetPlayer })
       });
       
       if (!res.ok) {
@@ -630,7 +627,6 @@ function TradeCenter({ user: userProp }) {
       const j = await res.json();
       const updated = [j, ...trades];
       setTrades(updated);
-      const uid = effectiveUser?.id || effectiveUser?._id;
       const activeMine = updated.filter(
         (t) => ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) && String(t.fromUser?._id) === String(uid)
       );
@@ -638,7 +634,7 @@ function TradeCenter({ user: userProp }) {
         (r) => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid)
       );
       const totalPending = activeMine.length + activeReleases.length;
-      setLimitReached(totalPending >= MAX_ACTIVE_PENDING_REQUESTS);
+      setLimitReached(totalPending >= maxPendingCombined);
       setPendingTradesCount(totalPending);
       
       // Show sexy success alert
@@ -650,7 +646,7 @@ function TradeCenter({ user: userProp }) {
       
       // Refresh usage (actual increment happens on admin approval, but we keep UI fresh)
       try {
-        const ures = await fetch(`${API_ENDPOINTS}/api/users/${effectiveUser?.id || effectiveUser?._id}/trades-usage`, TRADES_USAGE_FETCH);
+        const ures = await fetch(`${API_ENDPOINTS}/api/users/${uid}/trades-usage`, TRADES_USAGE_FETCH);
         const ujson = await ures.json();
         const nu = normalizeTradeUsageFromApi(ujson);
         setTradeUsage(nu ?? defaultTradeUsageState());
@@ -673,21 +669,26 @@ function TradeCenter({ user: userProp }) {
   }
 
   async function requestRelease() {
-    if (!releasePlayerId) { setToast('Select a player to release'); return; }
+    if (!releasePlayerId) {
+      setToast('Select a player to release');
+      return;
+    }
     if (releaseBlockedByPostTradeCooldown) {
       setToast('This player cannot be released for 48 hours after a completed trade.');
       return;
     }
-    if (parseNonNegativeTradesUsed(tradeUsage.tradesUsed) >= TRADE_SEASON_CAP) {
-      setToast(`You have used all ${TRADE_SEASON_CAP} season trades.`);
+    if (parseNonNegativeTradesUsed(tradeUsage.tradesUsed) >= (tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP)) {
+      setToast(`You have used all ${tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP} season trades.`);
       return;
     }
 
-    setLoadingStates(prev => ({ ...prev, release: true }));
-    
+    setLoadingStates((prev) => ({ ...prev, release: true }));
+
     try {
       const res = await fetch(`${API_ENDPOINTS}/api/releases`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: effectiveUser?.id || effectiveUser?._id, playerId: releasePlayerId })
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, playerId: releasePlayerId }),
       });
       
       if (!res.ok) {
@@ -705,31 +706,30 @@ function TradeCenter({ user: userProp }) {
       // Refresh data to update pending count
       try {
         const [tradesRes, releasesRes, usageRes] = await Promise.all([
-          fetch(`${API_ENDPOINTS}/api/trades/user/${effectiveUser?.id || effectiveUser?._id}`),
-          fetch(`${API_ENDPOINTS}/api/releases/user/${effectiveUser?.id || effectiveUser?._id}`),
-          fetch(`${API_ENDPOINTS}/api/users/${effectiveUser?.id || effectiveUser?._id}/trades-usage`, TRADES_USAGE_FETCH)
+          fetch(`${API_ENDPOINTS}/api/trades/user/${uid}`),
+          fetch(`${API_ENDPOINTS}/api/releases/user/${uid}`),
+          fetch(`${API_ENDPOINTS}/api/users/${uid}/trades-usage`, TRADES_USAGE_FETCH),
         ]);
-        
+
         const tradesJson = await tradesRes.json();
         const releasesJson = await releasesRes.json();
         const usageJson = await usageRes.json();
-        
+
         setTrades(Array.isArray(tradesJson) ? tradesJson : []);
         setMyReleases(Array.isArray(releasesJson) ? releasesJson : []);
-        
-        // Update pending count including both trades and releases
-        const uid = effectiveUser?.id || effectiveUser?._id;
+
         const activeTrades = tradesJson.filter(
-          (t) => ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) && String(t.fromUser?._id) === String(uid)
+          (t) =>
+            ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) && String(t.fromUser?._id) === String(uid)
         );
         const activeReleases = releasesJson.filter(
           (r) => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid)
         );
         const totalActive = activeTrades.length + activeReleases.length;
 
-        setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
+        setLimitReached(totalActive >= maxPendingCombined);
         setPendingTradesCount(totalActive);
-        
+
         const nuRel = normalizeTradeUsageFromApi(usageJson);
         setTradeUsage(nuRel ?? defaultTradeUsageState());
       } catch {}
@@ -740,7 +740,6 @@ function TradeCenter({ user: userProp }) {
         title: 'Release Request Sent! 🔓',
         message: 'Your release request has been sent to admin for approval.'
       });
-      const uid = effectiveUser?.id || effectiveUser?._id;
       if (uid) {
         fetchTradeInsights(uid);
       }
@@ -763,7 +762,7 @@ function TradeCenter({ user: userProp }) {
       const res = await fetch(`${API_ENDPOINTS}/api/trades/${tradeId}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ byUserId: effectiveUser?.id || effectiveUser?._id, decision })
+        body: JSON.stringify({ byUserId: uid, decision })
       });
       
       const j = await res.json();
@@ -771,16 +770,16 @@ function TradeCenter({ user: userProp }) {
       setTrades(updated);
       
       // Update pending count including both trades and releases
-      const uid = effectiveUser?.id || effectiveUser?._id;
       const activeTrades = updated.filter(
-        (t) => ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) && String(t.fromUser?._id) === String(uid)
+        (t) =>
+          ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) && String(t.fromUser?._id) === String(uid)
       );
       const activeReleases = myReleases.filter(
         (r) => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid)
       );
       const totalActive = activeTrades.length + activeReleases.length;
 
-      setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
+      setLimitReached(totalActive >= maxPendingCombined);
       setPendingTradesCount(totalActive);
       
       // Show sexy success alert
@@ -833,19 +832,30 @@ function TradeCenter({ user: userProp }) {
           <h1 className="gradient-title"><FaExchangeAlt style={{ marginRight: 10 }} />Trade Center</h1>
           <p>Propose trades and finalize with admin approval.</p>
           <div className="usage-row">
-            <span className="usage-badge usage-used"><FaExchangeAlt style={{ marginRight: 6 }} />Used: {parseNonNegativeTradesUsed(tradeUsage.tradesUsed)} / {TRADE_SEASON_CAP}</span>
+            <span className="usage-badge usage-used">
+              <FaExchangeAlt style={{ marginRight: 6 }} />
+              Used: {parseNonNegativeTradesUsed(tradeUsage.tradesUsed)} / {tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP}
+            </span>
             <span className="usage-badge usage-left">
               <FaRetweet style={{ marginRight: 6 }} />
               Remaining: {seasonTradesRemaining}
             </span>
-            <span className="usage-badge usage-pending"><FaClock style={{ marginRight: 6 }} />Pending: {pendingTradesCount}</span>
-            {pendingTradesCount >= MAX_ACTIVE_PENDING_REQUESTS && (
+            <span className="usage-badge usage-pending">
+              <FaClock style={{ marginRight: 6 }} />
+              Pending: {pendingTradesCount}
+            </span>
+            <span className="usage-badge usage-left" style={{ fontSize: 12 }}>
+              Max deals vs same opponent: {tradeUsage.maxTradesPerOpponentPair ?? FALLBACK_MAX_TRADES_PER_OPPONENT_PAIR}
+            </span>
+            {pendingTradesCount >= maxPendingCombined && (
               <span className="usage-cap">
-                You have reached your {MAX_ACTIVE_PENDING_REQUESTS} pending requests limit (trades + releases).
+                You have reached your {maxPendingCombined} pending requests limit (trades + releases).
               </span>
             )}
             {seasonTradeLimitReached && (
-              <span className="usage-cap">You have used all {TRADE_SEASON_CAP} season trades.</span>
+              <span className="usage-cap">
+                You have used all {tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP} season trades.
+              </span>
             )}
           </div>
         </div>
@@ -860,7 +870,7 @@ function TradeCenter({ user: userProp }) {
           </div>
           <button
             className="balance-refresh-btn"
-            onClick={() => (effectiveUser?.id || effectiveUser?._id) && fetchTradeInsights(effectiveUser?.id || effectiveUser?._id)}
+            onClick={() => uid && fetchTradeInsights(uid)}
             disabled={tradeInsightLoading}
           >
             {tradeInsightLoading ? 'Analyzing...' : 'Refresh'}
@@ -956,9 +966,6 @@ function TradeCenter({ user: userProp }) {
                     <strong>
                       {rec.acquire?.name} · {rec.acquire?.role}{' '}
                       <span className="suggestion-team">({rec.acquire?.fromTeam})</span>
-                      {rec.acquire?.bidValue != null && rec.acquire?.bidValue > 0 && (
-                        <span className="suggestion-price"> · {formatSuggestionPrice(rec.acquire.bidValue)}</span>
-                      )}
                     </strong>
                   </div>
                   {rec.offer && (
@@ -966,9 +973,6 @@ function TradeCenter({ user: userProp }) {
                       <small>Offer</small>
                       <strong>
                         {rec.offer.name} · {rec.offer.role}
-                        {rec.offer?.bidValue != null && rec.offer?.bidValue > 0 && (
-                          <span className="suggestion-price"> · {formatSuggestionPrice(rec.offer.bidValue)}</span>
-                        )}
                       </strong>
                     </div>
                   )}
@@ -1048,7 +1052,13 @@ function TradeCenter({ user: userProp }) {
                 ) : (
                   <>
                     <FaPaperPlane style={{ marginRight: 8 }} />
-                    {limitReached ? `Pending Limit (${MAX_ACTIVE_PENDING_REQUESTS})` : seasonTradeLimitReached ? `Season cap (${TRADE_SEASON_CAP})` : isSelectingRelease ? 'Complete Release First' : 'Send Proposal'}
+                    {limitReached
+                      ? `Pending Limit (${maxPendingCombined})`
+                      : seasonTradeLimitReached
+                        ? `Season cap (${tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP})`
+                        : isSelectingRelease
+                          ? 'Complete Release First'
+                          : 'Send Proposal'}
                   </>
                 )}
               </button>
@@ -1063,18 +1073,21 @@ function TradeCenter({ user: userProp }) {
                   {myRoster.map(p => {
                     const meta = (allPlayers || []).find(ap => ap.id === p.id);
                     const typ = meta?.type ? ` - ${meta.type}` : '';
-                    const cool = isPlayerInPostTradeReleaseCooldown(meta);
                     return (
-                      <option key={p.id} value={p.id}>{p.name} ({p.role}){typ}{cool ? ' — trade cooldown' : ''}</option>
+                      <option key={p.id} value={p.id}>{p.name} ({p.role}){typ}</option>
                     );
                   })}
                 </select>
               </SexyDropdownLoader>
-              <button 
-                className="btn btn-danger" 
-                onClick={requestRelease} 
-                disabled={loadingStates.release || isSelectingTrade || seasonTradeLimitReached || releaseBlockedByPostTradeCooldown}
-                title={releaseBlockedByPostTradeCooldown ? 'Cannot release for 48h after a completed trade' : undefined}
+              <button
+                className="btn btn-danger"
+                onClick={requestRelease}
+                disabled={
+                  loadingStates.release ||
+                  isSelectingTrade ||
+                  seasonTradeLimitReached ||
+                  releaseBlockedByPostTradeCooldown
+                }
               >
                 {loadingStates.release ? (
                   <>
@@ -1082,7 +1095,13 @@ function TradeCenter({ user: userProp }) {
                     Requesting...
                   </>
                 ) : (
-                  isSelectingTrade ? 'Complete Trade First' : releaseBlockedByPostTradeCooldown ? 'Trade cooldown (48h)' : seasonTradeLimitReached ? `Season cap (${TRADE_SEASON_CAP})` : 'Request Release'
+                  isSelectingTrade
+                    ? 'Complete Trade First'
+                    : releaseBlockedByPostTradeCooldown
+                      ? 'Trade cooldown (48h)'
+                      : seasonTradeLimitReached
+                        ? `Season cap (${tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP})`
+                        : 'Request Release'
                 )}
               </button>
             </div>
@@ -1225,41 +1244,40 @@ function TradeCenter({ user: userProp }) {
                           const r = await fetch(`${API_ENDPOINTS}/api/trades/${t._id}/withdraw`, { 
                             method: 'POST', 
                             headers: { 'Content-Type': 'application/json' }, 
-                            body: JSON.stringify({ byUserId: effectiveUser?.id || effectiveUser?._id }) 
+                            body: JSON.stringify({ byUserId: uid }) 
                           });
-                          const j = await r.json();
+                          const j = await r.json().catch(() => ({}));
                           if (!r.ok) {
-                            throw new Error(j.message || 'Withdraw failed');
+                            throw new Error(j.message || 'Failed to withdraw trade');
                           }
-                          // Refetch trades from server to ensure fresh state (avoids "player already has active trade" on next proposal)
-                          const freshTrades = await refetchTrades();
-                        
-                        // Update pending count including both trades and releases
-                        const uid = effectiveUser?.id || effectiveUser?._id;
-                        const updatedList = Array.isArray(freshTrades) ? freshTrades : trades;
-                        const activeTrades = updatedList.filter(
-                          (u) => ACTIVE_OUTGOING_TRADE_STATUSES.includes(u.status) && String(u.fromUser?._id) === String(uid)
-                        );
-                        const activeReleases = myReleases.filter(
-                          (r) => ['pending', 'admin_pending'].includes(r.status) && String(r.user) === String(uid)
-                        );
-                        const totalActive = activeTrades.length + activeReleases.length;
-
-                        setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
-                        setPendingTradesCount(totalActive);
+                          const fresh = await refetchTrades();
+                          const list = Array.isArray(fresh) ? fresh : trades.map((x) => (x._id === t._id ? j : x));
+                          const activeTrades = list.filter(
+                            (u) =>
+                              ACTIVE_OUTGOING_TRADE_STATUSES.includes(u.status) &&
+                              String(u.fromUser?._id) === String(uid)
+                          );
+                          const activeReleases = myReleases.filter(
+                            (rel) =>
+                              ['pending', 'admin_pending'].includes(rel.status) &&
+                              String(rel.user) === String(uid)
+                          );
+                          const totalActive = activeTrades.length + activeReleases.length;
+                          setLimitReached(totalActive >= maxPendingCombined);
+                          setPendingTradesCount(totalActive);
                           
                           // Show sexy success alert
                           setAlert({
                             type: 'success',
                             title: 'Trade Withdrawn! 🔄',
-                            message: 'Trade has been successfully withdrawn. You can propose a new trade now.'
+                            message: 'Your trade was withdrawn. You can send a new proposal when ready.'
                           });
                         } catch (e) {
                           // Show sexy error alert
                           setAlert({
                             type: 'error',
                             title: 'Withdrawal Failed! ❌',
-                            message: 'Failed to withdraw trade. Please try again.'
+                            message: e.message || 'Failed to withdraw trade. Please try again.'
                           });
                         } finally {
                           setLoadingStates(prev => ({ ...prev, withdraw: false }));
@@ -1328,7 +1346,7 @@ function TradeCenter({ user: userProp }) {
                     ))}
                   </div>
                   <div className="item-actions">
-                    {effectiveUser && String(r.user) === String(effectiveUser?.id || effectiveUser?._id) && ['pending', 'admin_pending'].includes(r.status) && (
+                    {effectiveUser && String(r.user) === String(uid) && ['pending', 'admin_pending'].includes(r.status) && (
                       <button 
                         className="btn btn-withdraw" 
                         disabled={loadingStates.withdraw}
@@ -1338,7 +1356,7 @@ function TradeCenter({ user: userProp }) {
                             const res = await fetch(`${API_ENDPOINTS}/api/releases/${r._id}/withdraw`, {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ byUserId: effectiveUser?.id || effectiveUser?._id })
+                              body: JSON.stringify({ byUserId: uid })
                             });
                             
                             if (!res.ok) {
@@ -1355,16 +1373,19 @@ function TradeCenter({ user: userProp }) {
                             setMyReleases(updatedReleases);
                             
                             // Update pending count
-                            const uid = effectiveUser?.id || effectiveUser?._id;
                             const activeTrades = trades.filter(
-                              (t) => ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) && String(t.fromUser?._id) === String(uid)
+                              (tr) =>
+                                ACTIVE_OUTGOING_TRADE_STATUSES.includes(tr.status) &&
+                                String(tr.fromUser?._id) === String(uid)
                             );
                             const activeReleases = updatedReleases.filter(
-                              (rel) => ['pending', 'admin_pending'].includes(rel.status) && String(rel.user) === String(uid)
+                              (rel) =>
+                                ['pending', 'admin_pending'].includes(rel.status) &&
+                                String(rel.user) === String(uid)
                             );
                             const totalActive = activeTrades.length + activeReleases.length;
 
-                            setLimitReached(totalActive >= MAX_ACTIVE_PENDING_REQUESTS);
+                            setLimitReached(totalActive >= maxPendingCombined);
                             setPendingTradesCount(totalActive);
                             
                             // Show sexy success alert
@@ -1373,8 +1394,8 @@ function TradeCenter({ user: userProp }) {
                               title: 'Release Withdrawn! 🔄',
                               message: 'Release request has been successfully withdrawn.'
                             });
-                            if (effectiveUser?.id || effectiveUser?._id) {
-                              fetchTradeInsights(effectiveUser?.id || effectiveUser?._id);
+                            if (uid) {
+                              fetchTradeInsights(uid);
                             }
                           } catch (e) {
                             // Show sexy error alert

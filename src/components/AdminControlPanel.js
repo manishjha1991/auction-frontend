@@ -66,9 +66,12 @@ const AdminControlPanel = ({ adminUser }) => {
     lockCheckCategories: ['sapphireEmerald', 'gold', 'silver'],
     auctionAutoModeEnabled: false,
     auctionAutoModeCategories: ['Gold', 'Silver', 'Sapphire', 'Emerald'],
+    tradeSeasonCap: 3,
+    maxTradesPerOpponentPair: 1,
   });
   const [cronLoading, setCronLoading] = useState(false);
   const [cronSaving, setCronSaving] = useState(false);
+  const [tradeRulesSaving, setTradeRulesSaving] = useState(false);
   const [playerTypeRefreshTrigger, setPlayerTypeRefreshTrigger] = useState(0);
   const [worldCupMode, setWorldCupMode] = useState(false);
   const [worldCupSaving, setWorldCupSaving] = useState(false);
@@ -103,6 +106,8 @@ const AdminControlPanel = ({ adminUser }) => {
         lockCheckCategories: data.lockCheckCategories || ['sapphireEmerald', 'gold', 'silver'],
         auctionAutoModeEnabled: data.auctionAutoModeEnabled === true,
         auctionAutoModeCategories: data.auctionAutoModeCategories || ['Gold', 'Silver', 'Sapphire', 'Emerald'],
+        tradeSeasonCap: typeof data.tradeSeasonCap === 'number' ? data.tradeSeasonCap : 3,
+        maxTradesPerOpponentPair: typeof data.maxTradesPerOpponentPair === 'number' ? data.maxTradesPerOpponentPair : 1,
       });
       setWorldCupMode(data.worldCupMode === true);
     } catch (err) {
@@ -477,6 +482,11 @@ const AdminControlPanel = ({ adminUser }) => {
         lockCheckCategories: data.lockCheckCategories || cronSettings.lockCheckCategories,
         auctionAutoModeEnabled: data.auctionAutoModeEnabled === true,
         auctionAutoModeCategories: data.auctionAutoModeCategories || cronSettings.auctionAutoModeCategories,
+        tradeSeasonCap: typeof data.tradeSeasonCap === 'number' ? data.tradeSeasonCap : cronSettings.tradeSeasonCap,
+        maxTradesPerOpponentPair:
+          typeof data.maxTradesPerOpponentPair === 'number'
+            ? data.maxTradesPerOpponentPair
+            : cronSettings.maxTradesPerOpponentPair,
       });
       handleToast('Cron setting updated');
     } catch (err) {
@@ -563,6 +573,39 @@ const AdminControlPanel = ({ adminUser }) => {
     }
   };
 
+  const tradeRuleNumberOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+  const saveTradeRules = async () => {
+    if (!adminUserId || tradeRulesSaving) return;
+    setTradeRulesSaving(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminUserId,
+          tradeSeasonCap: Number(cronSettings.tradeSeasonCap),
+          maxTradesPerOpponentPair: Number(cronSettings.maxTradesPerOpponentPair),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to save trade rules');
+      setCronSettings((prev) => ({
+        ...prev,
+        tradeSeasonCap: typeof data.tradeSeasonCap === 'number' ? data.tradeSeasonCap : prev.tradeSeasonCap,
+        maxTradesPerOpponentPair:
+          typeof data.maxTradesPerOpponentPair === 'number'
+            ? data.maxTradesPerOpponentPair
+            : prev.maxTradesPerOpponentPair,
+      }));
+      handleToast('Trade rules saved');
+    } catch (err) {
+      handleToast(err.message || 'Unable to save trade rules');
+    } finally {
+      setTradeRulesSaving(false);
+    }
+  };
+
   const cronDefinitions = [
     {
       key: 'cronSingleBidEnabled',
@@ -646,6 +689,67 @@ const AdminControlPanel = ({ adminUser }) => {
             </div>
           </div>
         )}
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Trade Center rules</h2>
+            <p>
+              Season trade cap counts completed trades and approved releases per team. The same cap limits how many
+              outgoing trade proposals a team can have active at once. The opponent limit counts completed and pending
+              deals between any two teams (both directions).
+            </p>
+          </div>
+          {tradeRulesSaving && <span className="cron-saving-pill">Saving…</span>}
+        </div>
+        <div className="cron-toggle-grid" style={{ alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+          <label className="field-label" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span>Season trades per team (1–10)</span>
+            <select
+              className="select"
+              value={cronSettings.tradeSeasonCap}
+              onChange={(e) =>
+                setCronSettings((prev) => ({ ...prev, tradeSeasonCap: Number(e.target.value) }))
+              }
+              disabled={tradeRulesSaving || !adminUserId}
+            >
+              {tradeRuleNumberOptions.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field-label" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span>Max deals between same two teams (1–10)</span>
+            <select
+              className="select"
+              value={cronSettings.maxTradesPerOpponentPair}
+              onChange={(e) =>
+                setCronSettings((prev) => ({
+                  ...prev,
+                  maxTradesPerOpponentPair: Number(e.target.value),
+                }))
+              }
+              disabled={tradeRulesSaving || !adminUserId}
+            >
+              {tradeRuleNumberOptions.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={saveTradeRules}
+            disabled={tradeRulesSaving || !adminUserId}
+          >
+            {tradeRulesSaving ? 'Saving…' : 'Save trade rules'}
+          </button>
+        </div>
       </section>
 
       <section className="admin-section">
