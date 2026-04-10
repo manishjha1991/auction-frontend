@@ -122,7 +122,10 @@ function AdminTradeActivity() {
           <FaChartBar className="ata-title-icon" />
           Team Trade Activity
         </h1>
-        <p className="ata-subtitle">Picks, releases & trades by team • Usage & remaining</p>
+        <p className="ata-subtitle">
+          Picks, releases & trades by team • <strong>Used</strong> should equal trades + releases + picks that were{' '}
+          <em>not</em> same-tier paired to a release (see slot math on each card).
+        </p>
         <button className="ata-refresh" onClick={load} disabled={loading}>
           <FaSyncAlt className={loading ? 'spin' : ''} /> {loading ? 'Loading...' : 'Refresh'}
         </button>
@@ -187,6 +190,21 @@ function AdminTradeActivity() {
                   <span className="ata-stat-value">{t.trades}</span>
                 </div>
               </div>
+              <p className="ata-slot-math" title="Same-tier release + unsold pick uses one pick row but only one extra slot on top of the release.">
+                Slot math: {t.trades} trade{t.trades !== 1 ? 's' : ''} + {t.releases} release
+                {t.releases !== 1 ? 's' : ''} + {t.standalonePicks ?? 0} standalone pick
+                {(t.standalonePicks ?? 0) !== 1 ? 's' : ''}
+                {typeof t.pairedPicks === 'number' && t.pairedPicks > 0
+                  ? ` (${t.pairedPicks} pick${t.pairedPicks !== 1 ? 's' : ''} paired to a release)`
+                  : ''}{' '}
+                = <strong>{t.expectedTradesUsed ?? '—'}</strong> expected
+              </p>
+              {typeof t.usageDrift === 'number' && t.usageDrift !== 0 && (
+                <p className="ata-drift-warn">
+                  Stored {t.tradesUsed} differs from expected {t.expectedTradesUsed} by {t.usageDrift > 0 ? '+' : ''}
+                  {t.usageDrift}. Check manual DB edits or legacy approvals.
+                </p>
+              )}
               <p className="ata-card-hint">Click to view players involved</p>
             </div>
           ))}
@@ -210,6 +228,25 @@ function AdminTradeActivity() {
                 <FaTimes />
               </button>
             </div>
+            {popupTeam && typeof popupTeam.expectedTradesUsed === 'number' && (
+              <div className="ata-popup-reconcile">
+                <strong>Why “Used” is {popupTeam.tradesUsed}:</strong> each completed trade with this team +1; each
+                approved release +1; each approved unsold pick +1 except picks paired to a same-tier release (no extra slot beyond the release). Reconciles to{' '}
+                <strong>
+                  {popupTeam.trades} + {popupTeam.releases} + {popupTeam.standalonePicks ?? 0} ={' '}
+                  {popupTeam.expectedTradesUsed}
+                </strong>{' '}
+                expected
+                {typeof popupTeam.usageDrift === 'number' && popupTeam.usageDrift !== 0 && (
+                  <span className="ata-drift-inline">
+                    {' '}
+                    (stored − expected = {popupTeam.usageDrift > 0 ? '+' : ''}
+                    {popupTeam.usageDrift})
+                  </span>
+                )}
+                .
+              </div>
+            )}
             {popupLoading ? (
               <div className="ata-popup-loading">Loading...</div>
             ) : popupDetails?.error ? (
