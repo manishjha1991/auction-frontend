@@ -396,6 +396,32 @@
 .trade-page .btn:disabled { opacity: 0.6; cursor: not-allowed; filter: grayscale(0.1); }
 .trade-inbox .trade-list { display: grid; gap: 14px; }
 .trade-item { border: 1px solid rgba(0,0,0,0.06); border-radius: 16px; padding: 14px; display: grid; gap: 8px; background: linear-gradient(180deg, #ffffff, #fafafa); }
+.trade-approval-warn {
+  grid-column: 1 / -1;
+  margin: 4px 0 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.12), rgba(183, 28, 28, 0.08));
+  border: 1px solid rgba(163, 93, 0, 0.35);
+  font-size: 12px;
+  line-height: 1.45;
+  color: #5d4037;
+}
+.trade-approval-warn-title {
+  font-weight: 700;
+  color: #a35d00;
+  margin-bottom: 6px;
+}
+.trade-approval-warn-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.trade-approval-warn-list li {
+  margin-bottom: 4px;
+}
+.trade-approval-warn-list li:last-child {
+  margin-bottom: 0;
+}
 .trade-item.disabled { opacity: 0.6; pointer-events: none; filter: grayscale(0.1); }
 .trade-item .meta { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; align-items: center; }
 .trade-item .status { justify-self: end; padding: 6px 10px; border-radius: 999px; font-size: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06); }

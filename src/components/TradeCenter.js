@@ -641,7 +641,11 @@ function TradeCenter({ user: userProp }) {
       setAlert({
         type: 'success',
         title: 'Trade Proposal Sent! 🚀',
-        message: 'Your trade proposal has been successfully sent and is awaiting approval.'
+        message: `Your trade proposal has been sent and is awaiting the other team / admin.${
+          Array.isArray(j.approvalWarnings) && j.approvalWarnings.length > 0
+            ? ' This trade shows a warning on the card — admin may reject it until purses or roster rules allow the swap.'
+            : ''
+        }`
       });
       
       // Refresh usage (actual increment happens on admin approval, but we keep UI fresh)
@@ -1197,6 +1201,18 @@ function TradeCenter({ user: userProp }) {
                   </div>
                   <div className={`status ${t.status}`}>{t.status}</div>
                 </div>
+                {Array.isArray(t.approvalWarnings) &&
+                  t.approvalWarnings.length > 0 &&
+                  ['pending', 'counter', 'admin_pending'].includes(t.status) && (
+                    <div className="trade-approval-warn" role="status">
+                      <div className="trade-approval-warn-title">May be rejected when admin approves</div>
+                      <ul className="trade-approval-warn-list">
+                        {t.approvalWarnings.map((w, i) => (
+                          <li key={i}>{w}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 <div className="history">
                   {t.history?.map((h, idx) => (
                     <div key={idx} className="hline">
