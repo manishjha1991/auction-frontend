@@ -2174,7 +2174,59 @@ div.bid-row.second-bid span.bid-amount {
     padding: 10px 18px;
   }
 }
-  
 
-  
+/* Full-size portrait (click thumbnail in popup) */
+.portrait-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  cursor: zoom-out;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.portrait-lightbox-img {
+  max-width: min(96vw, 1200px);
+  max-height: 92vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  cursor: default;
+}
+
+.portrait-lightbox-close {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10051;
+  transition: background 0.2s;
+}
+
+.portrait-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.player-image-clickable {
+  cursor: zoom-in;
+}
+
+
   

@@ -67,6 +67,8 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
   const profilePicInputRef = useRef(null);
   const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
   const [portraitBroken, setPortraitBroken] = useState(false);
+  const [viewerOwnsPlayer, setViewerOwnsPlayer] = useState(false);
+  const [portraitLightboxOpen, setPortraitLightboxOpen] = useState(false);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -104,15 +106,25 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
     fetchInFlightRef.current = true;
     try {
       if (showLoading) setLoading(true);
-      const response = await fetch(`${API_ENDPOINTS}/api/player/${player.id}/bids`, {
-        headers: { "Content-Type": "application/json" },
-      });
+      let viewerQs = "";
+      try {
+        const u = JSON.parse(localStorage.getItem("user"));
+        const uid = u?.id || u?._id;
+        if (uid) viewerQs = `?viewerUserId=${encodeURIComponent(uid)}`;
+      } catch {
+        /* ignore */
+      }
+      const response = await fetch(
+        `${API_ENDPOINTS}/api/player/${player.id}/bids${viewerQs}`,
+        { headers: { "Content-Type": "application/json" } }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
       const data = await response.json();
+      setViewerOwnsPlayer(data.viewerOwnsPlayer === true);
       setPlayerDetails(data.player);
       setTopTwoBids(data.topTwoBids);
       setAllBids(data.allBids);
@@ -374,15 +386,22 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
     }
   };
 
+  const canReplaceProfilePhoto = isAdmin || viewerOwnsPlayer;
+
   const handleAdminProfileFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file || !isAdmin) return;
-    const admin = JSON.parse(localStorage.getItem("user"));
-    const adminUserId = admin?.id;
-    if (!adminUserId) {
+    if (!file || !canReplaceProfilePhoto) return;
+    let userId;
+    try {
+      const u = JSON.parse(localStorage.getItem("user"));
+      userId = u?.id || u?._id;
+    } catch {
+      userId = null;
+    }
+    if (!userId) {
       setBidAlert({
-        message: "Admin user ID not found.",
+        message: "Please sign in to replace this photo.",
         playerName: playerDetails?.name || "",
         isSuccess: false,
         isPhoto: true,
@@ -391,7 +410,7 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
     }
     const fd = new FormData();
     fd.append("profilePicture", file);
-    fd.append("adminUserId", adminUserId);
+    fd.append("userId", userId);
     setUploadingProfilePic(true);
     try {
       const res = await fetch(
@@ -615,6 +634,17 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
     return detailValue ?? fallbackValue ?? 0;
   };
 
+  const portraitFullUrl = resolvePlayerImageUrl(playerDetails?.profilePicture);
+
+  useEffect(() => {
+    if (!portraitLightboxOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setPortraitLightboxOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [portraitLightboxOpen]);
+
   return (
     <>
       {/* Super Sexy Bid Loading Popup */}
@@ -762,7 +792,16 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
                     key={portraitUrl}
                     src={portraitUrl}
                     alt=""
-                    className="player-image"
+                    className="player-image player-image-clickable"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setPortraitLightboxOpen(true)}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter" || ev.key === " ") {
+                        ev.preventDefault();
+                        setPortraitLightboxOpen(true);
+                      }
+                    }}
                     onError={() => setPortraitBroken(true)}
                   />
                 ) : (
@@ -771,7 +810,7 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
                   </div>
                 );
               })()}
-              {isAdmin && (
+              {canReplaceProfilePhoto && (
                 <div className="player-photo-admin">
                   <input
                     ref={profilePicInputRef}
@@ -1036,6 +1075,32 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
           </div>
         </div>
       </div>
+
+      {portraitLightboxOpen && portraitFullUrl && (
+        <div
+          className="portrait-lightbox-overlay"
+          onClick={() => setPortraitLightboxOpen(false)}
+          role="presentation"
+        >
+          <button
+            type="button"
+            className="portrait-lightbox-close"
+            aria-label="Close full image"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPortraitLightboxOpen(false);
+            }}
+          >
+            {'\u00d7'}
+          </button>
+          <img
+            src={portraitFullUrl}
+            alt=""
+            className="portrait-lightbox-img"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </>
   );
 };
