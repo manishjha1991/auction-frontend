@@ -12,6 +12,7 @@ import {
 } from 'react-icons/fa';
 import '../css/StatsOverview.css';
 import { API_ENDPOINTS } from "../const";
+import PlayerAvatar from './PlayerAvatar';
 
 const StatsOverview = () => {
   // State to hold the fetched stats
@@ -148,8 +149,18 @@ const StatsOverview = () => {
         {/* Leading Run Scorer - Orange Box */}
         <div className="leading-box orange-box">
           <div className="player-info">
-            <p><strong>{leadingRunScorer.playerName || 'N/A'}</strong></p>
-            <p>{leadingRunScorer.teamName || 'N/A'}</p>
+            <div className="leading-player-row">
+              <PlayerAvatar
+                profilePicture={leadingRunScorer.profilePicture}
+                name={leadingRunScorer.playerName}
+                size={40}
+                className="stats-overview-leading-avatar"
+              />
+              <div className="leading-player-text">
+                <p><strong>{leadingRunScorer.playerName || 'N/A'}</strong></p>
+                <p>{leadingRunScorer.teamName || 'N/A'}</p>
+              </div>
+            </div>
           </div>
           <div className="highlight-stat">{leadingRunScorer.totalRuns || 0}</div>
           <span className="stat-label">Runs</span>
@@ -158,8 +169,18 @@ const StatsOverview = () => {
         {/* Leading Wicket Taker - Purple Box */}
         <div className="leading-box purple-box">
           <div className="player-info">
-            <p><strong>{leadingWicketTaker.playerName || 'N/A'}</strong></p>
-            <p>{leadingWicketTaker.teamName || 'N/A'}</p>
+            <div className="leading-player-row">
+              <PlayerAvatar
+                profilePicture={leadingWicketTaker.profilePicture}
+                name={leadingWicketTaker.playerName}
+                size={40}
+                className="stats-overview-leading-avatar"
+              />
+              <div className="leading-player-text">
+                <p><strong>{leadingWicketTaker.playerName || 'N/A'}</strong></p>
+                <p>{leadingWicketTaker.teamName || 'N/A'}</p>
+              </div>
+            </div>
           </div>
           <div className="highlight-stat">{leadingWicketTaker.totalWickets || 0}</div>
           <span className="stat-label">Wickets</span>
@@ -181,7 +202,15 @@ const StatsOverview = () => {
               </div>
             </div>
             <div className="highlight-card-content">
-              <div className="highlight-player-name">{highestStrikeRate.playerName || 'N/A'}</div>
+              <div className="highlight-player-row">
+                <PlayerAvatar
+                  profilePicture={highestStrikeRate.profilePicture}
+                  name={highestStrikeRate.playerName}
+                  size={34}
+                  className="stats-overview-highlight-avatar"
+                />
+                <div className="highlight-player-name">{highestStrikeRate.playerName || 'N/A'}</div>
+              </div>
               <div className="highlight-team-abbr">
                 <span className="team-abbr-badge">{getTeamAbbreviation(highestStrikeRate.teamName)}</span>
                 {highestStrikeRate.opponentTeam && (
@@ -210,7 +239,15 @@ const StatsOverview = () => {
               </div>
             </div>
             <div className="highlight-card-content">
-              <div className="highlight-player-name">{bestEconomicalBowler.playerName || 'N/A'}</div>
+              <div className="highlight-player-row">
+                <PlayerAvatar
+                  profilePicture={bestEconomicalBowler.profilePicture}
+                  name={bestEconomicalBowler.playerName}
+                  size={34}
+                  className="stats-overview-highlight-avatar"
+                />
+                <div className="highlight-player-name">{bestEconomicalBowler.playerName || 'N/A'}</div>
+              </div>
               <div className="highlight-team-abbr">
                 <span className="team-abbr-badge">{getTeamAbbreviation(bestEconomicalBowler.teamName)}</span>
                 {bestEconomicalBowler.opponentTeam && (
@@ -241,7 +278,15 @@ const StatsOverview = () => {
               </div>
             </div>
             <div className="highlight-card-content">
-              <div className="highlight-player-name">{highestWicketTakerInMatch.playerName || 'N/A'}</div>
+              <div className="highlight-player-row">
+                <PlayerAvatar
+                  profilePicture={highestWicketTakerInMatch.profilePicture}
+                  name={highestWicketTakerInMatch.playerName}
+                  size={34}
+                  className="stats-overview-highlight-avatar"
+                />
+                <div className="highlight-player-name">{highestWicketTakerInMatch.playerName || 'N/A'}</div>
+              </div>
               <div className="highlight-team-abbr">
                 <span className="team-abbr-badge">{getTeamAbbreviation(highestWicketTakerInMatch.teamName)}</span>
                 {highestWicketTakerInMatch.opponentTeam && (
@@ -271,7 +316,15 @@ const StatsOverview = () => {
               </div>
             </div>
             <div className="highlight-card-content">
-              <div className="highlight-player-name">{highestScore.playerName || 'N/A'}</div>
+              <div className="highlight-player-row">
+                <PlayerAvatar
+                  profilePicture={highestScore.profilePicture}
+                  name={highestScore.playerName}
+                  size={34}
+                  className="stats-overview-highlight-avatar"
+                />
+                <div className="highlight-player-name">{highestScore.playerName || 'N/A'}</div>
+              </div>
               <div className="highlight-team-abbr">
                 <span className="team-abbr-badge">{getTeamAbbreviation(highestScore.teamName)}</span>
                 {highestScore.opponentTeam && (
@@ -365,6 +418,7 @@ const StatsOverview = () => {
                 top5RunScorers.map((player, i) => (
                   <li key={i} className="top-performer-item" onClick={(e) => { e.stopPropagation(); handleViewDetails('batting', player.playerId); }}>
                     <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <PlayerAvatar profilePicture={player.profilePicture} name={player.playerName} size={28} className="stats-overview-list-avatar" />
                     <div className="top-performer-item-info">
                       <div className="top-performer-item-name">{player.playerName}</div>
                       <div className="top-performer-item-team">{player.teamName}</div>
@@ -408,6 +462,7 @@ const StatsOverview = () => {
                 top5WicketTakers.map((player, i) => (
                   <li key={i} className="top-performer-item" onClick={(e) => { e.stopPropagation(); handleViewDetails('bowling', player.playerId); }}>
                     <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <PlayerAvatar profilePicture={player.profilePicture} name={player.playerName} size={28} className="stats-overview-list-avatar" />
                     <div className="top-performer-item-info">
                       <div className="top-performer-item-name">{player.playerName}</div>
                       <div className="top-performer-item-team">{player.teamName}</div>
@@ -450,6 +505,7 @@ const StatsOverview = () => {
                 top5MOM.map((player, i) => (
                   <li key={i} className="top-performer-item">
                     <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <PlayerAvatar profilePicture={player.profilePicture} name={player.playerName} size={28} className="stats-overview-list-avatar" />
                     <div className="top-performer-item-info">
                       <div className="top-performer-item-name">{player.playerName}</div>
                       <div className="top-performer-item-team">{player.teamName}</div>
@@ -476,6 +532,7 @@ const StatsOverview = () => {
                 top5BowlingStrikeRate.map((player, i) => (
                   <li key={i} className="top-performer-item">
                     <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <PlayerAvatar profilePicture={player.profilePicture} name={player.playerName} size={28} className="stats-overview-list-avatar" />
                     <div className="top-performer-item-info">
                       <div className="top-performer-item-name">{player.playerName}</div>
                       <div className="top-performer-item-team">{player.teamName}</div>
@@ -503,6 +560,7 @@ const StatsOverview = () => {
                 top5EconomicalBowlers.map((player, i) => (
                   <li key={i} className="top-performer-item" onClick={(e) => { e.stopPropagation(); handleViewDetails('economy', player.playerId); }}>
                     <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <PlayerAvatar profilePicture={player.profilePicture} name={player.playerName} size={28} className="stats-overview-list-avatar" />
                     <div className="top-performer-item-info">
                       <div className="top-performer-item-name">{player.playerName}</div>
                       <div className="top-performer-item-team">{player.teamName}</div>
@@ -529,6 +587,7 @@ const StatsOverview = () => {
                 top5BestBattingAverage.map((player, i) => (
                   <li key={i} className="top-performer-item">
                     <span className={`rank-badge ${getPlayerTypeClass(player.playerType)}`}>{i + 1}</span>
+                    <PlayerAvatar profilePicture={player.profilePicture} name={player.playerName} size={28} className="stats-overview-list-avatar" />
                     <div className="top-performer-item-info">
                       <div className="top-performer-item-name">{player.playerName}</div>
                       <div className="top-performer-item-team">{player.teamName}</div>
@@ -567,6 +626,7 @@ const StatsOverview = () => {
                   return (
                     <li key={i} className="top-performer-item">
                       <span className={`rank-badge ${getPlayerTypeClass(haul.playerType)}`}>{i + 1}</span>
+                      <PlayerAvatar profilePicture={haul.profilePicture} name={haul.playerName} size={28} className="stats-overview-list-avatar" />
                       <div className="top-performer-item-info">
                         <div className="top-performer-item-name">{haul.playerName}</div>
                         <div className="top-performer-item-teams-inline">
@@ -607,6 +667,7 @@ const StatsOverview = () => {
                   return (
                     <li key={i} className="top-performer-item">
                       <span className={`rank-badge ${getPlayerTypeClass(haul.playerType)}`}>{i + 1}</span>
+                      <PlayerAvatar profilePicture={haul.profilePicture} name={haul.playerName} size={28} className="stats-overview-list-avatar" />
                       <div className="top-performer-item-info">
                         <div className="top-performer-item-name">{haul.playerName}</div>
                         <div className="top-performer-item-teams-inline">
@@ -643,6 +704,7 @@ const StatsOverview = () => {
                 centuries.map((c, i) => (
                   <li key={i} className="top-performer-item">
                     <span className={`rank-badge ${getPlayerTypeClass(c.playerType)}`}>{i + 1}</span>
+                    <PlayerAvatar profilePicture={c.profilePicture} name={c.playerName} size={28} className="stats-overview-list-avatar" />
                       <div className="top-performer-item-info">
                         <div className="top-performer-item-name">{c.playerName}</div>
                         <div className="top-performer-item-teams-inline">
@@ -678,6 +740,7 @@ const StatsOverview = () => {
                 halfCenturies.map((hc, i) => (
                   <li key={i} className="top-performer-item">
                     <span className={`rank-badge ${getPlayerTypeClass(hc.playerType)}`}>{i + 1}</span>
+                    <PlayerAvatar profilePicture={hc.profilePicture} name={hc.playerName} size={28} className="stats-overview-list-avatar" />
                       <div className="top-performer-item-info">
                         <div className="top-performer-item-name">{hc.playerName}</div>
                         <div className="top-performer-item-teams-inline">
@@ -722,8 +785,16 @@ const StatsOverview = () => {
                   {/* Player Summary */}
                   <div className="player-summary">
                     <div className="player-header">
-                      <h3 className="player-name">{modalData.playerName}</h3>
-                      <span className="player-team">{modalData.teamName}</span>
+                      <PlayerAvatar
+                        profilePicture={modalData.profilePicture}
+                        name={modalData.playerName}
+                        size={48}
+                        className="stats-overview-modal-avatar"
+                      />
+                      <div className="player-header-text">
+                        <h3 className="player-name">{modalData.playerName}</h3>
+                        <span className="player-team">{modalData.teamName}</span>
+                      </div>
                     </div>
                     <div className="player-stats-overview">
                       {modalViewType === 'batting' ? (
