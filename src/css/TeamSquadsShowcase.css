@@ -351,7 +351,7 @@
   color: rgba(255, 255, 255, 0.95);
   text-align: center;
   line-height: 1;
-  padding: 00.25rem;
+  padding: 0.25rem;
 }
 
 .tss-modal-hero-copy {
@@ -363,8 +363,23 @@
 .tss-modal-hero-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(125deg, #0f2744 0%, #1e3a5f 45%, #0c1929 100%);
- opacity: 1;
+  background: linear-gradient(
+    125deg,
+    var(--tss-theme-primary, #0f2744) 0%,
+    color-mix(in srgb, var(--tss-theme-primary, #0f2744) 40%, var(--tss-theme-secondary, #1e3a5f)) 50%,
+    var(--tss-theme-secondary, #1e3a5f) 100%
+  );
+  opacity: 1;
+}
+
+@supports not (background: color-mix(in srgb, black, white)) {
+  .tss-modal-hero-bg {
+    background: linear-gradient(
+      125deg,
+      var(--tss-theme-primary, #0f2744) 0%,
+      var(--tss-theme-secondary, #1e3a5f) 100%
+    );
+  }
 }
 
 .tss-modal-hero-bg::before,
@@ -377,12 +392,12 @@
   opacity: 0.12;
 }
 .tss-modal-hero-bg::before {
-  background: #fbbf24;
+  background: var(--tss-theme-secondary, #fbbf24);
   top: -40px;
   left: -30px;
 }
 .tss-modal-hero-bg::after {
-  background: #38bdf8;
+  background: var(--tss-theme-primary, #38bdf8);
   bottom: -50px;
   right: -20px;
 }
@@ -463,6 +478,12 @@
   font-weight: 700;
   color: #0f172a;
   letter-spacing: 0.02em;
+}
+
+.tss-modal .tss-section-title {
+  border-left: 3px solid var(--tss-theme-secondary, #ca8a04);
+  padding-left: 0.55rem;
+  margin-left: -0.1rem;
 }
 
 .tss-player-grid {
@@ -696,4 +717,134 @@
   font-size: 0.72rem;
   pointer-events: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Squad theme (primary / secondary) — owner edits own team; admin can pick any team */
+.tss-theme-panel {
+  max-width: 1200px;
+  margin: 0 auto 1.5rem;
+  padding: 1rem 1.15rem 1.15rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+}
+
+.tss-theme-panel-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.35rem;
+  font-weight: 400;
+  color: #f8fafc;
+}
+
+.tss-theme-panel-desc {
+  margin: 0 0 1rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  opacity: 0.88;
+  color: #e2e8f0;
+}
+
+.tss-theme-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.tss-theme-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.tss-theme-select {
+  max-width: 22rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #f1f5f9;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.tss-theme-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tss-theme-colour {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0;
+}
+
+.tss-theme-colour .tss-theme-label {
+  min-width: 4.5rem;
+}
+
+.tss-theme-colour input[type='color'] {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.tss-theme-hex {
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #cbd5e1;
+}
+
+.tss-theme-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+}
+
+.tss-theme-save {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #eab308, #ca8a04);
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tss-theme-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tss-theme-reset {
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(248, 250, 252, 0.35);
+  border-radius: 8px;
+  background: transparent;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tss-theme-reset:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

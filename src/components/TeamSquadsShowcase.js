@@ -25,6 +25,14 @@ function hashTheme(teamName) {
   return palettes[Math.abs(h) % palettes.length];
 }
 
+function getTeamTheme(team) {
+  if (!team) return hashTheme('');
+  const p = team.themePrimary && String(team.themePrimary).trim();
+  const s = team.themeSecondary && String(team.themeSecondary).trim();
+  if (p && s) return { top: p, bottom: s };
+  return hashTheme(team.teamName);
+}
+
 function teamImageUrl(teamImage) {
   if (!teamImage) return null;
   const t = String(teamImage).trim();
@@ -67,6 +75,20 @@ export default function TeamSquadsShowcase() {
   const [viewerId, setViewerId] = useState(null);
   const [viewerIsAdmin, setViewerIsAdmin] = useState(false);
   const [savingCaptain, setSavingCaptain] = useState(false);
+  const [themeEditTeamId, setThemeEditTeamId] = useState(null);
+  const [draftThemePrimary, setDraftThemePrimary] = useState('#0f2744');
+  const [draftThemeSecondary, setDraftThemeSecondary] = useState('#eab308');
+  const [savingTheme, setSavingTheme] = useState(false);
+
+  const myTeam = useMemo(
+    () => (viewerId ? teams.find((t) => String(t._id) === String(viewerId)) : null),
+    [teams, viewerId]
+  );
+  const canEditThemeSection = Boolean(viewerId && (myTeam || viewerIsAdmin));
+  const themeEditTeam = useMemo(
+    () => teams.find((t) => String(t._id) === String(themeEditTeamId)),
+    [teams, themeEditTeamId]
+  );
 
   const teamStats = useMemo(() => {
     const map = new Map();
@@ -181,6 +203,31 @@ export default function TeamSquadsShowcase() {
   }, []);
 
   useEffect(() => {
+    if (!viewerId) {
+      setThemeEditTeamId(null);
+      return;
+    }
+    if (viewerIsAdmin && teams.length > 0) {
+      setThemeEditTeamId((prev) => {
+        if (prev && teams.some((t) => String(t._id) === String(prev))) return prev;
+        const mine = teams.find((t) => String(t._id) === String(viewerId));
+        return mine ? mine._id : teams[0]._id;
+      });
+    } else if (myTeam) {
+      setThemeEditTeamId(myTeam._id);
+    } else {
+      setThemeEditTeamId(null);
+    }
+  }, [viewerId, viewerIsAdmin, teams, myTeam]);
+
+  useEffect(() => {
+    if (!canEditThemeSection || !themeEditTeam) return;
+    const fb = hashTheme(themeEditTeam.teamName);
+    setDraftThemePrimary(themeEditTeam.themePrimary || fb.top);
+    setDraftThemeSecondary(themeEditTeam.themeSecondary || fb.bottom);
+  }, [themeEditTeamId, themeEditTeam, canEditThemeSection]);
+
+  useEffect(() => {
     setHeroLogoFailed(false);
   }, [selectedTeam?._id]);
 
@@ -214,6 +261,56 @@ export default function TeamSquadsShowcase() {
     selectedTeam &&
     viewerId &&
     (String(viewerId) === String(selectedTeam._id) || viewerIsAdmin);
+
+  const persistSquadTheme = async (clear) => {
+    if (!themeEditTeamId || !viewerId || savingTheme) return;
+    setSavingTheme(true);
+    try {
+      const res = await fetch(
+        `${API_ENDPOINTS}/api/users/${themeEditTeamId}/squad-theme`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requesterUserId: viewerId,
+            themePrimary: clear ? null : draftThemePrimary,
+            themeSecondary: clear ? null : draftThemeSecondary,
+          }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Could not save colours');
+      setTeams((prev) =>
+        prev.map((t) =>
+          String(t._id) === String(themeEditTeamId)
+            ? {
+                ...t,
+                themePrimary: data.themePrimary,
+                themeSecondary: data.themeSecondary,
+              }
+            : t
+        )
+      );
+      setSelectedTeam((prev) =>
+        prev && String(prev._id) === String(themeEditTeamId)
+          ? {
+              ...prev,
+              themePrimary: data.themePrimary,
+              themeSecondary: data.themeSecondary,
+            }
+          : prev
+      );
+      if (themeEditTeam) {
+        const fb = hashTheme(themeEditTeam.teamName);
+        setDraftThemePrimary(data.themePrimary || fb.top);
+        setDraftThemeSecondary(data.themeSecondary || fb.bottom);
+      }
+    } catch (e) {
+      alert(e.message || 'Could not save colours');
+    } finally {
+      setSavingTheme(false);
+    }
+  };
 
   const persistCaptain = async (playerId) => {
     if (!selectedTeam?._id || !viewerId || savingCaptain) return;
@@ -258,9 +355,76 @@ export default function TeamSquadsShowcase() {
         </p>
       </header>
 
+      {canEditThemeSection && themeEditTeam && (
+        <div className="tss-theme-panel">
+          <h2 className="tss-theme-panel-title">Squad colours</h2>
+          <p className="tss-theme-panel-desc">
+            {viewerIsAdmin
+              ? 'Admins can set primary and secondary colours for any team. These appear on squad cards and in the team popup header.'
+              : 'Choose colours for your team card and squad popup. Other teams still see your squad; only you can change your colours.'}
+          </p>
+          {viewerIsAdmin && (
+            <label className="tss-theme-field">
+              <span className="tss-theme-label">Team</span>
+              <select
+                className="tss-theme-select"
+                value={String(themeEditTeamId)}
+                onChange={(e) => setThemeEditTeamId(e.target.value)}
+              >
+                {teams.map((t) => (
+                  <option key={t._id || t.teamName} value={String(t._id)}>
+                    {t.teamName || t.name || t._id}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <div className="tss-theme-swatches">
+            <label className="tss-theme-field tss-theme-colour">
+              <span className="tss-theme-label">Primary</span>
+              <input
+                type="color"
+                value={draftThemePrimary}
+                onChange={(e) => setDraftThemePrimary(e.target.value)}
+                aria-label="Primary colour"
+              />
+              <span className="tss-theme-hex">{draftThemePrimary}</span>
+            </label>
+            <label className="tss-theme-field tss-theme-colour">
+              <span className="tss-theme-label">Secondary</span>
+              <input
+                type="color"
+                value={draftThemeSecondary}
+                onChange={(e) => setDraftThemeSecondary(e.target.value)}
+                aria-label="Secondary colour"
+              />
+              <span className="tss-theme-hex">{draftThemeSecondary}</span>
+            </label>
+          </div>
+          <div className="tss-theme-actions">
+            <button
+              type="button"
+              className="tss-theme-save"
+              disabled={savingTheme}
+              onClick={() => persistSquadTheme(false)}
+            >
+              {savingTheme ? 'Saving…' : 'Save colours'}
+            </button>
+            <button
+              type="button"
+              className="tss-theme-reset"
+              disabled={savingTheme}
+              onClick={() => persistSquadTheme(true)}
+            >
+              Reset to default
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="tss-grid">
         {teams.map((team) => {
-          const theme = hashTheme(team.teamName);
+          const theme = getTeamTheme(team);
           const stats = teamStats.get(team.teamName) || {
             cplWins: 0,
             cplYears: [],
@@ -335,6 +499,10 @@ export default function TeamSquadsShowcase() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="tss-modal-title"
+            style={{
+              '--tss-theme-primary': getTeamTheme(selectedTeam).top,
+              '--tss-theme-secondary': getTeamTheme(selectedTeam).bottom,
+            }}
           >
             <button type="button" className="tss-modal-close" onClick={closeModal}>
               ×
