@@ -192,6 +192,15 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
     }
   }, [bidAlert, onClose]);
 
+  useEffect(() => {
+    if (!portraitLightboxOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setPortraitLightboxOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [portraitLightboxOpen]);
+
   const formatHumanReadableAmount = (amount) => {
     if (amount >= 10000000) {
       return `${(amount / 10000000).toFixed(2)} Cr`;
@@ -635,15 +644,6 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
   };
 
   const portraitFullUrl = resolvePlayerImageUrl(playerDetails?.profilePicture);
-
-  useEffect(() => {
-    if (!portraitLightboxOpen) return;
-    const onKey = (e) => {
-      if (e.key === "Escape") setPortraitLightboxOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [portraitLightboxOpen]);
 
   return (
     <>
