@@ -3,6 +3,7 @@ import { useSocket } from "../contexts/SocketContext";
 import "../css/PlayerPopup.css";
 import { FaClock } from "react-icons/fa";
 import { API_ENDPOINTS } from "../const";
+import { resolvePlayerImageUrl } from "../utils/resolvePlayerImageUrl";
 
 const getPopupTypeStyles = (type) => {
   const baseStyles = {
@@ -63,6 +64,9 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
   const [now, setNow] = useState(new Date());
   const fetchInFlightRef = useRef(false);
   const pendingFetchRef = useRef(false);
+  const profilePicInputRef = useRef(null);
+  const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
+  const [portraitBroken, setPortraitBroken] = useState(false);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -130,6 +134,10 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
   useEffect(() => {
     fetchPlayerData(true);
   }, [fetchPlayerData]);
+
+  useEffect(() => {
+    setPortraitBroken(false);
+  }, [playerDetails?.profilePicture, player.id]);
   
   // 🚀 REALTIME: Listen for real-time bid updates using shared socket
   const { on } = useSocket();
@@ -158,12 +166,12 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
     };
   }, [on, currentPlayerId, fetchPlayerData]);
 
-  // Auto-hide bid alert after 5 seconds
+  // Auto-hide bid alert after 5 seconds (do not close popup after photo-only alerts)
   useEffect(() => {
     if (bidAlert) {
       const timer = setTimeout(() => {
         setBidAlert(null);
-        if (onClose) {
+        if (onClose && !bidAlert.isPhoto) {
           onClose();
         }
       }, 5000);
@@ -363,6 +371,53 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
         isSuccess: false,
         isSold: true
       });
+    }
+  };
+
+  const handleAdminProfileFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !isAdmin) return;
+    const admin = JSON.parse(localStorage.getItem("user"));
+    const adminUserId = admin?.id;
+    if (!adminUserId) {
+      setBidAlert({
+        message: "Admin user ID not found.",
+        playerName: playerDetails?.name || "",
+        isSuccess: false,
+        isPhoto: true,
+      });
+      return;
+    }
+    const fd = new FormData();
+    fd.append("profilePicture", file);
+    fd.append("adminUserId", adminUserId);
+    setUploadingProfilePic(true);
+    try {
+      const res = await fetch(
+        `${API_ENDPOINTS}/api/player/${player.id}/admin/profile-picture`,
+        { method: "POST", body: fd }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Upload failed");
+      setPlayerDetails((prev) =>
+        prev ? { ...prev, profilePicture: data.profilePicture } : prev
+      );
+      setBidAlert({
+        message: data.message || "Photo updated.",
+        playerName: playerDetails?.name,
+        isSuccess: true,
+        isPhoto: true,
+      });
+    } catch (err) {
+      setBidAlert({
+        message: err.message || "Upload failed",
+        playerName: playerDetails?.name,
+        isSuccess: false,
+        isPhoto: true,
+      });
+    } finally {
+      setUploadingProfilePic(false);
     }
   };
 
@@ -585,7 +640,9 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
         <div className="bid-alert-overlay">
           <div className={`bid-alert-card ${bidAlert.isSuccess ? 'success' : 'error'}`}>
             <div className="bid-alert-icon">
-              {bidAlert.isExit 
+              {bidAlert.isPhoto
+                ? (bidAlert.isSuccess ? '📷' : '❌')
+                : bidAlert.isExit 
                 ? (bidAlert.isSuccess ? '🚪' : '❌')
                 : bidAlert.isSold
                 ? (bidAlert.isSuccess ? '🏆' : '❌')
@@ -595,7 +652,9 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
               }
             </div>
             <div className="bid-alert-title">
-              {bidAlert.isExit 
+              {bidAlert.isPhoto
+                ? (bidAlert.isSuccess ? "PHOTO UPDATED" : "PHOTO UPLOAD FAILED")
+                : bidAlert.isExit 
                 ? (bidAlert.isSuccess ? 'EXIT SUCCESSFUL!' : 'EXIT FAILED!')
                 : bidAlert.isSold
                 ? (bidAlert.isSuccess ? 'PLAYER SOLD!' : 'SOLD FAILED!')
@@ -605,7 +664,19 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
               }
             </div>
             <div className="bid-alert-message">
-              {bidAlert.isExit ? (
+              {bidAlert.isPhoto ? (
+                bidAlert.isSuccess ? (
+                  <>
+                    Profile picture saved for<br />
+                    <strong>{bidAlert.playerName}</strong>
+                  </>
+                ) : (
+                  <>
+                    Could not update photo for<br />
+                    <strong>{bidAlert.playerName}</strong>
+                  </>
+                )
+              ) : bidAlert.isExit ? (
                 bidAlert.isSuccess ? (
                   <>
                     Successfully exited auction for<br />
@@ -655,7 +726,7 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
                 )
               )}
             </div>
-            {bidAlert.isSuccess && bidAlert.amount && !bidAlert.isExit && !bidAlert.isSold && !bidAlert.isRelease && (
+            {bidAlert.isSuccess && bidAlert.amount && !bidAlert.isExit && !bidAlert.isSold && !bidAlert.isRelease && !bidAlert.isPhoto && (
               <div className="bid-alert-amount">
                 ₹{formatHumanReadableAmount(bidAlert.amount)}
               </div>
@@ -682,11 +753,44 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
         <div className="popup-card elegant-card" style={popupTypeStyles}>
           <button className="close-btn" onClick={onClose}>✖</button>
           <div className="scrollable-content">
-            <img
-              src={`https://via.placeholder.com/150?text=${playerDetails.name}`}
-              alt={playerDetails.name}
-              className="player-image"
-            />
+            <div className="player-image-wrap">
+              {(() => {
+                const portraitUrl = resolvePlayerImageUrl(playerDetails.profilePicture);
+                const showImg = portraitUrl && !portraitBroken;
+                return showImg ? (
+                  <img
+                    key={portraitUrl}
+                    src={portraitUrl}
+                    alt=""
+                    className="player-image"
+                    onError={() => setPortraitBroken(true)}
+                  />
+                ) : (
+                  <div className="player-image player-image-placeholder" aria-hidden>
+                    {(playerDetails.name || "?").trim().charAt(0).toUpperCase()}
+                  </div>
+                );
+              })()}
+              {isAdmin && (
+                <div className="player-photo-admin">
+                  <input
+                    ref={profilePicInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    style={{ display: "none" }}
+                    onChange={handleAdminProfileFile}
+                  />
+                  <button
+                    type="button"
+                    className="player-photo-replace-btn"
+                    disabled={uploadingProfilePic}
+                    onClick={() => profilePicInputRef.current?.click()}
+                  >
+                    {uploadingProfilePic ? "Uploading…" : "Replace photo"}
+                  </button>
+                </div>
+              )}
+            </div>
             <h2 className="player-name">{playerDetails.name}</h2>
 
             <div className="player-details">

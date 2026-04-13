@@ -9,15 +9,13 @@ import {
 } from 'react-icons/fa';
 import '../css/TopRankingsPage.css';
 import { API_ENDPOINTS } from '../const';
+import { resolvePlayerImageUrl } from '../utils/resolvePlayerImageUrl';
 
 const formatMetricValue = (value) =>
   typeof value === 'number' ? value.toLocaleString('en-IN') : value;
 
-const resolveImageUrl = (src) => {
-  if (!src) return '/images/logo512.png';
-  if (src.startsWith('http')) return src;
-  return `${API_ENDPOINTS}/${src.replace(/^\/+/, '')}`;
-};
+const resolveImageUrl = (src) =>
+  resolvePlayerImageUrl(src) || '/images/logo512.png';
 
 const FeaturedCard = ({ player, metricLabel, metricValue }) => {
   if (!player) return null;

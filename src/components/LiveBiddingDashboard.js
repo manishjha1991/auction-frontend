@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import io from 'socket.io-client';
 import { API_ENDPOINTS } from '../const';
 import '../css/LiveBiddingDashboard.css';
+import PlayerAvatar from './PlayerAvatar';
 
 const LiveBiddingDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -176,6 +177,7 @@ const LiveBiddingDashboard = () => {
                     {bids.map((bid, index) => (
                       <div key={`${bid.playerId}-${index}`} className={`bid-item ${bid.isWinning ? 'winning' : ''} ${bid.isLosing ? 'losing' : ''}`}>
                         <div className="bid-player-info">
+                          <PlayerAvatar profilePicture={bid.profilePicture} name={bid.playerName} size={22} />
                           <span className="bid-player-name">{bid.playerName}</span>
                           <span className="bid-player-type" style={{ backgroundColor: getTypeColor(bid.playerType) }}>
                             {bid.playerType.charAt(0)}

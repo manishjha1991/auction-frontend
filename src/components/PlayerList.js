@@ -3,6 +3,7 @@ import styled, { keyframes } from "styled-components";
 import { useSocket } from "../contexts/SocketContext";
 import "../css/PlayerList.css";
 import PlayerPopup from "./PlayerPopup";
+import PlayerAvatar from "./PlayerAvatar";
 import { API_ENDPOINTS } from "../const";
 import TrophyLoader from "./TrophyLoader";
 import NotificationBell from './NotificationBell';
@@ -580,7 +581,10 @@ const PlayerList = () => {
               onClick={() => handlePlayerClick(player)}
             >
               <div className="player-cell player-icon">{getRoleIcon(player.role)}</div>
-              <div className="player-cell">{player.name}</div>
+              <div className="player-cell player-name-with-avatar">
+                <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={28} />
+                <span>{player.name}</span>
+              </div>
               <div className="player-cell player-price">
                 <div className="player-price-circle">
                   <span className="price-amount">{formatBasePrice(player.biddingPrice || player.basePrice || 0)}</span>

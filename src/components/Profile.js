@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from "../const";
 import LoadingCube from "./CricketAnimation";
 import NotificationBell from './NotificationBell';
 import TeamStrengthChart from './TeamStrengthChart';
+import PlayerAvatar from './PlayerAvatar';
 import AdminControlPanel from './AdminControlPanel';
 const Profile = () => {
   const [userData, setUserData] = useState(null);
@@ -1355,7 +1356,10 @@ const Profile = () => {
                         ✅ RETAINED
                       </div>
                     )}
-                  <p style={{ pointerEvents: 'none' }}><strong>Name:</strong> {player.name}</p>
+                  <p style={{ pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={40} />
+                    <span><strong>Name:</strong> {player.name}</span>
+                  </p>
                   <p style={{ pointerEvents: 'none' }}><strong>Type:</strong> {player.type}</p>
                   <p style={{ pointerEvents: 'none' }}><strong>Role:</strong> {player.role}</p>
                   <p style={{ pointerEvents: 'none' }}><strong>Base Price:</strong> {formatAmount(player.basePrice)}</p>
@@ -1469,7 +1473,10 @@ const Profile = () => {
             {filteredActiveBids && filteredActiveBids.length > 0 ? (
               filteredActiveBids.map(({ player, bidAmount }, idx) => (
                 <div className={`player-card ${player.type.toLowerCase()}`} key={idx}>
-                  <p><strong>Name:</strong> {player.name}</p>
+                  <p style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={36} />
+                    <span><strong>Name:</strong> {player.name}</span>
+                  </p>
                   <p><strong>Role:</strong> {player.role}</p>
                   <p><strong>Bid Amount:</strong> {formatAmount(bidAmount)}</p>
                 </div>
@@ -1495,7 +1502,10 @@ const Profile = () => {
                 }}
                 key={idx}
               >
-                <p><strong>Name:</strong> {player.name}</p>
+                <p style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={36} />
+                  <span><strong>Name:</strong> {player.name}</span>
+                </p>
                 <p><strong>Your Bid:</strong> {formatAmount(bidAmount)}</p>
                 <p><strong>Base Price:</strong> {formatAmount(player.basePrice)}</p>
                 <p><strong>Status:</strong> {status}</p>
@@ -1712,7 +1722,10 @@ const Profile = () => {
                       </div>
                     )}
                     
-                    <p><strong>Name:</strong> {retained.playerName}</p>
+                    <p style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <PlayerAvatar profilePicture={retained.playerId?.profilePicture} name={retained.playerName} size={36} />
+                      <span><strong>Name:</strong> {retained.playerName}</span>
+                    </p>
                     <p><strong>Type:</strong> {retained.playerType}</p>
                     <p><strong>Role:</strong> {retained.playerRole}</p>
                     <p><strong>Retention Value:</strong> {formatAmount(retained.retainedValue)}</p>
@@ -1804,9 +1817,12 @@ const Profile = () => {
               color: 'white',
               textAlign: 'center'
             }}>
-              <h3 style={{ margin: '0 0 10px 0', fontSize: '1.5rem' }}>
-                {player.name}
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, margin: '0 0 10px 0' }}>
+                <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={48} />
+                <h3 style={{ margin: 0, fontSize: '1.5rem' }}>
+                  {player.name}
+                </h3>
+              </div>
               <p style={{ margin: '0 0 15px 0', opacity: 0.9 }}>
                 {player.type} • {player.role}
               </p>

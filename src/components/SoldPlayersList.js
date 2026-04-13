@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../css/PlayerList.css";
 import PlayerPopup from "./PlayerPopup";
+import PlayerAvatar from "./PlayerAvatar";
 import { API_ENDPOINTS } from "../const";
 import { FaWallet } from "react-icons/fa"; // Wallet Icon
 import LoadingCube from "./CricketAnimation"; // Import the reusable component
@@ -153,18 +154,29 @@ const SoldPlayers = () => {
               🏠 {player.teamName || "N/A"}
             </div>
 
-            {/* Player Name */}
-            <h3
+            <div
               style={{
-                margin: "10px 0 5px",
-                fontSize: "16px",
-                fontWeight: "bold",
-                color: "#fff",
-                textTransform: "capitalize",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 8,
+                marginTop: 8,
               }}
             >
-              ✨ {player.name} ✨
-            </h3>
+              <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={56} />
+              <h3
+                style={{
+                  margin: "0 0 5px",
+                  fontSize: "16px",
+                  fontWeight: "bold",
+                  color: "#fff",
+                  textTransform: "capitalize",
+                }}
+              >
+                ✨ {player.name} ✨
+              </h3>
+            </div>
+
 
             {/* Wallet Icon and Price */}
             <p

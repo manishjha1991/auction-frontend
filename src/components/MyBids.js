@@ -5,6 +5,7 @@ import { useSocket } from "../contexts/SocketContext";
 import NotificationBell from "./NotificationBell";
 import LoadingCube from "./CricketAnimation";
 import PlayerPopup from "./PlayerPopup";
+import PlayerAvatar from "./PlayerAvatar";
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -845,7 +846,10 @@ const MyBids = () => {
                 variant="bid-winning"
                 onClick={() => setSelectedPlayer({ id: bid.playerId })}
               >
-                <PlayerName>{bid.playerName}</PlayerName>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <PlayerAvatar profilePicture={bid.profilePicture} name={bid.playerName} size={26} />
+                  <PlayerName>{bid.playerName}</PlayerName>
+                </div>
                 <PlayerPriceCircle>
                   <PriceAmount>₹{(Number(bid.bidAmount || 0) / 10000000).toFixed(2)}</PriceAmount>
                   <PriceUnit>Cr</PriceUnit>
@@ -869,7 +873,10 @@ const MyBids = () => {
                 variant="bid-losing"
                 onClick={() => setSelectedPlayer({ id: bid.playerId })}
               >
-                <PlayerName>{bid.playerName}</PlayerName>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <PlayerAvatar profilePicture={bid.profilePicture} name={bid.playerName} size={26} />
+                  <PlayerName>{bid.playerName}</PlayerName>
+                </div>
                 <PlayerPriceCircle>
                   <PriceAmount>₹{(Number(bid.bidAmount || 0) / 10000000).toFixed(2)}</PriceAmount>
                   <PriceUnit>Cr</PriceUnit>
@@ -942,7 +949,10 @@ const MyBids = () => {
                       key={player.id || player._id || player.name}
                       playerType={player.type?.toLowerCase()}
                     >
-                      <PlayerName>{player.name}</PlayerName>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={26} />
+                        <PlayerName>{player.name}</PlayerName>
+                      </div>
                       <PlayerPriceCircle>
                         <PriceAmount>₹{(Number(player.biddingPrice || 0) / 10000000).toFixed(2)}</PriceAmount>
                         <PriceUnit>Cr</PriceUnit>

@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from "../const";
 import LoadingCube from "./CricketAnimation";
 import NotificationBell from './NotificationBell';
 import PlayerPopup from './PlayerPopup';
+import PlayerAvatar from './PlayerAvatar';
 
 // Modern Styled Components - Fresh Design
 const PageContainer = styled.div`
@@ -1782,7 +1783,10 @@ const UserPursePage = () => {
                     playerType={player.type?.toLowerCase()}
                       onClick={() => handlePlayerClick(player)}
                   >
-                    <PlayerName>{player.name}</PlayerName>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={26} />
+                      <PlayerName>{player.name}</PlayerName>
+                    </div>
                     <PlayerPriceCircle>
                       <PriceAmount>₹{(player.boughtValue / 10000000).toFixed(2)}</PriceAmount>
                       <PriceUnit>Cr</PriceUnit>
@@ -1819,7 +1823,10 @@ const UserPursePage = () => {
                                 isCurrentUserBidding={isCurrentUser}
                         onClick={() => handlePlayerClick(player)}
                     >
-                                <PlayerName>{player.name}</PlayerName>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={26} />
+                                  <PlayerName>{player.name}</PlayerName>
+                                </div>
                                 <PlayerPriceCircle>
                                   <PriceAmount>₹{(player.biddingPrice / 10000000).toFixed(2)}</PriceAmount>
                                   <PriceUnit>Cr</PriceUnit>

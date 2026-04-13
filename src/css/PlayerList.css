@@ -75,6 +75,21 @@
   text-align: center;
 }
 
+.player-name-with-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  text-align: left;
+  min-width: 0;
+}
+
+.player-name-with-avatar span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .team-sold span {
   color: #4caf50;
   font-weight: bold;

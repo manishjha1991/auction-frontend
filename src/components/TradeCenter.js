@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { API_ENDPOINTS } from '../const';
 import '../css/TradeCenter.css';
+import PlayerAvatar from './PlayerAvatar';
 import { FaExchangeAlt, FaCheck,FaClock, FaTimes, FaPaperPlane, FaRetweet, FaUsers, FaUnlock, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
 import {
   FALLBACK_TRADE_SEASON_CAP,
@@ -237,7 +238,13 @@ function TradeCenter({ user: userProp }) {
         if (p.status === 'Sold' && uid && p.currentBidderId && String(p.currentBidderId) === String(uid)) return true;
         return false;
       })
-      .map(p => ({ id: p.id, name: p.name, role: p.role }));
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        role: p.role,
+        type: p.type,
+        profilePicture: p.profilePicture,
+      }));
   }, [effectiveUser, allPlayers, uid]);
 
   // Derive target roster from allPlayers using selected teamName - OPTIMIZED
@@ -250,7 +257,13 @@ function TradeCenter({ user: userProp }) {
     // Filter players efficiently
     return allPlayers
       .filter(p => p.teamName === team.teamName)
-      .map(p => ({ id: p.id, name: p.name, role: p.role }));
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        role: p.role,
+        type: p.type,
+        profilePicture: p.profilePicture,
+      }));
   }, [targetTeamId, teams, allPlayers]);
 
   // Derive other teams - OPTIMIZED
@@ -1130,11 +1143,17 @@ function TradeCenter({ user: userProp }) {
                 return (
                   <div className="chips">
                     <div className="player-chip">
+                      {mine && (
+                        <PlayerAvatar profilePicture={mine.profilePicture} name={mine.name} size={24} />
+                      )}
                       <span className="name">{mine ? mine.name : 'Player'}</span>
                       {mine?.type && <span className={typeClass(mine.type)}>{mine.type}</span>}
                     </div>
                     <span className="chip-arrow">↔</span>
                     <div className="player-chip">
+                      {theirs && (
+                        <PlayerAvatar profilePicture={theirs.profilePicture} name={theirs.name} size={24} />
+                      )}
                       <span className="name">{theirs ? theirs.name : 'Target player'}</span>
                       {theirs?.type && <span className={typeClass(theirs.type)}>{theirs.type}</span>}
                     </div>
@@ -1190,11 +1209,17 @@ function TradeCenter({ user: userProp }) {
                   <div className="line offer-line">
                     <strong>Offer:</strong>
                     <span className="offer-chip">
+                      {t.offeredPlayer && (
+                        <PlayerAvatar profilePicture={t.offeredPlayer.profilePicture} name={t.offeredPlayer.name} size={22} />
+                      )}
                       <span className="nm">{t.offeredPlayer?.name}</span>
                       {t.offeredPlayer?.type && <span className={`type-badge ${String(t.offeredPlayer.type).toLowerCase()}`}>{t.offeredPlayer.type}</span>}
                     </span>
                     <span className="chip-arrow">↔</span>
                     <span className="offer-chip">
+                      {t.requestedPlayer && (
+                        <PlayerAvatar profilePicture={t.requestedPlayer.profilePicture} name={t.requestedPlayer.name} size={22} />
+                      )}
                       <span className="nm">{t.requestedPlayer?.name}</span>
                       {t.requestedPlayer?.type && <span className={`type-badge ${String(t.requestedPlayer.type).toLowerCase()}`}>{t.requestedPlayer.type}</span>}
                     </span>
@@ -1345,6 +1370,9 @@ function TradeCenter({ user: userProp }) {
                     <div className="line player-line">
                       <strong>Player:</strong>
                       <span className="player-chip">
+                        {r.player && (
+                          <PlayerAvatar profilePicture={r.player.profilePicture} name={r.player.name} size={22} />
+                        )}
                         <span className="nm">{r.player?.name}</span>
                         {r.player?.type && <span className={`type-badge ${String(r.player.type).toLowerCase()}`}>{r.player.type}</span>}
                       </span>
@@ -1465,6 +1493,9 @@ function TradeCenter({ user: userProp }) {
                 <div key={r._id} className={`release-item ${r.status === 'rejected' ? 'rejected' : ''}`}>
                   <div className="release-info">
                     <span className="player-chip">
+                      {r.player && (
+                        <PlayerAvatar profilePicture={r.player.profilePicture} name={r.player.name} size={22} />
+                      )}
                       {r.player?.name}
                       {r.player?.type && (<span className={`type-badge ${String(r.player.type).toLowerCase()}`}>{r.player.type}</span>)}
                     </span>
