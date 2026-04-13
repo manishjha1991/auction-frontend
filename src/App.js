@@ -23,12 +23,13 @@ import {
   FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
   FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaBook,
-  FaCalculator, FaCloudRain, FaHistory, FaWrench, FaChartLine
+  FaCalculator, FaCloudRain, FaHistory, FaWrench, FaChartLine, FaAddressCard
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
 import GlobalNotification from './components/GlobalNotification';
 import TeamDirectory from './components/TeamDirectory';
+import TeamSquadsShowcase from './components/TeamSquadsShowcase';
 import AdminUserManagement from './components/AdminUserManagement';
 import AdminRetainedPlayers from './components/AdminRetainedPlayers';
 import AdminTeamLocks from './components/AdminTeamLocks';
@@ -319,6 +320,12 @@ function App() {
                       </Link>
                     </li>
                     <li>
+                      <Link to="/team-squads" onClick={closeSidebar} className={`menu-item ${isActive('/team-squads') ? 'active' : ''}`}>
+                        <FaAddressCard className="menu-icon" />
+                        <span>Team Squads</span>
+                      </Link>
+                    </li>
+                    <li>
                       <Link to="/my-bids" onClick={closeSidebar} className={`menu-item ${isActive('/my-bids') ? 'active' : ''}`}>
                         <FaBook className="menu-icon" />
                         <span>My Bids</span>
@@ -530,6 +537,7 @@ function App() {
             <Route path="/fixtures" element={<PrivateRoute><Fixtures user={user} /></PrivateRoute>} />
             <Route path="/match-scheduler" element={<PrivateRoute><MatchScheduler /></PrivateRoute>} />
             <Route path="/team-directory" element={<PrivateRoute><TeamDirectory /></PrivateRoute>} />
+            <Route path="/team-squads" element={<PrivateRoute><TeamSquadsShowcase /></PrivateRoute>} />
             <Route path="/tournaments" element={<PrivateRoute><TournamentList /></PrivateRoute>} />
             <Route path="/trophy-hall" element={<PrivateRoute><TrophyHall /></PrivateRoute>} />
             <Route path="/cpl-history" element={<PrivateRoute><CplHistorySummary /></PrivateRoute>} />

@@ -46,7 +46,14 @@ const getPopupTypeStyles = (type) => {
   }
 };
 
-const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited }) => {
+const PlayerPopup = ({
+  player,
+  onClose,
+  onDeactivated,
+  onBidPlaced,
+  onBidExited,
+  hideAuctionActions = false,
+}) => {
   const [playerDetails, setPlayerDetails] = useState(null);
   const [topTwoBids, setTopTwoBids] = useState([]);
   const [allBids, setAllBids] = useState([]);
@@ -779,7 +786,9 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
         </div>
       )}
       
-      <div className="popup-overlay">
+      <div
+        className={`popup-overlay${hideAuctionActions ? " player-popup--squad" : ""}`}
+      >
         <div className="popup-card elegant-card" style={popupTypeStyles}>
           <button className="close-btn" onClick={onClose}>✖</button>
           <div className="scrollable-content">
@@ -872,7 +881,7 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
               </p>
             </div>
 
-            {topTwoBids.length > 0 && (
+            {!hideAuctionActions && topTwoBids.length > 0 && (
               <div className="bids-section">
                 <h3>Last Two Bids</h3>
                     {topTwoBids.map((bid, index) => {
@@ -915,7 +924,7 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
                 })}
               </div>
             )}
-            {playerDetails?.lastExitTime && (
+            {!hideAuctionActions && playerDetails?.lastExitTime && (
               <p className="bid-time">
                 <FaClock className="timer-icon" /> Last Exit Time:{" "}
                 {new Date(playerDetails.lastExitTime).toLocaleString("en-US", {
@@ -957,7 +966,7 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
               </div>
             )}
 
-            {isAdmin && !isSold && (
+            {!hideAuctionActions && isAdmin && !isSold && (
               <div className="admin-action-buttons">
                 <button
                   className="sold-btn"
@@ -1027,7 +1036,7 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
               </div>
             )}
 
-            {isAdmin && isSold && (
+            {!hideAuctionActions && isAdmin && isSold && (
               <div className="release-button-section">
                 <button
                   className="release-btn"
@@ -1065,7 +1074,7 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
               </div>
             ) */}
 
-            {!isAdmin && !isSold && (
+            {!hideAuctionActions && !isAdmin && !isSold && (
               <div className="exit-auction-section">
                 <button className="unique-exit-btn" onClick={handleExitAuction}>
                   Exit Auction 🚪
@@ -1078,7 +1087,7 @@ const PlayerPopup = ({ player, onClose, onDeactivated, onBidPlaced, onBidExited 
 
       {portraitLightboxOpen && portraitFullUrl && (
         <div
-          className="portrait-lightbox-overlay"
+          className={`portrait-lightbox-overlay${hideAuctionActions ? ' portrait-lightbox--stack' : ''}`}
           onClick={() => setPortraitLightboxOpen(false)}
           role="presentation"
         >

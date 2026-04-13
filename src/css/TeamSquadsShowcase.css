@@ -1,0 +1,678 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+.tss-page {
+  min-height: 100vh;
+  background: #0a0e1a;
+  color: #f1f5f9;
+  padding: clamp(1rem, 4vw, 2rem);
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+.tss-header {
+  text-align: center;
+  max-width: 40rem;
+  margin: 0 auto 1.75rem;
+}
+
+.tss-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.25rem, 6vw, 3.5rem);
+  letter-spacing: 0.06em;
+  margin: 0 0 0.35rem;
+  font-weight: 400;
+}
+
+.tss-sub {
+  margin: 0;
+  opacity: 0.82;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.tss-loading,
+.tss-error {
+  text-align: center;
+  padding: 3rem 1rem;
+  opacity: 0.85;
+}
+
+.tss-error {
+  color: #fecaca;
+}
+
+.tss-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(0.75rem, 3vw, 1.25rem);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .tss-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .tss-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.tss-card {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 14px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tss-card:focus-visible {
+  outline: 2px solid #eab308;
+  outline-offset: 3px;
+}
+
+.tss-card-visual {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  min-height: 168px;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tss-card:hover .tss-card-visual {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  }
+}
+
+.tss-card-top {
+  position: relative;
+  min-height: 108px;
+  background: var(--tss-top, #1e3a5f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0.75rem 1.35rem;
+}
+
+.tss-card-top::after {
+  content: '';
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -18px;
+  height: 36px;
+  background: var(--tss-bottom, #eab308);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  pointer-events: none;
+}
+
+.tss-card-logo {
+  position: relative;
+  z-index: 1;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
+}
+
+.tss-card-logo-fallback {
+  position: relative;
+  z-index: 1;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.75rem;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.tss-card-bottom {
+  position: relative;
+  z-index: 1;
+  background: var(--tss-bottom, #eab308);
+  padding: 1.1rem 0.65rem 0.85rem;
+  text-align: center;
+}
+
+.tss-card-name {
+  display: block;
+  font-weight: 700;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.tss-card-chips {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.tss-card-hover {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: linear-gradient(160deg, rgba(245, 245, 245, 0.97), rgba(226, 232, 240, 0.98));
+  color: #0f172a;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tss-card:hover .tss-card-hover {
+    opacity: 1;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .tss-card-hover {
+    display: none;
+  }
+}
+
+.tss-card-trophy {
+  font-size: 2rem;
+  color: #ca8a04;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+.tss-card-hover-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.tss-card-years {
+  font-weight: 500;
+  font-size: 0.68rem;
+  opacity: 0.85;
+  text-align: center;
+ max-width: 100%;
+}
+
+.tss-card-years.wc {
+  color: #1d4ed8;
+}
+
+.tss-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10040;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  animation: tssFade 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  .tss-modal-overlay {
+    align-items: center;
+    padding: 1rem;
+  }
+}
+
+@keyframes tssFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tss-modal {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  max-height: 96vh;
+  background: #f1f5f9;
+  color: #0f172a;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.35);
+}
+
+@media (min-width: 768px) {
+  .tss-modal {
+    border-radius: 16px;
+    max-height: 90vh;
+  }
+}
+
+.tss-modal-close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 5;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tss-modal-close:hover {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.tss-modal-hero {
+  position: relative;
+  flex-shrink: 0;
+  padding: 1.25rem 1.25rem 0.75rem;
+  overflow: hidden;
+}
+
+.tss-modal-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-right: 2.5rem;
+}
+
+.tss-modal-hero-logo-wrap {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tss-modal-hero-logo-wrap .tss-modal-hero-logo {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  object-fit: contain;
+}
+
+.tss-modal-hero-logo-fallback {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: center;
+  line-height: 1;
+  padding: 00.25rem;
+}
+
+.tss-modal-hero-copy {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.1rem;
+}
+
+.tss-modal-hero-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(125deg, #0f2744 0%, #1e3a5f 45%, #0c1929 100%);
+ opacity: 1;
+}
+
+.tss-modal-hero-bg::before,
+.tss-modal-hero-bg::after {
+  content: '';
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  opacity: 0.12;
+}
+.tss-modal-hero-bg::before {
+  background: #fbbf24;
+  top: -40px;
+  left: -30px;
+}
+.tss-modal-hero-bg::after {
+  background: #38bdf8;
+  bottom: -50px;
+  right: -20px;
+}
+
+.tss-modal-hero-logo {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35));
+}
+
+.tss-modal-hero-copy h2 {
+  margin: 0 0 0.5rem;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(1.5rem, 4.5vw, 2.1rem);
+  letter-spacing: 0.04em;
+  color: #fff;
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.tss-modal-trophies {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  line-height: 1.35;
+}
+
+.tss-modal-trophies svg {
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+.tss-modal-wc {
+  opacity: 0.95;
+}
+
+.tss-modal-years {
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.tss-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem 1rem 1.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tss-roster-loading,
+.tss-roster-err {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #64748b;
+}
+
+.tss-roster-err {
+  color: #b91c1c;
+}
+
+.tss-roster-empty {
+  text-align: center;
+  color: #64748b;
+  margin: 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.tss-section {
+  margin-bottom: 1.75rem;
+}
+
+.tss-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+}
+
+.tss-player-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (min-width: 480px) {
+  .tss-player-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .tss-player-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tss-player-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.tss-player-card {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tss-player-card:focus-visible {
+  outline: 2px solid #eab308;
+  outline-offset: 2px;
+}
+
+.tss-player-photo {
+  position: relative;
+  background: linear-gradient(180deg, #f8fafc, #e2e8f0);
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+}
+
+.tss-player-avatar {
+  border: 2px solid rgba(255, 255, 255, 0.85) !important;
+}
+
+.tss-player-role-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0f172a;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.tss-role-ico {
+  font-size: 0.95rem;
+}
+
+.tss-player-meta {
+  padding: 0.55rem 0.45rem 0.65rem;
+  text-align: center;
+  border-top: 1px solid #e2e8f0;
+}
+
+.tss-player-name {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  color: #0f172a;
+}
+
+.tss-player-role {
+  margin-top: 0.2rem;
+  font-size: 0.65rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.tss-player-type {
+  margin-top: 0.15rem;
+  font-size: 0.6rem;
+  color: #94a3b8;
+  text-transform: capitalize;
+}
+
+/* Captain strip: first row in modal body so it sits on light bg (high contrast) */
+.tss-squad-details {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #ca8a04;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.07);
+}
+
+.tss-detail-row {
+  display: grid;
+  grid-template-columns: 4.75rem 0.65rem 1fr;
+  column-gap: 0.35rem;
+  align-items: baseline;
+  font-size: 0.9rem;
+}
+
+.tss-detail-label {
+  color: #b45309;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+}
+
+.tss-detail-sep {
+  color: #94a3b8;
+  text-align: center;
+}
+
+.tss-detail-value {
+  color: #0f172a;
+  font-weight: 600;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.tss-clear-captain {
+  margin-top: 0.6rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid #ca8a04;
+  background: #fffbeb;
+  color: #92400e;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tss-clear-captain:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tss-captain-hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.74rem;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.tss-captain-btn {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid rgba(251, 191, 36, 0.95);
+  background: rgba(15, 23, 42, 0.88);
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.72rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tss-captain-btn:focus-visible {
+  outline: 2px solid #fbbf24;
+  outline-offset: 2px;
+}
+
+.tss-captain-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tss-captain-btn--active {
+  background: linear-gradient(145deg, #fbbf24, #d97706);
+  color: #0f172a;
+  border-color: rgba(255, 255, 255, 0.95);
+}
+
+.tss-player-card--captain {
+  border-color: #ca8a04;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35), 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+/* Read-only crown for viewers (team owner not viewing their own modal) */
+.tss-captain-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  background: linear-gradient(145deg, #fbbf24, #d97706);
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}

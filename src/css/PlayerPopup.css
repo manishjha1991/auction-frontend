@@ -16,6 +16,10 @@
   overflow: hidden;
 }
 
+.popup-overlay.player-popup--squad {
+  z-index: 10060;
+}
+
 /* Popup Card */
 .popup-card {
   width: 90%;
@@ -2176,6 +2180,10 @@ div.bid-row.second-bid span.bid-amount {
 }
 
 /* Full-size portrait (click thumbnail in popup) */
+.portrait-lightbox-overlay.portrait-lightbox--stack {
+  z-index: 10070;
+}
+
 .portrait-lightbox-overlay {
   position: fixed;
   inset: 0;
