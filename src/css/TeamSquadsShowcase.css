@@ -223,14 +223,22 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 0;
+  /* Keep sheet below status bar / notch and above home indicator (iOS Safari) */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  box-sizing: border-box;
   animation: tssFade 0.2s ease;
 }
 
 @media (min-width: 768px) {
   .tss-modal-overlay {
     align-items: center;
-    padding: 1rem;
+    padding: max(1rem, env(safe-area-inset-top))
+      max(1rem, env(safe-area-inset-right))
+      max(1rem, env(safe-area-inset-bottom))
+      max(1rem, env(safe-area-inset-left));
   }
 }
 
@@ -247,7 +255,13 @@
   position: relative;
   width: 100%;
   max-width: 960px;
-  max-height: 96vh;
+  /* Do not use raw 96vh: on mobile it overflows the padded overlay and clips under the notch */
+  max-height: calc(
+    100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px
+  );
+  max-height: calc(
+    100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px
+  );
   background: #f1f5f9;
   color: #0f172a;
   border-radius: 16px 16px 0 0;
@@ -260,7 +274,14 @@
 @media (min-width: 768px) {
   .tss-modal {
     border-radius: 16px;
-    max-height: 90vh;
+    max-height: min(
+      90vh,
+      calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem)
+    );
+    max-height: min(
+      90vh,
+      calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem)
+    );
   }
 }
 
