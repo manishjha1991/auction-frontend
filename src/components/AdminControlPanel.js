@@ -1804,8 +1804,8 @@ const AdminControlPanel = ({ adminUser }) => {
         {careerHistoryResult && (
           <div className="result-banner">
             <strong>
-              Career summaries upserted: {careerHistoryResult.career?.upserts ?? '—'} • Player totals rebuilt from
-              stats: {careerHistoryResult.playerTotals?.playersUpdated ?? '—'}
+              Career summaries upserted: {careerHistoryResult.career?.upserts ?? '—'} • Top Rankings (Player) synced
+              from career totals: {careerHistoryResult.career?.rankingsSync?.rankingsPlayersSynced ?? '—'}
             </strong>
           </div>
         )}
