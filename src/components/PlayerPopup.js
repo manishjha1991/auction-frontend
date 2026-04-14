@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import "../css/PlayerPopup.css";
-import { FaClock } from "react-icons/fa";
+import { FaClock, FaEye, FaHourglassHalf } from "react-icons/fa";
 import { API_ENDPOINTS } from "../const";
 import { resolvePlayerImageUrl } from "../utils/resolvePlayerImageUrl";
 
@@ -82,10 +82,12 @@ const PlayerPopup = ({
     queueCount: 0,
     you: null,
     queueJoinAllowed: false,
+    canJoinQueue: false,
     activeBidderCount: 0,
   });
   const [queueMaxInput, setQueueMaxInput] = useState("");
   const [queueBusy, setQueueBusy] = useState(false);
+  const [liveWatcherCount, setLiveWatcherCount] = useState(0);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -169,12 +171,36 @@ const PlayerPopup = ({
   }, [playerDetails?.profilePicture, player.id]);
   
   // 🚀 REALTIME: Listen for real-time bid updates using shared socket
-  const { on } = useSocket();
+  const { on, socket, isConnected } = useSocket();
   const currentPlayerId = player.id || player._id;
-  
+  const watchedPlayerId =
+    playerDetails?.id || playerDetails?._id || player.id || player._id;
+
+  useEffect(() => {
+    setLiveWatcherCount(0);
+  }, [watchedPlayerId]);
+
+  /* Join watch room so this client counts toward demand; count updates via socket. */
+  useEffect(() => {
+    if (!socket || !isConnected || !watchedPlayerId) return;
+    const pid = String(watchedPlayerId);
+    socket.emit("watch_player", { playerId: pid });
+    return () => {
+      socket.emit("unwatch_player", { playerId: pid });
+    };
+  }, [socket, isConnected, watchedPlayerId]);
+
   useEffect(() => {
     if (!on) return;
-    
+
+    const cleanupWatchers = on("player_watchers_update", (payload) => {
+      const pid = payload?.playerId != null ? String(payload.playerId) : "";
+      const ours = String(watchedPlayerId || "");
+      if (!pid || !ours || pid !== ours) return;
+      const count = typeof payload.count === "number" ? payload.count : 0;
+      setLiveWatcherCount(count);
+    });
+
     const cleanup1 = on('player_bid_update', (update) => {
       if (update.playerId === currentPlayerId || update.playerId?.toString() === currentPlayerId?.toString()) {
         // Refresh player data when bid updates (silently, no loading spinner)
@@ -190,10 +216,11 @@ const PlayerPopup = ({
     });
     
     return () => {
+      cleanupWatchers();
       cleanup1();
       cleanup2();
     };
-  }, [on, currentPlayerId, fetchPlayerData]);
+  }, [on, watchedPlayerId, currentPlayerId, fetchPlayerData]);
 
   const fetchBidQueueState = useCallback(async () => {
     const pid = playerDetails?.id || playerDetails?._id || player.id || player._id;
@@ -207,12 +234,17 @@ const PlayerPopup = ({
       });
       if (!res.ok) return;
       const data = await res.json();
+      const canJoinQueue =
+        typeof data.canJoinQueue === "boolean"
+          ? data.canJoinQueue
+          : !!(data.queueJoinAllowed && !data.you);
       setBidQueueState({
         enabled: !!data.enabled,
         manualBidsFrozen: !!data.manualBidsFrozen,
         queueCount: data.queueCount || 0,
         you: data.you || null,
         queueJoinAllowed: !!data.queueJoinAllowed,
+        canJoinQueue,
         activeBidderCount: typeof data.activeBidderCount === "number" ? data.activeBidderCount : 0,
       });
     } catch (e) {
@@ -656,11 +688,24 @@ const PlayerPopup = ({
     bidQueueState.manualBidsFrozen &&
     !bidderIdMatchesTopTwo();
 
+  /** Promoted from queue: auto-bids only — no manual Place Bid (server enforces too). */
+  const promotedFromQueue = !!(bidQueueState.you?.isPromotedProxy);
+
+  const queueYouPosition = bidQueueState.you?.position;
+  const queueYouTotal =
+    typeof bidQueueState.you?.queueLength === "number"
+      ? bidQueueState.you.queueLength
+      : bidQueueState.queueCount;
+
   /** Queue UI only when two active bidders (third+ can join), or you are already queued. */
   const showBidQueuePanel =
     bidQueueState.enabled &&
     !hideAuctionActions &&
     (bidQueueState.queueJoinAllowed || !!bidQueueState.you);
+
+  /** Server sets canJoinQueue; also hide if top-two bids say you are already in the duel (legacy API). */
+  const showJoinQueueControls =
+    bidQueueState.canJoinQueue && !bidderIdMatchesTopTwo();
 
   const handleJoinBidQueue = async () => {
     const pid = playerDetails?.id || playerDetails?._id;
@@ -1040,7 +1085,29 @@ const PlayerPopup = ({
                 </div>
               )}
             </div>
-            <h2 className="player-name">{playerDetails.name}</h2>
+            <div className="player-name-demand-wrap">
+              <h2 className="player-name">{playerDetails.name}</h2>
+              {liveWatcherCount > 0 && (
+                <div
+                  className="player-demand-indicator"
+                  title={`${liveWatcherCount} viewer${liveWatcherCount === 1 ? "" : "s"} on this profile (live)`}
+                >
+                  <span className="player-demand-live-dot" aria-hidden />
+                  <FaEye className="player-demand-eye" aria-hidden />
+                  <span className="player-demand-count">{liveWatcherCount}</span>
+                  <span className="player-demand-label">viewing</span>
+                  {liveWatcherCount >= 2 && (
+                    <span
+                      className={
+                        liveWatcherCount >= 4 ? "player-demand-hot" : "player-demand-warm"
+                      }
+                    >
+                      {liveWatcherCount >= 4 ? "hot" : "warm"}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="player-details">
               <p>
@@ -1148,28 +1215,62 @@ const PlayerPopup = ({
               <div className="place-bid-section">
                 <h3>Place a Bid</h3>
                 {showBidQueuePanel && bidQueueState.queueCount > 0 && (
-                  <p className="bid-queue-banner">
-                    Bid queue: <strong>{bidQueueState.queueCount}</strong> waiting
-                    {manualBidBlockedByQueue
-                      ? " — manual bids are limited to the two active bidders until the queue clears."
-                      : ""}
-                  </p>
+                  <div className="bid-queue-callout" role="status">
+                    <span className="bid-queue-callout-icon" aria-hidden>
+                      <FaHourglassHalf />
+                    </span>
+                    <div className="bid-queue-callout-text">
+                      <span className="bid-queue-callout-title">
+                        {bidQueueState.queueCount === 1
+                          ? "1 team is waiting in the bid queue"
+                          : `${bidQueueState.queueCount} teams are waiting in the bid queue`}
+                      </span>
+                      <span className="bid-queue-callout-detail">
+                        {manualBidBlockedByQueue
+                          ? "Manual raises are limited to the two active bidders until the queue clears."
+                          : "Others are lined up for the next open slot on this player."}
+                      </span>
+                    </div>
+                  </div>
                 )}
                 {showBidQueuePanel && bidQueueState.you && (
                   <p className="bid-queue-you">
-                    You are in queue (max {formatHumanReadableAmount(bidQueueState.you.maxBid)})
-                    {bidQueueState.you.maxEditTradesRemaining != null ? (
+                    {promotedFromQueue ? (
                       <>
-                        {" "}
-                        — max-edits remaining:{" "}
-                        <strong>{bidQueueState.you.maxEditTradesRemaining}</strong>
+                        You were promoted from the queue — auto-bid is active up to{" "}
+                        <strong>{formatHumanReadableAmount(bidQueueState.you.maxBid)}</strong>.
+                        Manual <strong>Place Bid</strong> is off — use{" "}
+                        <strong>Exit Auction</strong> below to stop.
+                        {bidQueueState.you.maxEditTradesRemaining != null ? (
+                          <>
+                            {" "}
+                            — max-edits remaining:{" "}
+                            <strong>{bidQueueState.you.maxEditTradesRemaining}</strong>
+                          </>
+                        ) : null}
                       </>
-                    ) : null}
+                    ) : (
+                      <>
+                        You are in this bid queue at position <strong>{queueYouPosition ?? "—"}</strong>{" "}
+                        of <strong>{queueYouTotal}</strong>
+                        {" · "}
+                        Max {formatHumanReadableAmount(bidQueueState.you.maxBid)}
+                        {bidQueueState.you.maxEditTradesRemaining != null ? (
+                          <>
+                            {" "}
+                            — max-edits remaining:{" "}
+                            <strong>{bidQueueState.you.maxEditTradesRemaining}</strong>
+                          </>
+                        ) : null}
+                      </>
+                    )}
                   </p>
                 )}
-                {showBidQueuePanel && (
+                {showBidQueuePanel &&
+                  !promotedFromQueue &&
+                  (bidQueueState.you || showJoinQueueControls) && (
                   <div className="bid-queue-actions">
-                    {bidQueueState.queueJoinAllowed && !bidQueueState.you && (
+                    {showJoinQueueControls && (
                       <p className="bid-queue-hint">
                         Two bidders are active — join the queue below to wait for a slot (max bid
                         is locked until you leave or are promoted).
@@ -1183,7 +1284,7 @@ const PlayerPopup = ({
                       onChange={(e) => setQueueMaxInput(e.target.value)}
                       disabled={queueBusy}
                     />
-                    {bidQueueState.queueJoinAllowed && !bidQueueState.you ? (
+                    {showJoinQueueControls ? (
                       <button
                         type="button"
                         className="user-btn bid-queue-join"
@@ -1217,20 +1318,22 @@ const PlayerPopup = ({
                 <button
                   className="user-btn place-bid"
                   onClick={handlePlaceBid}
-                  disabled={placingBid || manualBidBlockedByQueue}
+                  disabled={placingBid || manualBidBlockedByQueue || promotedFromQueue}
                 >
-                  {manualBidBlockedByQueue
-                    ? "Manual bid paused (queue active)"
-                    : placingBid
-                      ? "Placing..."
-                      : `Place Bid (${formatHumanReadableAmount(
-                          determineBidIncrement(
-                            playerDetails?.type,
-                            topTwoBids.length > 0
-                              ? topTwoBids[0]?.bidAmount || 0
-                              : playerDetails?.basePrice || 0
-                          )
-                        )} step)`}
+                  {promotedFromQueue
+                    ? "Manual bid off (queue promotion — use Exit)"
+                    : manualBidBlockedByQueue
+                      ? "Manual bid paused (queue active)"
+                      : placingBid
+                        ? "Placing..."
+                        : `Place Bid (${formatHumanReadableAmount(
+                            determineBidIncrement(
+                              playerDetails?.type,
+                              topTwoBids.length > 0
+                                ? topTwoBids[0]?.bidAmount || 0
+                                : playerDetails?.basePrice || 0
+                            )
+                          )} step)`}
                 </button>
                 {bidError && <p className="error">{bidError}</p>}
               </div>

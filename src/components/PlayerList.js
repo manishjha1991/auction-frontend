@@ -8,9 +8,6 @@ import { API_ENDPOINTS } from "../const";
 import TrophyLoader from "./TrophyLoader";
 import NotificationBell from './NotificationBell';
 
-
-
-
 const PlayerList = () => {
   const [players, setPlayers] = useState([]);
   const [search, setSearch] = useState("");
@@ -24,6 +21,8 @@ const PlayerList = () => {
   const [currentUserName, setCurrentUserName] = useState("");
   const [currentUserId, setCurrentUserId] = useState("");
   const [myActiveBidPlayerIds, setMyActiveBidPlayerIds] = useState([]);
+  /** playerId -> count of teams queued (bid queue feature). */
+  const [bidQueueCounts, setBidQueueCounts] = useState({});
   const [flashNotice, setFlashNotice] = useState(null);
   const flashTimeoutRef = useRef(null);
   const IST_OFFSET_MS = 330 * 60 * 1000;
@@ -35,7 +34,6 @@ const PlayerList = () => {
   const fetchPlayersPendingRef = useRef(false);
   const fetchMyBidsInFlightRef = useRef(false);
   const fetchMyBidsPendingRef = useRef(false);
-
   const getAuctionCountdownMs = useCallback(() => {
     if (auctionStartAt) {
       const targetMs = new Date(auctionStartAt).getTime();
@@ -167,6 +165,23 @@ const PlayerList = () => {
     return `${(value / 1000).toFixed(2)} K`;
   }, []);
 
+  const fetchBidQueueCounts = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/bid-queue/counts`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && typeof data === "object" && !Array.isArray(data)) {
+        setBidQueueCounts(data);
+      }
+    } catch {
+      /* feature off or old backend */
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBidQueueCounts();
+  }, [fetchBidQueueCounts]);
+
   useEffect(() => {
     return () => {
       if (flashTimeoutRef.current) {
@@ -285,12 +300,28 @@ const PlayerList = () => {
       }
     });
 
+    const cleanup4 = on("bid_queue_updated", (payload) => {
+      const pid = payload?.playerId != null ? String(payload.playerId) : "";
+      if (!pid) return;
+      if (typeof payload?.queueCount === "number") {
+        setBidQueueCounts((prev) => {
+          const next = { ...prev };
+          if (payload.queueCount <= 0) delete next[pid];
+          else next[pid] = payload.queueCount;
+          return next;
+        });
+      } else {
+        fetchBidQueueCounts();
+      }
+    });
+
     return () => {
       cleanup1();
       cleanup2();
       cleanup3();
+      cleanup4();
     };
-  }, [on, currentUserId, myActiveBidPlayerIds, showFlashNotice, formatBasePrice]);
+  }, [on, currentUserId, myActiveBidPlayerIds, showFlashNotice, formatBasePrice, fetchBidQueueCounts]);
 
   const handlePlayerClick = useCallback((player) => {
     setSelectedPlayer(player);
@@ -571,19 +602,22 @@ const PlayerList = () => {
       </div>
       <div className="player-grid">
         {sortedPlayers.map((player) => {
-          if (player.status === "Sold") return null; // Don't render if the player is sold
+          if (player.status === "Sold") return null;
+          const pid = String(player.id || player._id);
+          const queueWaiters = bidQueueCounts[pid] || 0;
 
           return (
             <div
               key={player.id}
-              className={`player-row ${player.type.toLowerCase()} ${shouldBlink(player) ? "blinking" : ""
-                }`}
+              className={`player-row ${player.type.toLowerCase()} ${shouldBlink(player) ? "blinking" : ""}`}
               onClick={() => handlePlayerClick(player)}
             >
               <div className="player-cell player-icon">{getRoleIcon(player.role)}</div>
               <div className="player-cell player-name-with-avatar">
-                <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={28} />
-                <span>{player.name}</span>
+                <div className="player-name-row-inner">
+                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={28} />
+                  <span className="player-name-text">{player.name}</span>
+                </div>
               </div>
               <div className="player-cell player-price">
                 <div className="player-price-circle">
@@ -591,8 +625,20 @@ const PlayerList = () => {
                 </div>
               </div>
               <div className="player-cell team-sold">
-                {getStatusIcon(player)}
-                {getMyBidIndicator(player)}
+                <div className="team-sold-inner">
+                  {getStatusIcon(player)}
+                  {getMyBidIndicator(player)}
+                  {queueWaiters > 0 ? (
+                    <span
+                      className="player-queue-badge"
+                      title={`${queueWaiters} team${queueWaiters === 1 ? "" : "s"} waiting in bid queue`}
+                      aria-label={`${queueWaiters} team${queueWaiters === 1 ? "" : "s"} waiting in bid queue`}
+                    >
+                      <span className="player-queue-badge-n">{queueWaiters}</span>
+                      <span className="player-queue-badge-txt">queue</span>
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
           );

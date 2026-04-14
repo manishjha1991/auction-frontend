@@ -1,0 +1,671 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@500;600;700&display=swap");
+
+.my-auction-hub {
+  --mah-bg: #0c0f14;
+  --mah-card: #141a24;
+  --mah-border: rgba(255, 255, 255, 0.08);
+  --mah-text: #e8edf5;
+  --mah-muted: #8b98ab;
+  --mah-win: #3dd68c;
+  --mah-lose: #ff7b72;
+  --mah-warn: #f0b429;
+  --mah-accent: #7c9eff;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 100vw;
+  overflow-x: hidden;
+  padding: max(16px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+    max(32px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  background: radial-gradient(1200px 600px at 10% -10%, rgba(124, 158, 255, 0.12), transparent),
+    radial-gradient(900px 500px at 100% 0%, rgba(61, 214, 140, 0.08), transparent), var(--mah-bg);
+  font-family: "DM Sans", system-ui, sans-serif;
+  color: var(--mah-text);
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.my-auction-hub * {
+  box-sizing: border-box;
+}
+
+.mah-header {
+  max-width: 1100px;
+  margin: 0 auto 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mah-title-block h1 {
+  margin: 0 0 6px;
+  font-family: Outfit, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  letter-spacing: -0.02em;
+}
+
+.mah-title-block p {
+  margin: 0;
+  color: var(--mah-muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  max-width: 36rem;
+}
+
+.mah-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(61, 214, 140, 0.12);
+  border: 1px solid rgba(61, 214, 140, 0.35);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--mah-win);
+}
+
+.mah-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mah-win);
+  animation: mahPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes mahPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+}
+
+.mah-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 18px;
+}
+
+.mah-card {
+  background: var(--mah-card);
+  border: 1px solid var(--mah-border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.mah-card h2 {
+  margin: 0 0 14px;
+  font-family: Outfit, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--mah-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mah-purse-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mah-purse-chip {
+  flex: 1;
+  min-width: 0;
+  min-height: 72px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--mah-border);
+}
+
+.mah-purse-chip.mah-mine {
+  border-color: rgba(124, 158, 255, 0.35);
+  background: linear-gradient(135deg, rgba(124, 158, 255, 0.12), transparent);
+}
+
+.mah-purse-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mah-muted);
+  margin-bottom: 6px;
+}
+
+.mah-purse-value {
+  font-family: Outfit, sans-serif;
+  font-size: clamp(1.1rem, 4.2vw, 1.35rem);
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.mah-section-wide {
+  grid-column: 1 / -1;
+}
+
+button.mah-bid-card {
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  width: 100%;
+}
+
+.mah-bid-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--mah-border);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  touch-action: manipulation;
+  min-height: 48px;
+}
+
+.mah-bid-avatar {
+  justify-self: center;
+}
+
+a.mah-bid-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(124, 158, 255, 0.35);
+}
+
+@media (hover: none) {
+  a.mah-bid-card:hover {
+    transform: none;
+  }
+
+  a.mah-bid-card:active {
+    border-color: rgba(124, 158, 255, 0.45);
+    background: rgba(0, 0, 0, 0.28);
+  }
+}
+
+.mah-bid-card:last-child {
+  margin-bottom: 0;
+}
+
+.mah-bid-main {
+  min-width: 0;
+}
+
+.mah-bid-main h3,
+.mah-duel-player {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.mah-duel-role-title {
+  margin: 0 0 4px;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--mah-text);
+  line-height: 1.3;
+}
+
+.mah-duel-role-detail {
+  margin: 0 0 10px;
+  font-size: 0.86rem;
+  color: var(--mah-muted);
+  line-height: 1.45;
+}
+
+.mah-duel-bids-line {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: var(--mah-muted);
+  line-height: 1.5;
+}
+
+.mah-duel-purses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mah-duel-purse-col {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--mah-border);
+  min-width: 0;
+}
+
+.mah-duel-purse-col--yours {
+  border-color: rgba(124, 158, 255, 0.32);
+  background: linear-gradient(145deg, rgba(124, 158, 255, 0.08), transparent);
+}
+
+.mah-duel-purse-label {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--mah-muted);
+  margin-bottom: 6px;
+  line-height: 1.35;
+}
+
+.mah-duel-purse-amt {
+  display: block;
+  font-family: Outfit, sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.95rem, 3.5vw, 1.08rem);
+  word-break: break-word;
+}
+
+.mah-coach-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--mah-muted);
+  margin-bottom: 6px;
+}
+
+@media (max-width: 420px) {
+  .mah-duel-purses {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mah-bid-meta {
+  font-size: 0.82rem;
+  color: var(--mah-muted);
+  line-height: 1.45;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.mah-status {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mah-status.win {
+  background: rgba(61, 214, 140, 0.18);
+  color: var(--mah-win);
+}
+
+.mah-status.lose {
+  background: rgba(255, 123, 114, 0.18);
+  color: var(--mah-lose);
+}
+
+.mah-coach {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  border-left: 3px solid var(--mah-accent);
+  background: rgba(124, 158, 255, 0.08);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mah-coach.lose {
+  border-left-color: var(--mah-lose);
+  background: rgba(255, 123, 114, 0.08);
+}
+
+.mah-coach.caution {
+  border-left-color: var(--mah-warn);
+  background: rgba(240, 180, 41, 0.1);
+}
+
+.mah-opp-purse {
+  font-size: 0.85rem;
+  color: var(--mah-muted);
+  margin-top: 6px;
+}
+
+.mah-demand-hint,
+.mah-tap-hint {
+  margin: -6px 0 14px;
+  font-size: 0.84rem;
+  color: var(--mah-muted);
+  line-height: 1.45;
+}
+
+/* Notifications subtitle: no negative margin — avoids collision with empty state / wrapped lines */
+.mah-notif-sub {
+  display: block;
+  margin: 8px 0 18px;
+  font-size: 0.84rem;
+  color: var(--mah-muted);
+  line-height: 1.55;
+  max-width: 40rem;
+}
+
+.mah-notif-sub + .mah-empty {
+  margin-top: 6px;
+}
+
+.mah-demand-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+}
+
+.mah-demand-card {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--mah-border);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  touch-action: manipulation;
+}
+
+.mah-demand-card:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mah-demand-card:not(:disabled):active {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(124, 158, 255, 0.35);
+}
+
+.mah-demand-card--yours {
+  border-color: rgba(61, 214, 140, 0.25);
+}
+
+.mah-demand-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--mah-muted);
+  margin-bottom: 8px;
+}
+
+.mah-demand-name {
+  font-family: Outfit, sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+}
+
+.mah-demand-count {
+  font-size: 0.9rem;
+  color: var(--mah-accent);
+  font-weight: 600;
+}
+
+.mah-notif-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.mah-notif-header h2 {
+  margin: 0;
+  line-height: 1.25;
+}
+
+.mah-clear-notifs {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 123, 114, 0.45);
+  background: rgba(255, 123, 114, 0.12);
+  color: #ffb4ae;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  touch-action: manipulation;
+}
+
+.mah-clear-notifs:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.mah-queue-item {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--mah-border);
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.mah-queue-open {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(124, 158, 255, 0.4);
+  background: rgba(124, 158, 255, 0.12);
+  color: var(--mah-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  touch-action: manipulation;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.mah-queue-body {
+  min-width: 0;
+}
+
+/* .mah-bid-meta uses overflow-wrap:anywhere globally — too aggressive in narrow grid cells */
+.mah-queue-body .mah-bid-meta {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.mah-queue-detail {
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: var(--mah-muted);
+  line-height: 1.4;
+}
+
+.mah-queue-detail--proxy {
+  color: var(--mah-warn);
+}
+
+.mah-queue-item:last-child {
+  margin-bottom: 0;
+}
+
+.mah-queue-pos {
+  font-family: Outfit, sans-serif;
+  font-weight: 700;
+  color: var(--mah-accent);
+  text-align: right;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  justify-self: end;
+  align-self: center;
+  max-width: min(12rem, 100%);
+  white-space: nowrap;
+}
+
+.mah-queue-pos .mah-bid-meta {
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.mah-notif {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--mah-border);
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+  background: rgba(0, 0, 0, 0.15);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mah-notif time {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--mah-muted);
+  margin-top: 6px;
+}
+
+.mah-empty {
+  color: var(--mah-muted);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.mah-error {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 123, 114, 0.12);
+  border: 1px solid rgba(255, 123, 114, 0.35);
+  color: #ffb4ae;
+}
+
+.mah-admin-note {
+  max-width: 1100px;
+  margin: 0 auto 20px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: rgba(240, 180, 41, 0.12);
+  border: 1px solid rgba(240, 180, 41, 0.35);
+  color: #f5e6c8;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 640px) {
+  .mah-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mah-live-pill {
+    align-self: flex-start;
+  }
+
+  .mah-grid {
+    gap: 14px;
+  }
+
+  .mah-card {
+    padding: 16px 14px;
+    border-radius: 14px;
+  }
+
+  .mah-purse-row {
+    flex-direction: column;
+  }
+
+  .mah-purse-chip {
+    min-height: unset;
+    width: 100%;
+  }
+
+  /* Avatar + status on first row; details full width below */
+  .mah-bid-card {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    align-items: start;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .mah-bid-avatar {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+  }
+
+  .mah-status {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    align-self: center;
+  }
+
+  .mah-bid-main {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .mah-queue-item {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    align-items: start;
+    gap: 10px;
+  }
+
+  .mah-queue-open {
+    justify-self: start;
+  }
+
+  .mah-queue-pos {
+    max-width: none;
+    justify-self: stretch;
+    text-align: left;
+    font-size: 0.9rem;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 380px) {
+  .my-auction-hub {
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+  }
+
+  .mah-title-block p {
+    font-size: 0.88rem;
+  }
+
+  .mah-card h2 {
+    font-size: 1rem;
+  }
+
+  .mah-status {
+    font-size: 0.65rem;
+    padding: 7px 10px;
+  }
+}

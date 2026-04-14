@@ -23,7 +23,7 @@ import {
   FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
   FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaBook,
-  FaCalculator, FaCloudRain, FaHistory, FaWrench, FaChartLine, FaAddressCard
+  FaCalculator, FaCloudRain, FaHistory, FaWrench, FaChartLine, FaAddressCard, FaBullseye
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
@@ -41,6 +41,7 @@ import AdminTradeActivity from './components/AdminTradeActivity';
 import OcrExtractor from './components/OcrExtractor';
 import LiveBiddingDashboard from './components/LiveBiddingDashboard';
 import MyBids from './components/MyBids';
+import MyAuctionHub from './components/MyAuctionHub';
 import PositionCalculator from './components/PositionCalculator';
 import RulesBook from './components/RulesBook';
 import DLSCalculator from './components/DLSCalculator';
@@ -233,6 +234,14 @@ function App() {
                         <Link to="/live-bidding" onClick={closeSidebar} className={`menu-item ${isActive('/live-bidding') ? 'active' : ''}`}>
                           <FaFire className="menu-icon fire-icon" />
                           <span>Live Bidding</span>
+                        </Link>
+                      </li>
+                    )}
+                    {filterItem('My Auction') && (
+                      <li>
+                        <Link to="/my-auction" onClick={closeSidebar} className={`menu-item ${isActive('/my-auction') ? 'active' : ''}`}>
+                          <FaBullseye className="menu-icon" />
+                          <span>My Auction HQ</span>
                         </Link>
                       </li>
                     )}
@@ -543,6 +552,7 @@ function App() {
             <Route path="/cpl-history" element={<PrivateRoute><CplHistorySummary /></PrivateRoute>} />
             <Route path="/cpl-composite-report" element={<PrivateRoute><CplCompositeReport /></PrivateRoute>} />
             <Route path="/my-bids" element={<PrivateRoute><MyBids /></PrivateRoute>} />
+            <Route path="/my-auction" element={<PrivateRoute><MyAuctionHub /></PrivateRoute>} />
             <Route path="/admin-match-results" element={<PrivateRoute><AdminMatchResults /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
             <Route path="/player-insights" element={<PrivateRoute><PlayerInsightsPage /></PrivateRoute>} />
