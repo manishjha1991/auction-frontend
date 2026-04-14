@@ -76,6 +76,16 @@ const PlayerPopup = ({
   const [portraitBroken, setPortraitBroken] = useState(false);
   const [viewerOwnsPlayer, setViewerOwnsPlayer] = useState(false);
   const [portraitLightboxOpen, setPortraitLightboxOpen] = useState(false);
+  const [bidQueueState, setBidQueueState] = useState({
+    enabled: false,
+    manualBidsFrozen: false,
+    queueCount: 0,
+    you: null,
+    queueJoinAllowed: false,
+    activeBidderCount: 0,
+  });
+  const [queueMaxInput, setQueueMaxInput] = useState("");
+  const [queueBusy, setQueueBusy] = useState(false);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -184,6 +194,55 @@ const PlayerPopup = ({
       cleanup2();
     };
   }, [on, currentPlayerId, fetchPlayerData]);
+
+  const fetchBidQueueState = useCallback(async () => {
+    const pid = playerDetails?.id || playerDetails?._id || player.id || player._id;
+    if (!pid) return;
+    try {
+      const u = JSON.parse(localStorage.getItem("user"));
+      const token = u?.token;
+      if (!token) return;
+      const res = await fetch(`${API_ENDPOINTS}/api/bid-queue/${pid}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setBidQueueState({
+        enabled: !!data.enabled,
+        manualBidsFrozen: !!data.manualBidsFrozen,
+        queueCount: data.queueCount || 0,
+        you: data.you || null,
+        queueJoinAllowed: !!data.queueJoinAllowed,
+        activeBidderCount: typeof data.activeBidderCount === "number" ? data.activeBidderCount : 0,
+      });
+    } catch (e) {
+      console.warn("bid queue state", e);
+    }
+  }, [playerDetails?.id, playerDetails?._id, player.id, player._id]);
+
+  useEffect(() => {
+    if (!playerDetails || hideAuctionActions) return;
+    fetchBidQueueState();
+  }, [playerDetails, hideAuctionActions, fetchBidQueueState]);
+
+  useEffect(() => {
+    if (!on) return;
+    const c1 = on("bid_queue_updated", (payload) => {
+      const id = payload?.playerId;
+      if (id === currentPlayerId || id?.toString() === currentPlayerId?.toString()) {
+        fetchBidQueueState();
+        fetchPlayerData(false);
+      }
+    });
+    const c2 = on("bid_queue_personal", () => {
+      fetchBidQueueState();
+      fetchPlayerData(false);
+    });
+    return () => {
+      c1();
+      c2();
+    };
+  }, [on, currentPlayerId, fetchBidQueueState, fetchPlayerData]);
 
   // Auto-hide bid alert after 5 seconds (do not close popup after photo-only alerts)
   useEffect(() => {
@@ -584,6 +643,148 @@ const PlayerPopup = ({
     }
   };
 
+  const bidderIdMatchesTopTwo = () => {
+    if (!currentUserId) return false;
+    return topTwoBids.some((b) => {
+      const id = b.bidder?._id || b.bidder?.id || b.bidder;
+      return id && String(id) === String(currentUserId);
+    });
+  };
+
+  const manualBidBlockedByQueue =
+    bidQueueState.enabled &&
+    bidQueueState.manualBidsFrozen &&
+    !bidderIdMatchesTopTwo();
+
+  /** Queue UI only when two active bidders (third+ can join), or you are already queued. */
+  const showBidQueuePanel =
+    bidQueueState.enabled &&
+    !hideAuctionActions &&
+    (bidQueueState.queueJoinAllowed || !!bidQueueState.you);
+
+  const handleJoinBidQueue = async () => {
+    const pid = playerDetails?.id || playerDetails?._id;
+    const raw = String(queueMaxInput || "").replace(/,/g, "").trim();
+    const maxBid = Number(raw);
+    if (!pid || !Number.isFinite(maxBid) || maxBid <= 0) {
+      setBidAlert({
+        message: "Enter a valid max bid amount (number).",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: false,
+      });
+      return;
+    }
+    setQueueBusy(true);
+    try {
+      const u = JSON.parse(localStorage.getItem("user"));
+      const res = await fetch(`${API_ENDPOINTS}/api/bid-queue/${pid}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${u?.token}`,
+        },
+        body: JSON.stringify({ maxBid }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Could not join queue");
+      setBidAlert({
+        message: data.message || "Joined bid queue.",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: true,
+      });
+      setQueueMaxInput("");
+      await fetchBidQueueState();
+    } catch (e) {
+      setBidAlert({
+        message: e.message || "Queue error",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: false,
+      });
+    } finally {
+      setQueueBusy(false);
+    }
+  };
+
+  const handleLeaveBidQueue = async () => {
+    const pid = playerDetails?.id || playerDetails?._id;
+    if (!pid) return;
+    setQueueBusy(true);
+    try {
+      const u = JSON.parse(localStorage.getItem("user"));
+      const res = await fetch(`${API_ENDPOINTS}/api/bid-queue/${pid}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${u?.token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Could not leave queue");
+      setBidAlert({
+        message: data.message || "Left bid queue.",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: true,
+      });
+      await fetchBidQueueState();
+    } catch (e) {
+      setBidAlert({
+        message: e.message || "Queue error",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: false,
+      });
+    } finally {
+      setQueueBusy(false);
+    }
+  };
+
+  const handleUpdateQueueMax = async () => {
+    const pid = playerDetails?.id || playerDetails?._id;
+    const raw = String(queueMaxInput || "").replace(/,/g, "").trim();
+    const maxBid = Number(raw);
+    if (!pid || !Number.isFinite(maxBid) || maxBid <= 0) {
+      setBidAlert({
+        message: "Enter a valid new max bid.",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: false,
+      });
+      return;
+    }
+    setQueueBusy(true);
+    try {
+      const u = JSON.parse(localStorage.getItem("user"));
+      const res = await fetch(`${API_ENDPOINTS}/api/bid-queue/${pid}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${u?.token}`,
+        },
+        body: JSON.stringify({ maxBid }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Could not update max");
+      setBidAlert({
+        message: data.message || "Max updated.",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: true,
+      });
+      setQueueMaxInput("");
+      await fetchBidQueueState();
+    } catch (e) {
+      setBidAlert({
+        message: e.message || "Queue error",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: false,
+      });
+    } finally {
+      setQueueBusy(false);
+    }
+  };
+
   const handleExitAuction = async () => {
     try {
       setBidAlert(null); // Reset the alert
@@ -946,21 +1147,90 @@ const PlayerPopup = ({
             {!isAdmin && !isSold && (
               <div className="place-bid-section">
                 <h3>Place a Bid</h3>
+                {showBidQueuePanel && bidQueueState.queueCount > 0 && (
+                  <p className="bid-queue-banner">
+                    Bid queue: <strong>{bidQueueState.queueCount}</strong> waiting
+                    {manualBidBlockedByQueue
+                      ? " — manual bids are limited to the two active bidders until the queue clears."
+                      : ""}
+                  </p>
+                )}
+                {showBidQueuePanel && bidQueueState.you && (
+                  <p className="bid-queue-you">
+                    You are in queue (max {formatHumanReadableAmount(bidQueueState.you.maxBid)})
+                    {bidQueueState.you.maxEditTradesRemaining != null ? (
+                      <>
+                        {" "}
+                        — max-edits remaining:{" "}
+                        <strong>{bidQueueState.you.maxEditTradesRemaining}</strong>
+                      </>
+                    ) : null}
+                  </p>
+                )}
+                {showBidQueuePanel && (
+                  <div className="bid-queue-actions">
+                    {bidQueueState.queueJoinAllowed && !bidQueueState.you && (
+                      <p className="bid-queue-hint">
+                        Two bidders are active — join the queue below to wait for a slot (max bid
+                        is locked until you leave or are promoted).
+                      </p>
+                    )}
+                    <input
+                      type="text"
+                      className="bid-queue-max-input"
+                      placeholder="Max bid (absolute amount)"
+                      value={queueMaxInput}
+                      onChange={(e) => setQueueMaxInput(e.target.value)}
+                      disabled={queueBusy}
+                    />
+                    {bidQueueState.queueJoinAllowed && !bidQueueState.you ? (
+                      <button
+                        type="button"
+                        className="user-btn bid-queue-join"
+                        disabled={queueBusy}
+                        onClick={handleJoinBidQueue}
+                      >
+                        Join queue
+                      </button>
+                    ) : bidQueueState.you ? (
+                      <>
+                        <button
+                          type="button"
+                          className="user-btn bid-queue-update"
+                          disabled={queueBusy}
+                          onClick={handleUpdateQueueMax}
+                        >
+                          Update max
+                        </button>
+                        <button
+                          type="button"
+                          className="user-btn bid-queue-leave"
+                          disabled={queueBusy}
+                          onClick={handleLeaveBidQueue}
+                        >
+                          Leave queue
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                )}
                 <button
                   className="user-btn place-bid"
                   onClick={handlePlaceBid}
-                  disabled={placingBid}
+                  disabled={placingBid || manualBidBlockedByQueue}
                 >
-                  {placingBid
-                    ? "Placing..."
-                    : `Place Bid (₹${formatHumanReadableAmount(
-                        determineBidIncrement(
-                          playerDetails?.type,
-                          topTwoBids.length > 0
-                            ? topTwoBids[0]?.bidAmount || 0
-                            : playerDetails?.basePrice || 0
-                        )
-                      )})`}
+                  {manualBidBlockedByQueue
+                    ? "Manual bid paused (queue active)"
+                    : placingBid
+                      ? "Placing..."
+                      : `Place Bid (${formatHumanReadableAmount(
+                          determineBidIncrement(
+                            playerDetails?.type,
+                            topTwoBids.length > 0
+                              ? topTwoBids[0]?.bidAmount || 0
+                              : playerDetails?.basePrice || 0
+                          )
+                        )} step)`}
                 </button>
                 {bidError && <p className="error">{bidError}</p>}
               </div>

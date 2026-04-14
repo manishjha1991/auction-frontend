@@ -564,6 +564,68 @@
   letter-spacing: 1px;
 }
 
+.bid-queue-banner,
+.bid-queue-you,
+.bid-queue-hint {
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0 0 12px;
+  opacity: 0.95;
+  text-align: left;
+}
+
+.bid-queue-hint {
+  flex-basis: 100%;
+  margin-bottom: 8px;
+  opacity: 0.88;
+}
+
+.bid-queue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.bid-queue-max-input {
+  flex: 1 1 140px;
+  min-width: 120px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  font-size: 14px;
+}
+
+.user-btn.bid-queue-join,
+.user-btn.bid-queue-update,
+.user-btn.bid-queue-leave {
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.user-btn.bid-queue-join {
+  background: linear-gradient(135deg, #7c5cff, #5b8cff);
+  color: #fff;
+}
+
+.user-btn.bid-queue-update {
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+}
+
+.user-btn.bid-queue-leave {
+  background: rgba(255, 100, 100, 0.35);
+  color: #fff;
+}
+
 .user-btn.place-bid {
   background: linear-gradient(135deg, #00ff88, #00d4ff);
   color: #000;
