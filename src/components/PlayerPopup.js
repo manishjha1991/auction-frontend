@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import "../css/PlayerPopup.css";
-import { FaClock, FaEye, FaHourglassHalf } from "react-icons/fa";
+import { FaBolt, FaClock, FaEye, FaHourglassHalf, FaListOl } from "react-icons/fa";
 import { API_ENDPOINTS } from "../const";
 import { resolvePlayerImageUrl } from "../utils/resolvePlayerImageUrl";
 
@@ -753,25 +753,28 @@ const PlayerPopup = ({
     }
   };
 
-  const handleLeaveBidQueue = async () => {
+  const handleResignProxyToManual = async () => {
     const pid = playerDetails?.id || playerDetails?._id;
     if (!pid) return;
     setQueueBusy(true);
     try {
       const u = JSON.parse(localStorage.getItem("user"));
-      const res = await fetch(`${API_ENDPOINTS}/api/bid-queue/${pid}`, {
-        method: "DELETE",
+      const res = await fetch(`${API_ENDPOINTS}/api/bid-queue/${pid}/resign-proxy`, {
+        method: "POST",
         headers: { Authorization: `Bearer ${u?.token}` },
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || "Could not leave queue");
+      if (!res.ok) throw new Error(data.message || "Could not switch to manual bidding");
       setBidAlert({
-        message: data.message || "Left bid queue.",
+        message:
+          data.message ||
+          "Auto-bid is off. You can place bids manually. To use queue auto-bid again, exit, re-join the queue, and get promoted.",
         amount: null,
         playerName: playerDetails?.name,
         isSuccess: true,
       });
       await fetchBidQueueState();
+      await fetchPlayerData(false);
     } catch (e) {
       setBidAlert({
         message: e.message || "Queue error",
@@ -1234,37 +1237,73 @@ const PlayerPopup = ({
                   </div>
                 )}
                 {showBidQueuePanel && bidQueueState.you && (
-                  <p className="bid-queue-you">
-                    {promotedFromQueue ? (
-                      <>
-                        You were promoted from the queue — auto-bid is active up to{" "}
-                        <strong>{formatHumanReadableAmount(bidQueueState.you.maxBid)}</strong>.
-                        Manual <strong>Place Bid</strong> is off — use{" "}
-                        <strong>Exit Auction</strong> below to stop.
-                        {bidQueueState.you.maxEditTradesRemaining != null ? (
-                          <>
-                            {" "}
-                            — max-edits remaining:{" "}
-                            <strong>{bidQueueState.you.maxEditTradesRemaining}</strong>
-                          </>
-                        ) : null}
-                      </>
-                    ) : (
-                      <>
-                        You are in this bid queue at position <strong>{queueYouPosition ?? "—"}</strong>{" "}
-                        of <strong>{queueYouTotal}</strong>
-                        {" · "}
-                        Max {formatHumanReadableAmount(bidQueueState.you.maxBid)}
-                        {bidQueueState.you.maxEditTradesRemaining != null ? (
-                          <>
-                            {" "}
-                            — max-edits remaining:{" "}
-                            <strong>{bidQueueState.you.maxEditTradesRemaining}</strong>
-                          </>
-                        ) : null}
-                      </>
-                    )}
-                  </p>
+                  <div
+                    className={`bid-queue-you-card ${promotedFromQueue ? "bid-queue-you-card--promoted" : ""}`}
+                    role="status"
+                  >
+                    <span className="bid-queue-you-card-icon" aria-hidden>
+                      {promotedFromQueue ? <FaBolt /> : <FaListOl />}
+                    </span>
+                    <div className="bid-queue-you-card-body">
+                      {promotedFromQueue ? (
+                        <>
+                          <span className="bid-queue-you-card-title">Promoted — auto-bid on</span>
+                          <p className="bid-queue-you-card-detail">
+                            Auto-bid is active up to{" "}
+                            <strong>{formatHumanReadableAmount(bidQueueState.you.maxBid)}</strong>. Use{" "}
+                            <strong>Switch to manual bidding</strong> below or <strong>Exit Auction</strong>{" "}
+                            to leave. For auto-bid again: exit, re-join the queue, get promoted.
+                            {bidQueueState.you.maxEditTradesRemaining != null ? (
+                              <>
+                                {" "}
+                                <span className="bid-queue-you-card-meta">
+                                  Max-edits left:{" "}
+                                  <strong>{bidQueueState.you.maxEditTradesRemaining}</strong>
+                                </span>
+                              </>
+                            ) : null}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <span className="bid-queue-you-card-title">You&apos;re in the bid queue</span>
+                          <div className="bid-queue-you-card-stats">
+                            <div className="bid-queue-you-stat-pill">
+                              <span className="bid-queue-you-stat-pill-label">Position</span>
+                              <span className="bid-queue-you-stat-pill-value">
+                                {queueYouPosition ?? "—"}
+                                <span className="bid-queue-you-stat-pill-of"> / {queueYouTotal}</span>
+                              </span>
+                            </div>
+                            <div className="bid-queue-you-stat-pill bid-queue-you-stat-pill--max">
+                              <span className="bid-queue-you-stat-pill-label">Your max</span>
+                              <span className="bid-queue-you-stat-pill-value">
+                                {formatHumanReadableAmount(bidQueueState.you.maxBid)}
+                              </span>
+                            </div>
+                          </div>
+                          {bidQueueState.you.maxEditTradesRemaining != null ? (
+                            <p className="bid-queue-you-card-meta">
+                              Max-edits remaining:{" "}
+                              <strong>{bidQueueState.you.maxEditTradesRemaining}</strong>
+                            </p>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {showBidQueuePanel && promotedFromQueue && bidQueueState.you && (
+                  <div className="bid-queue-actions bid-queue-actions--promoted">
+                    <button
+                      type="button"
+                      className="user-btn bid-queue-manual"
+                      disabled={queueBusy}
+                      onClick={handleResignProxyToManual}
+                    >
+                      Switch to manual bidding
+                    </button>
+                  </div>
                 )}
                 {showBidQueuePanel &&
                   !promotedFromQueue &&
@@ -1272,8 +1311,8 @@ const PlayerPopup = ({
                   <div className="bid-queue-actions">
                     {showJoinQueueControls && (
                       <p className="bid-queue-hint">
-                        Two bidders are active — join the queue below to wait for a slot (max bid
-                        is locked until you leave or are promoted).
+                        Two bidders are active — join the queue below to wait for a slot. Your max
+                        is locked until you are promoted; you cannot leave the queue early.
                       </p>
                     )}
                     <input
@@ -1295,6 +1334,13 @@ const PlayerPopup = ({
                       </button>
                     ) : bidQueueState.you ? (
                       <>
+                        {!promotedFromQueue ? (
+                          <p className="bid-queue-no-leave-hint">
+                            You can&apos;t leave the queue until you&apos;re promoted into the
+                            auction. After that, use <strong>Exit Auction</strong> if you need to
+                            stop.
+                          </p>
+                        ) : null}
                         <button
                           type="button"
                           className="user-btn bid-queue-update"
@@ -1302,14 +1348,6 @@ const PlayerPopup = ({
                           onClick={handleUpdateQueueMax}
                         >
                           Update max
-                        </button>
-                        <button
-                          type="button"
-                          className="user-btn bid-queue-leave"
-                          disabled={queueBusy}
-                          onClick={handleLeaveBidQueue}
-                        >
-                          Leave queue
                         </button>
                       </>
                     ) : null}
@@ -1321,7 +1359,7 @@ const PlayerPopup = ({
                   disabled={placingBid || manualBidBlockedByQueue || promotedFromQueue}
                 >
                   {promotedFromQueue
-                    ? "Manual bid off (queue promotion — use Exit)"
+                    ? "Manual bid off — switch to manual or Exit"
                     : manualBidBlockedByQueue
                       ? "Manual bid paused (queue active)"
                       : placingBid
