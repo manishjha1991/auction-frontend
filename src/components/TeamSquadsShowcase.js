@@ -8,6 +8,14 @@ import '../css/TeamSquadsShowcase.css';
 
 const normalizeTeamName = (name) => (name || '').trim().toLowerCase();
 
+/** Win rate for display; em dash when no completed matches. */
+function winRateLabel(wins, matchesPlayed) {
+  const m = Number(matchesPlayed) || 0;
+  const w = Number(wins) || 0;
+  if (m <= 0) return '—';
+  return `${((w / m) * 100).toFixed(1)}%`;
+}
+
 function hashTheme(teamName) {
   const palettes = [
     { top: '#0f2744', bottom: '#eab308' },
@@ -351,7 +359,10 @@ export default function TeamSquadsShowcase() {
       <header className="tss-header">
         <h1 className="tss-title">Team squads</h1>
         <p className="tss-sub">
-          Hover a card for CPL &amp; World Cup wins. Tap a team to see batters, all-rounders, and bowlers.
+          Cards show <strong>career MP / W / win %</strong> (historical DBs + live updates),{' '}
+          <strong>season MP / W / win %</strong>, and CPL
+          &amp; World Cup honours. Tap a team for the full
+          squad.
         </p>
       </header>
 
@@ -431,6 +442,12 @@ export default function TeamSquadsShowcase() {
             wcWins: 0,
             wcYears: [],
           };
+          const careerMp = Number(team.careerMatchesPlayed) || 0;
+          const careerWins = Number(team.careerWins) || 0;
+          const leagueMp = Number(team.matchesPlayed) || 0;
+          const leagueWins = Math.floor((Number(team.points) || 0) / 2);
+          const careerPct = winRateLabel(careerWins, careerMp);
+          const seasonPct = winRateLabel(leagueWins, leagueMp);
           const logo = teamImageUrl(team.teamImage);
           const abbr =
             team.abbreviation ||
@@ -465,12 +482,32 @@ export default function TeamSquadsShowcase() {
                 <div className="tss-card-bottom">
                   <span className="tss-card-name">{team.teamName}</span>
                   <span className="tss-card-chips">
-                    CPL {stats.cplWins} · WC {stats.wcWins}
+                    <span
+                      className="tss-card-chips-career"
+                      title="Career — win rate is wins ÷ matches with a result"
+                    >
+                      Career MP {careerMp} · W {careerWins} · {careerPct}
+                    </span>
+                    <span
+                      className="tss-card-chips-league"
+                      title="Season — win rate from points table (2 pts per win)"
+                    >
+                      Season MP {leagueMp} · W {leagueWins} · {seasonPct}
+                    </span>
+                    <span className="tss-card-chips-trophies">
+                      CPL {stats.cplWins} · WC {stats.wcWins}
+                    </span>
                   </span>
                 </div>
                 <div className="tss-card-hover" aria-hidden>
                   <FaTrophy className="tss-card-trophy" />
                   <div className="tss-card-hover-stats">
+                    <span>
+                      Career: {careerMp} played · {careerWins} won ({careerPct})
+                    </span>
+                    <span>
+                      Season: {leagueMp} played · {leagueWins} won ({seasonPct})
+                    </span>
                     <span>CPL wins: {stats.cplWins}</span>
                     <span>World Cup: {stats.wcWins}</span>
                     {stats.cplYears.length > 0 && (
@@ -509,6 +546,12 @@ export default function TeamSquadsShowcase() {
             </button>
             {(() => {
               const st = teamStats.get(selectedTeam.teamName);
+              const modalCareerMp = Number(selectedTeam.careerMatchesPlayed) || 0;
+              const modalCareerWins = Number(selectedTeam.careerWins) || 0;
+              const modalMp = Number(selectedTeam.matchesPlayed) || 0;
+              const modalWins = Math.floor((Number(selectedTeam.points) || 0) / 2);
+              const modalCareerPct = winRateLabel(modalCareerWins, modalCareerMp);
+              const modalSeasonPct = winRateLabel(modalWins, modalMp);
               const logo = teamImageUrl(selectedTeam.teamImage);
               const heroAbbr =
                 selectedTeam.abbreviation ||
@@ -536,6 +579,21 @@ export default function TeamSquadsShowcase() {
                     </div>
                     <div className="tss-modal-hero-copy">
                       <h2 id="tss-modal-title">{selectedTeam.teamName}</h2>
+                      <p
+                        className="tss-modal-league-line"
+                        title="Aggregated from cpl_12–cpl_20 (and live fixture updates on this server)"
+                      >
+                        <span className="tss-modal-league-label">Career</span>
+                        <span className="tss-modal-league-values">
+                          {modalCareerMp} played · {modalCareerWins} won ({modalCareerPct})
+                        </span>
+                      </p>
+                      <p className="tss-modal-league-line" title="Current league season on points table">
+                        <span className="tss-modal-league-label">Season</span>
+                        <span className="tss-modal-league-values">
+                          {modalMp} played · {modalWins} won ({modalSeasonPct})
+                        </span>
+                      </p>
                       <div className="tss-modal-trophies">
                         <FaTrophy />
                         <span>
