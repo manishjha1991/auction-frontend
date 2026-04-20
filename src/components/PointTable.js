@@ -106,9 +106,9 @@ const Table = styled.table`
   th:nth-child(3), td:nth-child(3),
   th:nth-child(4), td:nth-child(4),
   th:nth-child(5), td:nth-child(5) { width: 52px; text-align: right; }         /* M W L */
-  th:nth-child(6), td:nth-child(6) { width: 80px; text-align: right; }         /* NRR */
-  th:nth-child(7), td:nth-child(7) { width: 60px; text-align: right; }         /* FAIR */
-  th:nth-child(8), td:nth-child(8) { width: 64px; text-align: right; padding-right: 0.4rem; } /* PTS */
+  th:nth-child(6), td:nth-child(6) { width: 80px; text-align: center; }        /* NRR */
+  th:nth-child(7), td:nth-child(7) { width: 64px; text-align: right; }         /* PTS */
+  th:nth-child(8), td:nth-child(8) { width: 60px; text-align: right; padding-right: 0.4rem; } /* FAIR */
 
   @media (max-width: 600px) {
     font-size: 0.8rem;
@@ -119,13 +119,13 @@ const Table = styled.table`
     th:nth-child(4), td:nth-child(4),
     th:nth-child(5), td:nth-child(5) { width: 26px; }
     th:nth-child(6), td:nth-child(6) { width: 64px; }  /* NRR needs room for +1.420 */
-    th:nth-child(7), td:nth-child(7) { width: 34px; }
-    th:nth-child(8), td:nth-child(8) { width: 36px; padding-right: 0.1rem; }
+    th:nth-child(7), td:nth-child(7) { width: 36px; }  /* PTS */
+    th:nth-child(8), td:nth-child(8) { width: 34px; padding-right: 0.1rem; } /* FAIR */
   }
 
   /* Extra-narrow phones: hide FAIR column to keep single-screen fit (all other data stays). */
   @media (max-width: 360px) {
-    th:nth-child(7), td:nth-child(7) { display: none; }
+    th:nth-child(8), td:nth-child(8) { display: none; }
     font-size: 0.76rem;
     th:nth-child(6), td:nth-child(6) { width: 60px; }
   }
@@ -135,7 +135,8 @@ const TableHead = styled.thead`
   tr { background: transparent; }
 
   td {
-    padding: 0.55rem 0.4rem !important;
+    /* Match body padding exactly so right-aligned headers sit above values. */
+    padding: 0.55rem 0.4rem;
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -149,7 +150,7 @@ const TableHead = styled.thead`
 
   @media (max-width: 600px) {
     td {
-      padding: 0.45rem 0.25rem !important;
+      padding: 0.45rem 0.2rem;
       font-size: 0.62rem;
     }
   }
@@ -158,6 +159,7 @@ const TableHead = styled.thead`
 const TableRow = styled.tr`
   background: #ffffff;
   transition: background-color 0.15s ease;
+  cursor: pointer;
 
   td {
     padding: 0.7rem 0.4rem;
@@ -169,6 +171,8 @@ const TableRow = styled.tr`
   }
 
   &:hover td { background: #f8fafc; }
+  &:focus { outline: none; }
+  &:focus-visible td { background: #eff6ff; }
   &:last-child td { border-bottom: none; }
 
   /* NRR sign colour */
@@ -180,12 +184,14 @@ const TableRow = styled.tr`
     font-weight: 600;
   }
 
-  /* PTS highlighted */
+  /* PTS highlighted — colour depends on qualifying zone */
   td.pts-cell {
     font-weight: 800;
     font-size: 1em;
     color: #0f172a;
   }
+  td.pts-cell.pts-top { color: #047857; }  /* dark bold green for top qualifiers */
+  td.pts-cell.pts-mid { color: #b45309; }  /* bold amber/yellow for rest */
 
   @media (max-width: 600px) {
     td { padding: 0.6rem 0.2rem; }
@@ -201,12 +207,11 @@ const HighlightCell = styled(TableCell)`
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  cursor: pointer;
   color: #0f172a;
   font-weight: 600;
   min-width: 0;
 
-  &:hover .team-name { color: #4f46e5; }
+  tr:hover & .team-name { color: #4f46e5; }
 
   img {
     width: 26px;
@@ -842,9 +847,22 @@ const PointsTable = () => {
         };
 
         return (
-          <TableRow key={team._id || `${team.teamName}-${index}`} index={index} variant={variant}>
+          <TableRow
+            key={team._id || `${team.teamName}-${index}`}
+            index={index}
+            variant={variant}
+            onClick={() => handleTeamClick(team)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleTeamClick(team);
+              }
+            }}
+          >
             <RankCell>{index + 1}</RankCell>
-            <HighlightCell onClick={() => handleTeamClick(team)}>
+            <HighlightCell>
               <img src={teamImage} alt={team.teamName} />
               <span className="team-name">{team.teamName}</span>
               {showQ ? (
@@ -857,8 +875,16 @@ const PointsTable = () => {
             <TableCell>{team.wins}</TableCell>
             <TableCell>{losses}</TableCell>
             <TableCell className="nrr-cell">{formatNRR(team.nrr)}</TableCell>
+            <TableCell
+              className={`pts-cell ${
+                index < (mode === 'groups' ? GROUP_QUALIFIERS : NUM_QUALIFIERS)
+                  ? 'pts-top'
+                  : 'pts-mid'
+              }`}
+            >
+              {String(Math.max(0, Number(team.points) || 0)).padStart(2, '0')}
+            </TableCell>
             <TableCell>{team.fairness}</TableCell>
-            <TableCell className="pts-cell">{team.points}</TableCell>
           </TableRow>
         );
       })}
@@ -906,8 +932,8 @@ const PointsTable = () => {
                       <TableCell>W</TableCell>
                       <TableCell>L</TableCell>
                       <TableCell className="nrr-cell">NRR</TableCell>
-                      <TableCell>FAIR</TableCell>
                       <TableCell className="pts-cell">PTS</TableCell>
+                      <TableCell>FAIR</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(groups.A)}
@@ -929,8 +955,8 @@ const PointsTable = () => {
                       <TableCell>W</TableCell>
                       <TableCell>L</TableCell>
                       <TableCell className="nrr-cell">NRR</TableCell>
-                      <TableCell>FAIR</TableCell>
                       <TableCell className="pts-cell">PTS</TableCell>
+                      <TableCell>FAIR</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(groups.B)}
@@ -983,8 +1009,8 @@ const PointsTable = () => {
                       <TableCell>W</TableCell>
                       <TableCell>L</TableCell>
                       <TableCell className="nrr-cell">NRR</TableCell>
-                      <TableCell>FAIR</TableCell>
                       <TableCell className="pts-cell">PTS</TableCell>
+                      <TableCell>FAIR</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(sortedTeams)}
