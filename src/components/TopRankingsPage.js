@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   FaBowlingBall,
   FaBalanceScale,
-  FaMedal,
   FaFireAlt,
   FaChevronDown,
   FaChevronUp,
   FaCrown,
+  FaTrophy,
+  FaChartLine,
 } from 'react-icons/fa';
 import '../css/TopRankingsPage.css';
 import { API_ENDPOINTS } from '../const';
@@ -19,87 +20,8 @@ const formatMetricValue = (value) =>
 const impactScore = (p) =>
   (Number(p.totalRuns) || 0) + (Number(p.totalWickets) || 0) * 22;
 
-const SpotlightCard = ({
-  title,
-  subtitle,
-  player,
-  statLine,
-  accentClass,
-}) => {
-  if (!player) {
-    return (
-      <div className={`spotlight-card spotlight-card--empty ${accentClass}`}>
-        <p className="spotlight-eyebrow">{title}</p>
-        <p className="spotlight-empty">No data yet</p>
-      </div>
-    );
-  }
-  return (
-    <div className={`spotlight-card ${accentClass}`}>
-      <div className="spotlight-card-inner">
-        <div className="spotlight-copy">
-          <p className="spotlight-eyebrow">{title}</p>
-          {subtitle ? <p className="spotlight-subtitle">{subtitle}</p> : null}
-          <div className="spotlight-name-row">
-            {player.teamLogo ? (
-              <img
-                src={resolveImageUrl(player.teamLogo)}
-                alt=""
-                className="spotlight-team-logo"
-              />
-            ) : null}
-            <h3 className="spotlight-name">{player.name}</h3>
-          </div>
-          <p className="spotlight-stat-line">{statLine}</p>
-        </div>
-        {player.profilePicture ? (
-          <img
-            className="spotlight-portrait"
-            src={resolveImageUrl(player.profilePicture)}
-            alt=""
-          />
-        ) : (
-          <div className="spotlight-portrait spotlight-portrait--fallback" aria-hidden>
-            {String(player.name || '?').slice(0, 1)}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 const resolveImageUrl = (src) =>
   resolvePlayerImageUrl(src) || '/images/logo512.png';
-
-const FeaturedCard = ({ player, metricLabel, metricValue }) => {
-  if (!player) return null;
-  return (
-    <div className={`featured-card ${tierClass(player.type)}`}>
-      <div className="featured-left">
-        <p className="featured-label">#1 Ranked</p>
-        <div className="featured-name-row">
-          <img
-            src={resolveImageUrl(player.teamLogo)}
-            alt={`${player.teamName || 'Free Agent'} logo`}
-          />
-          <h3>{player.name}</h3>
-        </div>
-        <div className="featured-metric">
-          <span>{metricLabel}</span>
-          <strong>{metricValue}</strong>
-        </div>
-      </div>
-      {player.profilePicture && (
-        <div className="featured-avatar">
-          <img
-            src={resolveImageUrl(player.profilePicture)}
-            alt={`${player.name} portrait`}
-          />
-        </div>
-      )}
-    </div>
-  );
-};
 
 const tierClass = (type = '') => {
   const text = (type || '').toLowerCase();
@@ -110,43 +32,135 @@ const tierClass = (type = '') => {
   return 'tier-default';
 };
 
-const TopRow = ({ player, rank, metricLabel, metricValue }) => (
-  <div className={`top-row ${tierClass(player.type)}`}>
-    <div className="top-rank">
-      <span>{String(rank).padStart(2, '0')}</span>
-      <FaMedal />
-    </div>
-    <div className="top-player">
-      <img
-        src={resolveImageUrl(player.teamLogo)}
-        alt={`${player.teamName || 'Free Agent'} logo`}
-      />
-      <div>
-        <p className={`player-name ${tierClass(player.type)}`}>{player.name}</p>
-      </div>
-    </div>
-    <div className="top-metric">
-      <span>{metricLabel}</span>
-      <strong>{metricValue}</strong>
-    </div>
-  </div>
-);
+const initialsOf = (name = '') =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || '?';
 
-const FullRow = ({ player, rank, metricLabel, metricValue }) => (
-  <div className={`full-row ${tierClass(player.type)}`}>
-    <div className="full-rank">{rank}</div>
-    <div className="full-team">
-      <img
-        src={resolveImageUrl(player.teamLogo)}
-        alt={`${player.teamName || 'Free Agent'} logo`}
-      />
-      <div>
-        <p className={`player-name ${tierClass(player.type)}`}>{player.name}</p>
+const SpotlightCard = ({ title, subtitle, player, statLine, accentClass, icon }) => {
+  if (!player) {
+    return (
+      <div className={`rk-spot-card rk-spot-card--empty ${accentClass}`}>
+        <p className="rk-spot-eyebrow">
+          {icon}
+          {title}
+        </p>
+        <p className="rk-spot-empty">No data yet</p>
+      </div>
+    );
+  }
+  return (
+    <div className={`rk-spot-card ${accentClass}`}>
+      <p className="rk-spot-eyebrow">
+        {icon}
+        {title}
+      </p>
+      <div className="rk-spot-body">
+        {player.profilePicture ? (
+          <img
+            className="rk-spot-portrait"
+            src={resolveImageUrl(player.profilePicture)}
+            alt=""
+          />
+        ) : (
+          <div className="rk-spot-portrait rk-spot-portrait--fallback" aria-hidden>
+            {initialsOf(player.name)}
+          </div>
+        )}
+        <div className="rk-spot-meta">
+          <div className="rk-spot-name-row">
+            {player.teamLogo ? (
+              <img
+                src={resolveImageUrl(player.teamLogo)}
+                alt=""
+                className="rk-spot-team-logo"
+              />
+            ) : null}
+            <h3 className="rk-spot-name">{player.name}</h3>
+          </div>
+          <p className="rk-spot-stat">{statLine}</p>
+          {subtitle ? <p className="rk-spot-sub">{subtitle}</p> : null}
+        </div>
       </div>
     </div>
-    <div className="full-metric">
-      <span>{metricLabel}</span>
+  );
+};
+
+const PodiumTile = ({ player, rank, metricLabel, metricValue }) => {
+  if (!player) {
+    return (
+      <div className={`rk-podium rk-podium--${rank} rk-podium--empty`}>
+        <div className="rk-podium-rank">{rank}</div>
+        <div className="rk-podium-placeholder">—</div>
+      </div>
+    );
+  }
+  return (
+    <div
+      className={`rk-podium rk-podium--${rank} ${tierClass(player.type)}`}
+    >
+      <div className="rk-podium-rank">
+        {rank === 1 ? <FaCrown aria-hidden /> : null}
+        <span>{rank}</span>
+      </div>
+      <div className="rk-podium-avatar-wrap">
+        {player.profilePicture ? (
+          <img
+            className="rk-podium-avatar"
+            src={resolveImageUrl(player.profilePicture)}
+            alt=""
+          />
+        ) : (
+          <div className="rk-podium-avatar rk-podium-avatar--fallback" aria-hidden>
+            {initialsOf(player.name)}
+          </div>
+        )}
+        {player.teamLogo ? (
+          <img
+            src={resolveImageUrl(player.teamLogo)}
+            alt=""
+            className="rk-podium-team"
+          />
+        ) : null}
+      </div>
+      <p className="rk-podium-name">{player.name}</p>
+      <p className="rk-podium-metric">
+        <strong>{metricValue}</strong>
+        <span>{metricLabel}</span>
+      </p>
+    </div>
+  );
+};
+
+const ListRow = ({ player, rank, metricLabel, metricValue }) => (
+  <div className={`rk-row ${tierClass(player.type)}`}>
+    <div className="rk-row-rank">{String(rank).padStart(2, '0')}</div>
+    <div className="rk-row-identity">
+      {player.teamLogo ? (
+        <img
+          src={resolveImageUrl(player.teamLogo)}
+          alt=""
+          className="rk-row-logo"
+        />
+      ) : (
+        <span className="rk-row-logo rk-row-logo--fallback" aria-hidden>
+          {initialsOf(player.name)}
+        </span>
+      )}
+      <div className="rk-row-meta">
+        <p className="rk-row-name">{player.name}</p>
+        {player.teamName ? (
+          <p className="rk-row-team">{player.teamName}</p>
+        ) : null}
+      </div>
+    </div>
+    <div className="rk-row-metric">
       <strong>{metricValue}</strong>
+      <span>{metricLabel}</span>
     </div>
   </div>
 );
@@ -162,56 +176,78 @@ const RankingSection = ({
   variant,
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const featured = topData[0];
+
+  const first = topData[0] || null;
+  const second = topData[1] || null;
+  const third = topData[2] || null;
+  const restTop = topData.slice(3);
+
   return (
-    <section className={`ranking-section ${variant}`}>
-      <header>
-        <div className="title">
-          {icon}
-          <div>
-            <h2>{title}</h2>
-            <p>Live CPL rankings driven by cumulative stats</p>
-          </div>
+    <section className={`rk-section rk-section--${variant}`}>
+      <header className="rk-section-head">
+        <div className="rk-section-icon">{icon}</div>
+        <div>
+          <h2>{title}</h2>
+          <p>Live CPL rankings driven by cumulative stats</p>
         </div>
       </header>
 
-      {featured ? (
-        <FeaturedCard
-          player={featured}
-          metricLabel={metricLabel}
-          metricValue={metricAccessor(featured)}
-        />
+      {topData.length === 0 ? (
+        <div className="rk-empty">{emptyText}</div>
       ) : (
-        <div className="empty-state">{emptyText}</div>
-      )}
-
-      {topData.length > 1 && (
-        <div className="top-list">
-          {topData.slice(1).map((player, idx) => (
-            <TopRow
-              key={player.id}
-              player={player}
-              rank={idx + 2}
+        <>
+          <div className="rk-podium-row">
+            <PodiumTile
+              player={second}
+              rank={2}
               metricLabel={metricLabel}
-              metricValue={metricAccessor(player)}
+              metricValue={second ? metricAccessor(second) : ''}
             />
-          ))}
-        </div>
+            <PodiumTile
+              player={first}
+              rank={1}
+              metricLabel={metricLabel}
+              metricValue={first ? metricAccessor(first) : ''}
+            />
+            <PodiumTile
+              player={third}
+              rank={3}
+              metricLabel={metricLabel}
+              metricValue={third ? metricAccessor(third) : ''}
+            />
+          </div>
+
+          {restTop.length > 0 && (
+            <div className="rk-list">
+              {restTop.map((player, idx) => (
+                <ListRow
+                  key={player.id}
+                  player={player}
+                  rank={idx + 4}
+                  metricLabel={metricLabel}
+                  metricValue={metricAccessor(player)}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {fullData.length > 0 && (
-        <div className="full-rankings">
+        <div className="rk-full">
           <button
-            className="full-heading"
+            type="button"
+            className="rk-full-toggle"
             onClick={() => setExpanded((prev) => !prev)}
+            aria-expanded={expanded}
           >
-            <span>Full Rankings ({fullData.length})</span>
+            <span>Full rankings · {fullData.length}</span>
             {expanded ? <FaChevronUp /> : <FaChevronDown />}
           </button>
           {expanded && (
-            <div className="full-scroll">
+            <div className="rk-full-scroll">
               {fullData.map((player, idx) => (
-                <FullRow
+                <ListRow
                   key={`full-${player.id}`}
                   player={player}
                   rank={idx + 1}
@@ -232,6 +268,7 @@ const TopRankingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fetchedAt, setFetchedAt] = useState(null);
+  const [activeCategory, setActiveCategory] = useState('batting');
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -270,7 +307,6 @@ const TopRankingsPage = () => {
     return players
       .filter((p) => {
         const role = (p.role || '').toLowerCase();
-        // Batsman/WicketKeeper; Allrounder has no "bat" substring so must be listed explicitly.
         const isBatterRole =
           role.includes('bat') ||
           role.includes('keeper') ||
@@ -352,35 +388,70 @@ const TopRankingsPage = () => {
     return { mvpPlayer: top, mvpByMom: false };
   }, [players]);
 
-  return (
-    <div className="rankings-page">
-      {fetchedAt && (
-        <div className="rankings-banner">
-          Last refreshed&nbsp;
-          {fetchedAt.toLocaleString('en-IN', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-          })}
-        </div>
-      )}
+  const categories = useMemo(
+    () => [
+      {
+        id: 'batting',
+        label: 'Batters',
+        icon: <FaFireAlt aria-hidden />,
+        count: allBatters.length,
+      },
+      {
+        id: 'bowling',
+        label: 'Bowlers',
+        icon: <FaBowlingBall aria-hidden />,
+        count: allBowlers.length,
+      },
+      {
+        id: 'allrounder',
+        label: 'All-rounders',
+        icon: <FaBalanceScale aria-hidden />,
+        count: allAllRounders.length,
+      },
+    ],
+    [allBatters.length, allBowlers.length, allAllRounders.length]
+  );
 
-      {loading && <div className="rankings-state">Crunching numbers…</div>}
-      {error && !loading && <div className="rankings-state error">{error}</div>}
+  return (
+    <div className="rk-page">
+      <header className="rk-hero">
+        <div className="rk-hero-copy">
+          <span className="rk-hero-kicker">
+            <FaTrophy aria-hidden /> CPL season · live
+          </span>
+          <h1>Rankings</h1>
+          <p className="rk-hero-sub">
+            Cumulative performance across every match. Tap a category to dive in.
+          </p>
+        </div>
+        {fetchedAt && (
+          <span className="rk-hero-refresh">
+            Refreshed{' '}
+            {fetchedAt.toLocaleString('en-IN', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}
+          </span>
+        )}
+      </header>
+
+      {loading && <div className="rk-state">Crunching numbers…</div>}
+      {error && !loading && <div className="rk-state rk-state--error">{error}</div>}
 
       {!loading && !error && (
         <>
-          <section className="rankings-spotlight" aria-label="League leaders">
-            <div className="rankings-spotlight-head">
-              <FaCrown className="rankings-spotlight-crown" aria-hidden />
+          <section className="rk-spotlight" aria-label="League leaders">
+            <div className="rk-spotlight-head">
+              <FaCrown className="rk-spotlight-crown" aria-hidden />
               <div>
-                <h1 className="rankings-spotlight-title">League leaders</h1>
-                <p className="rankings-spotlight-desc">
-                  Most runs, most wickets, and MVP (Man of the Match awards, or impact score if no MoM
-                  data).
+                <h2>League leaders</h2>
+                <p>
+                  Most runs, most wickets & MVP (MoM awards, with impact score as
+                  fallback).
                 </p>
               </div>
             </div>
-            <div className="rankings-spotlight-grid">
+            <div className="rk-spotlight-scroll">
               <SpotlightCard
                 title="Most runs"
                 subtitle="All players · cumulative"
@@ -390,7 +461,8 @@ const TopRankingsPage = () => {
                     ? `${formatMetricValue(mostRunsPlayer.totalRuns)} runs`
                     : ''
                 }
-                accentClass="spotlight--runs"
+                accentClass="rk-spot-card--runs"
+                icon={<FaFireAlt aria-hidden />}
               />
               <SpotlightCard
                 title="Most wickets"
@@ -398,17 +470,18 @@ const TopRankingsPage = () => {
                 player={mostWicketsPlayer}
                 statLine={
                   mostWicketsPlayer
-                    ? `${formatMetricValue(mostWicketsPlayer.totalWickets)} wickets`
+                    ? `${formatMetricValue(mostWicketsPlayer.totalWickets)} wkts`
                     : ''
                 }
-                accentClass="spotlight--wickets"
+                accentClass="rk-spot-card--wkts"
+                icon={<FaBowlingBall aria-hidden />}
               />
               <SpotlightCard
                 title="MVP"
                 subtitle={
                   mvpByMom
-                    ? 'Man of the Match awards (then impact score)'
-                    : 'Impact score: runs + 22 × wickets'
+                    ? 'MoM awards · impact tie-break'
+                    : 'Impact score: runs + 22 × wkts'
                 }
                 player={mvpPlayer}
                 statLine={
@@ -416,51 +489,79 @@ const TopRankingsPage = () => {
                     ? mvpByMom
                       ? `${formatMetricValue(mvpPlayer.momCount)}× MoM · ${formatMetricValue(
                           mvpPlayer.totalRuns
-                        )} runs · ${formatMetricValue(mvpPlayer.totalWickets)} wkts`
-                      : `Score ${formatMetricValue(impactScore(mvpPlayer))} · ${formatMetricValue(
+                        )} R · ${formatMetricValue(mvpPlayer.totalWickets)} W`
+                      : `${formatMetricValue(impactScore(mvpPlayer))} pts · ${formatMetricValue(
                           mvpPlayer.totalRuns
-                        )} runs · ${formatMetricValue(mvpPlayer.totalWickets)} wkts`
+                        )} R · ${formatMetricValue(mvpPlayer.totalWickets)} W`
                     : ''
                 }
-                accentClass="spotlight--mvp"
+                accentClass="rk-spot-card--mvp"
+                icon={<FaChartLine aria-hidden />}
               />
             </div>
           </section>
 
-          <div className="rankings-grid">
-          <RankingSection
-            title="Top 5 CPL Batters"
-            icon={<FaFireAlt />}
-            topData={topBatters}
-            fullData={allBatters}
-            metricLabel="Total Runs"
-            metricAccessor={(p) => formatMetricValue(p.totalRuns)}
-            emptyText="No batting records yet."
-            variant="batting"
-          />
-          <RankingSection
-            title="Top 5 CPL Bowlers"
-            icon={<FaBowlingBall />}
-            topData={topBowlers}
-            fullData={allBowlers}
-            metricLabel="Total Wickets"
-            metricAccessor={(p) => formatMetricValue(p.totalWickets)}
-            emptyText="No bowling records yet."
-            variant="bowling"
-          />
-          <RankingSection
-            title="Top 5 CPL All-Rounders"
-            icon={<FaBalanceScale />}
-            topData={topAllRounders}
-            fullData={allAllRounders}
-            metricLabel="Runs · Wickets"
-            metricAccessor={(p) =>
-              `${formatMetricValue(p.totalRuns)} · ${formatMetricValue(p.totalWickets)}`
-            }
-            emptyText="Need players contributing with both bat and ball."
-            variant="allrounder"
-          />
-        </div>
+          <nav className="rk-tabs" role="tablist" aria-label="Ranking categories">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                role="tab"
+                aria-selected={activeCategory === cat.id}
+                className={`rk-tab ${
+                  activeCategory === cat.id ? 'is-active' : ''
+                } rk-tab--${cat.id}`}
+                onClick={() => setActiveCategory(cat.id)}
+              >
+                <span className="rk-tab-icon">{cat.icon}</span>
+                <span className="rk-tab-text">
+                  <span className="rk-tab-label">{cat.label}</span>
+                  <span className="rk-tab-count">{cat.count}</span>
+                </span>
+              </button>
+            ))}
+          </nav>
+
+          {activeCategory === 'batting' && (
+            <RankingSection
+              title="Top CPL Batters"
+              icon={<FaFireAlt aria-hidden />}
+              topData={topBatters}
+              fullData={allBatters}
+              metricLabel="Runs"
+              metricAccessor={(p) => formatMetricValue(p.totalRuns)}
+              emptyText="No batting records yet."
+              variant="batting"
+            />
+          )}
+
+          {activeCategory === 'bowling' && (
+            <RankingSection
+              title="Top CPL Bowlers"
+              icon={<FaBowlingBall aria-hidden />}
+              topData={topBowlers}
+              fullData={allBowlers}
+              metricLabel="Wickets"
+              metricAccessor={(p) => formatMetricValue(p.totalWickets)}
+              emptyText="No bowling records yet."
+              variant="bowling"
+            />
+          )}
+
+          {activeCategory === 'allrounder' && (
+            <RankingSection
+              title="Top CPL All-Rounders"
+              icon={<FaBalanceScale aria-hidden />}
+              topData={topAllRounders}
+              fullData={allAllRounders}
+              metricLabel="Runs · Wkts"
+              metricAccessor={(p) =>
+                `${formatMetricValue(p.totalRuns)} · ${formatMetricValue(p.totalWickets)}`
+              }
+              emptyText="Need players contributing with both bat and ball."
+              variant="allrounder"
+            />
+          )}
         </>
       )}
     </div>
@@ -468,4 +569,3 @@ const TopRankingsPage = () => {
 };
 
 export default TopRankingsPage;
-
