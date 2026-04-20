@@ -1,23 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { FaBowlingBall } from 'react-icons/fa';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FaBowlingBall, FaSearch, FaPen, FaTimes, FaTrophy } from 'react-icons/fa';
 import { MdSportsCricket } from 'react-icons/md';
-import { GiGloves } from 'react-icons/gi'; // Icon for wicketkeeper
+import { GiGloves } from 'react-icons/gi';
 import '../css/PlayerStatsList.css';
-import { API_ENDPOINTS } from "../const";
+import { API_ENDPOINTS } from '../const';
+
+const roleMeta = (role) => {
+  const r = String(role || '').toLowerCase();
+  if (r.includes('keeper')) {
+    return { label: 'Keeper', tone: 'keeper', Icon: GiGloves };
+  }
+  if (r.includes('bowl') && !r.includes('all')) {
+    return { label: 'Bowler', tone: 'bowler', Icon: FaBowlingBall };
+  }
+  if (r.includes('all')) {
+    return { label: 'All-rounder', tone: 'allrounder', Icon: MdSportsCricket };
+  }
+  return { label: 'Batter', tone: 'batter', Icon: MdSportsCricket };
+};
+
+const initialsOf = (name = '') =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || '?';
 
 const PlayerStatsList = () => {
-  // Initialize current user only once
   const [currentUser] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("user"));
+      return JSON.parse(localStorage.getItem('user'));
     } catch (error) {
-      console.error("Error parsing user from localStorage:", error);
+      console.error('Error parsing user from localStorage:', error);
       return null;
     }
   });
 
   const [expandedPlayer, setExpandedPlayer] = useState(null);
-  const [activeTab, setActiveTab] = useState("batting");
+  const [activeTab, setActiveTab] = useState('batting');
   const [players, setPlayers] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [allTeams, setAllTeams] = useState([]);
@@ -25,45 +47,39 @@ const PlayerStatsList = () => {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // NEW: Local state for the search term
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [formData, setFormData] = useState({
     battingRuns: '',
     battingBalls: '',
     bowlingRunsGiven: '',
     bowlingBallsBowled: '',
-    wicketsTaken: '', // NEW FIELD for wickets taken
+    wicketsTaken: '',
     opponentUserId: '',
     isMom: false,
-    isPlayoffScore:false,
+    isPlayoffScore: false,
   });
 
-  // Fetch players (only once on mount)
   useEffect(() => {
     const fetchPlayers = async () => {
       try {
         const userId = currentUser?.id;
         if (!userId) {
-          console.error("User ID not found in localStorage");
+          console.error('User ID not found in localStorage');
           return;
         }
-        // Fetch data from API
         const response = await fetch(
           `${API_ENDPOINTS}/api/player-stats/list?userId=${userId}`,
-          { method: "GET" }
+          { method: 'GET' }
         );
 
         if (response.ok) {
           const data = await response.json();
-          console.log("API Response:", data);
-
-          // Map fetched data into the desired format
           const formattedPlayers = data.players.map((player, index) => ({
             id: player._id || `player-${index}`,
-            name: player.name || "Unknown Player",
+            name: player.name || 'Unknown Player',
             type: player.type,
-            role: player.role, // "Batsman", "Bowler", "Allrounder", "WicketKeeper", etc.
+            role: player.role,
             matchPerformance: {
               batting: player.matchPerformance?.batting || [],
               bowling: player.matchPerformance?.bowling || [],
@@ -75,47 +91,42 @@ const PlayerStatsList = () => {
           }));
           setPlayers(formattedPlayers);
         } else {
-          console.error("Failed to fetch player stats");
+          console.error('Failed to fetch player stats');
         }
       } catch (error) {
-        console.error("Error fetching player stats:", error);
+        console.error('Error fetching player stats:', error);
       }
     };
 
     fetchPlayers();
-  }, []); // Empty dependency array: runs only once
+  }, []);
 
-  // Fetch teams from your teams API
   useEffect(() => {
     const fetchTeams = async () => {
       try {
         const response = await fetch(`${API_ENDPOINTS}/api/users/teams`);
         if (response.ok) {
           const data = await response.json();
-          console.log("Teams API Response:", data);
-          // API now returns { teams: [...] }
           const teamsArray = Array.isArray(data)
             ? data
             : Array.isArray(data?.teams)
             ? data.teams
             : [];
-          console.log("Setting teams array:", teamsArray);
           setAllTeams(teamsArray);
         } else {
-          console.error("Failed to fetch teams");
+          console.error('Failed to fetch teams');
         }
       } catch (error) {
-        console.error("Error fetching teams:", error);
+        console.error('Error fetching teams:', error);
       }
     };
 
     fetchTeams();
   }, []);
 
-  // Open modal for a player; reset edit mode and form data.
   const openModal = (playerName) => {
     setExpandedPlayer(playerName);
-    setActiveTab("batting");
+    setActiveTab('batting');
     setIsEditing(false);
     setSubmitMessage('');
     setFormData({
@@ -126,11 +137,10 @@ const PlayerStatsList = () => {
       wicketsTaken: '',
       opponentUserId: '',
       isMom: false,
-      isPlayoffScore:false,
+      isPlayoffScore: false,
     });
   };
 
-  // Close the modal and reset edit mode.
   const closeModal = () => {
     setExpandedPlayer(null);
     setIsEditing(false);
@@ -140,10 +150,8 @@ const PlayerStatsList = () => {
     setActiveTab(tab);
   };
 
-  // Find the selected player from the players array.
   const selectedPlayer = players.find((player) => player.name === expandedPlayer);
 
-  // Handle changes in the form inputs.
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -152,15 +160,12 @@ const PlayerStatsList = () => {
     }));
   };
 
-  // Specific handler for checkbox clicks (iOS Safari fix)
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: checked,
     }));
-    
-    // Force a re-render by toggling state
     setTimeout(() => {
       setFormData((prev) => ({
         ...prev,
@@ -169,13 +174,12 @@ const PlayerStatsList = () => {
     }, 10);
   };
 
-  // Handle form submission that calls the store API.
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
       const userId = currentUser?.id;
       if (!userId) {
-        setSubmitMessage("User not found!");
+        setSubmitMessage('User not found!');
         return;
       }
 
@@ -191,7 +195,6 @@ const PlayerStatsList = () => {
           runsGiven: Number(formData.bowlingRunsGiven),
           ballsBowled: Number(formData.bowlingBallsBowled),
         },
-        // Add extra field "wicketsTaken"
         wicketsTaken: Number(formData.wicketsTaken),
         isMom: formData.isMom,
         isPlayoffScore: formData.isPlayoffScore,
@@ -204,295 +207,426 @@ const PlayerStatsList = () => {
       });
 
       if (res.ok) {
-        const result = await res.json();
-        setSubmitMessage("Stats saved successfully!");
-        
-        // Show success popup
+        await res.json();
+        setSubmitMessage('Stats saved successfully!');
         setSuccessMessage(`Stats saved for ${selectedPlayer.name}`);
         setShowSuccessPopup(true);
-        
-        // Auto-hide success popup after 3 seconds
         setTimeout(() => {
           setShowSuccessPopup(false);
           setSuccessMessage('');
         }, 3000);
       } else {
-        setSubmitMessage("Error saving stats.");
+        setSubmitMessage('Error saving stats.');
       }
     } catch (error) {
-      console.error("Error submitting form:", error);
-      setSubmitMessage("Error submitting form.");
+      console.error('Error submitting form:', error);
+      setSubmitMessage('Error submitting form.');
     }
   };
 
-  // FILTER the players by the search term:
-  const filteredPlayers = players.filter((player) =>
-    player.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPlayers = useMemo(
+    () =>
+      players.filter((player) =>
+        player.name.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [players, searchTerm]
   );
 
-  return (
-    <div className="player-list-wrapper">
-      <h2 style={{ textAlign: "center", color: "#1565c0", fontWeight: "bold" }}>
-        Player Stats
-      </h2>
+  const totals = useMemo(() => {
+    let runs = 0;
+    let wkts = 0;
+    players.forEach((p) => {
+      runs += Number(p.totalStats?.batting?.runs) || 0;
+      wkts += Number(p.totalStats?.bowling?.wickets) || 0;
+    });
+    return { runs, wkts, count: players.length };
+  }, [players]);
 
-      {/* NEW: Search Bar */}
-      <div className="search-bar-container">
+  return (
+    <div className="psl-page">
+      <header className="psl-header">
+        <div className="psl-header-title">
+          <span className="psl-kicker">Squad performance</span>
+          <h1>Player Stats</h1>
+          <p className="psl-subtitle">
+            Tap any card to review match-by-match splits or log fresh figures.
+          </p>
+        </div>
+        <div className="psl-header-stats" aria-label="Squad totals">
+          <div className="psl-stat">
+            <span className="psl-stat-label">Players</span>
+            <span className="psl-stat-value">{totals.count}</span>
+          </div>
+          <div className="psl-stat psl-stat--runs">
+            <span className="psl-stat-label">Runs</span>
+            <span className="psl-stat-value">{totals.runs.toLocaleString('en-IN')}</span>
+          </div>
+          <div className="psl-stat psl-stat--wkts">
+            <span className="psl-stat-label">Wickets</span>
+            <span className="psl-stat-value">{totals.wkts}</span>
+          </div>
+        </div>
+      </header>
+
+      <div className="psl-search">
+        <FaSearch aria-hidden />
         <input
           type="text"
-          className="player-search-input"
-          placeholder="Search Player..."
+          className="psl-search-input"
+          placeholder="Search player by name"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
+        {searchTerm && (
+          <button
+            type="button"
+            className="psl-search-clear"
+            aria-label="Clear search"
+            onClick={() => setSearchTerm('')}
+          >
+            <FaTimes />
+          </button>
+        )}
       </div>
 
-      <div className="player-cards-container">
-        {filteredPlayers.map((player) => (
-          <div
-            className="player-card"
-            key={player.name}
-            onClick={() => openModal(player.name)}
-          >
-            <div className="player-details">
-              <div className="player-icon">
-                {player.role === "WicketKeeper" ? (
-                  <GiGloves style={{ color: "#4caf50", fontSize: "1.2rem" }} />
-                ) : player.role === "Bowler" ? (
-                  <FaBowlingBall style={{ color: "#ff5722", fontSize: "1.2rem" }} />
-                ) : (
-                  <MdSportsCricket style={{ color: "#1e88e5", fontSize: "1.2rem" }} />
-                )}
-              </div>
-              <h3 className="player-name">{player.name}</h3>
-            </div>
-            <div className="player-stats">
-              <div className="icon-with-text color-batting">
-                <MdSportsCricket /> {player.totalStats.batting.runs}
-              </div>
-              <div className="icon-with-text color-bowling">
-                <FaBowlingBall /> {player.totalStats.bowling.wickets}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {filteredPlayers.length === 0 ? (
+        <div className="psl-empty">
+          {players.length === 0
+            ? 'No players yet. Once your squad is picked they will show up here.'
+            : `No players match “${searchTerm}”.`}
+        </div>
+      ) : (
+        <div className="psl-grid">
+          {filteredPlayers.map((player) => {
+            const meta = roleMeta(player.role);
+            const RoleIcon = meta.Icon;
+            return (
+              <button
+                type="button"
+                className={`psl-card psl-card--${meta.tone}`}
+                key={player.id || player.name}
+                onClick={() => openModal(player.name)}
+              >
+                <div className="psl-card-top">
+                  <span className="psl-avatar" aria-hidden>
+                    {initialsOf(player.name)}
+                  </span>
+                  <div className="psl-card-id">
+                    <h3 className="psl-card-name">{player.name}</h3>
+                    <span className={`psl-role-pill psl-role-pill--${meta.tone}`}>
+                      <RoleIcon aria-hidden /> {meta.label}
+                    </span>
+                  </div>
+                </div>
+                <div className="psl-card-stats">
+                  <div className="psl-card-stat psl-card-stat--runs">
+                    <MdSportsCricket aria-hidden />
+                    <div>
+                      <span className="psl-card-stat-label">Runs</span>
+                      <strong>{player.totalStats.batting.runs}</strong>
+                    </div>
+                  </div>
+                  <div className="psl-card-stat psl-card-stat--wkts">
+                    <FaBowlingBall aria-hidden />
+                    <div>
+                      <span className="psl-card-stat-label">Wickets</span>
+                      <strong>{player.totalStats.bowling.wickets}</strong>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {expandedPlayer && selectedPlayer && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">{selectedPlayer.name}</h2>
-              <button className="modal-close-btn" onClick={closeModal}>
-                &times;
+        <div className="psl-modal-overlay" onClick={closeModal}>
+          <div
+            className="psl-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selectedPlayer.name} stats`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="psl-modal-head">
+              <div className="psl-modal-identity">
+                <span className="psl-modal-avatar" aria-hidden>
+                  {initialsOf(selectedPlayer.name)}
+                </span>
+                <div>
+                  <h2 className="psl-modal-title">{selectedPlayer.name}</h2>
+                  {selectedPlayer.role && (
+                    <span
+                      className={`psl-role-pill psl-role-pill--${roleMeta(selectedPlayer.role).tone}`}
+                    >
+                      {(() => {
+                        const Icon = roleMeta(selectedPlayer.role).Icon;
+                        return <Icon aria-hidden />;
+                      })()}{' '}
+                      {roleMeta(selectedPlayer.role).label}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button className="psl-modal-close" onClick={closeModal} aria-label="Close">
+                <FaTimes />
               </button>
             </div>
-            
+
+            <div className="psl-modal-summary">
+              <div className="psl-summary-pill psl-summary-pill--runs">
+                <span className="psl-summary-label">Total Runs</span>
+                <strong>{selectedPlayer.totalStats.batting.runs}</strong>
+              </div>
+              <div className="psl-summary-pill psl-summary-pill--wkts">
+                <span className="psl-summary-label">Total Wickets</span>
+                <strong>{selectedPlayer.totalStats.bowling.wickets}</strong>
+              </div>
+            </div>
+
             {!isEditing && (
               <button
-                className="modal-edit-btn"
+                className="psl-edit-btn"
                 onClick={() => setIsEditing(true)}
               >
-                ✎ Edit Stats
+                <FaPen aria-hidden /> Edit Stats
               </button>
             )}
+
             {isEditing ? (
-              <form onSubmit={handleFormSubmit} className="stats-form">
-                <div className="form-group">
-                  <label>Batting Runs:</label>
-                  <input
-                    type="number"
-                    name="battingRuns"
-                    value={formData.battingRuns}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Batting Balls:</label>
-                  <input
-                    type="number"
-                    name="battingBalls"
-                    value={formData.battingBalls}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Bowling Runs Given:</label>
-                  <input
-                    type="number"
-                    name="bowlingRunsGiven"
-                    value={formData.bowlingRunsGiven}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Bowling Balls Bowled:</label>
-                  <input
-                    type="number"
-                    name="bowlingBallsBowled"
-                    value={formData.bowlingBallsBowled}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Wickets Taken:</label>
-                  <input
-                    type="number"
-                    name="wicketsTaken"
-                    value={formData.wicketsTaken}
-                    onChange={handleInputChange}
-                    required
-                  />
+              <form onSubmit={handleFormSubmit} className="psl-form stats-form">
+                <div className="psl-form-section">
+                  <h4 className="psl-form-heading">Batting</h4>
+                  <div className="psl-form-grid">
+                    <div className="psl-field form-group">
+                      <label>Runs</label>
+                      <input
+                        type="number"
+                        name="battingRuns"
+                        value={formData.battingRuns}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="psl-field form-group">
+                      <label>Balls</label>
+                      <input
+                        type="number"
+                        name="battingBalls"
+                        value={formData.battingBalls}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Opponent Team Dropdown */}
-                <div className="form-group">
-                  <label>Opponent Team:</label>
-                  <select
-                    name="opponentUserId"
-                    value={formData.opponentUserId}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="">Select Opponent Team</option>
-                    {(() => {
-                      console.log("Rendering teams dropdown:");
-                      console.log("allTeams:", allTeams);
-                      console.log("currentUser:", currentUser);
-                      console.log("selectedPlayer:", selectedPlayer);
-                      
-                      const filteredTeams = allTeams.filter(team => {
-                        // 1) Exclude the current user's team.
-                        if (currentUser && team.teamName === currentUser.teamName) return false;
-
-                        // 2) Exclude the team that actually owns this player.
-                        //    (Only if 'ownerTeamName' is different from currentUser.)
-                        //    If the player is owned by the same user, we're already filtering above.
-                        if (selectedPlayer && team.teamName === selectedPlayer.ownerTeamName) return false;
-
-                        return true;
-                      });
-                      
-                      console.log("Filtered teams:", filteredTeams);
-                      return filteredTeams.map(team => (
-                        <option key={team._id} value={team._id}>
-                          {team.teamName}
-                        </option>
-                      ));
-                    })()}
-                  </select>
+                <div className="psl-form-section">
+                  <h4 className="psl-form-heading">Bowling</h4>
+                  <div className="psl-form-grid">
+                    <div className="psl-field form-group">
+                      <label>Runs given</label>
+                      <input
+                        type="number"
+                        name="bowlingRunsGiven"
+                        value={formData.bowlingRunsGiven}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="psl-field form-group">
+                      <label>Balls bowled</label>
+                      <input
+                        type="number"
+                        name="bowlingBallsBowled"
+                        value={formData.bowlingBallsBowled}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="psl-field form-group">
+                      <label>Wickets taken</label>
+                      <input
+                        type="number"
+                        name="wicketsTaken"
+                        value={formData.wicketsTaken}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="checkbox-card-grid">
-                  <label
-                    className={`playoff-checkbox-wrapper lite ${formData.isMom ? 'checked' : ''}`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      type="checkbox"
-                      className="playoff-checkbox"
-                      name="isMom"
-                      checked={formData.isMom}
-                      onChange={handleCheckboxChange}
-                    />
-                    <span className="playoff-checkbox-label">
-                      <span className="playoff-icon">✨</span>
-                      <span className="checkbox-text">
-                        <span className="checkbox-title">Man of the Match</span>
-                        <span className="checkbox-subtitle">Highlights standout performer</span>
+                <div className="psl-form-section">
+                  <h4 className="psl-form-heading">Match</h4>
+                  <div className="psl-field form-group">
+                    <label>Opponent team</label>
+                    <select
+                      name="opponentUserId"
+                      value={formData.opponentUserId}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">Select opponent team</option>
+                      {allTeams
+                        .filter((team) => {
+                          if (currentUser && team.teamName === currentUser.teamName) return false;
+                          if (selectedPlayer && team.teamName === selectedPlayer.ownerTeamName) return false;
+                          return true;
+                        })
+                        .map((team) => (
+                          <option key={team._id} value={team._id}>
+                            {team.teamName}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div className="checkbox-card-grid">
+                    <label
+                      className={`playoff-checkbox-wrapper lite ${formData.isMom ? 'checked' : ''}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        className="playoff-checkbox"
+                        name="isMom"
+                        checked={formData.isMom}
+                        onChange={handleCheckboxChange}
+                      />
+                      <span className="playoff-checkbox-label">
+                        <span className="playoff-icon">✨</span>
+                        <span className="checkbox-text">
+                          <span className="checkbox-title">Man of the Match</span>
+                          <span className="checkbox-subtitle">Highlights standout performer</span>
+                        </span>
                       </span>
-                    </span>
-                  </label>
+                    </label>
 
-                  <label
-                    className={`playoff-checkbox-wrapper lite playoff-accent ${formData.isPlayoffScore ? 'checked' : ''}`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      type="checkbox"
-                      className="playoff-checkbox"
-                      name="isPlayoffScore"
-                      checked={formData.isPlayoffScore}
-                      onChange={handleCheckboxChange}
-                    />
-                    <span className="playoff-checkbox-label">
-                      <span className="playoff-icon">🏆</span>
-                      <span className="checkbox-text">
-                        <span className="checkbox-title">Playoff Score</span>
-                        <span className="checkbox-subtitle">Track post-season stats</span>
+                    <label
+                      className={`playoff-checkbox-wrapper lite playoff-accent ${formData.isPlayoffScore ? 'checked' : ''}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        className="playoff-checkbox"
+                        name="isPlayoffScore"
+                        checked={formData.isPlayoffScore}
+                        onChange={handleCheckboxChange}
+                      />
+                      <span className="playoff-checkbox-label">
+                        <span className="playoff-icon">🏆</span>
+                        <span className="checkbox-text">
+                          <span className="checkbox-title">Playoff Score</span>
+                          <span className="checkbox-subtitle">Track post-season stats</span>
+                        </span>
                       </span>
-                    </span>
-                  </label>
+                    </label>
+                  </div>
                 </div>
 
-                <div className="form-buttons">
-                  <button 
-                    type="button" 
-                    className="form-cancel-btn"
+                <div className="psl-form-buttons form-buttons">
+                  <button
+                    type="button"
+                    className="psl-btn psl-btn--ghost form-cancel-btn"
                     onClick={() => setIsEditing(false)}
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="form-submit-btn">
-                    Save Stats
+                  <button type="submit" className="psl-btn psl-btn--primary form-submit-btn">
+                    Save stats
                   </button>
                 </div>
-                {submitMessage && <p className="submit-message">{submitMessage}</p>}
+                {submitMessage && <p className="psl-submit-message">{submitMessage}</p>}
               </form>
             ) : (
               <>
-                <div className="tab-wrapper">
+                <div className="psl-tabs">
                   <button
-                    className={`tab ${activeTab === "batting" ? "active" : ""}`}
-                    onClick={() => toggleTab("batting")}
+                    className={`psl-tab ${activeTab === 'batting' ? 'is-active' : ''}`}
+                    onClick={() => toggleTab('batting')}
                   >
-                    BAT
+                    <MdSportsCricket aria-hidden /> Batting
                   </button>
                   <button
-                    className={`tab ${activeTab === "bowling" ? "active" : ""}`}
-                    onClick={() => toggleTab("bowling")}
+                    className={`psl-tab ${activeTab === 'bowling' ? 'is-active' : ''}`}
+                    onClick={() => toggleTab('bowling')}
                   >
-                    BOWL
+                    <FaBowlingBall aria-hidden /> Bowling
                   </button>
                 </div>
-                {activeTab === "batting" && (
-                  <div className="match-grid">
+
+                {activeTab === 'batting' && (
+                  <div className="psl-match-grid">
                     {selectedPlayer.matchPerformance.batting.length > 0 ? (
                       selectedPlayer.matchPerformance.batting.map((match, index) => (
-                        <div className="match-stat" key={index}>
-                          <strong>
-                            {match.match} (vs {match.against})
-                          </strong>
-                          <p>Runs: {match.runs}</p>
-                          <p>Balls: {match.balls}</p>
-                          {match.mom && <p style={{ color: "#ff5722" }}>MOM</p>}
+                        <div
+                          className={`psl-match-card ${match.mom ? 'is-mom' : ''}`}
+                          key={`bat-${index}`}
+                        >
+                          <header>
+                            <span className="psl-match-label">Match {match.match}</span>
+                            <span className="psl-match-vs">vs {match.against}</span>
+                          </header>
+                          <dl>
+                            <div>
+                              <dt>Runs</dt>
+                              <dd>{match.runs}</dd>
+                            </div>
+                            <div>
+                              <dt>Balls</dt>
+                              <dd>{match.balls}</dd>
+                            </div>
+                          </dl>
+                          {match.mom && (
+                            <span className="psl-mom-chip">
+                              <FaTrophy aria-hidden /> Man of the Match
+                            </span>
+                          )}
                         </div>
                       ))
                     ) : (
-                      <p>No batting stats available.</p>
+                      <p className="psl-match-empty">No batting stats available.</p>
                     )}
                   </div>
                 )}
-                {activeTab === "bowling" && (
-                  <div className="match-grid">
+
+                {activeTab === 'bowling' && (
+                  <div className="psl-match-grid">
                     {selectedPlayer.matchPerformance.bowling.length > 0 ? (
                       selectedPlayer.matchPerformance.bowling.map((match, index) => (
-                        <div className="match-stat" key={index}>
-                          <strong>
-                            {match.match} (vs {match.against})
-                          </strong>
-                          <p>Overs: {match.overs}</p>
-                          <p>Wickets: {match.wickets}</p>
-                          <p>Runs: {match.runs}</p>
-                          {match.mom && <p style={{ color: "#ff5722" }}>MOM</p>}
+                        <div
+                          className={`psl-match-card ${match.mom ? 'is-mom' : ''}`}
+                          key={`bowl-${index}`}
+                        >
+                          <header>
+                            <span className="psl-match-label">Match {match.match}</span>
+                            <span className="psl-match-vs">vs {match.against}</span>
+                          </header>
+                          <dl>
+                            <div>
+                              <dt>Overs</dt>
+                              <dd>{match.overs}</dd>
+                            </div>
+                            <div>
+                              <dt>Wickets</dt>
+                              <dd>{match.wickets}</dd>
+                            </div>
+                            <div>
+                              <dt>Runs</dt>
+                              <dd>{match.runs}</dd>
+                            </div>
+                          </dl>
+                          {match.mom && (
+                            <span className="psl-mom-chip">
+                              <FaTrophy aria-hidden /> Man of the Match
+                            </span>
+                          )}
                         </div>
                       ))
                     ) : (
-                      <p>No bowling stats available.</p>
+                      <p className="psl-match-empty">No bowling stats available.</p>
                     )}
                   </div>
                 )}
@@ -501,12 +635,15 @@ const PlayerStatsList = () => {
           </div>
         </div>
       )}
-      
-      {/* Success Popup */}
+
       {showSuccessPopup && (
         <>
-          <div className="success-popup-overlay" onClick={() => setShowSuccessPopup(false)}></div>
-          <div className="success-popup">
+          <div
+            className="psl-success-overlay"
+            onClick={() => setShowSuccessPopup(false)}
+          />
+          <div className="psl-success-popup">
+            <span aria-hidden>✅</span>
             {successMessage}
           </div>
         </>
