@@ -23,9 +23,9 @@ const Profile = () => {
   const [showConfirmRemoveSecond, setShowConfirmRemoveSecond] = useState(false);
 
   // NEW STATE for multi-sell
-  const [showMultiSell, setShowMultiSell] = useState(false);        // controls the multi-sell popup
-  const [activeBidPlayers, setActiveBidPlayers] = useState([]);       // players with ongoing bids
-  const [selectedPlayers, setSelectedPlayers] = useState([]);         // IDs of players selected for multi-sell
+  const [showMultiSell, setShowMultiSell] = useState(false);
+  const [activeBidPlayers, setActiveBidPlayers] = useState([]);
+  const [selectedPlayers, setSelectedPlayers] = useState([]);
   const [showMultiSellConfirm, setShowMultiSellConfirm] = useState(false);
 
   // NEW: State for search inside the multi-sell popup
@@ -43,7 +43,9 @@ const Profile = () => {
   const [allPlayersReleased, setAllPlayersReleased] = useState(false);
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [selectedRetainedForWithdraw, setSelectedRetainedForWithdraw] = useState(null);
-  
+
+  // Mobile-first section tabs
+  const [activeSection, setActiveSection] = useState('squad');
 
   const updateLocalPurse = (delta) => {
     if (!userData?.user) return;
@@ -98,14 +100,10 @@ const Profile = () => {
         streamLink: data.user.streamLink || '',
         abbreviation: data.user.abbreviation || '',
       });
-      
-      // Set retention lock status from initial data
+
       setIsRetentionLocked(data.user.isRetentionLocked === true);
-      
-      // Set allPlayersReleased status from initial data
       setAllPlayersReleased(data.user.allPlayersReleased === true);
 
-      // Keep localStorage in sync for quick reads
       if (user) {
         const updatedUser = {
           ...user,
@@ -123,13 +121,10 @@ const Profile = () => {
     }
   };
 
-  // Fetch user data
   useEffect(() => {
     fetchUserData(true);
   }, []);
 
-
-  // Fetch retained players and check retention setting
   useEffect(() => {
     const fetchRetainedPlayers = async () => {
       try {
@@ -160,9 +155,6 @@ const Profile = () => {
         if (response.ok) {
           const data = await response.json();
           setRetentionEnabled(data.enablePlayerRetention !== false);
-          // adminReleasedPlayers is not in settings response, so we'll use allPlayersReleased instead
-          // The backend undo endpoint checks settings.adminReleasedPlayers, but for frontend
-          // we can use allPlayersReleased which is already being tracked
         }
       } catch (err) {
         console.error('Failed to fetch retention setting:', err);
@@ -173,9 +165,6 @@ const Profile = () => {
     fetchRetentionSetting();
   }, []);
 
-  // Check if team is locked - removed duplicate check, using initial data fetch instead
-
-  // Listen for lock status changes (when admin locks/unlocks)
   useEffect(() => {
     const handleLockStatusChange = () => {
       const user = JSON.parse(localStorage.getItem('user'));
@@ -184,10 +173,8 @@ const Profile = () => {
       }
     };
 
-    // Listen for custom events
     window.addEventListener('lock-status-changed', handleLockStatusChange);
-    
-    // Periodic check for lock status changes (every 30 seconds)
+
     const interval = setInterval(async () => {
       try {
         const user = JSON.parse(localStorage.getItem('user'));
@@ -210,16 +197,14 @@ const Profile = () => {
       } catch (err) {
         console.error('Failed to check lock status:', err);
       }
-    }, 30000); // Check every 30 seconds
-    
+    }, 30000);
+
     return () => {
       window.removeEventListener('lock-status-changed', handleLockStatusChange);
       clearInterval(interval);
     };
   }, []);
 
-
-  // Single-bid sale API
   const handleSingleBidSale = async () => {
     try {
       const response = await fetch(`${API_ENDPOINTS}/api/bids/sold/single-bid`, {
@@ -241,7 +226,6 @@ const Profile = () => {
     handleSingleBidSale();
   };
 
-  // Remove second-highest bidders
   const handleRemoveAllSecondHighest = async () => {
     try {
       const response = await fetch(`${API_ENDPOINTS}/api/bids/exit-second-highest/all`, {
@@ -263,14 +247,10 @@ const Profile = () => {
     handleRemoveAllSecondHighest();
   };
 
-  // Multi-sell logic using all players data
   const handleOpenMultiSell = async () => {
     try {
-      // Show the multi-sell popup
       setShowMultiSell(true);
-      // Reset the search field whenever popup is opened
       setMultiSellSearch('');
-      // Fetch all players from the data endpoint
       const resp = await fetch(`${API_ENDPOINTS}/api/players/data`, {
         headers: {
           'Content-Type': 'application/json'
@@ -280,16 +260,13 @@ const Profile = () => {
         throw new Error('Could not fetch players');
       }
       const players = await resp.json();
-      
-      // Filter players with active bids:
-      // They are not sold and have a valid currentBidder (not "N/A")
-      const activePlayers = players.filter(player => 
+      const activePlayers = players.filter(player =>
         player.status !== "Sold" &&
         player.currentBidder &&
         player.currentBidder !== "N/A"
       );
       setActiveBidPlayers(activePlayers);
-      setSelectedPlayers([]); // Reset any previous selection
+      setSelectedPlayers([]);
     } catch (err) {
       console.error('Failed to fetch active bid players:', err);
       setError('Failed to load players for multi-sell. Please try again later.');
@@ -297,7 +274,6 @@ const Profile = () => {
   };
 
   const handleSelectPlayer = (playerId) => {
-    // Toggle player selection using a functional update
     setSelectedPlayers(prevSelected => {
       if (prevSelected.includes(playerId)) {
         return prevSelected.filter(id => id !== playerId);
@@ -308,14 +284,12 @@ const Profile = () => {
   };
 
   const handleMultiSell = async () => {
-    // Show confirmation popup before finalizing
     setShowMultiSellConfirm(true);
   };
 
   const handleConfirmMultiSell = async () => {
     try {
       setShowMultiSellConfirm(false);
-      // Call the multi-sell API with the selected player IDs
       const resp = await fetch(`${API_ENDPOINTS}/api/bids/bid/sold`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -337,25 +311,20 @@ const Profile = () => {
     setShowMultiSellConfirm(false);
   };
 
-  // Retain player functionality
   const handleRetainPlayer = (playerData) => {
-    // Handle both formats: direct player object or { player, bidValue } object
     const player = playerData.player || playerData;
-    
-    // Check if user can retain more players
+
     if (retainedPlayers.length >= 4) {
       setError('You can only retain a maximum of 4 players');
       return;
     }
 
-    // Check if user already has a player from this category
     const existingCategoryRetained = retainedPlayers.find(rp => rp.playerType === player.type);
     if (existingCategoryRetained) {
       setError(`You already have a ${player.type} player retained. You can only retain one player from each category.`);
       return;
     }
 
-    // Store the full playerData object (which includes bidValue if passed)
     setSelectedPlayerForRetain(playerData);
     setShowRetainConfirm(true);
   };
@@ -364,16 +333,15 @@ const Profile = () => {
     try {
       const user = JSON.parse(localStorage.getItem('user'));
       const userId = user?.id;
-      
-      // Handle both formats: direct player object or { player, bidValue } object
+
       const player = selectedPlayerForRetain.player || selectedPlayerForRetain;
       const playerId = player._id || player.player?._id;
-      
+
       if (!playerId) {
         setError('Invalid player data. Please try again.');
         return;
       }
-      
+
       const response = await fetch(`${API_ENDPOINTS}/api/retained-players/retain`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -385,8 +353,7 @@ const Profile = () => {
 
       if (response.ok) {
         const result = await response.json();
-        
-        // Refresh retained players list
+
         const retainedResponse = await fetch(`${API_ENDPOINTS}/api/retained-players/user/${userId}`, {
           headers: { 'Content-Type': 'application/json' },
         });
@@ -394,13 +361,12 @@ const Profile = () => {
           const retainedData = await retainedResponse.json();
           setRetainedPlayers(retainedData);
         }
-        
-        // Optimistically update purse, then refresh user data
+
         if (result?.retainedPlayer?.retainedValue) {
           updateLocalPurse(-Number(result.retainedPlayer.retainedValue));
         }
         await fetchUserData(false);
-        
+
         setShowRetainConfirm(false);
         setSelectedPlayerForRetain(null);
       } else {
@@ -418,24 +384,17 @@ const Profile = () => {
     setSelectedPlayerForRetain(null);
   };
 
-
-  // Remove from retention functionality (simple - no admin approval needed)
   const handleWithdrawRetention = (retained) => {
-    // Check if retention is locked
     if (isRetentionLocked) {
       setError('Your team retention is locked by admin. You cannot remove retained players.');
       return;
     }
 
-    // Allow retention changes whenever retention is enabled (admin toggle)
-
-    // Check if retention is enabled
     if (!retentionEnabled) {
       setError('Player retention feature is currently disabled.');
       return;
     }
 
-    // Only proceed if all conditions are met
     if (!isRetentionLocked && retentionEnabled) {
       setSelectedRetainedForWithdraw(retained);
       setShowWithdrawConfirm(true);
@@ -446,8 +405,7 @@ const Profile = () => {
     try {
       const user = JSON.parse(localStorage.getItem('user'));
       const userId = user?.id;
-      
-      // Use the simple undo API to remove from retention
+
       const response = await fetch(`${API_ENDPOINTS}/api/retained-players/undo/${selectedRetainedForWithdraw._id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -455,7 +413,6 @@ const Profile = () => {
       });
 
       if (response.ok) {
-        // Refresh retained players list
         const retainedResponse = await fetch(`${API_ENDPOINTS}/api/retained-players/user/${userId}`, {
           headers: { 'Content-Type': 'application/json' },
         });
@@ -463,18 +420,16 @@ const Profile = () => {
           const retainedData = await retainedResponse.json();
           setRetainedPlayers(retainedData);
         }
-        
+
         setShowWithdrawConfirm(false);
         setSelectedRetainedForWithdraw(null);
         setError('Player removed from retention successfully. You can now retain another player.');
 
-        // Optimistically update purse, then refresh user data
         if (selectedRetainedForWithdraw?.retainedValue) {
           updateLocalPurse(Number(selectedRetainedForWithdraw.retainedValue));
         }
         await fetchUserData(false);
-        
-        // Auto-refresh the page after 2 seconds
+
         setTimeout(() => {
           window.location.reload();
         }, 2000);
@@ -493,7 +448,6 @@ const Profile = () => {
     setSelectedRetainedForWithdraw(null);
   };
 
-  // Format amounts nicely
   const formatAmount = (amount) => {
     if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Crore`;
     if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)} Lakh`;
@@ -501,7 +455,6 @@ const Profile = () => {
     return `₹${amount}`;
   };
 
-  // Input handlers
   const handleSearchChange = (e) => setSearchTerm(e.target.value.toLowerCase());
   const handleEditChange = (e) => {
     const { name, value } = e.target;
@@ -524,8 +477,7 @@ const Profile = () => {
       if (editData.image) {
         formData.append('teamImage', editData.image);
       }
-      
-      // Debug: Log FormData contents
+
       for (let [key, value] of formData.entries()) {
         console.log('FormData:', key, value);
       }
@@ -540,8 +492,7 @@ const Profile = () => {
       }
       const updatedUser = await response.json();
       console.log('Updated user data:', updatedUser);
-      
-      // Update the userData state with the new timezone
+
       setUserData(prev => ({
         ...prev,
         user: {
@@ -549,15 +500,14 @@ const Profile = () => {
           ...updatedUser.user
         }
       }));
-      
-      // Also update editData to reflect the new timezone and streamLink
+
       setEditData(prev => ({
         ...prev,
         timezone: updatedUser.user.timezone,
         streamLink: updatedUser.user.streamLink,
         abbreviation: updatedUser.user.abbreviation
       }));
-      
+
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to update profile:', err);
@@ -571,7 +521,7 @@ const Profile = () => {
       <div className="admin-profile-container">
         <NotificationBell />
         <AdminControlPanel adminUser={adminProfileUser || userData?.user} />
-        
+
       </div>
     );
   }
@@ -579,16 +529,15 @@ const Profile = () => {
   if (loading) {
     return <LoadingCube animationFile="Profile.json" />;
   }
-  if (error) {
+  if (error && !userData) {
     return <div className="error">{error}</div>;
   }
   if (!userData) {
     return null;
   }
 
-  // --- ADMIN VIEW ---
+  // --- ADMIN VIEW (legacy duplicate preserved) ---
   if (isAdmin) {
-    // Filter the active bid players based on the search query in the multi-sell popup
     const filteredActiveBidPlayers = activeBidPlayers.filter(p =>
       p.name.toLowerCase().includes(multiSellSearch.toLowerCase())
     );
@@ -600,7 +549,6 @@ const Profile = () => {
           Manage user accounts, timezones, and stream links.
         </p>
 
-        {/* User Management Section */}
         <div style={{ marginTop: '20px' }}>
           <div style={{
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -614,28 +562,20 @@ const Profile = () => {
               Manage user timezones, stream links, and account settings.
             </p>
             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => window.location.href = '/admin/user-management'}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '10px',
-                padding: '12px 24px',
-                color: 'white',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = 'rgba(255, 255, 255, 0.3)';
-                e.target.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'rgba(255, 255, 255, 0.2)';
-                e.target.style.transform = 'translateY(0)';
-              }}
-            >
+              <button
+                onClick={() => window.location.href = '/admin/user-management'}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '10px',
+                  padding: '12px 24px',
+                  color: 'white',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
                 🚀 User Management
               </button>
               <button
@@ -651,22 +591,13 @@ const Profile = () => {
                   cursor: 'pointer',
                   transition: 'all 0.3s ease'
                 }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = 'rgba(255, 255, 255, 0.3)';
-                  e.target.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'rgba(255, 255, 255, 0.2)';
-                  e.target.style.transform = 'translateY(0)';
-                }}
               >
                 💎 Retained Players
-            </button>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Existing SELL Single-Bid Confirmation */}
         {showConfirmSell && (
           <div className="confirm-overlay">
             <div className="confirm-popup">
@@ -688,7 +619,6 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Existing Remove 2nd Highest Confirmation */}
         {showConfirmRemoveSecond && (
           <div className="confirm-overlay">
             <div className="confirm-popup">
@@ -710,7 +640,6 @@ const Profile = () => {
           </div>
         )}
 
-        {/* NEW: Multi-Sell Popup with Search Bar */}
         {showMultiSell && (
           <div className="confirm-overlay">
             <div className="confirm-popup" style={{ width: '500px', maxWidth: '90%' }}>
@@ -718,7 +647,6 @@ const Profile = () => {
               <p style={{ marginBottom: '15px' }}>
                 Select any players who currently have active bids. Then click <b>Multi-Sell</b>.
               </p>
-              {/* Super Cool Sexy Search Bar */}
               <div style={{ marginBottom: '10px' }}>
                 <input
                   type="text"
@@ -758,14 +686,13 @@ const Profile = () => {
           </div>
         )}
 
-        {/* NEW: Comedic confirmation for the multi-sell */}
         {showMultiSellConfirm && (
           <div className="confirm-overlay">
             <div className="confirm-popup">
               <h2>Are you TOTALLY sure?!</h2>
               <p>
-                You're about to <b>mass-sell</b> multiple players. 
-                <br />Some might cry, some might rejoice. 
+                You're about to <b>mass-sell</b> multiple players.
+                <br />Some might cry, some might rejoice.
                 <br />This can't be undone!
               </p>
               <div className="popup-buttons">
@@ -792,38 +719,14 @@ const Profile = () => {
     player.name.toLowerCase().includes(searchTerm)
   );
 
-  let lastFiveMatches = userData.lastFiveMatches || [];
-  if (lastFiveMatches.length < 5) {
-    while (lastFiveMatches.length < 5) {
-      lastFiveMatches.push({
-        score: "NA",
-        fairness: "NA",
-        result: "NA",
-      });
-    }
-  }
-
-  // Function to refresh lock status from backend
-  const refreshLockStatus = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (user) {
-        const response = await fetch(`${API_ENDPOINTS}/api/users/${user.id}/details`, {
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (response.ok) {
-          const userData = await response.json();
-          setIsRetentionLocked(userData.user.isRetentionLocked === true);
-          setAllPlayersReleased(userData.user.allPlayersReleased === true);
-          // Update localStorage with fresh data
-          const updatedUser = { ...user, isRetentionLocked: userData.user.isRetentionLocked, allPlayersReleased: userData.user.allPlayersReleased };
-          localStorage.setItem('user', JSON.stringify(updatedUser));
-        }
-      }
-    } catch (err) {
-      console.error('Failed to refresh lock status:', err);
-    }
-  };
+  // Recent form: show every played match, most recent first.
+  // Backend returns `allMatches` (new) with fallback to `lastFiveMatches` (legacy).
+  const playedMatches = (userData.allMatches && userData.allMatches.length > 0)
+    ? userData.allMatches
+    : (userData.lastFiveMatches || []).filter(m => m && m.result && m.result !== 'NA');
+  const matchesWon = playedMatches.filter(m => (m.result || '').toLowerCase() === 'won').length;
+  const matchesLost = playedMatches.filter(m => (m.result || '').toLowerCase() === 'lost').length;
+  const recentFormStreak = playedMatches.slice(0, 5);
 
   // If retention is locked, show only lock message
   if (isRetentionLocked === true) {
@@ -863,85 +766,262 @@ const Profile = () => {
           <p style={{ margin: '20px 0 0 0', fontSize: '1rem', opacity: 0.8 }}>
             Contact admin to unlock your profile
           </p>
-          
+
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="profile-container">
-      {/* Include the NotificationBell component */}
-      <NotificationBell />
-      
-      {/* Error Message Display */}
-      {error && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
-          color: 'white',
-          padding: '15px 25px',
-          borderRadius: '12px',
-          boxShadow: '0 8px 25px rgba(220, 53, 69, 0.4)',
-          zIndex: 1001,
-          border: '2px solid rgba(255, 255, 255, 0.2)',
-          animation: 'slideInDown 0.5s ease-out',
-          maxWidth: '500px',
-          textAlign: 'center',
-          cursor: 'pointer'
+  // ---- Helpers to render player cards ----
+  const renderSoldCard = ({ player, bidValue }, idx) => {
+    const isRetained = retainedPlayers.some(rp => rp.playerId._id === player._id);
+    const canRetainMore = retainedPlayers.length < 4;
+    const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
+    const canClick = isRetained
+      ? (!isRetentionLocked && retentionEnabled)
+      : (!isRetentionLocked && retentionEnabled && canRetainMore && !hasCategoryRetained);
+
+    return (
+      <div
+        className={`up-card up-card--sold player-card ${player.type.toLowerCase()} ${isRetained ? 'retained' : ''}`}
+        key={idx}
+        style={{ cursor: canClick ? 'pointer' : 'not-allowed' }}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+
+          if (isRetained) {
+            const retainedPlayer = retainedPlayers.find(rp => rp.playerId._id === player._id);
+            if (retainedPlayer) {
+              handleWithdrawRetention(retainedPlayer);
+            } else {
+              setError('Retained player data not found. Please refresh the page.');
+            }
+            return;
+          }
+
+          if (!retentionEnabled) {
+            setError('Player retention feature is currently disabled by admin');
+            return;
+          }
+
+          if (isRetentionLocked) {
+            setError('Your team retention is locked by admin. You cannot retain players.');
+            return;
+          }
+
+          if (!canRetainMore) {
+            setError('You can only retain a maximum of 4 players');
+            return;
+          }
+
+          if (hasCategoryRetained) {
+            setError(`You already have a ${player.type} player retained. You can only retain one player from each category.`);
+            return;
+          }
+
+          handleRetainPlayer({ player, bidValue });
         }}
-        onClick={() => setError(null)}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-            <div style={{ fontSize: '1.5rem' }}>⚠️</div>
-            <div>
-              <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>
-                {error}
-              </div>
-              <div style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '5px' }}>
-                Click to dismiss
-              </div>
-            </div>
+      >
+        {isRetained && <span className="up-card-ribbon up-card-ribbon--retained">✅ Retained</span>}
+
+        <div className="up-card-head">
+          <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={48} />
+          <div className="up-card-id">
+            <p className="up-card-name">{player.name}</p>
+            <span className={`up-tier-pill up-tier-pill--${player.type.toLowerCase()}`}>
+              {player.type} · {player.role}
+            </span>
           </div>
         </div>
-      )}
-      
-      {/* Retention Locked Floating Notification */}
+
+        <div className="up-card-stats">
+          <div className="up-card-stat">
+            <span>Base price</span>
+            <strong>{formatAmount(player.basePrice)}</strong>
+          </div>
+          <div className="up-card-stat up-card-stat--highlight">
+            <span>Sold for</span>
+            <strong>{formatAmount(bidValue)}</strong>
+          </div>
+        </div>
+
+        {!isRetained && retentionEnabled && !isRetentionLocked && (() => {
+          if (!canRetainMore) {
+            return <p className="up-card-hint up-card-hint--error">❌ Max 4 players retained</p>;
+          }
+          if (hasCategoryRetained) {
+            return <p className="up-card-hint up-card-hint--warn">⚠️ {player.type} already retained</p>;
+          }
+          return <p className="up-card-hint up-card-hint--action">💎 Tap to retain · ₹17 Cr</p>;
+        })()}
+
+        {!isRetained && !retentionEnabled && (
+          <p className="up-card-hint up-card-hint--muted">🔒 Retention disabled by admin</p>
+        )}
+
+        {!isRetained && retentionEnabled && isRetentionLocked && (
+          <p className="up-card-hint up-card-hint--error">🔒 Team locked by admin</p>
+        )}
+      </div>
+    );
+  };
+
+  const renderActiveBidCard = ({ player, bidAmount }, idx) => (
+    <div className={`up-card up-card--bid player-card ${player.type.toLowerCase()}`} key={idx}>
+      <div className="up-card-head">
+        <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={44} />
+        <div className="up-card-id">
+          <p className="up-card-name">{player.name}</p>
+          <span className={`up-tier-pill up-tier-pill--${player.type?.toLowerCase?.() || 'default'}`}>
+            {player.role}
+          </span>
+        </div>
+      </div>
+      <div className="up-card-stats">
+        <div className="up-card-stat up-card-stat--highlight">
+          <span>Your bid</span>
+          <strong>{formatAmount(bidAmount)}</strong>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderPastBidCard = ({ player, bidAmount, status }, idx) => {
+    const isWon = (status || '').toLowerCase() === 'won';
+    return (
+      <div
+        className={`up-card up-card--past past-bid-card ${status.toLowerCase()} ${isWon ? 'is-won' : ''}`}
+        key={idx}
+      >
+        <div className="up-card-head">
+          <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={40} />
+          <div className="up-card-id">
+            <p className="up-card-name">{player.name}</p>
+            <span className={`up-status-pill up-status-pill--${status.toLowerCase()}`}>
+              {isWon ? '🏆 ' : ''}
+              {status}
+            </span>
+          </div>
+        </div>
+        <div className="up-card-stats">
+          <div className="up-card-stat">
+            <span>Base price</span>
+            <strong>{formatAmount(player.basePrice)}</strong>
+          </div>
+          <div className="up-card-stat up-card-stat--highlight">
+            <span>Your bid</span>
+            <strong>{formatAmount(bidAmount)}</strong>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderRetainedCard = (retained, idx) => (
+    <div
+      className={`up-card up-card--retained player-card ${retained.playerType.toLowerCase()} retained ${isRetentionLocked ? 'locked' : ''}`}
+      key={idx}
+      style={isRetentionLocked ? { opacity: 0.6, filter: 'grayscale(0.3)', pointerEvents: 'none', position: 'relative' } : {}}
+    >
+      <span className={`up-card-ribbon ${isRetentionLocked ? 'up-card-ribbon--locked' : 'up-card-ribbon--retained'}`}>
+        {isRetentionLocked ? '🔒 Locked' : '✅ Retained'}
+      </span>
+
       {isRetentionLocked && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
-                color: 'white',
-          padding: '15px 20px',
-          borderRadius: '12px',
-          boxShadow: '0 8px 25px rgba(220, 53, 69, 0.4)',
-          zIndex: 1000,
-          border: '2px solid rgba(255, 255, 255, 0.2)',
-          animation: 'slideInRight 0.5s ease-out',
-          maxWidth: '300px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ fontSize: '1.5rem' }}>🔒</div>
-            <div>
-              <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>
-                Retention Locked
-              </div>
-              <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>
-                Contact admin to unlock
-              </div>
-            </div>
+        <div className="up-retained-lock-overlay">
+          <span>🔒 Admin locked</span>
+        </div>
+      )}
+
+      <div className="up-card-head">
+        <PlayerAvatar profilePicture={retained.playerId?.profilePicture} name={retained.playerName} size={48} />
+        <div className="up-card-id">
+          <p className="up-card-name">{retained.playerName}</p>
+          <span className={`up-tier-pill up-tier-pill--${retained.playerType.toLowerCase()}`}>
+            {retained.playerType} · {retained.playerRole}
+          </span>
+        </div>
+      </div>
+
+      <div className="up-card-stats">
+        <div className="up-card-stat up-card-stat--highlight">
+          <span>Retention value</span>
+          <strong>{formatAmount(retained.retainedValue)}</strong>
+        </div>
+        <div className="up-card-stat">
+          <span>Retained on</span>
+          <strong>{new Date(retained.retainedAt).toLocaleDateString()}</strong>
+        </div>
+      </div>
+
+      {!isRetentionLocked && retentionEnabled && (
+        <button
+          type="button"
+          className="up-withdraw-btn"
+          onClick={() => handleWithdrawRetention(retained)}
+        >
+          🚪 Remove from retention
+        </button>
+      )}
+    </div>
+  );
+
+  // Section tabs config
+  const squadCount = filteredSoldPlayers?.length || 0;
+  const bidsCount = filteredActiveBids?.length || 0;
+  const pastCount = userData.pastBids?.length || 0;
+  const retainedCount = retainedPlayers?.length || 0;
+
+  const sections = [
+    { id: 'squad', label: 'Squad', icon: '🏏', count: squadCount },
+    { id: 'active', label: 'Active bids', icon: '⚡', count: bidsCount },
+    { id: 'past', label: 'Past bids', icon: '📜', count: pastCount },
+    ...(retentionEnabled ? [{ id: 'retained', label: 'Retained', icon: '💎', count: retainedCount }] : []),
+    { id: 'form', label: 'Recent form', icon: '📈', count: playedMatches.length },
+  ];
+
+  const purseValue = parseFloat(userData.user.purse?.["$numberDecimal"] || userData.user.purse || 0);
+  const userTimezone = userData.user.timezone || 'Asia/Kolkata';
+  const localTimeString = new Date().toLocaleString('en-US', {
+    timeZone: userTimezone,
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  return (
+    <div className="up-page profile-container">
+      <NotificationBell />
+
+      {/* Error toast */}
+      {error && (
+        <div className="up-toast" onClick={() => setError(null)}>
+          <span className="up-toast-icon">⚠️</span>
+          <div>
+            <strong>{error}</strong>
+            <small>Tap to dismiss</small>
           </div>
         </div>
       )}
-      
-      
-      <header className="profile-header">
-        <div className="user-info">
+
+      {/* Floating retention lock pill (also shown in hero) */}
+      {isRetentionLocked && (
+        <div className="up-lock-pill">
+          <span>🔒</span>
+          <div>
+            <strong>Retention locked</strong>
+            <small>Contact admin to unlock</small>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Hero ===== */}
+      <header className="up-hero">
+        <div className="up-hero-top">
           <img
             src={
               userData.user.image
@@ -949,138 +1029,63 @@ const Profile = () => {
                 : 'https://via.placeholder.com/100'
             }
             alt="User"
-            className="profile-image"
+            className="up-hero-avatar profile-image"
           />
-          <div className="user-meta">
-            <h2 className="user-name">{userData.user.name}</h2>
-            <div className="purse-card">
-              <div className="purse-label">Total Purse Remaining</div>
-              <div className="purse-value">
-                {formatAmount(parseFloat(userData.user.purse?.["$numberDecimal"] || userData.user.purse || 0))}
-              </div>
+          <div className="up-hero-identity">
+            <span className="up-hero-kicker">Team owner</span>
+            <h1 className="up-hero-name user-name">{userData.user.name}</h1>
+            <p className="up-hero-team">
+              <span>{userData.user.teamName}</span>
+              {userData.user.abbreviation ? (
+                <span className="up-abbr">{userData.user.abbreviation}</span>
+              ) : null}
+            </p>
+            <p className="up-hero-email">{userData.user.email}</p>
+          </div>
+          <button
+            type="button"
+            className="up-hero-edit edit-profile-button"
+            onClick={() => setIsEditing(true)}
+            aria-label="Edit profile"
+          >
+            <span aria-hidden>✎</span>
+            <span>Edit</span>
+          </button>
+        </div>
+
+        <div className="up-hero-metrics">
+          <div className="up-purse purse-card">
+            <span className="purse-label">Total purse remaining</span>
+            <span className="purse-value">{formatAmount(purseValue)}</span>
+          </div>
+          <div
+            className={`up-retention-chip ${
+              isRetentionLocked ? 'is-locked' : 'is-active'
+            }`}
+          >
+            <span className="up-retention-dot" aria-hidden />
+            <div>
+              <strong>{isRetentionLocked ? 'Retention locked' : 'Retention active'}</strong>
+              <small>
+                {retentionEnabled
+                  ? `${retainedCount}/4 retained · ₹17 Cr each`
+                  : 'Disabled by admin'}
+              </small>
             </div>
           </div>
         </div>
-        <div className="additional-info">
-          <p><strong>Team Name:</strong> {userData.user.teamName}</p>
-          <p><strong>Email:</strong> {userData.user.email}</p>
-          
-          {/* Retention Status Indicator */}
-          <div style={{
-            background: isRetentionLocked 
-              ? 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)' 
-              : 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
-            borderRadius: '10px',
-            padding: '8px 15px',
-            marginTop: '10px',
-            textAlign: 'center',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '0.9rem',
-            boxShadow: isRetentionLocked 
-              ? '0 4px 15px rgba(220, 53, 69, 0.3)' 
-              : '0 4px 15px rgba(40, 167, 69, 0.3)'
-          }}>
-            {isRetentionLocked ? '🔒 Retention Locked' : '✅ Retention Active'}
+
+        <div className="up-timezone-row">
+          <div className="up-tz-icon" aria-hidden>🌍</div>
+          <div className="up-tz-meta">
+            <span className="up-tz-label">Your timezone</span>
+            <strong className="up-tz-name">{userTimezone}</strong>
           </div>
-          
-          {/* Cool Timezone Display */}
-          {userData && userData.user && (
-          <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: '15px',
-            padding: '20px',
-            margin: '20px 0',
-            boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
-            position: 'relative',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              position: 'absolute',
-              top: '-20px',
-              right: '-20px',
-              width: '80px',
-              height: '80px',
-              background: 'rgba(255,255,255,0.1)',
-              borderRadius: '50%'
-            }} />
-            
-            <div style={{
-              position: 'relative',
-              zIndex: 2,
-              textAlign: 'center'
-            }}>
-              <div style={{
-                fontSize: '24px',
-                marginBottom: '10px',
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
-              }}>
-                🌍
-              </div>
-              <div style={{
-                fontSize: '14px',
-                color: 'rgba(255,255,255,0.8)',
-                fontWeight: '600',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                marginBottom: '8px'
-              }}>
-                Your Timezone
-              </div>
-              <div style={{
-                fontSize: '18px',
-                color: '#ffffff',
-                fontWeight: '700',
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                marginBottom: '8px'
-              }}>
-                {(() => {
-                  if (!userData || !userData.user) {
-                    console.log('UserData not loaded yet');
-                    return 'Loading...';
-                  }
-                  const timezone = userData.user.timezone || 'Asia/Kolkata';
-                  console.log('Displaying timezone:', timezone, 'from userData:', userData.user.timezone);
-                  return timezone;
-                })()}
-              </div>
-              <div style={{
-                fontSize: '16px',
-                color: 'rgba(255,255,255,0.9)',
-                fontWeight: '500',
-                background: 'rgba(255,255,255,0.1)',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                display: 'inline-block',
-                backdropFilter: 'blur(10px)'
-              }}>
-                {(() => {
-                  if (!userData || !userData.user) {
-                    return 'Loading...';
-                  }
-                  const timezone = userData.user.timezone || 'Asia/Kolkata';
-                  return new Date().toLocaleString('en-US', { 
-                    timeZone: timezone,
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                  });
-                })()}
-              </div>
-            </div>
-          </div>
-          )}
-          
-          <button className="edit-profile-button" onClick={() => setIsEditing(true)}>
-            Edit Profile
-          </button>
+          <div className="up-tz-time">{localTimeString}</div>
         </div>
       </header>
 
+      {/* Edit popup (unchanged markup) */}
       {isEditing && (
         <div className="edit-popup">
           <div className="edit-popup-content">
@@ -1182,682 +1187,309 @@ const Profile = () => {
         </div>
       )}
 
-      {/* Search Bar */}
-      <div className="search-bar">
+      {/* Search */}
+      <div className="up-search search-bar">
+        <span className="up-search-icon" aria-hidden>🔎</span>
         <input
           type="text"
-          placeholder="Search by player name..."
+          placeholder="Search by player name…"
           value={searchTerm}
           onChange={handleSearchChange}
+          aria-label="Search players"
         />
+        {searchTerm && (
+          <button
+            type="button"
+            className="up-search-clear"
+            onClick={() => setSearchTerm('')}
+            aria-label="Clear search"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
-      <div className="profile-content">
-        {/* Sold Players */}
-        <div className="section">
-          <h3>Sold Players</h3>
-          
-          {/* Admin Lock Banner for Sold Players - Show when retention is locked */}
-          {isRetentionLocked && retentionEnabled && (
-            <div style={{
-              background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
-              borderRadius: '15px',
-              padding: '25px',
-              marginBottom: '25px',
-              color: 'white',
-              textAlign: 'center',
-              border: '3px solid rgba(255, 255, 255, 0.3)',
-              boxShadow: '0 6px 25px rgba(220, 53, 69, 0.4)',
-              position: 'relative'
-            }}>
-              <div style={{
-                position: 'absolute',
-                top: '-8px',
-                right: '-8px',
-                width: '40px',
-                height: '40px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.2rem'
-              }}>
-                🔒
-              </div>
-              <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>🚫</div>
-              <h4 style={{ margin: '0 0 10px 0', fontSize: '1.4rem', fontWeight: 'bold', textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>
-                RETENTION LOCKED BY ADMIN
-              </h4>
-              <p style={{ margin: '0', fontSize: '1rem', opacity: 0.95, fontWeight: '500' }}>
-                You cannot retain any players at this time
-              </p>
+      {/* Section tabs */}
+      <nav className="up-tabs" role="tablist" aria-label="Profile sections">
+        {sections.map((sec) => (
+          <button
+            key={sec.id}
+            type="button"
+            role="tab"
+            aria-selected={activeSection === sec.id}
+            className={`up-tab ${activeSection === sec.id ? 'is-active' : ''}`}
+            onClick={() => setActiveSection(sec.id)}
+          >
+            <span className="up-tab-icon" aria-hidden>{sec.icon}</span>
+            <span className="up-tab-text">
+              <span className="up-tab-label">{sec.label}</span>
+              <span className="up-tab-count">{sec.count}</span>
+            </span>
+          </button>
+        ))}
+      </nav>
+
+      <div className="up-content profile-content">
+        {/* Squad (Sold players) */}
+        {activeSection === 'squad' && (
+          <section className="up-section section">
+            <div className="up-section-head">
+              <h3>🏏 Sold players</h3>
+              <span className="up-section-count">{squadCount} in squad</span>
             </div>
-          )}
-          
-          <div className="bought-players">
-            {filteredSoldPlayers && filteredSoldPlayers.length > 0 ? (
-              filteredSoldPlayers.map(({ player, bidValue }, idx) => {
-                const isRetained = retainedPlayers.some(rp => rp.playerId._id === player._id);
-                return (
-                  <div 
-                    className={`player-card ${player.type.toLowerCase()} ${isRetained ? 'retained' : ''}`} 
-                    key={idx}
-                    style={{
-                      position: 'relative',
-                      cursor: (() => {
-                        if (isRetained) {
-                          // Allow click if withdrawal is possible
-                          if (!isRetentionLocked && retentionEnabled) {
-                            return 'pointer';
-                          }
-                          return 'not-allowed';
-                        }
-                        if (!retentionEnabled || isRetentionLocked) return 'not-allowed';
-                        const canRetainMore = retainedPlayers.length < 4;
-                        const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
-                        return (canRetainMore && !hasCategoryRetained) ? 'pointer' : 'not-allowed';
-                      })(),
-                      transition: 'all 0.3s ease',
-                      opacity: isRetained ? 1 : 1
-                    }}
-                    onMouseEnter={(e) => {
-                      if (isRetained) {
-                        // If retained and withdrawal is allowed, show hover effect
-                        if (!isRetentionLocked && retentionEnabled) {
-                          e.currentTarget.style.transform = 'translateY(-5px)';
-                          e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                        }
-                      } else if (retentionEnabled && !isRetentionLocked) {
-                        const canRetainMore = retainedPlayers.length < 4;
-                        const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
-                        
-                        if (canRetainMore && !hasCategoryRetained) {
-                          e.currentTarget.style.transform = 'translateY(-5px)';
-                          e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                        }
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (isRetained) {
-                        // If retained and withdrawal is allowed, reset hover effect
-                        if (!isRetentionLocked && retentionEnabled) {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
-                        }
-                      } else if (retentionEnabled && !isRetentionLocked) {
-                        const canRetainMore = retainedPlayers.length < 4;
-                        const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
-                        
-                        if (canRetainMore && !hasCategoryRetained) {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
-                        }
-                      }
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      
-                      // If already retained, allow withdrawal
-                      if (isRetained) {
-                        const retainedPlayer = retainedPlayers.find(rp => rp.playerId._id === player._id);
-                        if (retainedPlayer) {
-                          handleWithdrawRetention(retainedPlayer);
-                        } else {
-                          setError('Retained player data not found. Please refresh the page.');
-                        }
-                        return;
-                      }
-                      
-                      // Check if retention is enabled
-                      if (!retentionEnabled) {
-                        setError('Player retention feature is currently disabled by admin');
-                        return;
-                      }
-                      
-                      // Check if retention is locked (this is the main blocker)
-                      if (isRetentionLocked) {
-                        setError('Your team retention is locked by admin. You cannot retain players.');
-                        return;
-                      }
-                      
-                      // Check if user can retain more players
-                      const canRetainMore = retainedPlayers.length < 4;
-                      if (!canRetainMore) {
-                        setError('You can only retain a maximum of 4 players');
-                        return;
-                      }
-                      
-                      // Check if user already has a player from this category
-                      const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
-                      if (hasCategoryRetained) {
-                        setError(`You already have a ${player.type} player retained. You can only retain one player from each category.`);
-                        return;
-                      }
-                      
-                      // All checks passed - proceed with retention
-                      handleRetainPlayer({ player, bidValue });
-                    }}
-                  >
-                    {isRetained && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '10px',
-                        right: '10px',
-                        background: 'linear-gradient(135deg, #28a745, #20c997)',
-                        color: 'white',
-                        padding: '4px 8px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        boxShadow: '0 2px 8px rgba(40, 167, 69, 0.3)'
-                      }}>
-                        ✅ RETAINED
-                      </div>
-                    )}
-                  <p style={{ pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={40} />
-                    <span><strong>Name:</strong> {player.name}</span>
-                  </p>
-                  <p style={{ pointerEvents: 'none' }}><strong>Type:</strong> {player.type}</p>
-                  <p style={{ pointerEvents: 'none' }}><strong>Role:</strong> {player.role}</p>
-                  <p style={{ pointerEvents: 'none' }}><strong>Base Price:</strong> {formatAmount(player.basePrice)}</p>
-                  <p style={{ pointerEvents: 'none' }}><strong>Sold For:</strong> {formatAmount(bidValue)}</p>
-                    {!isRetained && retentionEnabled && !isRetentionLocked && (() => {
-                      // Check if user can retain more players
-                      const canRetainMore = retainedPlayers.length < 4;
-                      const hasCategoryRetained = retainedPlayers.some(rp => rp.playerType === player.type);
-                      
-                      if (!canRetainMore) {
-                        return (
-                          <div style={{
-                            marginTop: '10px',
-                            padding: '8px',
-                            background: 'rgba(220, 53, 69, 0.1)',
-                            borderRadius: '8px',
-                            textAlign: 'center',
-                            fontSize: '12px',
-                            color: '#dc3545',
-                            fontWeight: '600',
-                            pointerEvents: 'none'
-                          }}>
-                            ❌ Max 4 players retained
+
+            {isRetentionLocked && retentionEnabled && (
+              <div className="up-banner up-banner--danger">
+                <div className="up-banner-icon">🚫</div>
+                <div>
+                  <strong>Retention locked by admin</strong>
+                  <p>You cannot retain any players at this time.</p>
                 </div>
-                        );
-                      }
-                      
-                      if (hasCategoryRetained) {
-                        return (
-                          <div style={{
-                            marginTop: '10px',
-                            padding: '8px',
-                            background: 'rgba(255, 193, 7, 0.1)',
-                            borderRadius: '8px',
-                            textAlign: 'center',
-                            fontSize: '12px',
-                            color: '#ffc107',
-                            fontWeight: '600',
-                            pointerEvents: 'none'
-                          }}>
-                            ⚠️ {player.type} already retained
-                          </div>
-                        );
-                      }
-                      
-                      return (
-                        <div style={{
-                          marginTop: '10px',
-                          padding: '8px',
-                          background: 'rgba(102, 126, 234, 0.1)',
-                          borderRadius: '8px',
-                          textAlign: 'center',
-                          fontSize: '12px',
-                          color: '#667eea',
-                          fontWeight: '600',
-                          pointerEvents: 'none'
-                        }}>
-                          💎 Click to retain (₹17 Cr)
-                        </div>
-                      );
-                    })()}
-                    
-                    {!isRetained && !retentionEnabled && (
-                      <div style={{
-                        marginTop: '10px',
-                        padding: '8px',
-                        background: 'rgba(108, 117, 125, 0.1)',
-                        borderRadius: '8px',
-                        textAlign: 'center',
-                        fontSize: '12px',
-                        color: '#6c757d',
-                        fontWeight: '600',
-                        pointerEvents: 'none'
-                      }}>
-                        🔒 Retention disabled by admin
-                      </div>
-                    )}
-
-                    {!isRetained && retentionEnabled && isRetentionLocked && (
-                      <div style={{
-                        marginTop: '10px',
-                        padding: '8px',
-                        background: 'rgba(220, 53, 69, 0.1)',
-                        borderRadius: '8px',
-                        textAlign: 'center',
-                        fontSize: '12px',
-                        color: '#dc3545',
-                        fontWeight: '600',
-                        pointerEvents: 'none'
-                      }}>
-                        🔒 Team locked by admin
-                      </div>
-                    )}
-
-                  </div>
-                );
-              })
-            ) : (
-              <p>No players found.</p>
-            )}
-          </div>
-        </div>
- {/* Add the chart here for normal users based on sold players */}
- {!isAdmin && userData.soldPlayers && userData.soldPlayers.length > 0 && (
-        <TeamStrengthChart players={userData.soldPlayers.map(item => item.player)} />
-      )}
-        {/* Active Bids */}
-        <div className="section">
-          <h3>Active Bids</h3>
-          <div className="bids-section">
-            {filteredActiveBids && filteredActiveBids.length > 0 ? (
-              filteredActiveBids.map(({ player, bidAmount }, idx) => (
-                <div className={`player-card ${player.type.toLowerCase()}`} key={idx}>
-                  <p style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={36} />
-                    <span><strong>Name:</strong> {player.name}</span>
-                  </p>
-                  <p><strong>Role:</strong> {player.role}</p>
-                  <p><strong>Bid Amount:</strong> {formatAmount(bidAmount)}</p>
-                </div>
-              ))
-            ) : (
-              <p>No active bids found.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Past Bids */}
-        <div className="section">
-          <h3>Past Bids</h3>
-          <div className="past-bids">
-            {userData.pastBids.map(({ player, bidAmount, status }, idx) => (
-              <div
-                className={`past-bid-card ${status.toLowerCase()}`}
-                style={{
-                  border: status === "Won" ? "2px solid gold" : "1px solid #ccc",
-                  backgroundColor: status === "Won" ? "#fffbea" : "transparent",
-                  boxShadow: status === "Won" ? "0px 4px 8px rgba(255, 215, 0, 0.4)" : "none",
-                  transition: "all 0.3s ease-in-out",
-                }}
-                key={idx}
-              >
-                <p style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={36} />
-                  <span><strong>Name:</strong> {player.name}</span>
-                </p>
-                <p><strong>Your Bid:</strong> {formatAmount(bidAmount)}</p>
-                <p><strong>Base Price:</strong> {formatAmount(player.basePrice)}</p>
-                <p><strong>Status:</strong> {status}</p>
               </div>
-            ))}
-          </div>
-        </div>
+            )}
+
+            <div className="up-grid up-grid--cards bought-players">
+              {filteredSoldPlayers && filteredSoldPlayers.length > 0 ? (
+                filteredSoldPlayers.map(renderSoldCard)
+              ) : (
+                <p className="up-empty">No players found.</p>
+              )}
+            </div>
+
+            {userData.soldPlayers && userData.soldPlayers.length > 0 && (
+              <div className="up-chart-wrap">
+                <TeamStrengthChart players={userData.soldPlayers.map(item => item.player)} />
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Active Bids */}
+        {activeSection === 'active' && (
+          <section className="up-section section">
+            <div className="up-section-head">
+              <h3>⚡ Active bids</h3>
+              <span className="up-section-count">{bidsCount} live</span>
+            </div>
+
+            <div className="up-grid up-grid--cards">
+              {filteredActiveBids && filteredActiveBids.length > 0 ? (
+                filteredActiveBids.map(renderActiveBidCard)
+              ) : (
+                <p className="up-empty">No active bids found.</p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Past bids */}
+        {activeSection === 'past' && (
+          <section className="up-section section">
+            <div className="up-section-head">
+              <h3>📜 Past bids</h3>
+              <span className="up-section-count">{pastCount} recorded</span>
+            </div>
+
+            <div className="up-grid up-grid--cards past-bids">
+              {userData.pastBids && userData.pastBids.length > 0 ? (
+                userData.pastBids.map(renderPastBidCard)
+              ) : (
+                <p className="up-empty">No past bids yet.</p>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Retained Players */}
-        {retentionEnabled && (
-          <div className="section">
-            <h3>💎 Retained Players</h3>
-            
-            
-            
-            {/* Admin Lock Banner - Show when retention is locked */}
+        {activeSection === 'retained' && retentionEnabled && (
+          <section className="up-section section">
+            <div className="up-section-head">
+              <h3>💎 Retained players</h3>
+              <span className="up-section-count">{retainedCount}/4</span>
+            </div>
+
             {isRetentionLocked && (
-              <div style={{
-                background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
-                borderRadius: '20px',
-                padding: '30px',
-                marginBottom: '25px',
-                color: 'white',
-                textAlign: 'center',
-                border: '3px solid rgba(255, 255, 255, 0.3)',
-                boxShadow: '0 8px 30px rgba(220, 53, 69, 0.4)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  position: 'absolute',
-                  top: '-10px',
-                  right: '-10px',
-                  width: '60px',
-                  height: '60px',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.5rem'
-                }}>
-                  🔒
+              <div className="up-banner up-banner--danger up-banner--lg">
+                <div className="up-banner-icon">🚫</div>
+                <div>
+                  <strong>Retention locked by admin</strong>
+                  <p>Your team's retention functionality has been locked by admin.</p>
+                  <ul>
+                    <li>🚫 Cannot retain new players</li>
+                    <li>🚫 Cannot remove retained players</li>
+                    <li>🚫 Cannot change retention in any way</li>
+                  </ul>
+                  <small>Contact admin to unlock your retention functionality.</small>
                 </div>
-                <div style={{ fontSize: '3.5rem', marginBottom: '20px' }}>🚫</div>
-                <h3 style={{ margin: '0 0 15px 0', fontSize: '1.8rem', fontWeight: 'bold', textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
-                  RETENTION LOCKED BY ADMIN
-                </h3>
-                <p style={{ margin: '0 0 20px 0', fontSize: '1.1rem', opacity: 0.95, fontWeight: '500' }}>
-                  Your team's retention functionality has been locked by admin
-                </p>
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  borderRadius: '15px',
-                  padding: '20px',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
-                  <div style={{ marginBottom: '8px', fontSize: '1.1rem' }}>
-                    🚫 Cannot retain new players
-                  </div>
-                  <div style={{ marginBottom: '8px', fontSize: '1.1rem' }}>
-                    🚫 Cannot remove retained players
-                  </div>
-                  <div style={{ marginBottom: '8px', fontSize: '1.1rem' }}>
-                    🚫 Cannot change retention in any way
-                  </div>
-                  <div style={{ fontSize: '1.1rem', color: '#ffeb3b' }}>
-                    🔒 All retention functionality is locked
-                  </div>
-                </div>
-                <p style={{ margin: '15px 0 0 0', fontSize: '1rem', opacity: 0.9, fontWeight: '500' }}>
-                  Contact admin to unlock your retention functionality
-                </p>
               </div>
             )}
-            
-            {/* Retention Rules Info - Only show when not locked */}
+
             {!isRetentionLocked && (
+              <div className="up-banner up-banner--info">
+                <div className="up-banner-icon">📋</div>
+                <div>
+                  <strong>Retention rules</strong>
+                  <div className="up-rules">
+                    <span>Max 4 players</span>
+                    <span>One per category</span>
+                    <span>₹17 Cr each</span>
+                    <span>{retainedPlayers.length}/4 retained</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {allPlayersReleased && !isRetentionLocked && !retentionEnabled && (
+              <div className="up-banner up-banner--success">
+                <div className="up-banner-icon">✅</div>
+                <div>
+                  <strong>Admin released players</strong>
+                  <p>Admin has released all players. Retention and undo options are now disabled.</p>
+                </div>
+              </div>
+            )}
+
+            {retentionEnabled && !isRetentionLocked && (
+              <div className="up-banner up-banner--accent">
+                <div className="up-banner-icon">✅</div>
+                <div>
+                  <strong>Retention enabled by admin</strong>
+                </div>
+              </div>
+            )}
+
+            <div className="up-grid up-grid--cards bought-players">
+              {loadingRetained ? (
+                <p className="up-empty">Loading retained players…</p>
+              ) : retainedPlayers && retainedPlayers.length > 0 ? (
+                retainedPlayers.map(renderRetainedCard)
+              ) : (
+                <p className="up-empty">No retained players yet. Open the Squad tab and tap a sold player to retain them.</p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Recent form */}
+        {activeSection === 'form' && (
+          <section className="up-section section">
+            <div className="up-section-head">
+              <h3>📈 Recent form</h3>
+              <span className="up-section-count">
+                {playedMatches.length} {playedMatches.length === 1 ? 'match' : 'matches'} played
+              </span>
+            </div>
+
+            {playedMatches.length > 0 ? (
+              <>
+                <div className="up-form-summary">
+                  <div className="up-form-stat up-form-stat--won">
+                    <strong>{matchesWon}</strong>
+                    <span>Won</span>
+                  </div>
+                  <div className="up-form-stat up-form-stat--lost">
+                    <strong>{matchesLost}</strong>
+                    <span>Lost</span>
+                  </div>
+                  <div className="up-form-stat">
+                    <strong>{playedMatches.length}</strong>
+                    <span>Total</span>
+                  </div>
+                  <div className="up-form-streak" aria-label="Last 5 results">
+                    {recentFormStreak.map((m, i) => {
+                      const r = (m.result || '').toLowerCase();
+                      const cls = r === 'won' ? 'is-w' : r === 'lost' ? 'is-l' : 'is-n';
+                      const ch = r === 'won' ? 'W' : r === 'lost' ? 'L' : '–';
+                      return <span key={i} className={`up-form-dot ${cls}`}>{ch}</span>;
+                    })}
+                  </div>
+                </div>
+
+                <div className="up-grid up-grid--matches">
+                  {playedMatches.map((match, idx) => {
+                    const isWon = (match.result || '').toLowerCase() === 'won';
+                    const isLost = (match.result || '').toLowerCase() === 'lost';
+                    const dateLabel = match.playedAt
+                      ? new Date(match.playedAt).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric',
+                        })
+                      : null;
+                    return (
+                      <div
+                        key={idx}
+                        className={`up-match-card past-bid-card ${isWon ? 'is-won' : ''} ${isLost ? 'is-lost' : ''}`}
+                      >
+                        <div className="up-match-result">{isWon ? '🏆' : isLost ? '💔' : '—'}</div>
+                        <div className="up-match-meta">
+                          <p className="up-match-opponent"><span>🆚</span> {match.opponentTeam || '—'}</p>
+                          <p><span>🏏</span> {match.score}</p>
+                          <p><span>⚖️</span> {match.fairness}</p>
+                          <p><span>🏆</span> {match.result}</p>
+                          {dateLabel && <p className="up-match-date"><span>📅</span> {dateLabel}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <p className="up-empty">No matches played yet. Your results will show up here as you play.</p>
+            )}
+          </section>
+        )}
+      </div>
+
+      {/* Retain Player Confirmation Popup */}
+      {showRetainConfirm && selectedPlayerForRetain && (() => {
+        const player = selectedPlayerForRetain.player || selectedPlayerForRetain;
+        return (
+          <div className="confirm-overlay">
+            <div className="confirm-popup" style={{ maxWidth: '500px' }}>
+              <h2>💎 Retain Player</h2>
               <div style={{
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 borderRadius: '15px',
                 padding: '20px',
-                marginBottom: '20px',
+                margin: '20px 0',
                 color: 'white',
                 textAlign: 'center'
               }}>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: '1.2rem' }}>
-                  📋 Retention Rules
-                </h4>
-                <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '15px', fontSize: '0.9rem' }}>
-                  <div>• Max 4 players</div>
-                  <div>• One per category</div>
-                  <div>• ₹17 Cr each</div>
-                  <div>• {retainedPlayers.length}/4 retained</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, margin: '0 0 10px 0' }}>
+                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={48} />
+                  <h3 style={{ margin: 0, fontSize: '1.5rem' }}>
+                    {player.name}
+                  </h3>
                 </div>
-              </div>
-            )}
-
-
-            {/* Admin Released Players Banner - show only if retention is disabled */}
-            {allPlayersReleased && !isRetentionLocked && !retentionEnabled && (
-              <div style={{
-                background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
-                borderRadius: '15px',
-                padding: '25px',
-                marginBottom: '20px',
-                color: 'white',
-                textAlign: 'center',
-                border: '2px solid #28a745',
-                boxShadow: '0 4px 20px rgba(40, 167, 69, 0.3)'
-              }}>
-                <div style={{ fontSize: '2rem', marginBottom: '15px' }}>✅</div>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: '1.4rem', fontWeight: 'bold' }}>
-                  ADMIN RELEASED PLAYERS
-                </h4>
-                <p style={{ margin: '0 0 15px 0', fontSize: '1rem', opacity: 0.9 }}>
-                  Admin has released all players. Retention and undo options are now disabled.
+                <p style={{ margin: '0 0 15px 0', opacity: 0.9 }}>
+                  {player.type} • {player.role}
                 </p>
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.2)',
                   borderRadius: '10px',
                   padding: '15px',
-                  fontSize: '0.9rem',
-                  fontWeight: '600'
+                  margin: '15px 0'
                 }}>
-                  ✅ Players released by admin<br/>
-                  ❌ Cannot retain new players<br/>
-                  ❌ Cannot undo retained players<br/>
-                  🔒 All retention functionality is disabled
+                  <p style={{ margin: '0 0 10px 0', fontWeight: '600' }}>
+                    Retention Value:
+                  </p>
+                  <p style={{ margin: '0', fontSize: '1.5rem', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                    ₹17.00 Crore
+                  </p>
                 </div>
-              </div>
-            )}
-            {retentionEnabled && !isRetentionLocked && (
-              <div style={{
-                background: 'linear-gradient(135deg, #1e90ff 0%, #00bcd4 100%)',
-                borderRadius: '15px',
-                padding: '20px',
-                marginBottom: '20px',
-                color: 'white',
-                textAlign: 'center',
-                border: '2px solid rgba(30, 144, 255, 0.6)',
-                boxShadow: '0 4px 20px rgba(30, 144, 255, 0.3)'
-              }}>
-                <div style={{ fontSize: '2rem', marginBottom: '10px' }}>✅</div>
-                <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>
-                  Retention enabled by admin
-                </h4>
-              </div>
-            )}
-            
-            {/* Retained Players List */}
-            <div className="bought-players">
-              {loadingRetained ? (
-                <p>Loading retained players...</p>
-              ) : retainedPlayers && retainedPlayers.length > 0 ? (
-                retainedPlayers.map((retained, idx) => (
-                  <div 
-                    className={`player-card ${retained.playerType.toLowerCase()} retained ${isRetentionLocked ? 'locked' : ''}`} 
-                    key={idx}
-                    style={isRetentionLocked ? {
-                      opacity: 0.6,
-                      filter: 'grayscale(0.3)',
-                      pointerEvents: 'none',
-                      position: 'relative'
-                    } : {}}
-                  >
-                    <div style={{
-                      position: 'absolute',
-                      top: '10px',
-                      right: '10px',
-                      background: isRetentionLocked 
-                        ? 'linear-gradient(135deg, #6c757d, #495057)' 
-                        : 'linear-gradient(135deg, #28a745, #20c997)',
-                      color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      boxShadow: isRetentionLocked 
-                        ? '0 2px 8px rgba(108, 117, 125, 0.3)'
-                        : '0 2px 8px rgba(40, 167, 69, 0.3)'
-                    }}>
-                      {isRetentionLocked ? '🔒 LOCKED' : '✅ RETAINED'}
-                    </div>
-                    
-                    {/* Lock overlay when retention is locked */}
-                    {isRetentionLocked && (
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(0, 0, 0, 0.1)',
-                        borderRadius: '10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 10
-                      }}>
-                        <div style={{
-                          background: 'rgba(220, 53, 69, 0.9)',
-                          color: 'white',
-                          padding: '8px 16px',
-                          borderRadius: '20px',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          textAlign: 'center'
-                        }}>
-                          🔒 ADMIN LOCKED
-                        </div>
-                      </div>
-                    )}
-                    
-                    <p style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <PlayerAvatar profilePicture={retained.playerId?.profilePicture} name={retained.playerName} size={36} />
-                      <span><strong>Name:</strong> {retained.playerName}</span>
-                    </p>
-                    <p><strong>Type:</strong> {retained.playerType}</p>
-                    <p><strong>Role:</strong> {retained.playerRole}</p>
-                    <p><strong>Retention Value:</strong> {formatAmount(retained.retainedValue)}</p>
-                    <p><strong>Retained On:</strong> {new Date(retained.retainedAt).toLocaleDateString()}</p>
-                    
-                    {/* Withdraw Button - Only show when not locked and retention enabled */}
-                    {!isRetentionLocked && retentionEnabled && (
-                      <div style={{
-                        marginTop: '15px',
-                        textAlign: 'center'
-                      }}>
-                        <button
-                          onClick={() => handleWithdrawRetention(retained)}
-                          style={{
-                            background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '10px 20px',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            boxShadow: '0 4px 15px rgba(255, 107, 107, 0.3)'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.transform = 'translateY(-2px)';
-                            e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.3)';
-                          }}
-                        >
-                          🚪 Remove from Retention
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p>No retained players yet. Click on any sold player to retain them!</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Last 5 Matches */}
-        <div className="section">
-          <h3>Your Last 5 Match Results</h3>
-          <div className="bought-players" style={{ display: "grid", gap: "15px" }}>
-            {lastFiveMatches.map((match, idx) => {
-              const isWon = (match.result || "").toLowerCase() === "won";
-              return (
-                <div
-                  key={idx}
-                  className="past-bid-card"
-                  style={{
-                    border: isWon ? "2px solid gold" : "1px solid #ccc",
-                    backgroundColor: isWon ? "#fffbea" : "transparent",
-                    boxShadow: isWon ? "0px 4px 8px rgba(255, 215, 0, 0.4)" : "none",
-                    transition: "all 0.3s ease-in-out",
-                  }}
-                >
-                  <p><strong>🆚</strong> {match.opponentTeam}</p>
-                  <p><strong>🏏</strong> {match.score}</p>
-                  <p><strong>⚖️</strong> {match.fairness}</p>
-                  <p><strong>🏆</strong> {match.result}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Retain Player Confirmation Popup */}
-      {showRetainConfirm && selectedPlayerForRetain && (() => {
-        // Handle both formats: direct player object or { player, bidValue } object
-        const player = selectedPlayerForRetain.player || selectedPlayerForRetain;
-        return (
-        <div className="confirm-overlay">
-          <div className="confirm-popup" style={{ maxWidth: '500px' }}>
-            <h2>💎 Retain Player</h2>
-            <div style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              borderRadius: '15px',
-              padding: '20px',
-              margin: '20px 0',
-              color: 'white',
-              textAlign: 'center'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, margin: '0 0 10px 0' }}>
-                <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={48} />
-                <h3 style={{ margin: 0, fontSize: '1.5rem' }}>
-                  {player.name}
-                </h3>
-              </div>
-              <p style={{ margin: '0 0 15px 0', opacity: 0.9 }}>
-                {player.type} • {player.role}
-              </p>
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                borderRadius: '10px',
-                padding: '15px',
-                margin: '15px 0'
-              }}>
-                <p style={{ margin: '0 0 10px 0', fontWeight: '600' }}>
-                  Retention Value:
-                </p>
-                <p style={{ 
-                  margin: '0', 
-                  fontSize: '1.5rem', 
-                  fontWeight: 'bold',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                }}>
-                  ₹17.00 Crore
+                <p style={{ margin: '0', fontSize: '0.9rem', opacity: 0.8 }}>
+                  This amount will be deducted from your purse when the admin releases all other players and resets the tournament.
                 </p>
               </div>
-              <p style={{ margin: '0', fontSize: '0.9rem', opacity: 0.8 }}>
-                This amount will be deducted from your purse when the admin releases all other players and resets the tournament.
-              </p>
-            </div>
-            <div className="popup-buttons">
-              <button className="confirm-button" onClick={handleConfirmRetain}>
-                💎 Yes, Retain Player
-              </button>
-              <button className="cancel-button" onClick={handleCancelRetain}>
-                Cancel
-              </button>
+              <div className="popup-buttons">
+                <button className="confirm-button" onClick={handleConfirmRetain}>
+                  💎 Yes, Retain Player
+                </button>
+                <button className="cancel-button" onClick={handleCancelRetain}>
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
         );
       })()}
 
