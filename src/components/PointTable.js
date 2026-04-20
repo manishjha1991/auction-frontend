@@ -5,136 +5,229 @@ import { API_ENDPOINTS } from "../const";
 import { useMemo } from "react";
 import PlayoffFixtures from "./PlayoffFixtures";
 
-// Keyframes for subtle animations (removed unused fadeIn)
+/* =========================================================
+   Points Table — mobile-first redesign
+   Same JSX/state/logic; only the styled-components change.
+   On narrow screens each row becomes a compact grid-card so
+   the whole table fits without horizontal scroll and there's
+   no inner-table vertical scroll.
+   ========================================================= */
 
-// Tab styles
+// Tab styles -------------------------------------------------
 const TabContainer = styled.div`
-  margin: 0.5rem auto;
-  width: 98%;
-  max-width: 100%;
+  margin: 0.75rem auto 2rem;
+  width: calc(100% - 1rem);
+  max-width: 1100px;
   background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px -22px rgba(15, 23, 42, 0.25);
+  border: 1px solid #e2e8f0;
   overflow: hidden;
+
+  @media (max-width: 600px) {
+    width: calc(100% - 0.5rem);
+    margin: 0.5rem auto 1.25rem;
+    border-radius: 12px;
+  }
 `;
 
 const TabHeader = styled.div`
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
-  background: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
+  gap: 0.25rem;
+  padding: 0.35rem 0.35rem 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar { display: none; }
 `;
 
 const TabButton = styled.button`
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  background: ${props => props.active ? '#007bff' : 'transparent'};
-  color: ${props => props.active ? '#ffffff' : '#6c757d'};
+  flex: 0 0 auto;
+  padding: 0.7rem 1.1rem 0.75rem;
+  min-height: 42px;
+  background: transparent;
+  color: ${props => props.active ? "#2563eb" : "#64748b"};
   border: none;
-  font-weight: ${props => props.active ? 'bold' : 'normal'};
+  border-bottom: 2px solid ${props => props.active ? "#2563eb" : "transparent"};
+  border-radius: 0;
+  font-weight: ${props => props.active ? "700" : "500"};
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.8rem;
-  
-  &:hover {
-    background: ${props => props.active ? '#007bff' : '#e9ecef'};
-  }
-  
+  transition: color 0.15s ease, border-color 0.15s ease;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  margin-bottom: -1px;
+
+  &:hover { color: ${props => props.active ? "#2563eb" : "#0f172a"}; }
+
   @media (max-width: 600px) {
-    padding: 0.4rem 0.5rem;
-    font-size: 0.7rem;
+    padding: 0.6rem 0.85rem 0.65rem;
+    font-size: 0.82rem;
   }
 `;
 
-// Styled components
+// Table container --------------------------------------------
 const TableWrapper = styled.div`
-  padding: 0.5rem;
+  padding: clamp(0.5rem, 2vw, 1rem) clamp(0.5rem, 2vw, 1.25rem) clamp(0.75rem, 2vw, 1.25rem);
   background: #ffffff;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+
+  h2 {
+    margin: 0.25rem 0 0.85rem;
+    color: #0f172a;
+    font-size: clamp(0.95rem, 3.2vw, 1.15rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-align: left;
+  }
+
+  @media (max-width: 600px) {
+    padding: 0.5rem 0.5rem 0.75rem;
+    overflow: visible;
+  }
 `;
 
+/* Clean spreadsheet-style table: white rows, thin dividers, no pill chips. */
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  text-align: center;
-  font-size: 0.75rem;
-  color: #343a40;
   table-layout: fixed;
+  font-size: 0.9rem;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+
+  /* Desktop column widths */
+  th:nth-child(1), td:nth-child(1) { width: 38px; text-align: left; }          /* POS */
+  th:nth-child(2), td:nth-child(2) { width: auto; min-width: 150px; text-align: left; } /* TEAM */
+  th:nth-child(3), td:nth-child(3),
+  th:nth-child(4), td:nth-child(4),
+  th:nth-child(5), td:nth-child(5) { width: 52px; text-align: right; }         /* M W L */
+  th:nth-child(6), td:nth-child(6) { width: 80px; text-align: right; }         /* NRR */
+  th:nth-child(7), td:nth-child(7) { width: 60px; text-align: right; }         /* FAIR */
+  th:nth-child(8), td:nth-child(8) { width: 64px; text-align: right; padding-right: 0.4rem; } /* PTS */
 
   @media (max-width: 600px) {
-    font-size: 0.7rem;
-    table-layout: auto;
+    font-size: 0.8rem;
+
+    th:nth-child(1), td:nth-child(1) { width: 24px; }
+    th:nth-child(2), td:nth-child(2) { min-width: 0; }
+    th:nth-child(3), td:nth-child(3),
+    th:nth-child(4), td:nth-child(4),
+    th:nth-child(5), td:nth-child(5) { width: 26px; }
+    th:nth-child(6), td:nth-child(6) { width: 64px; }  /* NRR needs room for +1.420 */
+    th:nth-child(7), td:nth-child(7) { width: 34px; }
+    th:nth-child(8), td:nth-child(8) { width: 36px; padding-right: 0.1rem; }
+  }
+
+  /* Extra-narrow phones: hide FAIR column to keep single-screen fit (all other data stays). */
+  @media (max-width: 360px) {
+    th:nth-child(7), td:nth-child(7) { display: none; }
+    font-size: 0.76rem;
+    th:nth-child(6), td:nth-child(6) { width: 60px; }
   }
 `;
 
 const TableHead = styled.thead`
-  background-color: #ffffff !important;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #343a40;
+  tr { background: transparent; }
+
+  td {
+    padding: 0.55rem 0.4rem !important;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    border-bottom: 1px solid #e2e8f0;
+    background: transparent;
+  }
+
+  td.pts-cell { color: #0f172a; }
 
   @media (max-width: 600px) {
-    font-size: 0.65rem;
+    td {
+      padding: 0.45rem 0.25rem !important;
+      font-size: 0.62rem;
+    }
   }
 `;
 
 const TableRow = styled.tr`
-  background-color: ${(props) =>
-    props.variant === "top"
-      ? "#d4edda"
-      : props.variant === "bottom"
-      ? "#f8d7da"
-      : props.variant === "eliminated"
-      ? "#f8d7da"
-      : "#fff3cd"} !important;
-  height: 35px;
-  ${(props) =>
-    props.variant === "eliminated" &&
-    `
-    border-left: 3px solid #dc3545;
-    box-shadow: 0 1px 4px rgba(220, 53, 69, 0.3);
-    `}
+  background: #ffffff;
+  transition: background-color 0.15s ease;
+
+  td {
+    padding: 0.7rem 0.4rem;
+    border-bottom: 1px solid #eef2f7;
+    background: transparent;
+    font-weight: 500;
+    color: #0f172a;
+    vertical-align: middle;
+  }
+
+  &:hover td { background: #f8fafc; }
+  &:last-child td { border-bottom: none; }
+
+  /* NRR sign colour */
+  td.nrr-cell {
+    color: ${(props) =>
+      props.variant === "top" ? "#059669"
+      : props.variant === "eliminated" || props.variant === "bottom" ? "#dc2626"
+      : "#0f172a"};
+    font-weight: 600;
+  }
+
+  /* PTS highlighted */
+  td.pts-cell {
+    font-weight: 800;
+    font-size: 1em;
+    color: #0f172a;
+  }
+
+  @media (max-width: 600px) {
+    td { padding: 0.6rem 0.2rem; }
+    td.pts-cell { font-size: 1em; }
+  }
 `;
 
 const TableCell = styled.td`
-  padding: 0.25rem 0.4rem;
-  font-size: 0.75rem;
-  border: none;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-  word-wrap: break-word;
-
-  @media (max-width: 600px) {
-    padding: 0.2rem 0.3rem;
-    font-size: 0.7rem;
-  }
+  white-space: nowrap;
 `;
 
 const HighlightCell = styled(TableCell)`
-  font-weight: bold;
-  text-align: left;
-  padding-left: 0.5rem;
   display: flex;
   align-items: center;
+  gap: 0.55rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  color: #0f172a;
+  font-weight: 600;
+  min-width: 0;
 
-  &:hover {
-    background-color: #e9ecef;
-  }
+  &:hover .team-name { color: #4f46e5; }
 
   img {
-    margin-right: 6px;
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     object-fit: cover;
+    background: #f1f5f9;
+    flex-shrink: 0;
+  }
+
+  .team-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    transition: color 0.15s ease;
   }
 
   @media (max-width: 600px) {
-    padding-left: 0.3rem;
+    gap: 0.45rem;
+    img { width: 22px; height: 22px; }
   }
 `;
 
@@ -143,14 +236,17 @@ const QualifierBadge = styled.span`
   align-items: center;
   justify-content: center;
   margin-left: 4px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #28a745; /* green */
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #10b981;
   color: #ffffff;
   font-size: 10px;
   line-height: 1;
   font-weight: 800;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
 `;
 
 const EliminatedBadge = styled.span`
@@ -158,165 +254,272 @@ const EliminatedBadge = styled.span`
   align-items: center;
   justify-content: center;
   margin-left: 4px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #dc3545; /* red */
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
   color: #ffffff;
   font-size: 10px;
   line-height: 1;
   font-weight: 800;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
 `;
 
 const RankCell = styled(TableCell)`
-  font-weight: bold;
-  color: #000;
-  padding: 0.25rem 0.2rem;
-  font-size: 0.75rem;
-  width: 50px;
+  color: #64748b;
+  font-weight: 500;
+  text-align: left;
+  padding-left: 0.25rem !important;
+
+  @media (max-width: 600px) {
+    font-size: 0.82rem;
+    padding-left: 0.1rem !important;
+  }
 `;
 
-// Team Details Modal Styles
+// Team Details Modal Styles ---------------------------------
 const ModalOverlay = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding: clamp(0.75rem, 3vw, 2rem);
+  overflow-y: auto;
   z-index: 9999;
+  animation: pt-fade 0.2s ease-out;
+
+  @keyframes pt-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 `;
 
 const ModalContent = styled.div`
-  background: white;
-  border-radius: 10px;
-  padding: 2rem;
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  max-width: 640px;
+  width: 100%;
+  max-height: calc(100vh - 2rem);
   overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.45);
+  animation: pt-pop 0.25s ease-out;
+  -webkit-overflow-scrolling: touch;
+  margin: auto;
+
+  @keyframes pt-pop {
+    from { transform: translateY(12px) scale(0.98); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
 `;
 
 const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #dee2e6;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.4);
 `;
 
 const ModalTitle = styled.h2`
   margin: 0;
-  color: #343a40;
+  color: #0f172a;
   display: flex;
   align-items: center;
-  
+  gap: 0.6rem;
+  min-width: 0;
+  font-size: clamp(1rem, 3.5vw, 1.2rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
   img {
-    margin-right: 10px;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     object-fit: cover;
+    border: 2px solid #ffffff;
+    box-shadow: 0 6px 14px -8px rgba(15, 23, 42, 0.4);
+    flex-shrink: 0;
   }
 `;
 
 const CloseButton = styled.button`
-  background: #dc3545;
-  color: white;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #ffffff;
   border: none;
   border-radius: 50%;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  
+  flex-shrink: 0;
+  box-shadow: 0 10px 20px -12px rgba(239, 68, 68, 0.6);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
   &:hover {
-    background: #c82333;
+    transform: scale(1.05);
+    box-shadow: 0 14px 26px -12px rgba(239, 68, 68, 0.7);
   }
 `;
 
 const TeamStats = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 520px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
 `;
 
 const StatCard = styled.div`
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  padding: 0.75rem;
+  border-radius: 12px;
   text-align: center;
-  border-left: 4px solid ${props => props.color || '#007bff'};
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-left: 4px solid ${props => props.color || '#6366f1'};
+  box-shadow: 0 6px 16px -12px rgba(15, 23, 42, 0.3);
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
 `;
 
 const StatValue = styled.div`
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #343a40;
+  font-size: clamp(1.2rem, 4vw, 1.55rem);
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 `;
 
 const StatLabel = styled.div`
-  font-size: 0.9rem;
-  color: #6c757d;
+  font-size: 0.72rem;
+  color: #64748b;
   margin-top: 0.25rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 `;
 
 const MatchTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
-  font-size: 0.9rem;
+  margin-top: 0.75rem;
+  font-size: 0.88rem;
+
+  @media (max-width: 520px) {
+    display: block;
+    thead { display: none; }
+    tbody { display: block; }
+  }
 `;
 
 const MatchTableHead = styled.thead`
-  background-color: #f8f9fa;
-  font-weight: 600;
+  background: #f8fafc;
+  font-weight: 700;
 `;
 
 const MatchTableRow = styled.tr`
-  border-bottom: 1px solid #dee2e6;
-  
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  transition: background-color 0.15s ease;
+
   &:hover {
-    background-color: #f8f9fa;
+    background-color: rgba(99, 102, 241, 0.05);
+  }
+
+  @media (max-width: 520px) {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.35rem 0.75rem;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 10px;
+    background: #ffffff;
   }
 `;
 
 const MatchTableCell = styled.td`
-  padding: 0.75rem 0.5rem;
+  padding: 0.65rem 0.55rem;
   text-align: left;
-  
+  color: #0f172a;
+
   &:first-child {
-    font-weight: 500;
+    font-weight: 700;
+  }
+
+  @media (max-width: 520px) {
+    padding: 0 !important;
+    font-size: 0.85rem;
+
+    &:nth-child(1) { grid-column: 1; grid-row: 1; }
+    &:nth-child(2) { grid-column: 2; grid-row: 1; }
+    &:nth-child(3) { grid-column: 1; grid-row: 2; color: #64748b; font-size: 0.78rem; }
+    &:nth-child(4) { grid-column: 2; grid-row: 2; }
   }
 `;
 
 const MatchTableHeader = styled.th`
-  padding: 0.75rem 0.5rem;
+  padding: 0.65rem 0.55rem;
   text-align: left;
-  font-weight: 600;
-  color: #343a40;
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 `;
 
 const ResultCell = styled(MatchTableCell)`
-  color: ${props => 
-    props.result === 'win' ? '#28a745' : 
-    props.result === 'loss' ? '#dc3545' : '#6c757d'
-  };
-  font-weight: bold;
+  color: ${props =>
+    props.result === 'win' ? '#047857' :
+    props.result === 'loss' ? '#b91c1c' : '#64748b'};
+  font-weight: 800;
+
+  @media (max-width: 520px) {
+    text-align: right;
+    font-size: 0.85rem;
+  }
 `;
 
 const FairnessCell = styled(MatchTableCell)`
   text-align: center;
-  font-weight: 500;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+
+  @media (max-width: 520px) {
+    text-align: right;
+
+    &::before {
+      content: 'Fair ';
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-right: 0.25rem;
+    }
+  }
 `;
 
 const PointsTable = () => {
@@ -640,22 +843,22 @@ const PointsTable = () => {
 
         return (
           <TableRow key={team._id || `${team.teamName}-${index}`} index={index} variant={variant}>
-            <RankCell>{`${index + 1} -`}</RankCell>
+            <RankCell>{index + 1}</RankCell>
             <HighlightCell onClick={() => handleTeamClick(team)}>
               <img src={teamImage} alt={team.teamName} />
-              {team.teamName}
+              <span className="team-name">{team.teamName}</span>
               {showQ ? (
                 <QualifierBadge title={qTitle}>Q</QualifierBadge>
               ) : showE ? (
                 <EliminatedBadge title={eTitle}>E</EliminatedBadge>
               ) : null}
             </HighlightCell>
+            <TableCell>{team.matchesPlayed}</TableCell>
             <TableCell>{team.wins}</TableCell>
             <TableCell>{losses}</TableCell>
+            <TableCell className="nrr-cell">{formatNRR(team.nrr)}</TableCell>
             <TableCell>{team.fairness}</TableCell>
-            <TableCell>{team.points}</TableCell>
-            <TableCell>{team.matchesPlayed}</TableCell>
-            <TableCell>{formatNRR(team.nrr)}</TableCell>
+            <TableCell className="pts-cell">{team.points}</TableCell>
           </TableRow>
         );
       })}
@@ -698,13 +901,13 @@ const PointsTable = () => {
                   <TableHead>
                     <tr>
                       <TableCell>POS</TableCell>
-                      <TableCell>TEAMS</TableCell>
+                      <TableCell>TEAM</TableCell>
+                      <TableCell>M</TableCell>
                       <TableCell>W</TableCell>
                       <TableCell>L</TableCell>
+                      <TableCell className="nrr-cell">NRR</TableCell>
                       <TableCell>FAIR</TableCell>
-                      <TableCell>PTS</TableCell>
-                      <TableCell>MP</TableCell>
-                      <TableCell>NRR</TableCell>
+                      <TableCell className="pts-cell">PTS</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(groups.A)}
@@ -721,13 +924,13 @@ const PointsTable = () => {
                   <TableHead>
                     <tr>
                       <TableCell>POS</TableCell>
-                      <TableCell>TEAMS</TableCell>
+                      <TableCell>TEAM</TableCell>
+                      <TableCell>M</TableCell>
                       <TableCell>W</TableCell>
                       <TableCell>L</TableCell>
+                      <TableCell className="nrr-cell">NRR</TableCell>
                       <TableCell>FAIR</TableCell>
-                      <TableCell>PTS</TableCell>
-                      <TableCell>MP</TableCell>
-                      <TableCell>NRR</TableCell>
+                      <TableCell className="pts-cell">PTS</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(groups.B)}
@@ -775,13 +978,13 @@ const PointsTable = () => {
                   <TableHead>
                     <tr>
                       <TableCell>POS</TableCell>
-                      <TableCell>TEAMS</TableCell>
+                      <TableCell>TEAM</TableCell>
+                      <TableCell>M</TableCell>
                       <TableCell>W</TableCell>
                       <TableCell>L</TableCell>
+                      <TableCell className="nrr-cell">NRR</TableCell>
                       <TableCell>FAIR</TableCell>
-                      <TableCell>PTS</TableCell>
-                      <TableCell>MP</TableCell>
-                      <TableCell>NRR</TableCell>
+                      <TableCell className="pts-cell">PTS</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(sortedTeams)}
