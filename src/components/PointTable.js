@@ -191,7 +191,8 @@ const TableRow = styled.tr`
     color: #0f172a;
   }
   td.pts-cell.pts-top { color: #047857; }  /* dark bold green for top qualifiers */
-  td.pts-cell.pts-mid { color: #b45309; }  /* bold amber/yellow for rest */
+  td.pts-cell.pts-mid { color: #b45309; }  /* bold amber/yellow for upper-half of rest */
+  td.pts-cell.pts-low { color: #b91c1c; }  /* bold dark red for lower-half of rest */
 
   @media (max-width: 600px) {
     td { padding: 0.6rem 0.2rem; }
@@ -744,7 +745,15 @@ const PointsTable = () => {
     return ids;
   }, [allCompleted, filteredTeams, NUM_QUALIFIERS]);
 
-  const renderTableBody = (list) => (
+  const renderTableBody = (list) => {
+    const qualifiers = mode === 'groups' ? GROUP_QUALIFIERS : NUM_QUALIFIERS;
+    const totalTeams = list.length;
+    const remaining = Math.max(0, totalTeams - qualifiers);
+    // Upper half of the remaining rows get yellow, lower half get red.
+    // If the remainder is odd, the extra row goes to yellow (nicer for tight tables).
+    const yellowCount = Math.ceil(remaining / 2);
+
+    return (
     <tbody>
       {list.map((team, index) => {
         const losses = team.matchesPlayed - team.wins;
@@ -877,9 +886,11 @@ const PointsTable = () => {
             <TableCell className="nrr-cell">{formatNRR(team.nrr)}</TableCell>
             <TableCell
               className={`pts-cell ${
-                index < (mode === 'groups' ? GROUP_QUALIFIERS : NUM_QUALIFIERS)
+                index < qualifiers
                   ? 'pts-top'
-                  : 'pts-mid'
+                  : (index - qualifiers) < yellowCount
+                  ? 'pts-mid'
+                  : 'pts-low'
               }`}
             >
               {String(Math.max(0, Number(team.points) || 0)).padStart(2, '0')}
@@ -889,7 +900,8 @@ const PointsTable = () => {
         );
       })}
     </tbody>
-  );
+    );
+  };
 
   return (
     <>
