@@ -1560,6 +1560,42 @@ const Profile = () => {
                               </span>
                             </div>
                           </div>
+                          {Array.isArray(v.players) && v.players.length > 0 && (
+                            <div className="up-venue-squad">
+                              <div className="up-venue-squad-head">
+                                <span className="up-venue-squad-title">Squad at this ground</span>
+                                <span className="up-venue-squad-hint">Runs · Wkts</span>
+                              </div>
+                              <div
+                                className="up-venue-squad-scroll"
+                                role="list"
+                                aria-label={`Players at ${v.venue}`}
+                              >
+                                <div className="up-venue-squad-row up-venue-squad-row--hdr" aria-hidden>
+                                  <span>Player</span>
+                                  <span className="up-venue-squad-num">R</span>
+                                  <span className="up-venue-squad-num">W</span>
+                                </div>
+                                {v.players.map((p) => (
+                                  <div
+                                    key={String(p.playerId)}
+                                    className="up-venue-squad-row"
+                                    role="listitem"
+                                  >
+                                    <span className="up-venue-squad-name" title={p.name}>
+                                      {p.name}
+                                    </span>
+                                    <span className="up-venue-squad-num" title="Runs scored">
+                                      {p.runs ?? 0}
+                                    </span>
+                                    <span className="up-venue-squad-num" title="Wickets taken">
+                                      {p.wickets ?? 0}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           {(!!v.batting?.fours || !!v.batting?.sixes) && (
                             <div className="up-venue-pills">
                               {!!v.batting?.fours && (

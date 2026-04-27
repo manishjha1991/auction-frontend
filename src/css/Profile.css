@@ -1566,6 +1566,94 @@
   color: #991b1b;
 }
 
+/* Per-player runs & wickets at this venue (Profile only, user-scoped API) */
+.up-venue-squad {
+  margin-top: 0.15rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.up-venue-squad-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.up-venue-squad-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.up-venue-squad-hint {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+}
+
+.up-venue-squad-scroll {
+  max-height: min(42vh, 220px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid #e2e8f0;
+}
+
+.up-venue-squad-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.25rem 2.25rem;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.55rem;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.up-venue-squad-row:last-child {
+  border-bottom: none;
+}
+
+.up-venue-squad-row--hdr {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, #f8fafc 95%, transparent);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.up-venue-squad-name {
+  min-width: 0;
+  font-weight: 600;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.up-venue-squad-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  text-align: right;
+  color: #0f172a;
+}
+
+.up-venue-squad-row:not(.up-venue-squad-row--hdr) .up-venue-squad-num {
+  font-size: 0.82rem;
+}
+
 @media (max-width: 600px) {
   .up-venue-grid {
     gap: 0.55rem;
@@ -1582,5 +1670,14 @@
 @media (max-width: 380px) {
   .up-venue-grid {
     grid-template-columns: 1fr;
+  }
+
+  .up-venue-squad-scroll {
+    max-height: min(48vh, 260px);
+  }
+
+  .up-venue-squad-row {
+    padding: 0.38rem 0.45rem;
+    font-size: 0.74rem;
   }
 }
