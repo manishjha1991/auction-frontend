@@ -2203,3 +2203,63 @@
   }
 }
 
+.venue-field {
+  position: relative;
+}
+
+.venue-field .venue-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.venue-field .venue-required {
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 1em;
+  line-height: 1;
+}
+
+.venue-field .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.venue-field input {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.venue-field--missing input {
+  border-color: #f87171;
+  background-color: #fef2f2;
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.15);
+}
+
+.venue-field--missing input:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+  outline: none;
+}
+
+.venue-field .venue-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #b91c1c;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 480px) {
+  .venue-field .venue-hint {
+    font-size: 11px;
+  }
+}

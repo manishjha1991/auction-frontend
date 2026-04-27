@@ -1391,6 +1391,17 @@ const OcrExtractor = () => {
       return;
     }
 
+    const trimmedVenue = (venue || '').trim();
+    if (!trimmedVenue) {
+      setGlobalError('Venue is required. Please enter the ground/venue before saving.');
+      setToast({
+        type: 'warning',
+        message: 'Venue required',
+        details: 'Add the venue (e.g. "Melbourne Cricket Ground") so this match shows up in venue stats.'
+      });
+      return;
+    }
+
     setSaving(true);
     setGlobalError('');
     setSaveMessage('');
@@ -1400,8 +1411,12 @@ const OcrExtractor = () => {
       const matchKeyBase =
         matchLabel?.trim() ||
         `${primaryTeamName || 'Team'} vs ${opponentTeamName || 'Opponent'}`;
-      const matchName = venue ? `${matchKeyBase} @ ${venue}` : matchKeyBase;
+      const matchName = `${matchKeyBase} @ ${trimmedVenue}`;
       const timestamp = Date.now();
+      // Single stable matchId shared by every player save (home + opponent)
+      // for this one match. The venue ledger uses it to count distinct
+      // matches at a venue (so 21 player rows = 1 match, not 21 matches).
+      const matchId = `${matchKeyBase}-${timestamp}`;
       let successCount = 0;
       const errors = [];
 
@@ -1419,11 +1434,12 @@ const OcrExtractor = () => {
           isWcScore: isWc,
           wcStage: isWc ? wcStage : null,
           tournamentId: isWc ? tournamentId : null,
-          venue: venue || null,
+          venue: trimmedVenue,
           economy: entry.bowlingStats?.economy ?? null,
           extras: entry.bowlingStats?.extras ?? null,
           matchName,
-          matchKey: `${matchKeyBase}-${entry.playerId}-${timestamp}`
+          matchKey: `${matchKeyBase}-${entry.playerId}-${timestamp}`,
+          matchId,
         };
 
         try {
@@ -1458,11 +1474,12 @@ const OcrExtractor = () => {
           isWcScore: isWc,
           wcStage: isWc ? wcStage : null,
           tournamentId: isWc ? tournamentId : null,
-          venue: venue || null,
+          venue: trimmedVenue,
           economy: entry.bowlingStats?.economy ?? null,
           extras: entry.bowlingStats?.extras ?? null,
           matchName,
-          matchKey: `${matchKeyBase}-opponent-${entry.playerId}-${timestamp}`
+          matchKey: `${matchKeyBase}-opponent-${entry.playerId}-${timestamp}`,
+          matchId,
         };
 
         try {
@@ -2002,14 +2019,25 @@ const OcrExtractor = () => {
               />
             )}
           </label>
-          <label>
-            Venue
+          <label className={`venue-field ${!venue.trim() ? 'venue-field--missing' : ''}`}>
+            <span className="venue-label">
+              Venue <span className="venue-required" aria-hidden="true">*</span>
+              <span className="sr-only">(required)</span>
+            </span>
             <input
               type="text"
               value={venue}
               onChange={(event) => setVenue(event.target.value)}
-              placeholder="Venue or ground"
+              placeholder="e.g. Melbourne Cricket Ground"
+              required
+              aria-required="true"
+              aria-invalid={!venue.trim()}
             />
+            {!venue.trim() && (
+              <span className="venue-hint">
+                Required — needed so this match shows up in venue stats.
+              </span>
+            )}
           </label>
           <label>
             Match Label

@@ -8,9 +8,7 @@ import {
   FaTimes,
   FaEye,
   FaTrophy,
-  FaChartLine,
-  FaMapMarkerAlt,
-  FaSearch
+  FaChartLine
 } from 'react-icons/fa';
 import '../css/StatsOverview.css';
 import { API_ENDPOINTS } from "../const";
@@ -28,12 +26,6 @@ const StatsOverview = () => {
   const [modalData, setModalData] = useState(null);
   const [modalTitle, setModalTitle] = useState('');
   const [modalViewType, setModalViewType] = useState('batting'); // 'batting' | 'bowling' - forces view when opened from economy
-
-  // League-only venue stats (excludes WC / playoff / tournament-tagged matches)
-  const [venueStats, setVenueStats] = useState([]);
-  const [venueStatsLoading, setVenueStatsLoading] = useState(true);
-  const [venueStatsError, setVenueStatsError] = useState(null);
-  const [venueSearchQuery, setVenueSearchQuery] = useState('');
 
   // Helper function to get team abbreviation
   const getTeamAbbreviation = (teamName) => {
@@ -90,29 +82,6 @@ const StatsOverview = () => {
     };
 
     fetchStats();
-  }, []);
-
-  // Fetch league-only venue aggregates
-  useEffect(() => {
-    const fetchVenueStats = async () => {
-      try {
-        const response = await fetch(
-          `${API_ENDPOINTS}/api/player-stats/venue-aggregate?scope=league`
-        );
-        if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-        const data = await response.json();
-        setVenueStats(Array.isArray(data?.venues) ? data.venues : []);
-      } catch (err) {
-        console.error('Error fetching venue stats:', err);
-        setVenueStatsError(err.message || 'Failed to load venue stats');
-      } finally {
-        setVenueStatsLoading(false);
-      }
-    };
-
-    fetchVenueStats();
   }, []);
 
   // Function to handle opening detailed modal
@@ -794,96 +763,6 @@ const StatsOverview = () => {
             </ul>
           </div>
         </div>
-      </div>
-
-      {/* Venue Performance (League matches only) */}
-      <div className="top-performers-section fade-in-up venue-stats-section">
-        <div className="venue-stats-header">
-          <h2 className="performance-section-title" style={{ marginBottom: 0 }}>
-            <FaMapMarkerAlt /> Venue Performance
-            <span className="venue-stats-scope-badge">League</span>
-          </h2>
-          {venueStats.length > 0 && (
-            <div className="venue-stats-search">
-              <FaSearch className="venue-stats-search-icon" />
-              <input
-                type="text"
-                placeholder="Search venue..."
-                value={venueSearchQuery}
-                onChange={(e) => setVenueSearchQuery(e.target.value)}
-              />
-            </div>
-          )}
-        </div>
-
-        {venueStatsLoading ? (
-          <div className="venue-stats-empty">Loading venue data…</div>
-        ) : venueStatsError ? (
-          <div className="venue-stats-empty error">{venueStatsError}</div>
-        ) : venueStats.length === 0 ? (
-          <div className="venue-stats-empty">
-            No venue data yet. Upload a regular league scorecard with a venue via the OCR Extractor.
-          </div>
-        ) : (
-          (() => {
-            const q = venueSearchQuery.trim().toLowerCase();
-            const filtered = !q
-              ? venueStats
-              : venueStats.filter((v) => (v.venue || '').toLowerCase().includes(q));
-            if (!filtered.length) {
-              return <div className="venue-stats-empty">No venues match "{venueSearchQuery}".</div>;
-            }
-            const ballsToOvers = (balls) => {
-              if (!balls) return '0';
-              const overs = Math.floor(balls / 6);
-              const rem = balls % 6;
-              return rem ? `${overs}.${rem}` : `${overs}`;
-            };
-            return (
-              <div className="venue-stats-grid">
-                {filtered.map((v) => (
-                  <div key={v.venue} className="venue-stats-card">
-                    <div className="venue-stats-card-head">
-                      <FaMapMarkerAlt className="venue-stats-pin" />
-                      <div className="venue-stats-name" title={v.venue}>{v.venue}</div>
-                      <span className="venue-stats-inn-badge">
-                        {v.matches} {v.matches === 1 ? 'inn' : 'inns'}
-                      </span>
-                    </div>
-
-                    <div className="venue-stats-tiles">
-                      <div className="venue-stats-tile bat">
-                        <span className="venue-stats-tile-label">RUNS</span>
-                        <span className="venue-stats-tile-value">{v.batting?.runs ?? 0}</span>
-                        <span className="venue-stats-tile-meta">
-                          {v.batting?.balls ?? 0} balls · SR {v.batting?.strikeRate ?? 0}
-                        </span>
-                      </div>
-                      <div className="venue-stats-tile bowl">
-                        <span className="venue-stats-tile-label">WICKETS</span>
-                        <span className="venue-stats-tile-value">{v.bowling?.wickets ?? 0}</span>
-                        <span className="venue-stats-tile-meta">
-                          {ballsToOvers(v.bowling?.ballsBowled || 0)} ov · Eco {v.bowling?.economy ?? 0}
-                        </span>
-                      </div>
-                    </div>
-
-                    {(!!v.batting?.fours || !!v.batting?.sixes) && (
-                      <div className="venue-stats-pills">
-                        {!!v.batting?.fours && (
-                          <span className="venue-stats-pill four">{v.batting.fours} × 4s</span>
-                        )}
-                        {!!v.batting?.sixes && (
-                          <span className="venue-stats-pill six">{v.batting.sixes} × 6s</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          })()
-        )}
       </div>
 
       {/* Player Details Modal */}

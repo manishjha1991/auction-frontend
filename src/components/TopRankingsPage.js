@@ -8,6 +8,7 @@ import {
   FaCrown,
   FaTrophy,
   FaChartLine,
+  FaMapMarkerAlt,
 } from 'react-icons/fa';
 import '../css/TopRankingsPage.css';
 import { API_ENDPOINTS } from '../const';
@@ -84,6 +85,49 @@ const SpotlightCard = ({ title, subtitle, player, statLine, accentClass, icon })
           </div>
           <p className="rk-spot-stat">{statLine}</p>
           {subtitle ? <p className="rk-spot-sub">{subtitle}</p> : null}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const VenueSpotlightCard = ({
+  title,
+  subtitle,
+  venue,
+  statLine,
+  metaLine,
+  accentClass,
+  icon,
+}) => {
+  if (!venue) {
+    return (
+      <div className={`rk-spot-card rk-spot-card--empty ${accentClass}`}>
+        <p className="rk-spot-eyebrow">
+          {icon}
+          {title}
+        </p>
+        <p className="rk-spot-empty">No venue data yet</p>
+      </div>
+    );
+  }
+  return (
+    <div className={`rk-spot-card rk-spot-card--venue ${accentClass}`}>
+      <p className="rk-spot-eyebrow">
+        {icon}
+        {title}
+      </p>
+      <div className="rk-spot-body rk-spot-body--venue">
+        <div className="rk-spot-venue-pin" aria-hidden>
+          <FaMapMarkerAlt />
+        </div>
+        <div className="rk-spot-meta">
+          <h3 className="rk-spot-name rk-spot-venue-name" title={venue.venue}>
+            {venue.venue}
+          </h3>
+          <p className="rk-spot-stat">{statLine}</p>
+          {metaLine ? <p className="rk-spot-sub">{metaLine}</p> : null}
+          {subtitle ? <p className="rk-spot-sub rk-spot-sub--soft">{subtitle}</p> : null}
         </div>
       </div>
     </div>
@@ -269,6 +313,23 @@ const TopRankingsPage = () => {
   const [error, setError] = useState(null);
   const [fetchedAt, setFetchedAt] = useState(null);
   const [activeCategory, setActiveCategory] = useState('batting');
+  const [venueAggregates, setVenueAggregates] = useState([]);
+
+  useEffect(() => {
+    const fetchVenueAggregates = async () => {
+      try {
+        const response = await fetch(
+          `${API_ENDPOINTS}/api/player-stats/venue-aggregate?scope=all`
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+        setVenueAggregates(Array.isArray(data?.venues) ? data.venues : []);
+      } catch (_) {
+        // Spotlight is best-effort; silent on failure so it doesn't block rankings.
+      }
+    };
+    fetchVenueAggregates();
+  }, []);
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -368,6 +429,28 @@ const TopRankingsPage = () => {
     if (!withWkts.length) return null;
     return [...withWkts].sort((a, b) => b.totalWickets - a.totalWickets)[0];
   }, [players]);
+
+  const runFactoryVenue = useMemo(() => {
+    if (!venueAggregates.length) return null;
+    const withRuns = venueAggregates.filter(
+      (v) => Number(v?.batting?.runs) > 0
+    );
+    if (!withRuns.length) return null;
+    return [...withRuns].sort(
+      (a, b) => (b.batting?.runs || 0) - (a.batting?.runs || 0)
+    )[0];
+  }, [venueAggregates]);
+
+  const wicketGraveyardVenue = useMemo(() => {
+    if (!venueAggregates.length) return null;
+    const withWkts = venueAggregates.filter(
+      (v) => Number(v?.bowling?.wickets) > 0
+    );
+    if (!withWkts.length) return null;
+    return [...withWkts].sort(
+      (a, b) => (b.bowling?.wickets || 0) - (a.bowling?.wickets || 0)
+    )[0];
+  }, [venueAggregates]);
 
   const { mvpPlayer, mvpByMom } = useMemo(() => {
     if (!players.length) return { mvpPlayer: null, mvpByMom: false };
@@ -497,6 +580,48 @@ const TopRankingsPage = () => {
                 }
                 accentClass="rk-spot-card--mvp"
                 icon={<FaChartLine aria-hidden />}
+              />
+              <VenueSpotlightCard
+                title="Run Factory"
+                subtitle="Highest-scoring ground"
+                venue={runFactoryVenue}
+                statLine={
+                  runFactoryVenue
+                    ? `${formatMetricValue(runFactoryVenue.batting?.runs || 0)} runs scored`
+                    : ''
+                }
+                metaLine={
+                  runFactoryVenue
+                    ? `${formatMetricValue(runFactoryVenue.matches || 0)} ${
+                        (runFactoryVenue.matches || 0) === 1 ? 'match' : 'matches'
+                      } · ${formatMetricValue(
+                        runFactoryVenue.bowling?.wickets || 0
+                      )} wkts taken`
+                    : ''
+                }
+                accentClass="rk-spot-card--run-factory"
+                icon={<FaFireAlt aria-hidden />}
+              />
+              <VenueSpotlightCard
+                title="Bowler's Paradise"
+                subtitle="Most wickets fallen at one ground"
+                venue={wicketGraveyardVenue}
+                statLine={
+                  wicketGraveyardVenue
+                    ? `${formatMetricValue(wicketGraveyardVenue.bowling?.wickets || 0)} wickets fallen`
+                    : ''
+                }
+                metaLine={
+                  wicketGraveyardVenue
+                    ? `${formatMetricValue(wicketGraveyardVenue.matches || 0)} ${
+                        (wicketGraveyardVenue.matches || 0) === 1 ? 'match' : 'matches'
+                      } · ${formatMetricValue(
+                        wicketGraveyardVenue.batting?.runs || 0
+                      )} runs scored`
+                    : ''
+                }
+                accentClass="rk-spot-card--paradise"
+                icon={<FaBowlingBall aria-hidden />}
               />
             </div>
           </section>

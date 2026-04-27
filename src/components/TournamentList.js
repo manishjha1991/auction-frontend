@@ -3203,7 +3203,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                     flex: '0 0 auto',
                                   }}
                                 >
-                                  {v.matches} {v.matches === 1 ? 'inn' : 'inns'}
+                                  {v.matches} {v.matches === 1 ? 'match' : 'matches'}
                                 </span>
                               </div>
 
