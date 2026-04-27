@@ -403,7 +403,28 @@ const OcrExtractor = () => {
   const [globalError, setGlobalError] = useState('');
   const [toast, setToast] = useState(null);
   const [isPlayoff, setIsPlayoff] = useState(false);
+  // wcStage is mutually exclusive: 'super8' | 'semi' | 'final' | '' (no WC)
+  const [wcStage, setWcStage] = useState('');
+  const [tournaments, setTournaments] = useState([]);
+  const [tournamentsLoading, setTournamentsLoading] = useState(false);
+  const [tournamentId, setTournamentId] = useState('');
   const enhancedUrlRef = useRef({});
+
+  const isWc = !!wcStage;
+
+  // The WC stage card is gated on having at least one running tournament.
+  // Admins activate tournaments however they like (name varies — "T20 World Cup",
+  // "WorldCup 2026", "Super 8 Cup", etc.), so we don't try to match the name.
+  // Tournaments here are already pre-filtered to `status === 'running'`,
+  // and tournaments matching common WC keywords are surfaced first.
+  const wcTournaments = useMemo(() => {
+    if (!tournaments.length) return [];
+    const isWcLike = (tn) => /world\s*cup|\bwc\b/.test((tn?.name || '').toLowerCase());
+    const wcLike = tournaments.filter(isWcLike);
+    const others = tournaments.filter((tn) => !isWcLike(tn));
+    return [...wcLike, ...others];
+  }, [tournaments]);
+  const hasActiveWorldCup = wcTournaments.length > 0;
 
   // Auto-dismiss toast after 5 seconds
   useEffect(() => {
@@ -457,6 +478,66 @@ const OcrExtractor = () => {
     };
     fetchRoster();
   }, [currentUserId]);
+
+  useEffect(() => {
+    const fetchTournaments = async () => {
+      setTournamentsLoading(true);
+      try {
+        const headers = {};
+        if (currentUserId) headers['user-id'] = currentUserId;
+        const res = await fetch(`${API_ENDPOINTS}/api/tournaments?limit=100`, { headers });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.tournaments)
+          ? data.tournaments
+          : [];
+        // Strict "running only": surface a tournament if EITHER
+        //   1. status === 'running', OR
+        //   2. current time is within [startDate, endDate]
+        // (rule #2 covers the case where the stored status is stale because
+        // it's only recomputed on .save()).
+        const now = Date.now();
+        const selectable = list.filter((tn) => {
+          if (!tn) return false;
+          if (tn.status === 'running') return true;
+          const start = tn.startDate ? new Date(tn.startDate).getTime() : null;
+          const end = tn.endDate ? new Date(tn.endDate).getTime() : null;
+          if (start && end && start <= now && now <= end) return true;
+          return false;
+        });
+        // Most-recently-started first.
+        selectable.sort((a, b) => {
+          const ad = a?.startDate ? new Date(a.startDate).getTime() : 0;
+          const bd = b?.startDate ? new Date(b.startDate).getTime() : 0;
+          return bd - ad;
+        });
+        setTournaments(selectable);
+      } catch (err) {
+        console.error('Failed to load tournaments', err);
+      } finally {
+        setTournamentsLoading(false);
+      }
+    };
+    fetchTournaments();
+  }, [currentUserId]);
+
+  // If no active World Cup tournament exists, force-clear any WC selection so
+  // the user can't accidentally submit WC-tagged entries.
+  useEffect(() => {
+    if (!hasActiveWorldCup) {
+      if (wcStage) setWcStage('');
+      if (tournamentId) setTournamentId('');
+    }
+  }, [hasActiveWorldCup, wcStage, tournamentId]);
+
+  // Reset tournament selection if WC is unticked
+  useEffect(() => {
+    if (!isWc) {
+      setTournamentId('');
+    }
+  }, [isWc]);
 
   useEffect(() => {
     const fetchFixtures = async () => {
@@ -1305,6 +1386,11 @@ const OcrExtractor = () => {
       return;
     }
 
+    if (isWc && !tournamentId) {
+      setGlobalError('Pick a tournament before saving as a World Cup score (Super 8 / Semi / Final).');
+      return;
+    }
+
     setSaving(true);
     setGlobalError('');
     setSaveMessage('');
@@ -1330,6 +1416,10 @@ const OcrExtractor = () => {
           wicketsTaken: entry.bowlingStats?.wickets ?? 0,
           isMom: entry.isMom || false,
           isPlayoffScore: isPlayoff,
+          isWcScore: isWc,
+          wcStage: isWc ? wcStage : null,
+          tournamentId: isWc ? tournamentId : null,
+          venue: venue || null,
           economy: entry.bowlingStats?.economy ?? null,
           extras: entry.bowlingStats?.extras ?? null,
           matchName,
@@ -1365,6 +1455,10 @@ const OcrExtractor = () => {
           wicketsTaken: entry.bowlingStats?.wickets ?? 0,
           isMom: entry.isMom || false,
           isPlayoffScore: isPlayoff,
+          isWcScore: isWc,
+          wcStage: isWc ? wcStage : null,
+          tournamentId: isWc ? tournamentId : null,
+          venue: venue || null,
           economy: entry.bowlingStats?.economy ?? null,
           extras: entry.bowlingStats?.extras ?? null,
           matchName,
@@ -1426,6 +1520,9 @@ const OcrExtractor = () => {
     cardState.opponentBowling,
     currentUserId,
     isPlayoff,
+    isWc,
+    wcStage,
+    tournamentId,
     matchLabel,
     opponentPlayerEntries,
     opponentTeamName,
@@ -1935,6 +2032,88 @@ const OcrExtractor = () => {
               Count this match as a playoff score
             </span>
           </label>
+
+          {hasActiveWorldCup && (
+            <div className="wc-stage-card" role="group" aria-label="World Cup stage selector">
+              <div className="wc-stage-card__header">
+                <div className="wc-stage-card__title">
+                  <span className="wc-stage-card__icon" aria-hidden>🌍</span>
+                  <span>World Cup stage</span>
+                  <span className="wc-stage-card__live-dot" aria-hidden />
+                </div>
+                {isWc && (
+                  <button
+                    type="button"
+                    className="wc-stage-card__clear"
+                    onClick={() => {
+                      setWcStage('');
+                      setTournamentId('');
+                    }}
+                    aria-label="Clear World Cup selection"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <div className="wc-stage-card__hint">
+                Tag this match against a stage. Leave unselected for regular matches.
+              </div>
+
+              <div className="wc-stage-card__pills" role="radiogroup" aria-label="World Cup stage">
+                {[
+                  { value: 'super8', label: 'Super 8', icon: '8️⃣' },
+                  { value: 'semi', label: 'Semi-Final', icon: '🥈' },
+                  { value: 'final', label: 'Final', icon: '🏆' },
+                ].map((opt) => {
+                  const checked = wcStage === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={checked}
+                      className={`wc-stage-pill${checked ? ' is-active' : ''}`}
+                      onClick={() => setWcStage(checked ? '' : opt.value)}
+                    >
+                      <span className="wc-stage-pill__icon" aria-hidden>{opt.icon}</span>
+                      <span className="wc-stage-pill__label">{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {isWc && (
+                <div className="wc-stage-card__tournament">
+                  <label className="wc-stage-card__field-label" htmlFor="wc-tournament-id">
+                    Tournament <span className="wc-stage-card__required">*</span>
+                  </label>
+                  {tournamentsLoading ? (
+                    <div className="wc-stage-card__muted">Loading tournaments…</div>
+                  ) : wcTournaments.length === 0 ? (
+                    <div className="wc-stage-card__muted">No running tournament.</div>
+                  ) : (
+                    <select
+                      id="wc-tournament-id"
+                      className="wc-stage-card__select"
+                      value={tournamentId}
+                      onChange={(event) => setTournamentId(event.target.value)}
+                    >
+                      <option value="">Select tournament</option>
+                      {wcTournaments.map((tn) => (
+                        <option key={tn._id} value={tn._id}>
+                          {tn.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <div className="wc-stage-card__field-help">
+                    Required so the same opponent in different tournaments stays as separate entries.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         <div className="roster-hint">

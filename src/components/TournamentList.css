@@ -1663,6 +1663,13 @@
     min-width: 120px;
   }
 
+  .venue-stats-content .venue-stats-grid {
+    gap: 0.6rem !important;
+  }
+  .venue-stats-content h3 {
+    font-size: 1rem;
+  }
+
   .tournament-detail-tab-content {
     padding: 15px;
     flex: 1;
@@ -1887,6 +1894,11 @@
     padding: 10px 12px;
     font-size: 0.85rem;
     min-width: 100px;
+  }
+
+  .venue-stats-content .venue-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.55rem !important;
   }
 
   .tournament-detail-tab-content {

@@ -189,6 +189,244 @@
   text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
 }
 
+.playoff-checkbox-wrapper.wc-accent.checked,
+.playoff-checkbox-wrapper.wc-accent:has(input:checked) {
+  background: linear-gradient(135deg, rgba(82, 178, 255, 0.18) 0%, rgba(56, 132, 255, 0.12) 100%);
+  border-color: #52b2ff;
+  box-shadow: 0 0 20px rgba(82, 178, 255, 0.3), 0 4px 16px rgba(82, 178, 255, 0.2);
+}
+
+.playoff-checkbox-wrapper.wc-accent.checked .playoff-checkbox-label::before,
+.playoff-checkbox-wrapper.wc-accent:has(input:checked) .playoff-checkbox-label::before {
+  background: linear-gradient(135deg, #52b2ff 0%, #3884ff 100%);
+  border-color: #52b2ff;
+  box-shadow: 0 0 10px rgba(82, 178, 255, 0.5);
+}
+
+.playoff-checkbox-wrapper.wc-accent.checked .playoff-icon,
+.playoff-checkbox-wrapper.wc-accent:has(input:checked) .playoff-icon {
+  filter: drop-shadow(0 2px 8px rgba(82, 178, 255, 0.6));
+}
+
+.playoff-checkbox-wrapper.wc-accent.checked .playoff-checkbox-label,
+.playoff-checkbox-wrapper.wc-accent:has(input:checked) .playoff-checkbox-label {
+  color: #52b2ff;
+  text-shadow: 0 0 8px rgba(82, 178, 255, 0.4);
+}
+
+/* ---------- World Cup stage card (redesigned) ---------- */
+.wc-stage-card {
+  --wc-accent: 99 179 255;        /* rgb of accent color */
+  --wc-accent-strong: 56 132 255; /* deeper accent */
+  margin-top: 0.85rem;
+  padding: 0.9rem 1rem 1rem;
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(var(--wc-accent), 0.18), transparent 55%),
+    radial-gradient(120% 120% at 100% 100%, rgba(var(--wc-accent-strong), 0.12), transparent 60%),
+    rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(var(--wc-accent), 0.28);
+  box-shadow: 0 6px 20px -12px rgba(var(--wc-accent-strong), 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  color: #e7f0ff;
+}
+
+.wc-stage-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.wc-stage-card__title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 700;
+  font-size: 0.98rem;
+  letter-spacing: 0.01em;
+}
+
+.wc-stage-card__icon {
+  font-size: 1.05rem;
+}
+
+.wc-stage-card__live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+  animation: wcLivePulse 1.6s ease-out infinite;
+}
+
+@keyframes wcLivePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }
+  70%  { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+
+.wc-stage-card__clear {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.wc-stage-card__clear:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #fff;
+}
+
+.wc-stage-card__hint {
+  font-size: 0.8rem;
+  color: #93b6e0;
+  line-height: 1.35;
+}
+
+.wc-stage-card__pills {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.wc-stage-pill {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cfe0ff;
+  border-radius: 12px;
+  padding: 0.6rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+  line-height: 1.1;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease,
+              color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.wc-stage-pill:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(var(--wc-accent), 0.45);
+  color: #fff;
+}
+
+.wc-stage-pill:active {
+  transform: scale(0.97);
+}
+
+.wc-stage-pill.is-active {
+  background: linear-gradient(135deg, rgba(var(--wc-accent), 0.95), rgba(var(--wc-accent-strong), 0.95));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 8px 18px -8px rgba(var(--wc-accent-strong), 0.6);
+}
+
+.wc-stage-pill__icon {
+  font-size: 1.1rem;
+}
+
+.wc-stage-pill__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.wc-stage-card__tournament {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-top: 0.65rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.wc-stage-card__field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #d8e6ff;
+}
+
+.wc-stage-card__required {
+  color: #fda4af;
+  margin-left: 2px;
+}
+
+.wc-stage-card__select {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--wc-accent), 0.42);
+  background: rgba(8, 14, 30, 0.75);
+  color: #fff;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wc-stage-card__select:focus {
+  border-color: rgba(var(--wc-accent), 0.85);
+  box-shadow: 0 0 0 3px rgba(var(--wc-accent), 0.18);
+}
+
+.wc-stage-card__field-help {
+  font-size: 0.74rem;
+  color: #8aa8d6;
+  line-height: 1.4;
+}
+
+.wc-stage-card__muted {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  padding: 0.4rem 0;
+}
+
+@media (max-width: 520px) {
+  .wc-stage-card {
+    padding: 0.8rem 0.85rem 0.9rem;
+    border-radius: 14px;
+  }
+  .wc-stage-card__title { font-size: 0.92rem; }
+  .wc-stage-card__hint { font-size: 0.75rem; }
+  .wc-stage-card__pills { gap: 0.4rem; }
+  .wc-stage-pill {
+    padding: 0.55rem 0.4rem;
+    border-radius: 10px;
+  }
+  .wc-stage-pill__icon { font-size: 1rem; }
+  .wc-stage-pill__label { font-size: 0.7rem; letter-spacing: 0.015em; }
+  .wc-stage-card__select { font-size: 0.9rem; padding: 0.55rem 0.65rem; }
+  .wc-stage-card__clear { padding: 0.25rem 0.55rem; font-size: 0.72rem; }
+}
+
+@media (max-width: 360px) {
+  .wc-stage-card__pills {
+    grid-template-columns: 1fr;
+  }
+  .wc-stage-pill {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.55rem;
+    padding: 0.55rem 0.7rem;
+  }
+  .wc-stage-pill__icon { font-size: 0.95rem; }
+}
+
 .roster-hint {
   margin-bottom: 1.25rem;
   padding: 0.65rem 1rem;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../const';
-import { FaCalendarAlt, FaUsers, FaTrophy, FaEdit, FaTrash, FaPlus, FaImage, FaTimes, FaTable, FaList, FaSearch } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaTrophy, FaEdit, FaTrash, FaPlus, FaImage, FaTimes, FaTable, FaList, FaSearch, FaMapMarkerAlt } from 'react-icons/fa';
 import './TournamentList.css';
 import { useToast } from './ToastNotification';
 
@@ -79,7 +79,7 @@ const TournamentList = () => {
         throw new Error('User not authenticated - no user ID found');
       }
       
-      const response = await fetch(`${API_ENDPOINTS}/api/tournaments?limit=100`, {
+      const response = await fetch(`${API_ENDPOINTS}/api/tournaments?limit=100&includeInactive=true`, {
         headers: {
           'user-id': userId
         }
@@ -1292,6 +1292,14 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
   const [pointTable, setPointTable] = useState([]);
   const [loadingFixtures, setLoadingFixtures] = useState(false);
   const [loadingPointTable, setLoadingPointTable] = useState(false);
+  const [wcStats, setWcStats] = useState([]);
+  const [loadingWcStats, setLoadingWcStats] = useState(false);
+  const [wcStatsError, setWcStatsError] = useState('');
+  const [wcSearchQuery, setWcSearchQuery] = useState('');
+  const [venueStats, setVenueStats] = useState([]);
+  const [loadingVenueStats, setLoadingVenueStats] = useState(false);
+  const [venueStatsError, setVenueStatsError] = useState('');
+  const [venueSearchQuery, setVenueSearchQuery] = useState('');
   const [showEditFixtureModal, setShowEditFixtureModal] = useState(false);
   const [editingFixture, setEditingFixture] = useState(null);
   const [roundRobinStatus, setRoundRobinStatus] = useState(null);
@@ -1728,6 +1736,50 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     }
   };
 
+  const fetchWcStats = async () => {
+    setLoadingWcStats(true);
+    setWcStatsError('');
+    try {
+      const response = await fetch(
+        `${API_ENDPOINTS}/api/player-stats/wc-stats?tournamentId=${tournament._id}`
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to load WC stats');
+      }
+      const data = await response.json();
+      setWcStats(Array.isArray(data.players) ? data.players : []);
+    } catch (error) {
+      console.error('Error fetching WC stats:', error);
+      setWcStatsError(error.message || 'Failed to load WC stats');
+      setWcStats([]);
+    } finally {
+      setLoadingWcStats(false);
+    }
+  };
+
+  const fetchVenueStats = async () => {
+    setLoadingVenueStats(true);
+    setVenueStatsError('');
+    try {
+      const response = await fetch(
+        `${API_ENDPOINTS}/api/player-stats/venue-aggregate?tournamentId=${tournament._id}`
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to load venue stats');
+      }
+      const data = await response.json();
+      setVenueStats(Array.isArray(data.venues) ? data.venues : []);
+    } catch (error) {
+      console.error('Error fetching venue stats:', error);
+      setVenueStatsError(error.message || 'Failed to load venue stats');
+      setVenueStats([]);
+    } finally {
+      setLoadingVenueStats(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'fixtures') {
       fetchFixtures();
@@ -1735,6 +1787,10 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     } else if (activeTab === 'points') {
       fetchPointTable();
       fetchRoundRobinStatus(); // Also check status for point table to show Q/E icons
+    } else if (activeTab === 'wc-stats') {
+      fetchWcStats();
+    } else if (activeTab === 'venue-stats') {
+      fetchVenueStats();
     }
   }, [activeTab]);
 
@@ -1768,6 +1824,18 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
               onClick={() => setActiveTab('fixtures')}
             >
               <FaList /> Fixtures
+            </button>
+            <button
+              className={activeTab === 'wc-stats' ? 'active' : ''}
+              onClick={() => setActiveTab('wc-stats')}
+            >
+              <FaTrophy /> WC Stats
+            </button>
+            <button
+              className={activeTab === 'venue-stats' ? 'active' : ''}
+              onClick={() => setActiveTab('venue-stats')}
+            >
+              <FaMapMarkerAlt /> Venues
             </button>
             {isAdmin && (
               <button 
@@ -2808,6 +2876,398 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                       </tbody>
                     </table>
                   </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'wc-stats' && (
+              <div className="wc-stats-content" style={{ padding: '0.5rem 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <h3 style={{ margin: 0 }}>World Cup Player Stats</h3>
+                  <div style={{ position: 'relative', flex: '0 1 320px' }}>
+                    <FaSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontSize: '0.95rem' }} />
+                    <input
+                      type="text"
+                      placeholder="Search player or team..."
+                      value={wcSearchQuery}
+                      onChange={(e) => setWcSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px 10px 38px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '10px',
+                        fontSize: '0.95rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {loadingWcStats ? (
+                  <div className="loading">Loading WC stats...</div>
+                ) : wcStatsError ? (
+                  <div style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: '#fee2e2', color: '#991b1b' }}>
+                    {wcStatsError}
+                  </div>
+                ) : wcStats.length === 0 ? (
+                  <div style={{ padding: '1.25rem', borderRadius: '10px', background: '#f9fafb', color: '#4b5563' }}>
+                    No World Cup scorecards uploaded yet. Open OCR Extractor, tick the
+                    {' '}<strong>World Cup (Super 8) score</strong>{' '}
+                    checkbox, and submit a scorecard to start populating this list.
+                  </div>
+                ) : (
+                  (() => {
+                    const query = wcSearchQuery.trim().toLowerCase();
+                    const stageNameMap = { super8: 'super 8 super8', semi: 'semi semi-final', final: 'final' };
+                    const filtered = !query
+                      ? wcStats
+                      : wcStats.filter(
+                          (p) =>
+                            p.name?.toLowerCase().includes(query) ||
+                            p.team?.toLowerCase().includes(query) ||
+                            (p.matches || []).some((m) =>
+                              m.opponent?.toLowerCase().includes(query) ||
+                              (m.wcStage && stageNameMap[m.wcStage]?.includes(query))
+                            )
+                        );
+
+                    if (!filtered.length) {
+                      return (
+                        <div style={{ padding: '1rem', borderRadius: '10px', background: '#f9fafb', color: '#4b5563' }}>
+                          No players match "{wcSearchQuery}".
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+                        {filtered.map((player) => (
+                          <div
+                            key={player.playerId}
+                            style={{
+                              border: '2px solid #e5e7eb',
+                              borderRadius: '14px',
+                              padding: '1rem',
+                              background: 'linear-gradient(135deg, rgba(82,178,255,0.06), rgba(56,132,255,0.04))'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1f2937' }}>{player.name}</div>
+                                <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                                  {player.team || 'Unknown team'}{player.role ? ` · ${player.role}` : ''}
+                                </div>
+                              </div>
+                              {player.totals.mom > 0 && (
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '3px 8px',
+                                  borderRadius: '999px',
+                                  background: '#fef3c7',
+                                  color: '#92400e',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600
+                                }}>
+                                  <FaTrophy /> {player.totals.mom} MoM
+                                </span>
+                              )}
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                              <span style={{ padding: '4px 10px', borderRadius: '8px', background: '#dbeafe', color: '#1e40af', fontSize: '0.8rem', fontWeight: 600 }}>
+                                {player.totals.runs} runs
+                              </span>
+                              <span style={{ padding: '4px 10px', borderRadius: '8px', background: '#dcfce7', color: '#166534', fontSize: '0.8rem', fontWeight: 600 }}>
+                                {player.totals.wickets} wkts
+                              </span>
+                              <span style={{ padding: '4px 10px', borderRadius: '8px', background: '#f3f4f6', color: '#374151', fontSize: '0.8rem', fontWeight: 600 }}>
+                                {player.totals.matches} {player.totals.matches === 1 ? 'match' : 'matches'}
+                              </span>
+                            </div>
+
+                            <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '0.5rem' }}>
+                              {(player.matches || []).map((match, idx) => {
+                                const battedSomething = match.runs > 0 || match.balls > 0;
+                                const bowledSomething = match.wickets > 0 || match.ballsBowled > 0 || match.runsGiven > 0;
+                                const stageMeta = {
+                                  super8: { label: 'Super 8', bg: '#e0e7ff', fg: '#3730a3' },
+                                  semi: { label: 'Semi', bg: '#fce7f3', fg: '#9d174d' },
+                                  final: { label: 'Final', bg: '#fef3c7', fg: '#92400e' },
+                                }[match.wcStage] || null;
+                                return (
+                                  <div
+                                    key={match.statId || idx}
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      gap: '0.5rem',
+                                      padding: '0.4rem 0',
+                                      borderBottom: idx === player.matches.length - 1 ? 'none' : '1px dashed #e5e7eb',
+                                      fontSize: '0.85rem'
+                                    }}
+                                  >
+                                    <div style={{ color: '#374151', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                      {stageMeta && (
+                                        <span
+                                          style={{
+                                            padding: '2px 8px',
+                                            borderRadius: '999px',
+                                            background: stageMeta.bg,
+                                            color: stageMeta.fg,
+                                            fontSize: '0.7rem',
+                                            fontWeight: 700,
+                                            letterSpacing: '0.02em',
+                                            textTransform: 'uppercase'
+                                          }}
+                                        >
+                                          {stageMeta.label}
+                                        </span>
+                                      )}
+                                      <span>vs <strong>{match.opponent}</strong></span>
+                                      {match.isMom && <span style={{ color: '#92400e' }}>★</span>}
+                                      {match.venue && (
+                                        <span
+                                          title={match.venue}
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            padding: '2px 6px',
+                                            borderRadius: '6px',
+                                            background: '#f3f4f6',
+                                            color: '#4b5563',
+                                            fontSize: '0.7rem',
+                                            fontWeight: 500,
+                                            maxWidth: '140px',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                          }}
+                                        >
+                                          <FaMapMarkerAlt style={{ fontSize: '0.65rem' }} />
+                                          {match.venue}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div style={{ color: '#4b5563', display: 'flex', gap: '8px' }}>
+                                      {battedSomething && (
+                                        <span>{match.runs}({match.balls})</span>
+                                      )}
+                                      {bowledSomething && (
+                                        <span>{match.wickets}/{match.runsGiven}</span>
+                                      )}
+                                      {!battedSomething && !bowledSomething && (
+                                        <span style={{ color: '#9ca3af' }}>—</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()
+                )}
+              </div>
+            )}
+
+            {activeTab === 'venue-stats' && (
+              <div className="venue-stats-content" style={{ padding: '0.5rem 0' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FaMapMarkerAlt style={{ color: '#ef4444' }} />
+                    Venue Stats
+                  </h3>
+                  <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '320px' }}>
+                    <FaSearch
+                      style={{
+                        position: 'absolute',
+                        left: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#6b7280',
+                        fontSize: '0.95rem',
+                      }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search venue..."
+                      value={venueSearchQuery}
+                      onChange={(e) => setVenueSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px 10px 38px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '10px',
+                        fontSize: '0.95rem',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {loadingVenueStats ? (
+                  <div className="loading">Loading venue stats...</div>
+                ) : venueStatsError ? (
+                  <div style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: '#fee2e2', color: '#991b1b' }}>
+                    {venueStatsError}
+                  </div>
+                ) : venueStats.length === 0 ? (
+                  <div style={{ padding: '1.25rem', borderRadius: '10px', background: '#f9fafb', color: '#4b5563' }}>
+                    No venue data yet. Upload a scorecard with the venue field filled in via the
+                    {' '}<strong>OCR Extractor</strong>{' '}
+                    to start tracking per-ground performance for this tournament.
+                  </div>
+                ) : (
+                  (() => {
+                    const query = venueSearchQuery.trim().toLowerCase();
+                    const filtered = !query
+                      ? venueStats
+                      : venueStats.filter((v) => (v.venue || '').toLowerCase().includes(query));
+
+                    if (!filtered.length) {
+                      return (
+                        <div style={{ padding: '1rem', borderRadius: '10px', background: '#f9fafb', color: '#4b5563' }}>
+                          No venues match "{venueSearchQuery}".
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        className="venue-stats-grid"
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
+                          gap: '0.85rem',
+                        }}
+                      >
+                        {filtered.map((v) => {
+                          const ballsToOvers = (balls) => {
+                            if (!balls) return '0';
+                            const overs = Math.floor(balls / 6);
+                            const rem = balls % 6;
+                            return rem ? `${overs}.${rem}` : `${overs}`;
+                          };
+                          return (
+                            <div
+                              key={v.venue}
+                              style={{
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '14px',
+                                padding: '0.85rem 0.95rem',
+                                background: 'linear-gradient(135deg, rgba(239,68,68,0.05), rgba(251,146,60,0.04))',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.6rem',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <FaMapMarkerAlt style={{ color: '#ef4444', flex: '0 0 auto' }} />
+                                <div
+                                  style={{
+                                    fontWeight: 700,
+                                    fontSize: '0.98rem',
+                                    color: '#1f2937',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                  title={v.venue}
+                                >
+                                  {v.venue}
+                                </div>
+                                <span
+                                  style={{
+                                    marginLeft: 'auto',
+                                    padding: '2px 8px',
+                                    borderRadius: '999px',
+                                    background: '#f3f4f6',
+                                    color: '#374151',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 600,
+                                    flex: '0 0 auto',
+                                  }}
+                                >
+                                  {v.matches} {v.matches === 1 ? 'inn' : 'inns'}
+                                </span>
+                              </div>
+
+                              <div
+                                style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: '1fr 1fr',
+                                  gap: '0.5rem',
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    background: '#dbeafe',
+                                    color: '#1e40af',
+                                    borderRadius: '10px',
+                                    padding: '0.55rem 0.7rem',
+                                  }}
+                                >
+                                  <div style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: 600 }}>RUNS</div>
+                                  <div style={{ fontSize: '1.15rem', fontWeight: 800, lineHeight: 1.1 }}>
+                                    {v.batting?.runs ?? 0}
+                                  </div>
+                                  <div style={{ fontSize: '0.7rem', opacity: 0.85 }}>
+                                    {v.batting?.balls ?? 0} balls · SR {v.batting?.strikeRate ?? 0}
+                                  </div>
+                                </div>
+                                <div
+                                  style={{
+                                    background: '#dcfce7',
+                                    color: '#166534',
+                                    borderRadius: '10px',
+                                    padding: '0.55rem 0.7rem',
+                                  }}
+                                >
+                                  <div style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: 600 }}>WICKETS</div>
+                                  <div style={{ fontSize: '1.15rem', fontWeight: 800, lineHeight: 1.1 }}>
+                                    {v.bowling?.wickets ?? 0}
+                                  </div>
+                                  <div style={{ fontSize: '0.7rem', opacity: 0.85 }}>
+                                    {ballsToOvers(v.bowling?.ballsBowled || 0)} ov · Eco {v.bowling?.economy ?? 0}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {(v.batting?.fours || v.batting?.sixes) ? (
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                  {!!v.batting?.fours && (
+                                    <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#fef3c7', color: '#92400e', fontSize: '0.72rem', fontWeight: 600 }}>
+                                      {v.batting.fours} × 4s
+                                    </span>
+                                  )}
+                                  {!!v.batting?.sixes && (
+                                    <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#fee2e2', color: '#991b1b', fontSize: '0.72rem', fontWeight: 600 }}>
+                                      {v.batting.sixes} × 6s
+                                    </span>
+                                  )}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()
                 )}
               </div>
             )}
