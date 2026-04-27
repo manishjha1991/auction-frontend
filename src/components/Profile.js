@@ -47,6 +47,11 @@ const Profile = () => {
   // Mobile-first section tabs
   const [activeSection, setActiveSection] = useState('squad');
 
+  // Venue stats (this user's per-venue runs/wickets across all match types)
+  const [venueStats, setVenueStats] = useState([]);
+  const [venueStatsLoading, setVenueStatsLoading] = useState(false);
+  const [venueStatsError, setVenueStatsError] = useState(null);
+
   const updateLocalPurse = (delta) => {
     if (!userData?.user) return;
     const current = parseFloat(userData.user.purse?.["$numberDecimal"] || userData.user.purse || 0);
@@ -124,6 +129,38 @@ const Profile = () => {
   useEffect(() => {
     fetchUserData(true);
   }, []);
+
+  // Lazy-load this user's venue stats when the Venues tab is opened.
+  useEffect(() => {
+    if (activeSection !== 'venues') return;
+    const userIdRaw = userData?.user?._id || userData?.user?.id;
+    if (!userIdRaw) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setVenueStatsLoading(true);
+        setVenueStatsError(null);
+        const response = await fetch(
+          `${API_ENDPOINTS}/api/player-stats/venue-aggregate?scope=all&userId=${userIdRaw}`
+        );
+        if (!response.ok) throw new Error(`Request failed (${response.status})`);
+        const data = await response.json();
+        if (!cancelled) setVenueStats(Array.isArray(data?.venues) ? data.venues : []);
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Error fetching profile venue stats:', err);
+          setVenueStatsError(err.message || 'Failed to load venue stats');
+          setVenueStats([]);
+        }
+      } finally {
+        if (!cancelled) setVenueStatsLoading(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSection, userData?.user?._id, userData?.user?.id]);
 
   useEffect(() => {
     const fetchRetainedPlayers = async () => {
@@ -979,6 +1016,7 @@ const Profile = () => {
     { id: 'past', label: 'Past bids', icon: '📜', count: pastCount },
     ...(retentionEnabled ? [{ id: 'retained', label: 'Retained', icon: '💎', count: retainedCount }] : []),
     { id: 'form', label: 'Recent form', icon: '📈', count: playedMatches.length },
+    { id: 'venues', label: 'Venues', icon: '📍', count: venueStats.length },
   ];
 
   const purseValue = parseFloat(userData.user.purse?.["$numberDecimal"] || userData.user.purse || 0);
@@ -1434,6 +1472,98 @@ const Profile = () => {
               </>
             ) : (
               <p className="up-empty">No matches played yet. Your results will show up here as you play.</p>
+            )}
+          </section>
+        )}
+
+        {/* Venues — per-venue totals across all match types for this user */}
+        {activeSection === 'venues' && (
+          <section className="up-section section">
+            <div className="up-section-head">
+              <h3>📍 Venue performance</h3>
+              <span className="up-section-count">
+                {venueStats.length} {venueStats.length === 1 ? 'venue' : 'venues'}
+              </span>
+            </div>
+
+            {venueStatsLoading ? (
+              <p className="up-empty">Loading venue stats…</p>
+            ) : venueStatsError ? (
+              <p className="up-empty">{venueStatsError}</p>
+            ) : venueStats.length === 0 ? (
+              <p className="up-empty">
+                No venue data yet. Once you upload scorecards with a venue tagged, your per-ground performance will appear here.
+              </p>
+            ) : (
+              (() => {
+                const totalRuns = venueStats.reduce((s, v) => s + (v.batting?.runs || 0), 0);
+                const totalWickets = venueStats.reduce((s, v) => s + (v.bowling?.wickets || 0), 0);
+                const totalInnings = venueStats.reduce((s, v) => s + (v.matches || 0), 0);
+                const ballsToOvers = (balls) => {
+                  if (!balls) return '0';
+                  const overs = Math.floor(balls / 6);
+                  const rem = balls % 6;
+                  return rem ? `${overs}.${rem}` : `${overs}`;
+                };
+                return (
+                  <>
+                    <div className="up-form-summary">
+                      <div className="up-form-stat up-form-stat--won">
+                        <strong>{totalRuns}</strong>
+                        <span>Total runs</span>
+                      </div>
+                      <div className="up-form-stat up-form-stat--lost">
+                        <strong>{totalWickets}</strong>
+                        <span>Total wickets</span>
+                      </div>
+                      <div className="up-form-stat">
+                        <strong>{totalInnings}</strong>
+                        <span>Innings</span>
+                      </div>
+                    </div>
+
+                    <div className="up-venue-grid">
+                      {venueStats.map((v) => (
+                        <div key={v.venue} className="up-venue-card">
+                          <div className="up-venue-head">
+                            <span className="up-venue-pin" aria-hidden>📍</span>
+                            <span className="up-venue-name" title={v.venue}>{v.venue}</span>
+                            <span className="up-venue-inn">
+                              {v.matches} {v.matches === 1 ? 'inn' : 'inns'}
+                            </span>
+                          </div>
+                          <div className="up-venue-tiles">
+                            <div className="up-venue-tile up-venue-tile--bat">
+                              <span className="up-venue-tile-label">Runs</span>
+                              <span className="up-venue-tile-value">{v.batting?.runs ?? 0}</span>
+                              <span className="up-venue-tile-meta">
+                                {v.batting?.balls ?? 0} balls · SR {v.batting?.strikeRate ?? 0}
+                              </span>
+                            </div>
+                            <div className="up-venue-tile up-venue-tile--bowl">
+                              <span className="up-venue-tile-label">Wickets</span>
+                              <span className="up-venue-tile-value">{v.bowling?.wickets ?? 0}</span>
+                              <span className="up-venue-tile-meta">
+                                {ballsToOvers(v.bowling?.ballsBowled || 0)} ov · Eco {v.bowling?.economy ?? 0}
+                              </span>
+                            </div>
+                          </div>
+                          {(!!v.batting?.fours || !!v.batting?.sixes) && (
+                            <div className="up-venue-pills">
+                              {!!v.batting?.fours && (
+                                <span className="up-venue-pill four">{v.batting.fours} × 4s</span>
+                              )}
+                              {!!v.batting?.sixes && (
+                                <span className="up-venue-pill six">{v.batting.sixes} × 6s</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()
             )}
           </section>
         )}
