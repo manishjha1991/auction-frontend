@@ -1498,8 +1498,11 @@ const Profile = () => {
               (() => {
                 const totalRuns = venueStats.reduce((s, v) => s + (v.batting?.runs || 0), 0);
                 const totalWickets = venueStats.reduce((s, v) => s + (v.bowling?.wickets || 0), 0);
-                const totalInnings = venueStats.reduce((s, v) => s + (v.innings || v.matches || 0), 0);
                 const totalMatches = venueStats.reduce((s, v) => s + (v.matches || 0), 0);
+                // T20: two team batting innings per completed match (your side + opposition).
+                const teamInningsFor = (v) =>
+                  v.teamInnings != null ? v.teamInnings : (v.matches || 0) * 2;
+                const totalTeamInnings = venueStats.reduce((s, v) => s + teamInningsFor(v), 0);
                 const ballsToOvers = (balls) => {
                   if (!balls) return '0';
                   const overs = Math.floor(balls / 6);
@@ -1522,20 +1525,23 @@ const Profile = () => {
                         <span>{totalMatches === 1 ? 'Match' : 'Matches'}</span>
                       </div>
                       <div className="up-form-stat">
-                        <strong>{totalInnings}</strong>
-                        <span>Innings</span>
+                        <strong>{totalTeamInnings}</strong>
+                        <span>Team innings (T20)</span>
                       </div>
                     </div>
 
                     <div className="up-venue-grid">
-                      {venueStats.map((v) => (
+                      {venueStats.map((v) => {
+                        const ti = teamInningsFor(v);
+                        const m = v.matches || 0;
+                        return (
                         <div key={v.venue} className="up-venue-card">
                           <div className="up-venue-head">
                             <span className="up-venue-pin" aria-hidden>📍</span>
                             <span className="up-venue-name" title={v.venue}>{v.venue}</span>
                             <span className="up-venue-inn">
-                              {(v.innings || v.matches)} {(v.innings || v.matches) === 1 ? 'inn' : 'inns'}
-                              {v.matches ? ` · ${v.matches} ${v.matches === 1 ? 'match' : 'matches'}` : ''}
+                              {ti} team {ti === 1 ? 'inning' : 'innings'}
+                              {m ? ` · ${m} ${m === 1 ? 'match' : 'matches'}` : ''}
                             </span>
                           </div>
                           <div className="up-venue-tiles">
@@ -1565,7 +1571,8 @@ const Profile = () => {
                             </div>
                           )}
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                   </>
                 );
