@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { API_ENDPOINTS } from '../const';
 import {
   FaArrowLeft,
@@ -14,10 +14,46 @@ import {
   FaLongArrowAltDown,
   FaLightbulb,
   FaBalanceScale,
+  FaChevronDown,
 } from 'react-icons/fa';
 import '../css/VenueExplorerPage.css';
 
 const fmt = (n) => (Number.isFinite(n) ? Number(n).toLocaleString() : '0');
+
+const winPct = (wins, games) => (games > 0 ? Math.round((100 * wins) / games) : null);
+
+function BattingOrderSplit({ row }) {
+  const wf = row.winsBattingFirst ?? 0;
+  const ws = row.winsBattingSecond ?? 0;
+  const gf = row.matchesBattingFirst ?? 0;
+  const gs = row.matchesBattingSecond ?? 0;
+  const p1 = winPct(wf, gf);
+  const p2 = winPct(ws, gs);
+  return (
+    <div className="vex-batting-order__grid">
+      <div className="vex-batting-order__card vex-batting-order__card--first">
+        <div className="vex-batting-order__card-k">Batted 1st</div>
+        <div className="vex-batting-order__card-win">
+          <strong>{fmt(wf)}</strong> wins
+        </div>
+        <div className="vex-batting-order__card-meta">
+          {fmt(gf)} games
+          {p1 != null ? ` · ${p1}% win` : ''}
+        </div>
+      </div>
+      <div className="vex-batting-order__card vex-batting-order__card--second">
+        <div className="vex-batting-order__card-k">Batted 2nd</div>
+        <div className="vex-batting-order__card-win">
+          <strong>{fmt(ws)}</strong> wins
+        </div>
+        <div className="vex-batting-order__card-meta">
+          {fmt(gs)} games
+          {p2 != null ? ` · ${p2}% win` : ''}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function VenueExplorerPage() {
   const [list, setList] = useState([]);
@@ -29,6 +65,16 @@ function VenueExplorerPage() {
   const [detailErr, setDetailErr] = useState(null);
   const [insight, setInsight] = useState(null);
   const [insightErr, setInsightErr] = useState(null);
+  const [battingOrderTeamId, setBattingOrderTeamId] = useState('');
+
+  const currentUserId = useMemo(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      return u?.id != null ? String(u.id) : '';
+    } catch {
+      return '';
+    }
+  }, []);
 
   const loadList = useCallback(async () => {
     setListLoading(true);
@@ -56,6 +102,7 @@ function VenueExplorerPage() {
     setDetailErr(null);
     setInsight(null);
     setInsightErr(null);
+    setBattingOrderTeamId('');
     setDetailLoading(true);
     try {
       const q = encodeURIComponent(venue);
@@ -100,7 +147,35 @@ function VenueExplorerPage() {
     setDetailErr(null);
     setInsight(null);
     setInsightErr(null);
+    setBattingOrderTeamId('');
   };
+
+  const battingOrderRow = useMemo(() => {
+    if (!detail || !battingOrderTeamId) return null;
+    return (
+      (detail.teamBattingOrderRecord || []).find((r) => String(r.userId) === battingOrderTeamId) ||
+      null
+    );
+  }, [detail, battingOrderTeamId]);
+
+  /** Default to your team at this ground; keep user’s pick if still valid after refresh. */
+  useLayoutEffect(() => {
+    const rows = detail?.teamBattingOrderRecord;
+    if (!rows?.length) {
+      setBattingOrderTeamId('');
+      return;
+    }
+    setBattingOrderTeamId((prev) => {
+      if (prev && rows.some((r) => String(r.userId) === prev)) return prev;
+      let next = '';
+      if (currentUserId && rows.some((r) => String(r.userId) === currentUserId)) {
+        next = currentUserId;
+      } else {
+        next = String(rows[0].userId);
+      }
+      return next;
+    });
+  }, [detail, currentUserId]);
 
   if (selectedVenue) {
     return (
@@ -144,6 +219,56 @@ function VenueExplorerPage() {
                 <span className="vex-chip-label">Matches</span>
                 <strong>{fmt(detail.totals?.matches)}</strong>
               </div>
+            </section>
+
+            <section className="vex-section vex-batting-order" aria-label="Wins batting first or second">
+              <h2 className="vex-h2">
+                <FaListOl className="vex-h2-ic" aria-hidden />
+                Wins by innings (your ledger)
+              </h2>
+              <p className="vex-batting-order__lede">
+                For each team, how many games you won when you batted first vs second. Only matches with
+                both innings marked in OCR Extractor count ({fmt(detail.inningsOrderDecisionMatches || 0)}{' '}
+                at this ground).
+              </p>
+              {(detail.inningsOrderDecisionMatches || 0) === 0 ? (
+                <p className="vex-muted vex-batting-order__empty">
+                  No matches here yet with batting order saved. Use &quot;Who batted first?&quot; when saving
+                  scorecards, or run the innings-order backfill script for older games.
+                </p>
+              ) : (
+                <>
+                  <label className="vex-batting-order__field">
+                    <span className="vex-batting-order__field-label">Team</span>
+                    <div className="vex-batting-order__select-shell">
+                      <FaUsers className="vex-batting-order__select-ic" aria-hidden />
+                      <select
+                        className="vex-batting-order__select"
+                        value={battingOrderTeamId}
+                        onChange={(e) => setBattingOrderTeamId(e.target.value)}
+                        aria-label="Select team for batting first versus second wins"
+                      >
+                        {(detail.teamBattingOrderRecord || []).map((r) => {
+                          const id = String(r.userId);
+                          const isYours = currentUserId && id === currentUserId;
+                          return (
+                            <option key={id} value={id}>
+                              {r.teamName}
+                              {isYours ? ' · your squad' : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <FaChevronDown className="vex-batting-order__select-chev" aria-hidden />
+                    </div>
+                  </label>
+                  {battingOrderRow ? (
+                    <BattingOrderSplit row={battingOrderRow} />
+                  ) : (
+                    <p className="vex-muted vex-batting-order__hint">Loading team stats…</p>
+                  )}
+                </>
+              )}
             </section>
 
             {(insight || insightErr) && (

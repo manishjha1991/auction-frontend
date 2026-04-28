@@ -900,6 +900,7 @@ const PlayerPopup = ({
   };
 
   const portraitFullUrl = resolvePlayerImageUrl(playerDetails?.profilePicture);
+  const otherWatchersCount = Math.max(0, liveWatcherCount - 1);
 
   return (
     <>
@@ -1090,24 +1091,22 @@ const PlayerPopup = ({
             </div>
             <div className="player-name-demand-wrap">
               <h2 className="player-name">{playerDetails.name}</h2>
-              {liveWatcherCount > 0 && (
+              {otherWatchersCount >= 1 && (
                 <div
                   className="player-demand-indicator"
-                  title={`${liveWatcherCount} viewer${liveWatcherCount === 1 ? "" : "s"} on this profile (live)`}
+                  title={`${otherWatchersCount} other viewer${otherWatchersCount === 1 ? "" : "s"} on this profile (live)`}
                 >
                   <span className="player-demand-live-dot" aria-hidden />
                   <FaEye className="player-demand-eye" aria-hidden />
-                  <span className="player-demand-count">{liveWatcherCount}</span>
+                  <span className="player-demand-count">{otherWatchersCount}</span>
                   <span className="player-demand-label">viewing</span>
-                  {liveWatcherCount >= 2 && (
-                    <span
-                      className={
-                        liveWatcherCount >= 4 ? "player-demand-hot" : "player-demand-warm"
-                      }
-                    >
-                      {liveWatcherCount >= 4 ? "hot" : "warm"}
-                    </span>
-                  )}
+                  <span
+                    className={
+                      otherWatchersCount >= 3 ? "player-demand-hot" : "player-demand-warm"
+                    }
+                  >
+                    {otherWatchersCount >= 3 ? "hot" : "warm"}
+                  </span>
                 </div>
               )}
             </div>
