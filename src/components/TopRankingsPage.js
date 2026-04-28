@@ -316,6 +316,8 @@ const TopRankingsPage = () => {
   const [venueAggregates, setVenueAggregates] = useState([]);
 
   useEffect(() => {
+    if (loading || typeof window === 'undefined') return;
+    let cancelled = false;
     const fetchVenueAggregates = async () => {
       try {
         const response = await fetch(
@@ -323,20 +325,38 @@ const TopRankingsPage = () => {
         );
         if (!response.ok) return;
         const data = await response.json();
-        setVenueAggregates(Array.isArray(data?.venues) ? data.venues : []);
+        if (!cancelled) {
+          setVenueAggregates(Array.isArray(data?.venues) ? data.venues : []);
+        }
       } catch (_) {
         // Spotlight is best-effort; silent on failure so it doesn't block rankings.
       }
     };
-    fetchVenueAggregates();
-  }, []);
+    let idleHandle;
+    const run = () => {
+      if (!cancelled) void fetchVenueAggregates();
+    };
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      idleHandle = window.requestIdleCallback(run, { timeout: 2500 });
+    } else {
+      idleHandle = window.setTimeout(run, 50);
+    }
+    return () => {
+      cancelled = true;
+      if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        window.cancelIdleCallback(idleHandle);
+      } else {
+        window.clearTimeout(idleHandle);
+      }
+    };
+  }, [loading]);
 
   useEffect(() => {
     const fetchPlayers = async () => {
       try {
         setLoading(true);
         const response = await fetch(
-          `${API_ENDPOINTS}/api/player/players/data?includeInactive=true&nocache=1&t=${Date.now()}`
+          `${API_ENDPOINTS}/api/player/players/data?includeInactive=true`
         );
         if (!response.ok) {
           throw new Error('Unable to load players');

@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap');
-
+/* Fonts loaded globally in public/index.html */
 /* Light “scorebook” theme — readable, mobile-first */
 .vex {
   --paper: #faf8f5;
@@ -11,7 +10,7 @@
   --clay: #b4532a;
   --clay-soft: #fdf4f0;
   --gold: #a16207;
-  font-family: 'Source Sans 3', system-ui, sans-serif;
+  font-family: var(--font-body, 'Source Sans 3', system-ui, sans-serif);
   color: var(--ink);
   background: var(--paper);
   min-height: 100%;
@@ -70,7 +69,7 @@
 }
 
 .vex-title {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display, 'Fraunces', Georgia, serif);
   font-size: clamp(1.35rem, 4.8vw, 1.65rem);
   font-weight: 700;
   margin: 0;
@@ -158,7 +157,7 @@
 }
 
 .vex-chip strong {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display, 'Fraunces', Georgia, serif);
   font-size: 1.2rem;
   font-weight: 700;
 }
@@ -205,7 +204,7 @@
 }
 
 .vex-inn-val {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display, 'Fraunces', Georgia, serif);
   font-size: 1.35rem;
   font-weight: 700;
   color: var(--ink);
@@ -234,7 +233,7 @@
 }
 
 .vex-h2 {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display, 'Fraunces', Georgia, serif);
   font-size: 0.95rem;
   font-weight: 700;
   margin: 0 0 0.5rem;
@@ -302,7 +301,7 @@
 }
 
 .vex-match-runs {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display, 'Fraunces', Georgia, serif);
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--clay);
@@ -408,7 +407,7 @@
 }
 
 .vex-spot-value {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display, 'Fraunces', Georgia, serif);
   font-size: 1.28rem;
   font-weight: 700;
   margin: 0;
@@ -484,7 +483,7 @@
 
 .vex-card-name {
   display: block;
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display, 'Fraunces', Georgia, serif);
   font-weight: 700;
   font-size: 0.92rem;
   margin-bottom: 0.25rem;

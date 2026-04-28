@@ -27,7 +27,7 @@
     radial-gradient(800px 360px at -10% 0%, rgba(20, 184, 166, 0.12), transparent 60%),
     linear-gradient(180deg, #eef2ff 0%, #f1f5f9 40%, #f8fafc 100%);
   color: var(--rk-ink);
-  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-body, 'Source Sans 3', 'Segoe UI', system-ui, sans-serif);
   -webkit-text-size-adjust: 100%;
 }
 
