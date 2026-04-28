@@ -7,18 +7,17 @@ import { FaSearch, FaRedo, FaGavel } from 'react-icons/fa';
 
 const TIER_ORDER = ['icon', 'gold', 'silver', 'emerald', 'sapphire', 'platinum', 'diamond'];
 
-const tierStyle = (type) => {
-  const t = (type || '').toLowerCase();
-  const map = {
-    gold: { bar: '#c9a227', soft: 'rgba(201, 162, 39, 0.12)', ink: '#7a5e12' },
-    silver: { bar: '#7a8494', soft: 'rgba(122, 132, 148, 0.14)', ink: '#3d4450' },
-    emerald: { bar: '#2d6a4f', soft: 'rgba(45, 106, 79, 0.12)', ink: '#1b4332' },
-    sapphire: { bar: '#1d4ed8', soft: 'rgba(29, 78, 216, 0.1)', ink: '#1e3a8a' },
-    icon: { bar: '#b4532a', soft: 'rgba(180, 83, 42, 0.12)', ink: '#7c2d12' },
-    platinum: { bar: '#64748b', soft: 'rgba(100, 116, 139, 0.14)', ink: '#334155' },
-    diamond: { bar: '#0e7490', soft: 'rgba(14, 116, 144, 0.12)', ink: '#155e75' },
-  };
-  return map[t] || { bar: '#1e3a2f', soft: 'rgba(30, 58, 47, 0.1)', ink: '#1e3a2f' };
+/** Matches Player model enum order; extras appended alphabetically. */
+const ROLE_ORDER = ['Batsman', 'Bowler', 'Allrounder', 'WicketKeeper'];
+
+/** Tier slug for CSS — matches Profile team cards (`.up-card.{tier}` / `.up-tier-pill--{tier}`). */
+const tierKeyFromType = (type) => {
+  const t = String(type || '')
+    .toLowerCase()
+    .trim();
+  if (!t) return 'default';
+  if (TIER_ORDER.includes(t)) return t;
+  return 'default';
 };
 
 const SoldPlayersList = () => {
@@ -30,6 +29,19 @@ const SoldPlayersList = () => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  /** Narrow screens: 4 cards per row — smaller avatar */
+  const [isCompactGrid, setIsCompactGrid] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 639px)').matches : false
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    const sync = () => setIsCompactGrid(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     try {
@@ -107,14 +119,31 @@ const SoldPlayersList = () => {
     return [...known, ...rest];
   }, [players]);
 
+  /** Exact `role` strings as stored in DB (e.g. Batsman, WicketKeeper). */
+  const roleOptions = useMemo(() => {
+    const set = new Set();
+    players.forEach((p) => {
+      const r = p.role != null ? String(p.role).trim() : '';
+      if (r) set.add(r);
+    });
+    const known = ROLE_ORDER.filter((r) => set.has(r));
+    const rest = [...set]
+      .filter((r) => !ROLE_ORDER.includes(r))
+      .sort((a, b) => a.localeCompare(b));
+    return [...known, ...rest];
+  }, [players]);
+
   const filteredPlayers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     let list = players.filter((p) => (p.name || '').toLowerCase().includes(q));
     if (typeFilter) {
       list = list.filter((p) => (p.type || '').toLowerCase() === typeFilter);
     }
+    if (roleFilter) {
+      list = list.filter((p) => String(p.role || '').trim() === roleFilter);
+    }
     return [...list].sort((a, b) => parsePrice(b) - parsePrice(a));
-  }, [players, searchQuery, typeFilter]);
+  }, [players, searchQuery, typeFilter, roleFilter]);
 
   const stats = useMemo(() => {
     const totalHammer = players.reduce((sum, p) => sum + parsePrice(p), 0);
@@ -201,10 +230,32 @@ const SoldPlayersList = () => {
             <button
               key={t}
               type="button"
-              className={`sold-page__chip${typeFilter === t ? ' is-active' : ''}`}
+              className={`sold-page__chip sold-page__chip--tier-${t}${typeFilter === t ? ' is-active' : ''}`}
               onClick={() => setTypeFilter(typeFilter === t ? '' : t)}
             >
               {t}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {roleOptions.length > 0 && (
+        <div className="sold-page__filters sold-page__filters--role" role="group" aria-label="Filter by role">
+          <button
+            type="button"
+            className={`sold-page__chip sold-page__chip--role${roleFilter === '' ? ' is-active' : ''}`}
+            onClick={() => setRoleFilter('')}
+          >
+            All roles
+          </button>
+          {roleOptions.map((r) => (
+            <button
+              key={r}
+              type="button"
+              className={`sold-page__chip sold-page__chip--role${roleFilter === r ? ' is-active' : ''}`}
+              onClick={() => setRoleFilter(roleFilter === r ? '' : r)}
+            >
+              {r}
             </button>
           ))}
         </div>
@@ -231,43 +282,46 @@ const SoldPlayersList = () => {
       <div className="sold-page__grid" role="list">
         {filteredPlayers.length === 0 ? (
           <div className="sold-page__empty" role="status">
-            {searchQuery || typeFilter
+            {searchQuery || typeFilter || roleFilter
               ? 'No sold players match your filters.'
               : 'No sold players yet — the ledger will fill as the auction progresses.'}
           </div>
         ) : (
           filteredPlayers.map((player) => {
-            const st = tierStyle(player.type);
+            const tier = tierKeyFromType(player.type);
             const pid = player.id || player._id;
+            const fullTeam = player.teamName?.trim() || '';
             return (
               <button
                 key={pid ? String(pid) : player.name}
                 type="button"
-                className="sold-card"
+                className={`sold-card sold-card--${tier}`}
                 role="listitem"
-                style={{
-                  '--sold-tier': st.bar,
-                  '--sold-tier-soft': st.soft,
-                  '--sold-tier-ink': st.ink,
-                }}
+                aria-label={`${player.name}${fullTeam ? `, ${fullTeam}` : ''}${player.role ? `, ${player.role}` : ''}`}
                 onClick={() => setSelectedPlayer(player)}
               >
-                <div className="sold-card__team" title={player.teamName || ''}>
-                  {player.teamName?.trim() || 'Team TBC'}
+                <div className="sold-card__banner" title={fullTeam || 'Team not set'}>
+                  <span className="sold-card__banner-text">{fullTeam || '—'}</span>
                 </div>
-                <div className="sold-card__avatar-wrap">
-                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={56} />
-                </div>
-                <h2 className="sold-card__name">{player.name}</h2>
-                <div className="sold-card__meta">
-                  {player.type ? (
-                    <span className="sold-card__tier">{String(player.type)}</span>
-                  ) : null}
-                  {player.role ? <span className="sold-card__role">{player.role}</span> : null}
-                </div>
-                <div className="sold-card__price">
-                  <FaGavel aria-hidden />
-                  <span>{formatBasePrice(player.biddingPrice || player.basePrice)}</span>
+                <div className="sold-card__body">
+                  <div className="sold-card__avatar-wrap">
+                    <PlayerAvatar
+                      profilePicture={player.profilePicture}
+                      name={player.name}
+                      size={isCompactGrid ? 36 : 56}
+                    />
+                  </div>
+                  <h2 className="sold-card__name">{player.name}</h2>
+                  <div className="sold-card__meta">
+                    {player.type ? (
+                      <span className={`sold-card__tier sold-card__tier--${tier}`}>{String(player.type)}</span>
+                    ) : null}
+                    {player.role ? <span className="sold-card__role">{player.role}</span> : null}
+                  </div>
+                  <div className="sold-card__price">
+                    <FaGavel aria-hidden />
+                    <span>{formatBasePrice(player.biddingPrice || player.basePrice)}</span>
+                  </div>
                 </div>
               </button>
             );
