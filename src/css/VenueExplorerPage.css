@@ -1,0 +1,536 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+/* Light “scorebook” theme — readable, mobile-first */
+.vex {
+  --paper: #faf8f5;
+  --ink: #1c1917;
+  --muted: #57534e;
+  --line: #e7e2d9;
+  --pitch: #1e5c45;
+  --pitch-soft: #e8f2ec;
+  --clay: #b4532a;
+  --clay-soft: #fdf4f0;
+  --gold: #a16207;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  min-height: 100%;
+  padding: 3.35rem 0.85rem 2rem;
+  max-width: 480px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.vex--detail {
+  padding-top: 3.1rem;
+}
+
+/* Header */
+.vex-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 2px solid var(--line);
+}
+
+.vex-hero--list {
+  align-items: center;
+}
+
+.vex-pin-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--pitch-soft);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vex-pin {
+  font-size: 1.15rem;
+  color: var(--pitch);
+}
+
+.vex-hero-text {
+  min-width: 0;
+}
+
+.vex-kicker {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pitch);
+  margin: 0 0 0.2rem;
+}
+
+.vex-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(1.35rem, 4.8vw, 1.65rem);
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  word-break: break-word;
+}
+
+.vex-lede {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.vex-back {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06);
+  transition: background 0.15s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vex-back:hover {
+  background: var(--pitch-soft);
+}
+
+.vex-back:active {
+  transform: scale(0.97);
+}
+
+.vex-pad {
+  padding: 0.5rem 0;
+}
+
+.vex-muted {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.vex-error {
+  color: #b91c1c;
+  font-size: 0.88rem;
+}
+
+/* Summary chips */
+.vex-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.vex-strip--totals .vex-chip {
+  flex: 1 1 calc(33.333% - 0.5rem);
+  min-width: 86px;
+}
+
+.vex-chip {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.55rem 0.5rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
+}
+
+.vex-chip-label {
+  display: block;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.12rem;
+}
+
+.vex-chip strong {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.vex-chip--runs strong {
+  color: var(--clay);
+}
+
+.vex-chip--wkts strong {
+  color: var(--pitch);
+}
+
+/* High / low innings band */
+.vex-innings-band {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+
+.vex-inn-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.6rem 0.65rem;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
+}
+
+.vex-inn-card--high {
+  border-top: 3px solid var(--pitch);
+}
+
+.vex-inn-card--low {
+  border-top: 3px solid var(--clay);
+}
+
+.vex-inn-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.vex-inn-val {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.vex-inn-team {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vex-inn-empty {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0.2rem 0 0;
+}
+
+/* Match scorecards */
+.vex-section {
+  margin-bottom: 1.15rem;
+}
+
+.vex-h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.vex-h2-ic {
+  color: var(--pitch);
+  font-size: 0.85rem;
+}
+
+.vex-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.vex-match-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.6rem 0.65rem;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
+}
+
+.vex-match-total {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.45rem;
+}
+
+.vex-match-sides {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.vex-match-side {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.vex-match-side:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.vex-match-team {
+  font-size: 0.82rem;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vex-match-runs {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--clay);
+  flex-shrink: 0;
+}
+
+/* Team totals table */
+.vex-team-list {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
+}
+
+.vex-team-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.82rem;
+}
+
+.vex-team-row:last-child {
+  border-bottom: none;
+}
+
+.vex-team-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vex-team-stat {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.vex-team-stat small {
+  font-weight: 600;
+  font-size: 0.62rem;
+  color: var(--muted);
+  margin-left: 2px;
+}
+
+.vex-team-stat--bat {
+  color: var(--clay);
+}
+
+.vex-team-stat--bowl {
+  color: var(--pitch);
+}
+
+/* Record tiles */
+.vex-spot-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+@media (min-width: 380px) {
+  .vex-spot-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .vex-spot--all {
+    grid-column: 1 / -1;
+  }
+}
+
+.vex-spot {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.65rem 0.7rem;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
+  min-height: 100px;
+}
+
+.vex-spot-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.vex-spot-head svg {
+  color: var(--pitch);
+  opacity: 0.9;
+}
+
+.vex-spot--bowl .vex-spot-head svg {
+  color: var(--clay);
+}
+
+.vex-spot-value {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.28rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.vex-spot-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.vex-spot-meta {
+  margin: 0.08rem 0 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+/* List view cards */
+.vex-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.vex-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.65rem;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vex-card:hover {
+  border-color: var(--pitch);
+  box-shadow: 0 4px 14px rgba(30, 92, 69, 0.1);
+}
+
+.vex-card:active {
+  transform: scale(0.99);
+}
+
+.vex-card-pin {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--pitch-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pitch);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.vex-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.vex-card-name {
+  display: block;
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vex-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.vex-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.vex-tag--r {
+  color: var(--clay);
+}
+
+.vex-tag--w {
+  color: var(--pitch);
+}
+
+.vex-tag--m {
+  color: var(--muted);
+}
+
+.vex-card-chev {
+  flex-shrink: 0;
+  opacity: 0.35;
+  font-size: 0.72rem;
+}
+
+.vex-footnote {
+  font-size: 0.65rem;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 1.1rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}

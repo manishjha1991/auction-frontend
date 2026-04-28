@@ -435,6 +435,13 @@
   margin-left: 0;
 }
 
+/* Ground atlas — light scorebook page */
+.content.content-venue-atlas {
+  padding: 0;
+  background: #faf8f5;
+  min-height: 100vh;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .hamburger {

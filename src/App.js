@@ -12,6 +12,7 @@ import PointTable from './components/PointTable';
 import PlayerStatsList from './components/PlayerStatsList';
 import StatsOverview from './components/StatsOverview'; // <-- import your new component
 import TopRankingsPage from './components/TopRankingsPage';
+import VenueExplorerPage from './components/VenueExplorerPage';
 import PlayerInsightsPage from './components/PlayerInsightsPage';
 import NewsAlerts from './components/NewsAlerts';
 import TradeCenter from './components/TradeCenter';
@@ -23,7 +24,8 @@ import {
   FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
   FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaBook,
-  FaCalculator, FaCloudRain, FaHistory, FaWrench, FaChartLine, FaAddressCard, FaBullseye
+  FaCalculator, FaCloudRain, FaHistory, FaWrench, FaChartLine, FaAddressCard, FaBullseye,
+  FaMapMarkedAlt
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
@@ -161,6 +163,9 @@ function App() {
     const location = window.location.pathname;
     if (location === '/login' || location === '/signup') {
       return 'content no-sidebar';
+    }
+    if (location === '/grounds') {
+      return `content content-venue-atlas ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`;
     }
     return `content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`;
   };
@@ -357,6 +362,12 @@ function App() {
                       <Link to="/rankings" onClick={closeSidebar} className={`menu-item ${isActive('/rankings') ? 'active' : ''}`}>
                         <FaMedal className="menu-icon" />
                         <span>Top Rankings</span>
+                  </Link>
+                </li>
+                <li>
+                      <Link to="/grounds" onClick={closeSidebar} className={`menu-item ${isActive('/grounds') ? 'active' : ''}`}>
+                        <FaMapMarkedAlt className="menu-icon" />
+                        <span>Ground atlas</span>
                   </Link>
                 </li>
                 <li>
@@ -575,6 +586,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <TopRankingsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/grounds"
+              element={
+                <PrivateRoute>
+                  <VenueExplorerPage />
                 </PrivateRoute>
               }
             />
