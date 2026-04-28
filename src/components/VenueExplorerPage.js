@@ -12,6 +12,8 @@ import {
   FaListOl,
   FaLongArrowAltUp,
   FaLongArrowAltDown,
+  FaLightbulb,
+  FaBalanceScale,
 } from 'react-icons/fa';
 import '../css/VenueExplorerPage.css';
 
@@ -25,6 +27,8 @@ function VenueExplorerPage() {
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailErr, setDetailErr] = useState(null);
+  const [insight, setInsight] = useState(null);
+  const [insightErr, setInsightErr] = useState(null);
 
   const loadList = useCallback(async () => {
     setListLoading(true);
@@ -50,15 +54,39 @@ function VenueExplorerPage() {
     setSelectedVenue(venue);
     setDetail(null);
     setDetailErr(null);
+    setInsight(null);
+    setInsightErr(null);
     setDetailLoading(true);
     try {
       const q = encodeURIComponent(venue);
-      const res = await fetch(
-        `${API_ENDPOINTS}/api/player-stats/venue-explorer?scope=all&venue=${q}`
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setDetail(data);
+      const [dResult, iResult] = await Promise.allSettled([
+        fetch(`${API_ENDPOINTS}/api/player-stats/venue-explorer?scope=all&venue=${q}`).then(
+          async (r) => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+          }
+        ),
+        fetch(`${API_ENDPOINTS}/api/player-stats/venue-insight?scope=all&venue=${q}`).then(
+          async (r) => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+          }
+        ),
+      ]);
+
+      if (dResult.status === 'fulfilled') {
+        setDetail(dResult.value);
+      } else {
+        setDetailErr(dResult.reason?.message || 'Failed to load ground detail');
+      }
+
+      if (iResult.status === 'fulfilled') {
+        setInsight(iResult.value);
+      } else {
+        setInsightErr(
+          iResult.reason?.message ? String(iResult.reason.message) : 'Analyst unavailable'
+        );
+      }
     } catch (e) {
       setDetailErr(e.message || 'Failed to load ground detail');
     } finally {
@@ -70,6 +98,8 @@ function VenueExplorerPage() {
     setSelectedVenue(null);
     setDetail(null);
     setDetailErr(null);
+    setInsight(null);
+    setInsightErr(null);
   };
 
   if (selectedVenue) {
@@ -85,7 +115,18 @@ function VenueExplorerPage() {
           </div>
         </header>
 
-        {detailLoading && <p className="vex-muted vex-pad">Loading…</p>}
+        {detailLoading && (
+          <div className="vex-ground-loader" role="status" aria-live="polite" aria-busy="true">
+            <div className="vex-ground-loader__glow" aria-hidden />
+            <div className="vex-ground-loader__rings" aria-hidden>
+              <span className="vex-ground-loader__orbit vex-ground-loader__orbit--outer" />
+              <span className="vex-ground-loader__orbit vex-ground-loader__orbit--inner" />
+              <span className="vex-ground-loader__core" />
+            </div>
+            <p className="vex-ground-loader__title">Opening this ground</p>
+            <p className="vex-ground-loader__hint">Scorecards, match cards &amp; analyst</p>
+          </div>
+        )}
         {detailErr && <p className="vex-error vex-pad">{detailErr}</p>}
 
         {detail && !detailLoading && (
@@ -104,6 +145,171 @@ function VenueExplorerPage() {
                 <strong>{fmt(detail.totals?.matches)}</strong>
               </div>
             </section>
+
+            {(insight || insightErr) && (
+              <section className="vex-section vex-insight" aria-label="Ground analyst">
+                <h2 className="vex-h2">
+                  <FaLightbulb className="vex-h2-ic" aria-hidden />
+                  Ground analyst
+                </h2>
+                <p className="vex-insight-disclaimer">
+                  {insight?.disclaimer ||
+                    'Hints from your saved games only — not a real pitch report.'}
+                </p>
+                {insightErr && <p className="vex-error vex-insight-soft-err">{insightErr}</p>}
+                {insight && (
+                  <>
+                    <div
+                      className={
+                        insight.spinVsPace?.recommendation === 'insufficient_data'
+                          ? 'vex-insight-grid vex-insight-grid--single'
+                          : 'vex-insight-grid'
+                      }
+                    >
+                      <article className="vex-insight-card">
+                        <div className="vex-insight-card-head">
+                          <FaBalanceScale aria-hidden />
+                          If you won the toss
+                        </div>
+                        <p className="vex-insight-label">{insight.toss?.label}</p>
+                        <p className="vex-insight-body">{insight.toss?.summary}</p>
+                        {insight.metrics?.inningsOrderMatchesUsed >= 2 && (
+                          <p className="vex-insight-meta vex-insight-meta--pad">
+                            First vs second innings: {insight.metrics.inningsOrderMatchesUsed} matches
+                            in the ledger have batting order recorded.
+                          </p>
+                        )}
+                      </article>
+                      {insight.spinVsPace?.recommendation !== 'insufficient_data' && (
+                        <article className="vex-insight-card">
+                          <div className="vex-insight-card-head">
+                            <FaBowlingBall aria-hidden />
+                            Spin vs pace
+                          </div>
+                          <p className="vex-insight-label">{insight.spinVsPace?.label}</p>
+                          <p className="vex-insight-body">{insight.spinVsPace?.summary}</p>
+                          {insight.spinVsPace?.spinWicketShare != null &&
+                            insight.spinVsPace?.paceWicketShare != null && (
+                              <p className="vex-insight-meta">
+                                Wicket share (classified): spin{' '}
+                                {Math.round(insight.spinVsPace.spinWicketShare * 100)}% · pace{' '}
+                                {Math.round(insight.spinVsPace.paceWicketShare * 100)}%
+                              </p>
+                            )}
+                        </article>
+                      )}
+                    </div>
+
+                    {insight.metrics?.twoTeamMatchesSampled > 0 &&
+                      insight.metrics?.closeGameRate != null && (
+                        <p className="vex-insight-meta vex-insight-meta--pad">
+                          Tight games (loser ≥85% of winner’s score):{' '}
+                          {Math.round(insight.metrics.closeGameRate * 100)}% of{' '}
+                          {insight.metrics.twoTeamMatchesSampled} two-team matches in the ledger.
+                        </p>
+                      )}
+
+                    <div className="vex-insight-assets">
+                      <h3 className="vex-insight-h3">Main assets at this ground</h3>
+                      <ul className="vex-insight-asset-list">
+                        {(insight.mainAssets?.batters || []).slice(0, 3).map((b) => (
+                          <li key={`b-${b.playerId}`}>
+                            <strong>{b.name}</strong>
+                            <span className="vex-insight-asset-stat">{fmt(b.runs)} runs</span>
+                            {b.role ? (
+                              <span className="vex-insight-role">{b.role}</span>
+                            ) : null}
+                          </li>
+                        ))}
+                        {(insight.mainAssets?.bowlers || []).slice(0, 3).map((b) => (
+                          <li key={b.playerId ? `w-${b.playerId}` : `w-${b.name}-${b.wickets}`}>
+                            <strong>{b.name}</strong>
+                            <span className="vex-insight-asset-stat">{fmt(b.wickets)} wkts</span>
+                          </li>
+                        ))}
+                        {(insight.mainAssets?.allrounders || []).slice(0, 2).map((a) => (
+                          <li key={`ar-${a.playerId}`}>
+                            <strong>{a.name}</strong>
+                            <span className="vex-insight-asset-stat">
+                              {fmt(a.runs)}r · {fmt(a.wickets)}w
+                            </span>
+                            <span className="vex-insight-role">All-round</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {(!insight.mainAssets?.batters?.length &&
+                        !insight.mainAssets?.bowlers?.length &&
+                        !insight.mainAssets?.allrounders?.length) && (
+                        <p className="vex-muted">No player highlights yet — play more games here.</p>
+                      )}
+                    </div>
+
+                    {insight.narratives?.aiMarkdown && (
+                      <div className="vex-insight-narrative vex-insight-narrative--ai">
+                        <h3 className="vex-insight-h3">
+                          AI summary
+                          {insight.narratives.aiProvider === 'gemini'
+                            ? ' (Gemini)'
+                            : insight.narratives.aiProvider === 'openai'
+                              ? ' (OpenAI)'
+                              : ''}
+                        </h3>
+                        <div className="vex-insight-md">{insight.narratives.aiMarkdown}</div>
+                      </div>
+                    )}
+                    {insight.narratives?.aiError && (
+                      <div className="vex-insight-soft-err">
+                        {insight.narratives.aiErrorKind === 'quota' ? (
+                          <>
+                            <p className="vex-muted" style={{ margin: 0 }}>
+                              <strong>
+                                {insight.narratives.aiProvider === 'gemini'
+                                  ? 'Gemini summary paused'
+                                  : 'AI summary paused'}
+                              </strong>
+                              {' — '}
+                              {insight.narratives.aiProvider === 'gemini'
+                                ? 'often daily free-tier or project limits. Wait and retry, or confirm the key in '
+                                : 'billing or usage limits. Check '}
+                              <a
+                                href={
+                                  insight.narratives.aiProvider === 'gemini'
+                                    ? 'https://aistudio.google.com/app/apikey'
+                                    : 'https://platform.openai.com/account/billing'
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="vex-insight-link"
+                              >
+                                {insight.narratives.aiProvider === 'gemini'
+                                  ? 'Google AI Studio'
+                                  : 'OpenAI billing'}
+                              </a>
+                              . The rest of this panel is from your saved games only.
+                            </p>
+                            {insight.narratives.aiError && insight.narratives.aiError.length > 0 && (
+                              <p className="vex-insight-err-detail">{insight.narratives.aiError}</p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="vex-muted" style={{ margin: 0 }}>
+                            AI summary unavailable — {insight.narratives.aiError}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <div className="vex-insight-narrative">
+                      <h3 className="vex-insight-h3">Numbers story</h3>
+                      <div className="vex-insight-md">
+                        {(insight.narratives?.heuristicMarkdown || '').split(/\n\n+/).map((para, i) => (
+                          <p key={i}>{para.replace(/\*\*(.*?)\*\*/g, '$1')}</p>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </section>
+            )}
 
             <section className="vex-innings-band" aria-label="Team innings high and low">
               <div className="vex-inn-card vex-inn-card--high">
@@ -164,7 +370,16 @@ function VenueExplorerPage() {
                         {(m.sides || []).map((s, j) => (
                           <div key={`${String(s.userId)}-${j}`} className="vex-match-side">
                             <span className="vex-match-team" title={s.teamName}>
-                              {s.teamName}
+                              <span className="vex-match-team-name">{s.teamName}</span>
+                              {s.inningsOrder === 1 ? (
+                                <span className="vex-inn-badge" title="First innings (from scorecard save)">
+                                  1st
+                                </span>
+                              ) : s.inningsOrder === 2 ? (
+                                <span className="vex-inn-badge vex-inn-badge--2" title="Second innings (from scorecard save)">
+                                  2nd
+                                </span>
+                              ) : null}
                             </span>
                             <span className="vex-match-runs">{fmt(s.runs)}</span>
                           </div>
@@ -282,6 +497,7 @@ function VenueExplorerPage() {
 
             <p className="vex-footnote">
               All figures from saved scorecards (venue ledger). PlayerStats resets each season; this page does not.
+              1st/2nd tags appear when you choose &quot;Who batted first?&quot; in OCR Extractor for that match; older saves may not show them.
             </p>
           </>
         )}

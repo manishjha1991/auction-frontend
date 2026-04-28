@@ -381,6 +381,8 @@ const OcrExtractor = () => {
   const [primaryTeamName, setPrimaryTeamName] = useState('');
   const [opponentTeamName, setOpponentTeamName] = useState('');
   const [venue, setVenue] = useState('');
+  /** '' | 'home' | 'away' — which team batted first (home = your / primary side on this card). */
+  const [battingFirstTeam, setBattingFirstTeam] = useState('');
   const [matchLabel, setMatchLabel] = useState('');
   const [roster, setRoster] = useState([]);
   const [rosterLoading, setRosterLoading] = useState(false);
@@ -1402,6 +1404,17 @@ const OcrExtractor = () => {
       return;
     }
 
+    if (battingFirstTeam !== 'home' && battingFirstTeam !== 'away') {
+      setGlobalError('Who batted first? is required. Pick which team had the first innings before saving.');
+      setToast({
+        type: 'warning',
+        message: 'Batting order required',
+        details:
+          'Choose whether your team or the opponent batted first — needed for 1st/2nd innings on the Ground atlas and toss hints.',
+      });
+      return;
+    }
+
     setSaving(true);
     setGlobalError('');
     setSaveMessage('');
@@ -1419,6 +1432,9 @@ const OcrExtractor = () => {
       const matchId = `${matchKeyBase}-${timestamp}`;
       let successCount = 0;
       const errors = [];
+
+      const homeTeamInningsOrder = battingFirstTeam === 'home' ? 1 : 2;
+      const awayTeamInningsOrder = battingFirstTeam === 'home' ? 2 : 1;
 
       // Save home team stats (userId = currentUserId, opponentUserId = resolvedOpponentUserId)
       for (const entry of playerEntries) {
@@ -1440,6 +1456,7 @@ const OcrExtractor = () => {
           matchName,
           matchKey: `${matchKeyBase}-${entry.playerId}-${timestamp}`,
           matchId,
+          teamInningsOrder: homeTeamInningsOrder,
         };
 
         try {
@@ -1480,6 +1497,7 @@ const OcrExtractor = () => {
           matchName,
           matchKey: `${matchKeyBase}-opponent-${entry.playerId}-${timestamp}`,
           matchId,
+          teamInningsOrder: awayTeamInningsOrder,
         };
 
         try {
@@ -1547,7 +1565,8 @@ const OcrExtractor = () => {
     primaryTeamName,
     resolvedOpponentUserId,
     rosterOptions.length,
-    venue
+    venue,
+    battingFirstTeam
   ]);
 
   useEffect(() => {
@@ -2036,6 +2055,41 @@ const OcrExtractor = () => {
             {!venue.trim() && (
               <span className="venue-hint">
                 Required — needed so this match shows up in venue stats.
+              </span>
+            )}
+          </label>
+          <label
+            className={`venue-field ${battingFirstTeam !== 'home' && battingFirstTeam !== 'away' ? 'venue-field--missing' : ''}`}
+          >
+            <span className="venue-label">
+              Who batted first? <span className="venue-required" aria-hidden="true">*</span>
+              <span className="sr-only">(required)</span>
+            </span>
+            <select
+              value={battingFirstTeam}
+              onChange={(e) => setBattingFirstTeam(e.target.value)}
+              aria-label="Which team had the first innings"
+              aria-required="true"
+              aria-invalid={battingFirstTeam !== 'home' && battingFirstTeam !== 'away'}
+              required
+            >
+              <option value="" disabled>
+                Select first innings…
+              </option>
+              <option value="home">
+                {primaryTeamName?.trim() || 'Your team'} batted first
+              </option>
+              <option value="away">
+                {opponentTeamName?.trim() || 'Opponent'} batted first
+              </option>
+            </select>
+            {battingFirstTeam !== 'home' && battingFirstTeam !== 'away' ? (
+              <span className="venue-hint">
+                Required — Ground atlas shows 1st/2nd innings and sharper toss hints from your ledger.
+              </span>
+            ) : (
+              <span className="venue-hint" style={{ display: 'block', marginTop: 6 }}>
+                Saved on every player row for this match so venue stats stay consistent.
               </span>
             )}
           </label>
