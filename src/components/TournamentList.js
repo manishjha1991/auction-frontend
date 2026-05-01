@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../const';
-import { FaCalendarAlt, FaUsers, FaTrophy, FaEdit, FaTrash, FaPlus, FaImage, FaTimes, FaTable, FaList, FaSearch, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaTrophy, FaEdit, FaTrash, FaPlus, FaImage, FaTimes, FaTable, FaList, FaSearch, FaMapMarkerAlt, FaChevronLeft } from 'react-icons/fa';
+import PlayerAvatar from './PlayerAvatar';
 import './TournamentList.css';
 import { useToast } from './ToastNotification';
 
@@ -145,6 +146,15 @@ const TournamentList = () => {
     if (filter === 'all') return true;
     if (filter === 'my') return tournament.isUserSubscribed;
     return getTournamentStatus(tournament) === filter;
+  });
+
+  const tournamentStatusOrder = { running: 0, upcoming: 1, completed: 2 };
+  const orderedTournaments = [...filteredTournaments].sort((a, b) => {
+    const sa = getTournamentStatus(a);
+    const sb = getTournamentStatus(b);
+    const rankDiff = (tournamentStatusOrder[sa] ?? 9) - (tournamentStatusOrder[sb] ?? 9);
+    if (rankDiff !== 0) return rankDiff;
+    return new Date(b.startDate || 0) - new Date(a.startDate || 0);
   });
 
   const handleSubscribe = async (tournamentId) => {
@@ -381,7 +391,7 @@ const TournamentList = () => {
       </div>
 
       <div className="tournament-grid">
-        {filteredTournaments.map((tournament) => {
+        {orderedTournaments.map((tournament) => {
           const status = getTournamentStatus(tournament);
           const isSubscribed = tournament.isUserSubscribed;
           
@@ -511,7 +521,7 @@ const TournamentList = () => {
         })}
       </div>
 
-      {filteredTournaments.length === 0 && (
+      {orderedTournaments.length === 0 && (
         <div className="no-tournaments">
           <FaTrophy />
           <h3>No tournaments found</h3>
@@ -1293,13 +1303,20 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
   const [loadingFixtures, setLoadingFixtures] = useState(false);
   const [loadingPointTable, setLoadingPointTable] = useState(false);
   const [wcStats, setWcStats] = useState([]);
+  const [wcTeams, setWcTeams] = useState([]);
+  const [wcOverallSpotlights, setWcOverallSpotlights] = useState(null);
   const [loadingWcStats, setLoadingWcStats] = useState(false);
   const [wcStatsError, setWcStatsError] = useState('');
   const [wcSearchQuery, setWcSearchQuery] = useState('');
+  const [wcSelectedTeam, setWcSelectedTeam] = useState(null);
   const [venueStats, setVenueStats] = useState([]);
   const [loadingVenueStats, setLoadingVenueStats] = useState(false);
   const [venueStatsError, setVenueStatsError] = useState('');
   const [venueSearchQuery, setVenueSearchQuery] = useState('');
+  const [venueDetailVenue, setVenueDetailVenue] = useState(null);
+  const [venueDetailPlayers, setVenueDetailPlayers] = useState([]);
+  const [venueDetailSpotlights, setVenueDetailSpotlights] = useState(null);
+  const [loadingVenueDetail, setLoadingVenueDetail] = useState(false);
   const [showEditFixtureModal, setShowEditFixtureModal] = useState(false);
   const [editingFixture, setEditingFixture] = useState(null);
   const [roundRobinStatus, setRoundRobinStatus] = useState(null);
@@ -1748,13 +1765,44 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
         throw new Error(err.message || 'Failed to load WC stats');
       }
       const data = await response.json();
+      setWcTeams(Array.isArray(data.teams) ? data.teams : []);
+      setWcOverallSpotlights(data.overallSpotlights && typeof data.overallSpotlights === 'object' ? data.overallSpotlights : null);
       setWcStats(Array.isArray(data.players) ? data.players : []);
     } catch (error) {
       console.error('Error fetching WC stats:', error);
       setWcStatsError(error.message || 'Failed to load WC stats');
       setWcStats([]);
+      setWcTeams([]);
+      setWcOverallSpotlights(null);
     } finally {
       setLoadingWcStats(false);
+    }
+  };
+
+  const fetchVenueDetail = async (venueName) => {
+    if (!venueName) return;
+    setLoadingVenueDetail(true);
+    setVenueDetailPlayers([]);
+    setVenueDetailSpotlights(null);
+    try {
+      const q = encodeURIComponent(venueName);
+      const response = await fetch(
+        `${API_ENDPOINTS}/api/player-stats/venue-aggregate?tournamentId=${tournament._id}&venue=${q}&includeVenuePlayers=1`
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to load venue detail');
+      }
+      const data = await response.json();
+      const v0 = Array.isArray(data.venues) && data.venues.length ? data.venues[0] : null;
+      setVenueDetailPlayers(Array.isArray(v0?.players) ? v0.players : []);
+      setVenueDetailSpotlights(v0?.spotlights && typeof v0.spotlights === 'object' ? v0.spotlights : null);
+    } catch (error) {
+      console.error('Error fetching venue detail:', error);
+      setVenueDetailPlayers([]);
+      setVenueDetailSpotlights(null);
+    } finally {
+      setLoadingVenueDetail(false);
     }
   };
 
@@ -1788,8 +1836,12 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
       fetchPointTable();
       fetchRoundRobinStatus(); // Also check status for point table to show Q/E icons
     } else if (activeTab === 'wc-stats') {
+      setWcSelectedTeam(null);
       fetchWcStats();
     } else if (activeTab === 'venue-stats') {
+      setVenueDetailVenue(null);
+      setVenueDetailPlayers([]);
+      setVenueDetailSpotlights(null);
       fetchVenueStats();
     }
   }, [activeTab]);
@@ -2882,23 +2934,32 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
 
             {activeTab === 'wc-stats' && (
               <div className="wc-stats-content" style={{ padding: '0.5rem 0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0 }}>World Cup Player Stats</h3>
-                  <div style={{ position: 'relative', flex: '0 1 320px' }}>
+                <div className="wc-stats-toolbar">
+                  <h3 className="wc-stats-toolbar__title">
+                    {wcSelectedTeam ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => setWcSelectedTeam(null)}
+                          className="wc-team-back-btn"
+                        >
+                          <FaChevronLeft aria-hidden />
+                          Teams
+                        </button>
+                        <span>{wcSelectedTeam}</span>
+                      </span>
+                    ) : (
+                      'World Cup — Teams & players'
+                    )}
+                  </h3>
+                  <div className="wc-stats-toolbar__search">
                     <FaSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontSize: '0.95rem' }} />
                     <input
                       type="text"
-                      placeholder="Search player or team..."
+                      className="wc-stats-search-input"
+                      placeholder={wcSelectedTeam ? 'Search players on this team…' : 'Search team name…'}
                       value={wcSearchQuery}
                       onChange={(e) => setWcSearchQuery(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px 10px 38px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '10px',
-                        fontSize: '0.95rem',
-                        outline: 'none'
-                      }}
                     />
                   </div>
                 </div>
@@ -2911,37 +2972,15 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                   </div>
                 ) : wcStats.length === 0 ? (
                   <div style={{ padding: '1.25rem', borderRadius: '10px', background: '#f9fafb', color: '#4b5563' }}>
-                    No World Cup scorecards uploaded yet. Open OCR Extractor, tick the
-                    {' '}<strong>World Cup (Super 8) score</strong>{' '}
-                    checkbox, and submit a scorecard to start populating this list.
+                    No World Cup scorecards uploaded yet. Open OCR Extractor, choose a <strong>World Cup stage</strong>{' '}
+                    (Super 8, Semi, or Final), set the winner if prompted, and submit a scorecard to populate this view.
                   </div>
                 ) : (
                   (() => {
                     const query = wcSearchQuery.trim().toLowerCase();
                     const stageNameMap = { super8: 'super 8 super8', semi: 'semi semi-final', final: 'final' };
-                    const filtered = !query
-                      ? wcStats
-                      : wcStats.filter(
-                          (p) =>
-                            p.name?.toLowerCase().includes(query) ||
-                            p.team?.toLowerCase().includes(query) ||
-                            (p.matches || []).some((m) =>
-                              m.opponent?.toLowerCase().includes(query) ||
-                              (m.wcStage && stageNameMap[m.wcStage]?.includes(query))
-                            )
-                        );
 
-                    if (!filtered.length) {
-                      return (
-                        <div style={{ padding: '1rem', borderRadius: '10px', background: '#f9fafb', color: '#4b5563' }}>
-                          No players match "{wcSearchQuery}".
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-                        {filtered.map((player) => (
+                    const renderWcPlayerCard = (player) => (
                           <div
                             key={player.playerId}
                             style={{
@@ -3068,8 +3107,160 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                               })}
                             </div>
                           </div>
-                        ))}
-                      </div>
+                    );
+
+                    if (wcSelectedTeam) {
+                      const teamRow = wcTeams.find((t) => t.teamName === wcSelectedTeam);
+                      const spotlights = teamRow?.spotlights || {};
+                      const roster = wcStats.filter((p) => (p.team || 'Unknown team') === wcSelectedTeam);
+                      const filteredRoster = !query
+                        ? roster
+                        : roster.filter(
+                            (p) =>
+                              p.name?.toLowerCase().includes(query) ||
+                              (p.matches || []).some((m) =>
+                                m.opponent?.toLowerCase().includes(query) ||
+                                (m.wcStage && stageNameMap[m.wcStage]?.includes(query))
+                              )
+                          );
+
+                      if (!filteredRoster.length) {
+                        return (
+                          <div style={{ padding: '1rem', borderRadius: '10px', background: '#f9fafb', color: '#4b5563' }}>
+                            No players match &quot;{wcSearchQuery}&quot;.
+                          </div>
+                        );
+                      }
+
+                      const spotlightDefs = [
+                        { k: 'runs', title: 'Highest run getter', hint: 'Tournament WC totals', p: spotlights.topRuns, line: (x) => `${x.runs} runs · ${x.matches} ${x.matches === 1 ? 'match' : 'matches'}` },
+                        { k: 'wk', title: 'Highest wicket taker', hint: 'Wickets', p: spotlights.topWickets, line: (x) => `${x.wickets} wickets` },
+                        { k: 'mom', title: 'Top MoM', hint: 'Man of the match', p: spotlights.topMom, line: (x) => `${x.mom}× award${x.mom === 1 ? '' : 's'}` },
+                        { k: 'ar', title: 'Main all-rounder', hint: '10+ runs & 1+ wicket', p: spotlights.topAllRounder, line: (x) => `${x.runs} runs · ${x.wickets} wkts` },
+                      ];
+
+                      return (
+                        <>
+                          <div className="wc-spotlight-grid">
+                            {spotlightDefs.map((def) => (
+                              <div key={def.k} className="wc-spotlight-card">
+                                <div className="wc-spotlight-card__meta">
+                                  <span className="wc-spotlight-card__title">{def.title}</span>
+                                  <span className="wc-spotlight-card__hint">{def.hint}</span>
+                                </div>
+                                {def.p ? (
+                                  <>
+                                    <PlayerAvatar profilePicture={def.p.profilePicture} name={def.p.name} size={56} className="wc-spotlight-card__avatar" />
+                                    <div className="wc-spotlight-card__name">{def.p.name}</div>
+                                    <div className="wc-spotlight-card__stat">{def.line(def.p)}</div>
+                                  </>
+                                ) : (
+                                  <div className="wc-spotlight-card__empty">No qualifier yet</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <p className="wc-wl-hint">
+                            Wins and losses use the <strong>match winner</strong> saved from OCR. If they show 0, set winner on the scorecard save.
+                          </p>
+                          <h4 className="wc-roster-title">All players ({filteredRoster.length})</h4>
+                          <div className="wc-player-grid">
+                            {filteredRoster.map((player) => renderWcPlayerCard(player))}
+                          </div>
+                        </>
+                      );
+                    }
+
+                    const teamsFiltered = !query
+                      ? wcTeams
+                      : wcTeams.filter((t) => String(t.teamName || '').toLowerCase().includes(query));
+
+                    if (!teamsFiltered.length) {
+                      return (
+                        <div style={{ padding: '1rem', borderRadius: '10px', background: '#f9fafb', color: '#4b5563' }}>
+                          No teams match &quot;{wcSearchQuery}&quot;.
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <>
+                        <section className="wc-overall-section" aria-label="Tournament overall leaders">
+                          <h4 className="wc-overall-title">Tournament leaders · all teams</h4>
+                          <div className="wc-spotlight-grid wc-spotlight-grid--overall">
+                            {[
+                              {
+                                k: 'ov-runs',
+                                title: 'Highest run getter',
+                                hint: 'Across every team',
+                                p: (wcOverallSpotlights || {}).topRuns,
+                                line: (x) => `${x.runs} runs · ${x.matches} ${x.matches === 1 ? 'game' : 'games'}`,
+                              },
+                              {
+                                k: 'ov-wk',
+                                title: 'Highest wicket taker',
+                                hint: 'Across every team',
+                                p: (wcOverallSpotlights || {}).topWickets,
+                                line: (x) => `${x.wickets} wickets`,
+                              },
+                              {
+                                k: 'ov-mom',
+                                title: 'Most MoM awards',
+                                hint: 'Across every team',
+                                p: (wcOverallSpotlights || {}).topMom,
+                                line: (x) => `${x.mom}× MoM`,
+                              },
+                              {
+                                k: 'ov-ar',
+                                title: 'Best all-rounder',
+                                hint: '10+ runs & 1+ wkt',
+                                p: (wcOverallSpotlights || {}).topAllRounder,
+                                line: (x) => `${x.runs} runs · ${x.wickets} wkts`,
+                              },
+                            ].map((def) => (
+                              <div key={def.k} className="wc-spotlight-card wc-spotlight-card--compact">
+                                <div className="wc-spotlight-card__meta">
+                                  <span className="wc-spotlight-card__title">{def.title}</span>
+                                  <span className="wc-spotlight-card__hint">{def.hint}</span>
+                                </div>
+                                {def.p ? (
+                                  <>
+                                    <PlayerAvatar profilePicture={def.p.profilePicture} name={def.p.name} size={48} className="wc-spotlight-card__avatar" />
+                                    <div className="wc-spotlight-card__name">{def.p.name}</div>
+                                    <div className="wc-spotlight-card__stat">{def.line(def.p)}</div>
+                                  </>
+                                ) : (
+                                  <div className="wc-spotlight-card__empty">No data yet</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+                        <p className="wc-wl-hint wc-wl-hint--grid">
+                          Tap a team for full roster and leaders. Wins / losses need match winner on OCR save.
+                        </p>
+                        <div className="wc-team-grid">
+                          {teamsFiltered.map((team) => (
+                            <button
+                              key={team.teamName}
+                              type="button"
+                              className="wc-team-card"
+                              onClick={() => setWcSelectedTeam(team.teamName)}
+                            >
+                              <div className="wc-team-card__name">{team.teamName}</div>
+                              <div className="wc-team-card__stats">
+                                <span><strong>{team.totalRuns ?? 0}</strong> runs</span>
+                                <span><strong>{team.totalWickets ?? 0}</strong> wkts</span>
+                                <span className="wc-team-card__wl">
+                                  <span className="wc-team-card__w">{team.wins ?? 0}W</span>
+                                  <span className="wc-team-card__l">{team.losses ?? 0}L</span>
+                                </span>
+                              </div>
+                              <div className="wc-team-card__foot">{team.playerCount ?? 0} players · tap for details</div>
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     );
                   })()
                 )}
@@ -3077,22 +3268,36 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
             )}
 
             {activeTab === 'venue-stats' && (
-              <div className="venue-stats-content" style={{ padding: '0.5rem 0' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '0.75rem',
-                    marginBottom: '1rem',
-                  }}
-                >
-                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <FaMapMarkerAlt style={{ color: '#ef4444' }} />
-                    Venue Stats
+              <div className="venue-stats-content vstat-wrap" style={{ padding: '0.5rem 0' }}>
+                <div className="vstat-toolbar wc-stats-toolbar">
+                  <h3 className="vstat-toolbar__title wc-stats-toolbar__title">
+                    {venueDetailVenue ? (
+                      <span className="vstat-title-with-back">
+                        <button
+                          type="button"
+                          className="wc-team-back-btn"
+                          onClick={() => {
+                            setVenueDetailVenue(null);
+                            setVenueDetailPlayers([]);
+                            setVenueDetailSpotlights(null);
+                          }}
+                        >
+                          <FaChevronLeft aria-hidden />
+                          Venues
+                        </button>
+                        <span className="vstat-title-venue">
+                          <FaMapMarkerAlt style={{ color: '#ef4444' }} aria-hidden />
+                          {venueDetailVenue}
+                        </span>
+                      </span>
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                        <FaMapMarkerAlt style={{ color: '#ef4444' }} aria-hidden />
+                        Venue stats
+                      </span>
+                    )}
                   </h3>
-                  <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '320px' }}>
+                  <div className="wc-stats-toolbar__search">
                     <FaSearch
                       style={{
                         position: 'absolute',
@@ -3105,27 +3310,81 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                     />
                     <input
                       type="text"
-                      placeholder="Search venue..."
+                      className="wc-stats-search-input"
+                      placeholder={venueDetailVenue ? 'Filter players…' : 'Search venue…'}
                       value={venueSearchQuery}
                       onChange={(e) => setVenueSearchQuery(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px 10px 38px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '10px',
-                        fontSize: '0.95rem',
-                        outline: 'none',
-                      }}
                     />
                   </div>
                 </div>
 
-                {loadingVenueStats ? (
+                {loadingVenueStats && !venueDetailVenue ? (
                   <div className="loading">Loading venue stats...</div>
                 ) : venueStatsError ? (
                   <div style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: '#fee2e2', color: '#991b1b' }}>
                     {venueStatsError}
                   </div>
+                ) : venueDetailVenue ? (
+                  loadingVenueDetail ? (
+                    <div className="loading">Loading venue roster…</div>
+                  ) : (
+                    (() => {
+                      const sp = venueDetailSpotlights || {};
+                      const spotlightDefs = [
+                        { k: 'vr', title: 'Highest runs', hint: 'At this ground', p: sp.topRuns, line: (x) => `${x.runs} runs · ${x.matches} app.` },
+                        { k: 'vw', title: 'Highest wickets', hint: 'At this ground', p: sp.topWickets, line: (x) => `${x.wickets} wickets` },
+                        { k: 'vm', title: 'Most MoM', hint: 'At this ground', p: sp.topMom, line: (x) => `${x.mom}× MoM` },
+                        { k: 'va', title: 'Best all-rounder', hint: '10+ runs & 1+ wkt', p: sp.topAllRounder, line: (x) => `${x.runs} runs · ${x.wickets} wkts` },
+                      ];
+                      const pq = venueSearchQuery.trim().toLowerCase();
+                      const rosterFiltered = !pq
+                        ? venueDetailPlayers
+                        : venueDetailPlayers.filter((p) => (p.name || '').toLowerCase().includes(pq));
+                      return (
+                        <>
+                          <p className="vstat-mom-hint">MoM counts new ledger rows after deploy; re-save a scorecard or run the next match to refresh.</p>
+                          <div className="wc-spotlight-grid wc-spotlight-grid--overall">
+                            {spotlightDefs.map((def) => (
+                              <div key={def.k} className="wc-spotlight-card wc-spotlight-card--compact">
+                                <div className="wc-spotlight-card__meta">
+                                  <span className="wc-spotlight-card__title">{def.title}</span>
+                                  <span className="wc-spotlight-card__hint">{def.hint}</span>
+                                </div>
+                                {def.p ? (
+                                  <>
+                                    <PlayerAvatar profilePicture={def.p.profilePicture} name={def.p.name} size={48} className="wc-spotlight-card__avatar" />
+                                    <div className="wc-spotlight-card__name">{def.p.name}</div>
+                                    <div className="wc-spotlight-card__stat">{def.line(def.p)}</div>
+                                  </>
+                                ) : (
+                                  <div className="wc-spotlight-card__empty">No data yet</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <h4 className="wc-roster-title">Players at this venue ({rosterFiltered.length})</h4>
+                          <div className="vstat-player-list">
+                            {rosterFiltered.length === 0 ? (
+                              <div className="vstat-empty-roster">No players match your filter.</div>
+                            ) : (
+                              rosterFiltered.map((p) => (
+                                <div key={p.playerId} className="vstat-player-row">
+                                  <PlayerAvatar profilePicture={p.profilePicture} name={p.name} size={40} />
+                                  <div className="vstat-player-row__main">
+                                    <div className="vstat-player-row__name">{p.name}</div>
+                                    <div className="vstat-player-row__meta">
+                                      {p.runs ?? 0} runs · {p.wickets ?? 0} wkts
+                                      {(p.mom ?? 0) > 0 ? ` · ${p.mom}× MoM` : ''}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()
+                  )
                 ) : venueStats.length === 0 ? (
                   <div style={{ padding: '1.25rem', borderRadius: '10px', background: '#f9fafb', color: '#4b5563' }}>
                     No venue data yet. Upload a scorecard with the venue field filled in via the
@@ -3142,20 +3401,28 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                     if (!filtered.length) {
                       return (
                         <div style={{ padding: '1rem', borderRadius: '10px', background: '#f9fafb', color: '#4b5563' }}>
-                          No venues match "{venueSearchQuery}".
+                          No venues match &quot;{venueSearchQuery}&quot;.
                         </div>
                       );
                     }
 
+                    const miniSpot = (label, person, valLine) => (
+                      <div className="venue-card-mini-spot" title={person?.name || ''}>
+                        <span className="venue-card-mini-spot__label">{label}</span>
+                        {person ? (
+                          <>
+                            <PlayerAvatar profilePicture={person.profilePicture} name={person.name} size={32} />
+                            <span className="venue-card-mini-spot__name">{person.name}</span>
+                            <span className="venue-card-mini-spot__val">{valLine}</span>
+                          </>
+                        ) : (
+                          <span className="venue-card-mini-spot__empty">—</span>
+                        )}
+                      </div>
+                    );
+
                     return (
-                      <div
-                        className="venue-stats-grid"
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
-                          gap: '0.85rem',
-                        }}
-                      >
+                      <div className="venue-stats-grid vstat-venue-grid">
                         {filtered.map((v) => {
                           const ballsToOvers = (balls) => {
                             if (!balls) return '0';
@@ -3163,106 +3430,53 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                             const rem = balls % 6;
                             return rem ? `${overs}.${rem}` : `${overs}`;
                           };
+                          const sp = v.spotlights || {};
                           return (
-                            <div
+                            <button
                               key={v.venue}
-                              style={{
-                                border: '1px solid #e5e7eb',
-                                borderRadius: '14px',
-                                padding: '0.85rem 0.95rem',
-                                background: 'linear-gradient(135deg, rgba(239,68,68,0.05), rgba(251,146,60,0.04))',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.6rem',
+                              type="button"
+                              className="venue-stat-card"
+                              onClick={() => {
+                                setVenueDetailVenue(v.venue);
+                                fetchVenueDetail(v.venue);
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <FaMapMarkerAlt style={{ color: '#ef4444', flex: '0 0 auto' }} />
-                                <div
-                                  style={{
-                                    fontWeight: 700,
-                                    fontSize: '0.98rem',
-                                    color: '#1f2937',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                  title={v.venue}
-                                >
+                              <div className="venue-stat-card__head">
+                                <FaMapMarkerAlt style={{ color: '#ef4444', flexShrink: 0 }} aria-hidden />
+                                <div className="venue-stat-card__name" title={v.venue}>
                                   {v.venue}
                                 </div>
-                                <span
-                                  style={{
-                                    marginLeft: 'auto',
-                                    padding: '2px 8px',
-                                    borderRadius: '999px',
-                                    background: '#f3f4f6',
-                                    color: '#374151',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 600,
-                                    flex: '0 0 auto',
-                                  }}
-                                >
+                                <span className="venue-stat-card__badge">
                                   {v.matches} {v.matches === 1 ? 'match' : 'matches'}
                                 </span>
                               </div>
 
-                              <div
-                                style={{
-                                  display: 'grid',
-                                  gridTemplateColumns: '1fr 1fr',
-                                  gap: '0.5rem',
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    background: '#dbeafe',
-                                    color: '#1e40af',
-                                    borderRadius: '10px',
-                                    padding: '0.55rem 0.7rem',
-                                  }}
-                                >
-                                  <div style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: 600 }}>RUNS</div>
-                                  <div style={{ fontSize: '1.15rem', fontWeight: 800, lineHeight: 1.1 }}>
-                                    {v.batting?.runs ?? 0}
-                                  </div>
-                                  <div style={{ fontSize: '0.7rem', opacity: 0.85 }}>
+                              <div className="venue-stat-card__leaders">
+                                {miniSpot('Runs', sp.topRuns, sp.topRuns ? `${sp.topRuns.runs}` : '')}
+                                {miniSpot('Wkts', sp.topWickets, sp.topWickets ? `${sp.topWickets.wickets}` : '')}
+                                {miniSpot('MoM', sp.topMom, sp.topMom ? `${sp.topMom.mom}×` : '')}
+                                {miniSpot('AR', sp.topAllRounder, sp.topAllRounder ? `${sp.topAllRounder.runs}/${sp.topAllRounder.wickets}` : '')}
+                              </div>
+
+                              <div className="venue-stat-card__totals">
+                                <div className="venue-stat-card__tot venue-stat-card__tot--bat">
+                                  <div className="venue-stat-card__tot-label">Runs</div>
+                                  <div className="venue-stat-card__tot-num">{v.batting?.runs ?? 0}</div>
+                                  <div className="venue-stat-card__tot-sub">
                                     {v.batting?.balls ?? 0} balls · SR {v.batting?.strikeRate ?? 0}
                                   </div>
                                 </div>
-                                <div
-                                  style={{
-                                    background: '#dcfce7',
-                                    color: '#166534',
-                                    borderRadius: '10px',
-                                    padding: '0.55rem 0.7rem',
-                                  }}
-                                >
-                                  <div style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: 600 }}>WICKETS</div>
-                                  <div style={{ fontSize: '1.15rem', fontWeight: 800, lineHeight: 1.1 }}>
-                                    {v.bowling?.wickets ?? 0}
-                                  </div>
-                                  <div style={{ fontSize: '0.7rem', opacity: 0.85 }}>
+                                <div className="venue-stat-card__tot venue-stat-card__tot--bowl">
+                                  <div className="venue-stat-card__tot-label">Wkts</div>
+                                  <div className="venue-stat-card__tot-num">{v.bowling?.wickets ?? 0}</div>
+                                  <div className="venue-stat-card__tot-sub">
                                     {ballsToOvers(v.bowling?.ballsBowled || 0)} ov · Eco {v.bowling?.economy ?? 0}
                                   </div>
                                 </div>
                               </div>
 
-                              {(v.batting?.fours || v.batting?.sixes) ? (
-                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                  {!!v.batting?.fours && (
-                                    <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#fef3c7', color: '#92400e', fontSize: '0.72rem', fontWeight: 600 }}>
-                                      {v.batting.fours} × 4s
-                                    </span>
-                                  )}
-                                  {!!v.batting?.sixes && (
-                                    <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#fee2e2', color: '#991b1b', fontSize: '0.72rem', fontWeight: 600 }}>
-                                      {v.batting.sixes} × 6s
-                                    </span>
-                                  )}
-                                </div>
-                              ) : null}
-                            </div>
+                              <div className="venue-stat-card__tap">Tap for full roster · leaders</div>
+                            </button>
                           );
                         })}
                       </div>
