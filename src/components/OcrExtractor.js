@@ -3,6 +3,12 @@ import Tesseract from 'tesseract.js';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 import { API_ENDPOINTS } from '../const';
+import {
+  CPL_VENUES_BY_REGION,
+  suggestVenueFromOcr,
+  isAllowedCplVenue,
+  coerceToAllowedVenue,
+} from '../cplVenues';
 import '../css/OcrExtractor.css';
 
 const STATUS_COPY = {
@@ -381,8 +387,12 @@ const OcrExtractor = () => {
   const [primaryTeamName, setPrimaryTeamName] = useState('');
   const [opponentTeamName, setOpponentTeamName] = useState('');
   const [venue, setVenue] = useState('');
+  /** Raw venue text last read from OCR (for hint only; saved value is always `venue`). */
+  const [venueOcrRaw, setVenueOcrRaw] = useState('');
   /** '' | 'home' | 'away' — which team batted first (home = your / primary side on this card). */
   const [battingFirstTeam, setBattingFirstTeam] = useState('');
+  /** '' | 'home' | 'away' — match winner from your-card perspective (same sense as batting-first "home"). */
+  const [matchWinnerTeam, setMatchWinnerTeam] = useState('');
   const [matchLabel, setMatchLabel] = useState('');
   const [roster, setRoster] = useState([]);
   const [rosterLoading, setRosterLoading] = useState(false);
@@ -629,9 +639,12 @@ const OcrExtractor = () => {
 
   useEffect(() => {
     setCardState(buildInitialCardState());
+    setBattingFirstTeam('');
+    setMatchWinnerTeam('');
     if (!selectedFixture) {
       setMatchLabel('');
       setVenue('');
+      setVenueOcrRaw('');
       setPrimaryTeamName('');
       setOpponentTeamName('');
       return;
@@ -648,7 +661,13 @@ const OcrExtractor = () => {
       selectedFixture.matchTitle ||
         `${selectedFixture.team1 || 'Team 1'} vs ${selectedFixture.team2 || 'Team 2'}`
     );
-    setVenue(selectedFixture.matchVenue || '');
+    setVenueOcrRaw('');
+    const mv = (selectedFixture.matchVenue || '').trim();
+    if (mv) {
+      setVenue(coerceToAllowedVenue(mv));
+    } else {
+      setVenue('');
+    }
   }, [selectedFixture, currentUserTeamName]);
 
   const filteredFixtures = useMemo(() => {
@@ -686,6 +705,11 @@ const OcrExtractor = () => {
         label: player.name,
       })),
     [opponentRoster]
+  );
+
+  const ocrSuggestedVenue = useMemo(
+    () => (venueOcrRaw.trim() ? suggestVenueFromOcr(venueOcrRaw) : null),
+    [venueOcrRaw]
   );
 
   const findPlayerIdByName = useCallback(
@@ -966,8 +990,13 @@ const OcrExtractor = () => {
         if (parsed.meta?.teamName && !primaryTeamName) {
           setPrimaryTeamName(parsed.meta.teamName);
         }
-        if (parsed.meta?.venue && !venue) {
-          setVenue(parsed.meta.venue);
+        if (parsed.meta?.venue) {
+          const vRaw = String(parsed.meta.venue).trim();
+          setVenueOcrRaw(vRaw);
+          if (!venue) {
+            const pick = suggestVenueFromOcr(vRaw);
+            if (pick) setVenue(pick);
+          }
         }
 
         // Auto-match players immediately after OCR extraction
@@ -1395,11 +1424,20 @@ const OcrExtractor = () => {
 
     const trimmedVenue = (venue || '').trim();
     if (!trimmedVenue) {
-      setGlobalError('Venue is required. Please enter the ground/venue before saving.');
+      setGlobalError('Choose the CPL ground from the list before saving.');
       setToast({
         type: 'warning',
         message: 'Venue required',
-        details: 'Add the venue (e.g. "Melbourne Cricket Ground") so this match shows up in venue stats.'
+        details: 'Pick the official ground name from the dropdown so venue stats stay under one label.',
+      });
+      return;
+    }
+    if (!isAllowedCplVenue(trimmedVenue)) {
+      setGlobalError('Venue must be one of the CPL allowed grounds — pick from the dropdown.');
+      setToast({
+        type: 'warning',
+        message: 'Invalid venue',
+        details: 'OCR cannot save a free-typed ground name. Select the matching stadium from the list.',
       });
       return;
     }
@@ -1411,6 +1449,16 @@ const OcrExtractor = () => {
         message: 'Batting order required',
         details:
           'Choose whether your team or the opponent batted first — needed for 1st/2nd innings on the Ground atlas and toss hints.',
+      });
+      return;
+    }
+
+    if (matchWinnerTeam !== 'home' && matchWinnerTeam !== 'away') {
+      setGlobalError('Who won the match? is required before saving.');
+      setToast({
+        type: 'warning',
+        message: 'Match winner required',
+        details: 'Pick whether your team or the opponent won — this is stored on each player row (separate from who batted first).',
       });
       return;
     }
@@ -1457,6 +1505,7 @@ const OcrExtractor = () => {
           matchKey: `${matchKeyBase}-${entry.playerId}-${timestamp}`,
           matchId,
           teamInningsOrder: homeTeamInningsOrder,
+          matchWinnerSide: matchWinnerTeam,
         };
 
         try {
@@ -1498,6 +1547,7 @@ const OcrExtractor = () => {
           matchKey: `${matchKeyBase}-opponent-${entry.playerId}-${timestamp}`,
           matchId,
           teamInningsOrder: awayTeamInningsOrder,
+          matchWinnerSide: matchWinnerTeam,
         };
 
         try {
@@ -1566,7 +1616,8 @@ const OcrExtractor = () => {
     resolvedOpponentUserId,
     rosterOptions.length,
     venue,
-    battingFirstTeam
+    battingFirstTeam,
+    matchWinnerTeam
   ]);
 
   useEffect(() => {
@@ -1957,6 +2008,9 @@ const OcrExtractor = () => {
     hasAtLeastOneRequiredCard &&
     playerEntries.length > 0 &&
     primaryTeamName.trim().length > 0 &&
+    isAllowedCplVenue(venue) &&
+    (battingFirstTeam === 'home' || battingFirstTeam === 'away') &&
+    (matchWinnerTeam === 'home' || matchWinnerTeam === 'away') &&
     !saving &&
     !rosterLoading;
 
@@ -2038,25 +2092,55 @@ const OcrExtractor = () => {
               />
             )}
           </label>
-          <label className={`venue-field ${!venue.trim() ? 'venue-field--missing' : ''}`}>
+          <label className={`venue-field ${!isAllowedCplVenue(venue) ? 'venue-field--missing' : ''}`}>
             <span className="venue-label">
-              Venue <span className="venue-required" aria-hidden="true">*</span>
-              <span className="sr-only">(required)</span>
+              CPL ground <span className="venue-required" aria-hidden="true">*</span>
+              <span className="sr-only">(required — choose from list)</span>
             </span>
-            <input
-              type="text"
+            {venueOcrRaw.trim() ? (
+              <p className="venue-ocr-hint">
+                OCR read: &ldquo;{venueOcrRaw}&rdquo;
+                {ocrSuggestedVenue && ocrSuggestedVenue !== venue ? (
+                  <>
+                    {' '}
+                    <button
+                      type="button"
+                      className="venue-apply-ocr-btn"
+                      onClick={() => setVenue(ocrSuggestedVenue)}
+                    >
+                      Use suggested: {ocrSuggestedVenue}
+                    </button>
+                  </>
+                ) : null}
+                {!ocrSuggestedVenue && venueOcrRaw.trim() ? (
+                  <span className="venue-ocr-warn"> — pick the closest stadium below.</span>
+                ) : null}
+              </p>
+            ) : null}
+            <select
               value={venue}
               onChange={(event) => setVenue(event.target.value)}
-              placeholder="e.g. Melbourne Cricket Ground"
-              required
               aria-required="true"
-              aria-invalid={!venue.trim()}
-            />
-            {!venue.trim() && (
+              aria-invalid={!isAllowedCplVenue(venue)}
+              required
+            >
+              <option value="">Select ground (CPL allowed list)…</option>
+              {Object.entries(CPL_VENUES_BY_REGION).map(([region, list]) => (
+                <optgroup key={region} label={region}>
+                  {list.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            {!isAllowedCplVenue(venue) ? (
               <span className="venue-hint">
-                Required — needed so this match shows up in venue stats.
+                Required — OCR only hints; you must select the official name so one ground never splits
+                into &ldquo;West ovel&rdquo; vs &ldquo;West Oval&rdquo;.
               </span>
-            )}
+            ) : null}
           </label>
           <label
             className={`venue-field ${battingFirstTeam !== 'home' && battingFirstTeam !== 'away' ? 'venue-field--missing' : ''}`}
@@ -2065,6 +2149,10 @@ const OcrExtractor = () => {
               Who batted first? <span className="venue-required" aria-hidden="true">*</span>
               <span className="sr-only">(required)</span>
             </span>
+            <p className="venue-batting-note">
+              First innings only (for venue ledger / toss hints) — not the same as &ldquo;who won&rdquo; the
+              match.
+            </p>
             <select
               value={battingFirstTeam}
               onChange={(e) => setBattingFirstTeam(e.target.value)}
@@ -2088,8 +2176,42 @@ const OcrExtractor = () => {
                 Required — Ground atlas shows 1st/2nd innings and sharper toss hints from your ledger.
               </span>
             ) : (
-              <span className="venue-hint" style={{ display: 'block', marginTop: 6 }}>
+              <span className="venue-hint venue-hint--muted" style={{ display: 'block', marginTop: 6 }}>
                 Saved on every player row for this match so venue stats stay consistent.
+              </span>
+            )}
+          </label>
+          <label
+            className={`venue-field ${matchWinnerTeam !== 'home' && matchWinnerTeam !== 'away' ? 'venue-field--missing' : ''}`}
+          >
+            <span className="venue-label">
+              Who won the match? <span className="venue-required" aria-hidden="true">*</span>
+              <span className="sr-only">(required)</span>
+            </span>
+            <p className="venue-batting-note">
+              Your team vs opponent on this card — not tied to innings order.
+            </p>
+            <select
+              value={matchWinnerTeam}
+              onChange={(e) => setMatchWinnerTeam(e.target.value)}
+              aria-label="Which team won the match"
+              aria-required="true"
+              aria-invalid={matchWinnerTeam !== 'home' && matchWinnerTeam !== 'away'}
+              required
+            >
+              <option value="" disabled>
+                Select winner…
+              </option>
+              <option value="home">{primaryTeamName?.trim() || 'Your team'} won</option>
+              <option value="away">{opponentTeamName?.trim() || 'Opponent'} won</option>
+            </select>
+            {matchWinnerTeam !== 'home' && matchWinnerTeam !== 'away' ? (
+              <span className="venue-hint">
+                Required — stored on each saved player row for this fixture.
+              </span>
+            ) : (
+              <span className="venue-hint venue-hint--muted" style={{ display: 'block', marginTop: 6 }}>
+                Same value is sent for your roster and the opponent&apos;s rows (your-card perspective).
               </span>
             )}
           </label>
