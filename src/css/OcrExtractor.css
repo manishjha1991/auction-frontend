@@ -326,9 +326,16 @@
   gap: 0.45rem;
 }
 
+/* When one stage is chosen, fade the other two so the pick is obvious */
+.wc-stage-card__pills:has(.wc-stage-pill.is-active) .wc-stage-pill:not(.is-active) {
+  opacity: 0.38;
+  filter: grayscale(0.15);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
 .wc-stage-pill {
-  appearance: none;
-  -webkit-appearance: none;
+  position: relative;
+  margin: 0;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
   color: #cfe0ff;
@@ -348,6 +355,19 @@
   user-select: none;
 }
 
+.wc-stage-pill__radio {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .wc-stage-pill:hover {
   background: rgba(255, 255, 255, 0.07);
   border-color: rgba(var(--wc-accent), 0.45);
@@ -358,11 +378,49 @@
   transform: scale(0.97);
 }
 
+.wc-stage-pill:has(.wc-stage-pill__radio:focus-visible) {
+  outline: 2px solid rgba(var(--wc-accent), 0.85);
+  outline-offset: 2px;
+}
+
 .wc-stage-pill.is-active {
-  background: linear-gradient(135deg, rgba(var(--wc-accent), 0.95), rgba(var(--wc-accent-strong), 0.95));
-  border-color: transparent;
+  background: linear-gradient(145deg, rgba(var(--wc-accent), 1), rgba(var(--wc-accent-strong), 0.92));
+  border: 2px solid #fff;
   color: #fff;
-  box-shadow: 0 8px 18px -8px rgba(var(--wc-accent-strong), 0.6);
+  box-shadow:
+    0 0 0 3px rgba(var(--wc-accent-strong), 0.55),
+    0 0 24px -4px rgba(var(--wc-accent-strong), 0.75),
+    0 10px 22px -10px rgba(0, 0, 0, 0.5);
+  transform: scale(1.04);
+  z-index: 2;
+  opacity: 1;
+  filter: none;
+}
+
+.wc-stage-pill.is-active::after {
+  content: 'Selected';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(15, 23, 42, 0.92);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 3px 8px;
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+.wc-stage-pill.is-active .wc-stage-pill__icon {
+  margin-top: 0.85rem;
+}
+
+.wc-stage-pill.is-active:active {
+  transform: scale(1.02);
 }
 
 .wc-stage-pill__icon {

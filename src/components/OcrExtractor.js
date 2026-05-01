@@ -2296,7 +2296,7 @@ const OcrExtractor = () => {
               </div>
 
               <div className="wc-stage-card__hint">
-                Tag this match against a stage. Leave unselected for regular matches.
+                Pick one stage at a time (Super 8, Semi, or Final). Use Clear to untag this match.
               </div>
 
               <div className="wc-stage-card__pills" role="radiogroup" aria-label="World Cup stage">
@@ -2304,22 +2304,25 @@ const OcrExtractor = () => {
                   { value: 'super8', label: 'Super 8', icon: '8️⃣' },
                   { value: 'semi', label: 'Semi-Final', icon: '🥈' },
                   { value: 'final', label: 'Final', icon: '🏆' },
-                ].map((opt) => {
-                  const checked = wcStage === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={checked}
-                      className={`wc-stage-pill${checked ? ' is-active' : ''}`}
-                      onClick={() => setWcStage(checked ? '' : opt.value)}
-                    >
-                      <span className="wc-stage-pill__icon" aria-hidden>{opt.icon}</span>
-                      <span className="wc-stage-pill__label">{opt.label}</span>
-                    </button>
-                  );
-                })}
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    htmlFor={`ocr-wc-stage-${opt.value}`}
+                    className={`wc-stage-pill${wcStage === opt.value ? ' is-active' : ''}`}
+                  >
+                    <input
+                      id={`ocr-wc-stage-${opt.value}`}
+                      type="radio"
+                      name="ocr-wc-stage"
+                      value={opt.value}
+                      className="wc-stage-pill__radio"
+                      checked={wcStage === opt.value}
+                      onChange={() => setWcStage(opt.value)}
+                    />
+                    <span className="wc-stage-pill__icon" aria-hidden>{opt.icon}</span>
+                    <span className="wc-stage-pill__label">{opt.label}</span>
+                  </label>
+                ))}
               </div>
 
               {isWc && (
