@@ -415,6 +415,7 @@ const OcrExtractor = () => {
   const [globalError, setGlobalError] = useState('');
   const [toast, setToast] = useState(null);
   const [isPlayoff, setIsPlayoff] = useState(false);
+  const [worldCupMode, setWorldCupMode] = useState(false);
   // wcStage is mutually exclusive: 'super8' | 'semi' | 'final' | '' (no WC)
   const [wcStage, setWcStage] = useState('');
   const [tournaments, setTournaments] = useState([]);
@@ -447,6 +448,24 @@ const OcrExtractor = () => {
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch(`${API_ENDPOINTS}/api/settings`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setWorldCupMode(data?.worldCupMode === true || data?.worldCupMode === 'true');
+      } catch (err) {
+        console.warn('OCR: could not load settings', err);
+      }
+    };
+    loadSettings();
+  }, [API_ENDPOINTS]);
+
+  useEffect(() => {
+    if (worldCupMode) setIsPlayoff(false);
+  }, [worldCupMode]);
 
   const currentUser = useMemo(() => {
     try {
@@ -1480,6 +1499,7 @@ const OcrExtractor = () => {
       const matchId = `${matchKeyBase}-${timestamp}`;
       let successCount = 0;
       const errors = [];
+      const effectivePlayoffScore = worldCupMode ? false : isPlayoff;
 
       const homeTeamInningsOrder = battingFirstTeam === 'home' ? 1 : 2;
       const awayTeamInningsOrder = battingFirstTeam === 'home' ? 2 : 1;
@@ -1494,7 +1514,7 @@ const OcrExtractor = () => {
           bowlingStats: entry.bowlingStats,
           wicketsTaken: entry.bowlingStats?.wickets ?? 0,
           isMom: entry.isMom || false,
-          isPlayoffScore: isPlayoff,
+          isPlayoffScore: effectivePlayoffScore,
           isWcScore: isWc,
           wcStage: isWc ? wcStage : null,
           tournamentId: isWc ? tournamentId : null,
@@ -1536,7 +1556,7 @@ const OcrExtractor = () => {
           bowlingStats: entry.bowlingStats,
           wicketsTaken: entry.bowlingStats?.wickets ?? 0,
           isMom: entry.isMom || false,
-          isPlayoffScore: isPlayoff,
+          isPlayoffScore: effectivePlayoffScore,
           isWcScore: isWc,
           wcStage: isWc ? wcStage : null,
           tournamentId: isWc ? tournamentId : null,
@@ -1605,6 +1625,7 @@ const OcrExtractor = () => {
     cardState.opponentBowling,
     currentUserId,
     isPlayoff,
+    worldCupMode,
     isWc,
     wcStage,
     tournamentId,
@@ -2224,18 +2245,32 @@ const OcrExtractor = () => {
               placeholder="Qualifier 1 vs Royals"
             />
           </label>
-          <label className={`playoff-checkbox-wrapper ${isPlayoff ? 'checked' : ''}`}>
+          <label
+            className={`playoff-checkbox-wrapper ${isPlayoff && !worldCupMode ? 'checked' : ''} ${
+              worldCupMode ? 'playoff-checkbox-wrapper--disabled' : ''
+            }`}
+          >
             <input
               type="checkbox"
               className="playoff-checkbox"
-              checked={isPlayoff}
-              onChange={(event) => setIsPlayoff(event.target.checked)}
+              checked={worldCupMode ? false : isPlayoff}
+              disabled={worldCupMode}
+              onChange={(event) => {
+                if (worldCupMode) return;
+                setIsPlayoff(event.target.checked);
+              }}
             />
             <span className="playoff-checkbox-label">
               <span className="playoff-icon">🏆</span>
               Count this match as a playoff score
             </span>
           </label>
+          {worldCupMode ? (
+            <p className="playoff-wc-off-hint">
+              Not available while league World Cup mode is on — use <strong>World Cup stage</strong> below to tag WC
+              matches.
+            </p>
+          ) : null}
 
           {hasActiveWorldCup && (
             <div className="wc-stage-card" role="group" aria-label="World Cup stage selector">

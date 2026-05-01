@@ -214,6 +214,34 @@
   text-shadow: 0 0 8px rgba(82, 178, 255, 0.4);
 }
 
+.playoff-checkbox-wrapper--disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.playoff-checkbox-wrapper--disabled:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.playoff-checkbox-wrapper--disabled .playoff-checkbox-label {
+  color: #8ea3cc;
+}
+
+.playoff-wc-off-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.84rem;
+  color: #8ea3cc;
+  line-height: 1.45;
+}
+
+.playoff-wc-off-hint strong {
+  color: #b8c9f0;
+  font-weight: 600;
+}
+
 /* ---------- World Cup stage card (redesigned) ---------- */
 .wc-stage-card {
   --wc-accent: 99 179 255;        /* rgb of accent color */
