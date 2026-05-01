@@ -5,6 +5,17 @@ import PlayerAvatar from './PlayerAvatar';
 import './TournamentList.css';
 import { useToast } from './ToastNotification';
 
+/** Knockout slots not yet decided — show this instead of "Winner of Semi-Final N" or legacy "Top n" seeds. */
+const KNOCKOUT_TBA = 'TBA';
+const knockoutTeamDisplayName = (name) => {
+  if (name == null || String(name).trim() === '') return KNOCKOUT_TBA;
+  const s = String(name).trim();
+  if (s.includes('Winner of Semi-Final')) return KNOCKOUT_TBA;
+  // Legacy seeded knockout placeholders only (e.g. "Top 1"), not real team names like "Top Order"
+  if (/^Top \d+$/i.test(s)) return KNOCKOUT_TBA;
+  return s;
+};
+
 const TournamentList = () => {
   const { showToast } = useToast();
   const [tournaments, setTournaments] = useState([]);
@@ -1843,8 +1854,10 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
       setVenueDetailPlayers([]);
       setVenueDetailSpotlights(null);
       fetchVenueStats();
+    } else if (activeTab === 'manage') {
+      fetchRoundRobinStatus();
     }
-  }, [activeTab]);
+  }, [activeTab, tournament._id]);
 
   // Refetch team fixtures when fixtures change (if team details modal is open)
   useEffect(() => {
@@ -1904,30 +1917,6 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
               <div className="fixtures-content">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3>Tournament Fixtures</h3>
-                  {roundRobinStatus && roundRobinStatus.canGenerateKnockout && (
-                    (() => {
-                      const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
-                      const isAdmin = currentUser?.isAdmin;
-                      return isAdmin ? (
-                        <button
-                          onClick={generateKnockout}
-                          disabled={generatingKnockout}
-                          style={{
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            color: 'white',
-                            border: 'none',
-                            padding: '0.5rem 1.5rem',
-                            borderRadius: '8px',
-                            cursor: generatingKnockout ? 'not-allowed' : 'pointer',
-                            fontWeight: '600',
-                            opacity: generatingKnockout ? 0.7 : 1
-                          }}
-                        >
-                          {generatingKnockout ? 'Generating...' : 'Initialize Knockout (Top 4)'}
-                        </button>
-                      ) : null;
-                    })()
-                  )}
                 </div>
                 {roundRobinStatus && (
                   <div style={{ 
@@ -1937,10 +1926,25 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                     borderRadius: '8px',
                     color: roundRobinStatus.allComplete ? '#155724' : '#856404'
                   }}>
-                    <strong>Round-Robin Progress:</strong> {roundRobinStatus.completedRoundRobin}/{roundRobinStatus.totalRoundRobin} matches completed
-                    {roundRobinStatus.allComplete && !roundRobinStatus.hasKnockout && (
+                    <strong>Round-Robin Progress:</strong>{' '}
+                    {roundRobinStatus.completedRoundRobin}/
+                    {roundRobinStatus.totalRoundRobinExpected ?? roundRobinStatus.totalRoundRobin} matches done
+                    {typeof roundRobinStatus.gamesPerTeamRequired === 'number' &&
+                      roundRobinStatus.gamesPerTeamRequired > 0 && (
+                        <span style={{ display: 'block', marginTop: '4px', fontSize: '0.88rem' }}>
+                          Full table = each team plays every other team once (
+                          {roundRobinStatus.totalRoundRobinExpected ?? roundRobinStatus.totalRoundRobin} fixtures). Until you
+                          initialize knockouts, the knockout block shows <strong>TBA</strong>. Then use{' '}
+                          <strong>Manage → Initialize knockout</strong> to lock in semis (1 vs 4, 2 vs 3) and a final that
+                          fills from semi winners.
+                        </span>
+                      )}
+                          {roundRobinStatus.allComplete && !roundRobinStatus.hasKnockout && (
                       <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-                        ✅ All round-robin matches complete! Click "Initialize Knockout" to create semi-finals and final.
+                        ✅ Round-robin complete. On the <strong>Manage</strong> tab, when the button is enabled, run{' '}
+                        <strong>Initialize knockout</strong>: semis become <strong>1st vs 4th</strong> and{' '}
+                        <strong>2nd vs 3rd</strong> from the points table; the <strong>final</strong> stays{' '}
+                        <strong>TBA</strong> until each semi winner is saved (first semi fills one side, then the other).
                       </div>
                     )}
                   </div>
@@ -2051,56 +2055,40 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                         };
 
                       // Separate round-robin and knockout fixtures
-                        // Strategy: Identify knockout fixtures by position, not just placeholder text
-                        // For 8 teams: 28 round-robin matches (7 matches per team * 8 teams / 2)
-                        // Then 3 knockout matches: 2 semi-finals + 1 final
-                        
-                        // Method 1: Count fixtures with placeholders (for semi-finals that haven't been updated)
-                        const fixturesWithPlaceholders = fixtures.filter(f => 
-                          f.team1?.includes('Winner of') || f.team1?.includes('Top ') ||
-                          f.team2?.includes('Winner of') || f.team2?.includes('Top ')
-                        );
-                        
-                        // Method 2: Calculate expected round-robin count based on tournament structure
-                        // For 8 teams in round-robin: n*(n-1)/2 = 8*7/2 = 28 matches
-                        const expectedRoundRobinCount = 28; // 8 teams * 7 matches per team / 2
-                        
-                        // Method 3: Find the last fixture without placeholder (this is the boundary)
-                        // Everything after this is knockout
+                        // For 8 teams: 28 round-robin, then optionally 3 knockout in DB order
+
+                        // Expected RR = n*(n-1)/2 (same as backend); fallback 28 when team list missing
+                        const teamCount = tournament?.subscribedTeams?.length || 0;
+                        const expectedRoundRobinCount =
+                          teamCount >= 2
+                            ? (teamCount * (teamCount - 1)) / 2
+                            : 28;
+
+                        const nFx = fixtures.length;
+                        // Knockout rows exist ONLY after a full RR block: length > expected RR (normally +3).
+                        // Never use "all but last 3" when length < expected — that mis-labels real RR as semis/final
+                        // when subscribedTeams count is inflated vs fixtures actually generated (e.g. 28 games, n=9).
+                        let roundRobinCount;
+                        if (nFx > expectedRoundRobinCount) {
+                          roundRobinCount = expectedRoundRobinCount;
+                        } else {
+                          roundRobinCount = nFx;
+                        }
+
                         let lastRoundRobinIndex = -1;
                         for (let i = fixtures.length - 1; i >= 0; i--) {
-                          const hasPlaceholder = fixtures[i].team1?.includes('Winner of') || 
+                          const hasPlaceholder = fixtures[i].team1?.includes('Winner of') ||
                                                 fixtures[i].team1?.includes('Top ') ||
-                                                fixtures[i].team2?.includes('Winner of') || 
+                                                fixtures[i].team2?.includes('Winner of') ||
                                                 fixtures[i].team2?.includes('Top ');
                           if (!hasPlaceholder) {
                             lastRoundRobinIndex = i;
                             break;
                           }
                         }
-                        
-                        // FIXED: Use expectedRoundRobinCount (28) as the PRIMARY separator
-                        // For 8 teams: 28 round-robin matches, then 3 knockout matches (2 semis + 1 final)
-                        // This ensures the final (index 30) is always in knockoutFixtures, even if it has real team names
-                        // DO NOT use lastRoundRobinIndex + 1 because the final has no placeholder and would be counted as round-robin
-                        let roundRobinCount = expectedRoundRobinCount; // Always 28 for 8 teams
-                        
-                        // Safety check: If we have fewer than 28 fixtures, adjust
-                        if (fixtures.length < expectedRoundRobinCount) {
-                          // If we have fewer fixtures than expected, use all but last 3 as round-robin
-                          roundRobinCount = Math.max(0, fixtures.length - 3);
-                        }
-                        
-                        // Ensure we always have at least 3 knockout fixtures (2 semis + 1 final)
-                        if (roundRobinCount > fixtures.length - 3) {
-                          roundRobinCount = Math.max(0, fixtures.length - 3);
-                        }
-                        
-                        // Round-robin fixtures: first N fixtures (indices 0-27 for 8 teams)
+
                         let roundRobinFixtures = fixtures.slice(0, roundRobinCount);
-                        
-                        // Knockout fixtures: everything after round-robin (indices 28, 29, 30 for 8 teams)
-                        // This includes semi-finals and final, even if they have real team names now
+
                         let knockoutFixtures = fixtures.slice(roundRobinCount);
                         
                         console.log('🔧 FIXED Fixture Separation:', {
@@ -2122,15 +2110,21 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                           expectedRoundRobinCount
                         });
 
-                        // Sort both lists
+                        // Sort round-robin only. Knockout must stay in DB order: semi 1, semi 2, final —
+                        // sorting by completion breaks labels (SF1/SF2), edit indices, and confuses the bracket.
                         roundRobinFixtures = sortFixtures(roundRobinFixtures);
-                        knockoutFixtures = sortFixtures(knockoutFixtures);
 
                         // Filter based on search
                         roundRobinFixtures = filterFixtures(roundRobinFixtures);
                         knockoutFixtures = filterFixtures(knockoutFixtures);
+
+                        const showKnockoutPlaceholders =
+                          knockoutFixtures.length === 0 &&
+                          roundRobinStatus &&
+                          !roundRobinStatus.hasKnockout &&
+                          (roundRobinStatus.totalRoundRobinExpected || 0) > 0;
                       
-                        const hasNoResults = fixtureSearchQuery && roundRobinFixtures.length === 0 && knockoutFixtures.length === 0;
+                        const hasNoResults = fixtureSearchQuery && roundRobinFixtures.length === 0 && knockoutFixtures.length === 0 && !showKnockoutPlaceholders;
                       
                       return (
                         <>
@@ -2269,6 +2263,56 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                               })}
                             </div>
                           )}
+                          {showKnockoutPlaceholders && !fixtureSearchQuery.trim() && (
+                            <div style={{ marginTop: '2rem' }}>
+                              <h4 style={{
+                                color: '#FF8C00',
+                                fontSize: '1.2rem',
+                                fontWeight: 'bold',
+                                marginBottom: '0.5rem',
+                                paddingBottom: '0.5rem',
+                                borderBottom: '3px solid #FFD700',
+                                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%)',
+                                padding: '0.75rem',
+                                borderRadius: '8px',
+                              }}>
+                                🏆 Knockout Stage (3 matches — not initialized)
+                              </h4>
+                              <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '1rem' }}>
+                                Match-ups stay <strong>TBA</strong> until you use <strong>Manage → Initialize knockout</strong>.
+                              </p>
+                              {[
+                                { label: '⚡ SEMI-FINAL 1' },
+                                { label: '⚡ SEMI-FINAL 2' },
+                                { label: 'FINAL' },
+                              ].map((row, idx) => (
+                                <div
+                                  key={idx}
+                                  className="fixture-card pending"
+                                  style={{
+                                    marginBottom: '1rem',
+                                    border: row.label.includes('FINAL') ? '4px solid #FFD700' : '3px solid #FFD700',
+                                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, rgba(255, 140, 0, 0.08) 100%)',
+                                  }}
+                                >
+                                  <div className="fixture-header">
+                                    <span className="match-number" style={{ color: '#FF8C00', fontWeight: '700' }}>
+                                      {row.label}
+                                    </span>
+                                  </div>
+                                  <div className="fixture-body">
+                                    <div className="team-section">
+                                      <span className="team-name">{KNOCKOUT_TBA}</span>
+                                    </div>
+                                    <div className="vs-section">VS</div>
+                                    <div className="team-section">
+                                      <span className="team-name">{KNOCKOUT_TBA}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           {knockoutFixtures.length > 0 && (
                             <div>
                               <h4 style={{ 
@@ -2369,7 +2413,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                 // For 31 fixtures: index 30 = match 31 = FINAL
                                 const matchLabel = isFinal
                                   ? 'FINAL' 
-                                  : (index === 0 ? '⚡ SEMI-FINAL 1 (Top 1 vs Top 4)' : '⚡ SEMI-FINAL 2 (Top 2 vs Top 3)');
+                                  : (index === 0 ? '⚡ SEMI-FINAL 1' : '⚡ SEMI-FINAL 2');
                                 
                                 // Get team data for final fixture - check both tournament.subscribedTeams and also try to fetch from userId
                                 const getTeamData = (teamName) => {
@@ -2414,8 +2458,12 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                   return null;
                                 };
                                 
-                                const team1Data = isFinal ? getTeamData(fixture.team1) : null;
-                                const team2Data = isFinal ? getTeamData(fixture.team2) : null;
+                                const finalTeam1Disp = isFinal ? knockoutTeamDisplayName(fixture.team1) : '';
+                                const finalTeam2Disp = isFinal ? knockoutTeamDisplayName(fixture.team2) : '';
+                                const team1Data =
+                                  isFinal && finalTeam1Disp !== KNOCKOUT_TBA ? getTeamData(fixture.team1) : null;
+                                const team2Data =
+                                  isFinal && finalTeam2Disp !== KNOCKOUT_TBA ? getTeamData(fixture.team2) : null;
                                 
                                 // Debug logging for final
                                 if (isFinal) {
@@ -2551,7 +2599,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                             {team1Data?.teamImage ? (
                                               <img 
                                                 src={`${API_ENDPOINTS}${team1Data.teamImage}`}
-                                                alt={fixture.team1}
+                                                alt={finalTeam1Disp}
                                                 style={{
                                                   width: '80px',
                                                   height: '80px',
@@ -2569,7 +2617,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                     const fallback = document.createElement('div');
                                                     fallback.className = 'fallback-badge';
                                                     fallback.style.cssText = 'width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: bold; border: 4px solid #FFD700; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
-                                                    fallback.textContent = (team1Data?.abbreviation || fixture.team1 || '?').substring(0, 2).toUpperCase();
+                                                    fallback.textContent = (team1Data?.abbreviation || finalTeam1Disp || '?').substring(0, 2).toUpperCase();
                                                     parent.insertBefore(fallback, e.target);
                                                   }
                                                 }}
@@ -2589,7 +2637,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                 border: '4px solid #FFD700',
                                                 boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                                               }}>
-                                                {(team1Data?.abbreviation || fixture.team1 || '?').substring(0, 2).toUpperCase()}
+                                                {(finalTeam1Disp === KNOCKOUT_TBA ? '—' : (team1Data?.abbreviation || finalTeam1Disp || '?').substring(0, 2).toUpperCase())}
                                               </div>
                                             )}
                                             <div style={{ textAlign: 'center' }}>
@@ -2600,7 +2648,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                 color: '#1f2937',
                                                 marginBottom: '0.5rem'
                                               }}>
-                                                {team1Data?.abbreviation || (fixture.team1 ? fixture.team1.substring(0, 3).toUpperCase() : 'N/A')}
+                                                {team1Data?.abbreviation || (finalTeam1Disp === KNOCKOUT_TBA ? KNOCKOUT_TBA : (fixture.team1 ? fixture.team1.substring(0, 3).toUpperCase() : 'N/A'))}
                                               </div>
                                             </div>
                                             {fixture.team1Score !== undefined && (
@@ -2638,7 +2686,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                             {team2Data?.teamImage ? (
                                               <img 
                                                 src={`${API_ENDPOINTS}${team2Data.teamImage}`}
-                                                alt={fixture.team2}
+                                                alt={finalTeam2Disp}
                                                 style={{
                                                   width: '80px',
                                                   height: '80px',
@@ -2656,7 +2704,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                     const fallback = document.createElement('div');
                                                     fallback.className = 'fallback-badge';
                                                     fallback.style.cssText = 'width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: bold; border: 4px solid #FFD700; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
-                                                    fallback.textContent = (team2Data?.abbreviation || fixture.team2 || '?').substring(0, 2).toUpperCase();
+                                                    fallback.textContent = (team2Data?.abbreviation || finalTeam2Disp || '?').substring(0, 2).toUpperCase();
                                                     parent.insertBefore(fallback, e.target);
                                                   }
                                                 }}
@@ -2676,7 +2724,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                 border: '4px solid #FFD700',
                                                 boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                                               }}>
-                                                {(team2Data?.abbreviation || fixture.team2 || '?').substring(0, 2).toUpperCase()}
+                                                {(finalTeam2Disp === KNOCKOUT_TBA ? '—' : (team2Data?.abbreviation || finalTeam2Disp || '?').substring(0, 2).toUpperCase())}
                                               </div>
                                             )}
                                             <div style={{ textAlign: 'center' }}>
@@ -2687,7 +2735,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                 color: '#1f2937',
                                                 marginBottom: '0.5rem'
                                               }}>
-                                                {team2Data?.abbreviation || (fixture.team2 ? fixture.team2.substring(0, 3).toUpperCase() : 'N/A')}
+                                                {team2Data?.abbreviation || (finalTeam2Disp === KNOCKOUT_TBA ? KNOCKOUT_TBA : (fixture.team2 ? fixture.team2.substring(0, 3).toUpperCase() : 'N/A'))}
                                               </div>
                                             </div>
                                             {fixture.team2Score !== undefined && (
@@ -2711,7 +2759,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                         <>
                                           {/* Semi-finals - Regular display */}
                                       <div className={`team-section ${fixture.winner === fixture.team1 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
-                                        <span className="team-name">{fixture.team1}</span>
+                                        <span className="team-name">{knockoutTeamDisplayName(fixture.team1)}</span>
                                         {fixture.team1Score !== undefined && (
                                           <span className="team-score">{fixture.team1Score}</span>
                                         )}
@@ -2731,7 +2779,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                       </div>
                                       <div className="vs-section">VS</div>
                                       <div className={`team-section ${fixture.winner === fixture.team2 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
-                                        <span className="team-name">{fixture.team2}</span>
+                                        <span className="team-name">{knockoutTeamDisplayName(fixture.team2)}</span>
                                         {fixture.team2Score !== undefined && (
                                           <span className="team-score">{fixture.team2Score}</span>
                                         )}
@@ -3546,6 +3594,81 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                         </button>
                       </>
                     )}
+                    </div>
+                  )}
+
+                  {localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).isAdmin && (
+                    <div className="management-section">
+                      <h4>Knockout stage</h4>
+                      <p style={{ marginBottom: '0.75rem' }}>
+                        <strong>How it works</strong>
+                      </p>
+                      <ol style={{ paddingLeft: '1.25rem', margin: '0 0 0.75rem', fontSize: '0.95rem', lineHeight: 1.5 }}>
+                        <li>
+                          Every team plays every other team once (
+                          {roundRobinStatus?.totalRoundRobinExpected ?? '—'} fixtures,{' '}
+                          {roundRobinStatus?.gamesPerTeamRequired ?? 'N − 1'} games per team).
+                        </li>
+                        <li>
+                          The <strong>Initialize knockout</strong> button only enables after <strong>every</strong> round-robin
+                          match has a winner and there are at least <strong>{roundRobinStatus?.minTeamsForKnockoutBracket ?? 4}</strong>{' '}
+                          teams.
+                        </li>
+                        <li>
+                          One click takes the <strong>top four</strong> on the points table and creates{' '}
+                          <strong>Semi 1: 1st vs 4th</strong>, <strong>Semi 2: 2nd vs 3rd</strong>, and a{' '}
+                          <strong>final</strong> that shows <strong>TBA</strong> until semis are decided.
+                        </li>
+                        <li>
+                          When you save a <strong>semi winner</strong>, that name replaces the matching <strong>TBA</strong> in
+                          the final; the other side updates when the second semi winner is saved.
+                        </li>
+                      </ol>
+                      {roundRobinStatus && (
+                        <div
+                          style={{
+                            padding: '0.75rem',
+                            marginBottom: '0.75rem',
+                            background: roundRobinStatus.allComplete ? '#d4edda' : '#fff3cd',
+                            borderRadius: '8px',
+                            color: roundRobinStatus.allComplete ? '#155724' : '#856404',
+                            fontSize: '0.9rem',
+                          }}
+                        >
+                          <strong>Progress:</strong> {roundRobinStatus.completedRoundRobin}/
+                          {roundRobinStatus.totalRoundRobinExpected ?? roundRobinStatus.totalRoundRobin} round-robin matches
+                          with results
+                          {roundRobinStatus.hasKnockout && (
+                            <div style={{ marginTop: '0.45rem' }}>Knockout stage is already created.</div>
+                          )}
+                        </div>
+                      )}
+                      {roundRobinStatus?.canGenerateKnockout && (
+                        <button
+                          type="button"
+                          className="manage-btn generate-fixtures-btn"
+                          onClick={generateKnockout}
+                          disabled={generatingKnockout}
+                          style={{ opacity: generatingKnockout ? 0.75 : 1 }}
+                        >
+                          {generatingKnockout ? 'Creating…' : 'Initialize knockout (top 4 → 2 semis + final)'}
+                        </button>
+                      )}
+                      {roundRobinStatus &&
+                        !roundRobinStatus.canGenerateKnockout &&
+                        !roundRobinStatus.hasKnockout &&
+                        (roundRobinStatus.totalRoundRobinExpected || 0) > 0 && (
+                          <p style={{ fontSize: '0.88rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                            {roundRobinStatus.enoughTeamsForKnockout === false ? (
+                              <>
+                                Knockout needs at least <strong>{roundRobinStatus.minTeamsForKnockoutBracket ?? 4}</strong>{' '}
+                                subscribed teams (bracket is 1st vs 4th and 2nd vs 3rd).
+                              </>
+                            ) : (
+                              <>Button enables when every round-robin match has a winner (and at least four teams).</>
+                            )}
+                          </p>
+                        )}
                     </div>
                   )}
                   
