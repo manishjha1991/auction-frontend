@@ -962,24 +962,26 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
             <div>
               {areAllTeamsEligible() ? (
                 <div>
-                  <p>Playoff fixtures not initialized yet.</p>
+                  <p>{worldCupMode ? 'World Cup not initialized yet.' : 'Playoff fixtures not initialized yet.'}</p>
                   {isAdmin && (
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
-                      <button 
-                        onClick={initializePlayoffs}
-                        style={{
-                          background: '#007bff',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '5px',
-                          padding: '0.5rem 1.5rem',
-                          cursor: 'pointer',
-                          fontSize: '1rem',
-                          fontWeight: '600'
-                        }}
-                      >
-                        Initialize Playoff
-                      </button>
+                      {!worldCupMode && (
+                        <button 
+                          onClick={initializePlayoffs}
+                          style={{
+                            background: '#007bff',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '5px',
+                            padding: '0.5rem 1.5rem',
+                            cursor: 'pointer',
+                            fontSize: '1rem',
+                            fontWeight: '600'
+                          }}
+                        >
+                          Initialize Playoff
+                        </button>
+                      )}
                       {worldCupMode && top8Teams.length >= 8 && areTop8TeamsEligible() && (
                         <button 
                           onClick={initializeWorldCup}
