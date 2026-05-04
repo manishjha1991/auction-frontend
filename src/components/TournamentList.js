@@ -1407,8 +1407,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     const teamWon = Number(team.won) || 0;
     const totalTeams = allTeams.length;
     const qualifiersCount = 4; // Current CPL table card is top-4 qualification
-    const maxMatches = totalTeams - 1; // Round-robin: each team plays (n-1) matches
-    const remainingMatches = maxMatches - teamMatches;
+    const maxMatches = Math.max(0, totalTeams - 1); // In 8-team RR, each team plays 7
     
     // If no matches played yet, return 50% (neutral)
     if (teamMatches === 0) {
@@ -1424,52 +1423,39 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     const currentTeamIndex = sortedAllTeams.findIndex(
       (t) => t.teamName === team.teamName || t._id === team._id
     );
-    const teamRank = currentTeamIndex >= 0 ? currentTeamIndex + 1 : index + 1;
-
-    // If all round-robin matches are complete, standings are final.
-    if (roundRobinStatus?.allComplete) {
-      return currentTeamIndex >= 0 && currentTeamIndex < qualifiersCount ? 100 : 0;
+    if (currentTeamIndex < 0) {
+      return 0;
+    }
+    
+    // Final table only: hard qualified / eliminated.
+    if (roundRobinStatus?.allComplete || teamMatches >= maxMatches) {
+      return currentTeamIndex < qualifiersCount ? 100 : 0;
     }
 
-    const teamMaxPoints = teamPoints + (remainingMatches * 2);
+    const teamRank = currentTeamIndex + 1;
     const cutoffTeam = sortedAllTeams[Math.min(qualifiersCount - 1, sortedAllTeams.length - 1)];
     const cutoffPoints = Number(cutoffTeam?.points) || 0;
     const cutoffNrr = Number(cutoffTeam?.nrr) || 0;
     const cutoffWon = Number(cutoffTeam?.won) || 0;
 
-    // Hard elimination check
-    if (teamMaxPoints < cutoffPoints) {
-      return 0;
-    }
-
-    // Hard guarantee check: if fewer than `qualifiersCount` teams can still reach this team
-    const teamsThatCanReachCurrent = sortedAllTeams.filter((t) => {
-      const p = Number(t.points) || 0;
-      const m = Number(t.matches) || 0;
-      const rem = Math.max(0, maxMatches - m);
-      const maxP = p + rem * 2;
-      return maxP >= teamPoints;
-    }).length;
-    if (teamsThatCanReachCurrent <= qualifiersCount && teamRank <= qualifiersCount) {
-      return 100;
-    }
-
-    // Score-based estimate (non-flat and stable):
     const pointsGapToCutoff = teamPoints - cutoffPoints;
     const nrrGapToCutoff = teamNrr - cutoffNrr;
     const winsGapToCutoff = teamWon - cutoffWon;
 
-    let estimate = 50;
-    estimate += pointsGapToCutoff * 14;                // points are primary driver
-    estimate += nrrGapToCutoff * 10;                   // NRR tie-breaker driver
-    estimate += winsGapToCutoff * 6;                   // wins as explicit qualification factor
-    estimate += Math.max(0, qualifiersCount - teamRank) * 8; // rank advantage
-    estimate -= Math.max(0, teamRank - qualifiersCount) * 10; // rank penalty below cutoff
+    // Progress-aware estimate: gets more confident as team approaches 7 matches.
+    const progress = maxMatches > 0 ? Math.min(1, teamMatches / maxMatches) : 0;
 
-    // Keep non-final states inside (1..99) so UI doesn't show fake certainty too early.
-    if (estimate >= 100) return 99;
-    if (estimate <= 0) return 1;
-    return Math.round(estimate);
+    // Base from current rank around top-4 cutoff
+    let estimate = 50;
+    estimate += (qualifiersCount + 1 - teamRank) * 7;
+    estimate += pointsGapToCutoff * 12;
+    estimate += nrrGapToCutoff * 8;
+    estimate += winsGapToCutoff * 5;
+
+    // Pull early-season values toward 50, allow stronger confidence later.
+    estimate = 50 + (estimate - 50) * (0.35 + (progress * 0.65));
+
+    return Math.round(Math.max(1, Math.min(99, estimate)));
   };
 
   const fetchPointTable = async () => {
