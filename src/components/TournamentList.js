@@ -1403,9 +1403,10 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
   const calculateQualificationPercentage = (team, index, allTeams) => {
     const teamPoints = Number(team.points) || 0;
     const teamMatches = Number(team.matches) || 0;
-    const teamFairness = Number(team.fairness) || 0;
+    const teamNrr = Number(team.nrr) || 0;
     const teamWon = Number(team.won) || 0;
     const totalTeams = allTeams.length;
+    const qualifiersCount = 4; // Current CPL table card is top-4 qualification
     const maxMatches = totalTeams - 1; // Round-robin: each team plays (n-1) matches
     const remainingMatches = maxMatches - teamMatches;
     
@@ -1414,235 +1415,61 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
       return 50;
     }
 
-    // If all round-robin matches are complete, calculate based on actual standings
-    if (roundRobinStatus?.allComplete) {
-      // After all matches, only top 4 qualify
-      // But we need to check if team can still be pushed out by others
-      // Sort all teams by points (desc), then fairness (desc)
-      const sortedAllTeams = [...allTeams].sort((a, b) => {
-        const pointsDiff = (Number(b.points) || 0) - (Number(a.points) || 0);
-        if (pointsDiff !== 0) return pointsDiff;
-        return (Number(b.fairness) || 0) - (Number(a.fairness) || 0);
-      });
-      
-      // Find current team's position in sorted list
-      const currentTeamIndex = sortedAllTeams.findIndex(t => 
-        t.teamName === team.teamName || t._id === team._id
-      );
-      
-      if (currentTeamIndex < 4) {
-        // Team is in top 4 - check if they can be pushed out
-        // Check ALL teams below (5th, 6th, 7th, 8th) to see if any can push this team out
-        let canBePushedOut = false;
-        
-        // Check each team below 4th position
-        for (let i = 4; i < sortedAllTeams.length; i++) {
-          const otherTeam = sortedAllTeams[i];
-          if (!otherTeam) continue;
-          
-          const otherPoints = Number(otherTeam.points) || 0;
-          const otherFairness = Number(otherTeam.fairness) || 0;
-          
-          // If other team has same points but better fairness, they can push current team out
-          if (otherPoints === teamPoints && otherFairness > teamFairness) {
-            canBePushedOut = true;
-            break;
-          }
-          // If other team has more points, they can definitely push current team out
-          if (otherPoints > teamPoints) {
-            canBePushedOut = true;
-            break;
-          }
-        }
-        
-        // Only return 100% if NO team can push them out
-        if (!canBePushedOut) {
-          return 100; // Secured top 4 position - mathematically confirmed
-        } else {
-          // Can be pushed out - return 0% (they're not guaranteed)
-          return 0;
-        }
-      }
-      return 0; // Not in top 4
-    }
-
-    // Calculate average fairness per match
-    const avgFairnessPerMatch = teamMatches > 0 ? teamFairness / teamMatches : 0;
-    const targetAvgFairness = 550; // Average fairness target
-    const fairnessRatio = avgFairnessPerMatch / targetAvgFairness; // Ratio to target (1.0 = perfect)
-    
-    // Calculate min and max possible points
-    const minPoints = teamPoints; // If lose all remaining
-    const maxPoints = teamPoints + (remainingMatches * 2); // If win all remaining
-    
-    // Get other teams' data (excluding current team)
-    const otherTeams = allTeams.filter((t, i) => i !== index);
-    
-    // Calculate what 4th place team currently has
-    const sortedOthers = [...otherTeams].sort((a, b) => {
+    const sortedAllTeams = [...allTeams].sort((a, b) => {
       const pointsDiff = (Number(b.points) || 0) - (Number(a.points) || 0);
       if (pointsDiff !== 0) return pointsDiff;
-      return (Number(b.fairness) || 0) - (Number(a.fairness) || 0);
+      return (Number(b.nrr) || 0) - (Number(a.nrr) || 0);
     });
-    
-    const fourthPlaceTeam = sortedOthers[3] || sortedOthers[sortedOthers.length - 1];
-    const fourthPlacePoints = Number(fourthPlaceTeam?.points) || 0;
-    const fourthPlaceFairness = Number(fourthPlaceTeam?.fairness) || 0;
-    const fourthPlaceMatches = Number(fourthPlaceTeam?.matches) || 0;
-    const fourthPlaceRemaining = maxMatches - fourthPlaceMatches;
-    
-    // Calculate 4th place team's max possible points
-    const fourthPlaceMaxPoints = fourthPlacePoints + (fourthPlaceRemaining * 2);
-    
-    // SIMPLIFIED LOGIC: Check wins/losses to determine qualification
-    const AVG_FAIRNESS_PER_MATCH = 550; // Average fairness per match (win or lose)
-    const totalMatches = maxMatches; // Total matches in round-robin (7 for 8 teams)
-    const teamWins = teamWon; // Current wins
-    const teamLosses = teamMatches - teamWins; // Current losses
-    
-    // Calculate current team's scenarios
-    const teamMinPoints = teamPoints; // Lose all remaining
-    const teamMaxPoints = teamPoints + (remainingMatches * 2); // Win all remaining
-    
-    // SIMPLE RULES:
-    // 1. If won 6 or 7 matches → 100% qualify (guaranteed top 4)
-    // 2. If won 5 matches (lost 2) → 100% qualify (guaranteed top 4)
-    // 3. If won 4 matches (lost 3) → Check all scenarios/permutations
-    // 4. If won 3 or less → Check all scenarios
-    
-    if (teamWins >= 5) {
-      // Won 5+ matches (lost 2 or less) → Guaranteed top 4
-      return 100;
+
+    const currentTeamIndex = sortedAllTeams.findIndex(
+      (t) => t.teamName === team.teamName || t._id === team._id
+    );
+    const teamRank = currentTeamIndex >= 0 ? currentTeamIndex + 1 : index + 1;
+
+    // If all round-robin matches are complete, standings are final.
+    if (roundRobinStatus?.allComplete) {
+      return currentTeamIndex >= 0 && currentTeamIndex < qualifiersCount ? 100 : 0;
     }
-    
-    // Check if team is mathematically eliminated
-    if (teamMaxPoints < fourthPlacePoints) {
-      // Even if team wins all remaining, can't catch 4th place
+
+    const teamMaxPoints = teamPoints + (remainingMatches * 2);
+    const cutoffTeam = sortedAllTeams[Math.min(qualifiersCount - 1, sortedAllTeams.length - 1)];
+    const cutoffPoints = Number(cutoffTeam?.points) || 0;
+    const cutoffNrr = Number(cutoffTeam?.nrr) || 0;
+    const cutoffWon = Number(cutoffTeam?.won) || 0;
+
+    // Hard elimination check
+    if (teamMaxPoints < cutoffPoints) {
       return 0;
     }
-    
-    // For teams with 4 wins or less, check all scenarios/permutations
-    // Check if any team below can push current team out of top 4
-    let teamsThatCanPushOut = 0;
-    let teamsThatCanDefinitelyPushOut = 0;
-    let worstPossiblePosition = index + 1;
-    
-    // Calculate current team's min fairness (if they lose all remaining)
-    // Even if they lose, they still get 550 fairness per match
-    const teamMinFairness = teamFairness + (remainingMatches * AVG_FAIRNESS_PER_MATCH);
-    
-    // Check each team below current position
-    for (let i = index + 1; i < allTeams.length; i++) {
-      const otherTeam = allTeams[i];
-      if (!otherTeam) continue;
-      
-      const otherPoints = Number(otherTeam.points) || 0;
-      const otherFairness = Number(otherTeam.fairness) || 0;
-      const otherMatches = Number(otherTeam.matches) || 0;
-      const otherRemaining = maxMatches - otherMatches;
-      
-      // Calculate other team's max possible points if they win ALL remaining
-      const otherMaxPoints = otherPoints + (otherRemaining * 2);
-      
-      // Calculate other team's max possible fairness
-      // They get 550 fairness per match whether they win or lose
-      const otherMaxFairness = otherFairness + (otherRemaining * AVG_FAIRNESS_PER_MATCH);
-      
-      // Check if other team can catch current team in worst case (current team loses all)
-      if (otherMaxPoints >= teamMinPoints) {
-        if (otherMaxPoints > teamMinPoints) {
-          // Other team can definitely get more points - can push out
-          teamsThatCanDefinitelyPushOut++;
-          teamsThatCanPushOut++;
-          worstPossiblePosition = Math.max(worstPossiblePosition, i + 1);
-        } else if (otherMaxPoints === teamMinPoints) {
-          // Same points - check fairness
-          // Both get 550 per remaining match
-          if (otherMaxFairness > teamMinFairness) {
-            // Can push out due to better fairness
-            teamsThatCanDefinitelyPushOut++;
-            teamsThatCanPushOut++;
-            worstPossiblePosition = Math.max(worstPossiblePosition, i + 1);
-          } else {
-            // Might push out if fairness is close
-            teamsThatCanPushOut++;
-          }
-        }
-      }
-    }
-    
-    // If no one can push them out, they're guaranteed
-    if (teamsThatCanDefinitelyPushOut === 0 && teamMinPoints > fourthPlaceMaxPoints) {
+
+    // Hard guarantee check: if fewer than `qualifiersCount` teams can still reach this team
+    const teamsThatCanReachCurrent = sortedAllTeams.filter((t) => {
+      const p = Number(t.points) || 0;
+      const m = Number(t.matches) || 0;
+      const rem = Math.max(0, maxMatches - m);
+      const maxP = p + rem * 2;
+      return maxP >= teamPoints;
+    }).length;
+    if (teamsThatCanReachCurrent <= qualifiersCount && teamRank <= qualifiersCount) {
       return 100;
     }
-    
-    // Calculate probability based on position and how many teams can catch them
-    let basePercentage = 0;
-    
-    // Base percentage based on current position and wins
-    if (teamWins === 4) {
-      // Won 4 matches (lost 3) - need to check scenarios
-    if (index < 4) {
-        basePercentage = 70 - (index * 8); // 70% for 1st, 62% for 2nd, 54% for 3rd, 46% for 4th
-    } else {
-        basePercentage = 40 - ((index - 3) * 6); // Decreasing for lower positions
-      }
-    } else if (teamWins === 3) {
-      // Won 3 matches (lost 4)
-      if (index < 4) {
-        basePercentage = 50 - (index * 6); // 50% for 1st, 44% for 2nd, 38% for 3rd, 32% for 4th
-      } else {
-        basePercentage = 25 - ((index - 3) * 5); // Decreasing for lower positions
-      }
-    } else {
-      // Won 2 or less matches
-      if (index < 4) {
-        basePercentage = 30 - (index * 5); // Lower base for fewer wins
-      } else {
-        basePercentage = Math.max(10 - ((index - 3) * 3), 5); // Very low for bottom teams
-      }
-    }
-    
-    // Adjust based on how many teams can push them out
-    const pushOutPenalty = teamsThatCanDefinitelyPushOut * 12; // 12% penalty per team that can definitely push out
-    const potentialPushOutPenalty = (teamsThatCanPushOut - teamsThatCanDefinitelyPushOut) * 4; // 4% penalty per team that might push out
-    
-    // Adjust based on points gap to 4th place
-    const pointsGap = teamPoints - fourthPlacePoints;
-    let pointsBonus = 0;
-    if (pointsGap > 0) {
-      pointsBonus = Math.min(pointsGap * 2, 15); // Up to 15% bonus for being ahead
-    } else {
-      pointsBonus = Math.max(pointsGap * 3, -20); // Penalty for being behind
-    }
-    
-    // Adjust based on fairness advantage
-    const fairnessGap = teamFairness - fourthPlaceFairness;
-    let fairnessBonus = 0;
-    if (fairnessGap > 0) {
-      fairnessBonus = Math.min(fairnessGap / 100, 8); // Up to 8% bonus
-    } else {
-      fairnessBonus = Math.max(fairnessGap / 100, -12); // Penalty
-    }
-    
-    // Calculate final percentage
-    let finalPercentage = basePercentage - pushOutPenalty - potentialPushOutPenalty + pointsBonus + fairnessBonus;
-    
-    // Adjust based on remaining matches
-    const remainingFactor = Math.min(remainingMatches * 2, 8); // Up to 8% bonus for having matches left
-    finalPercentage += remainingFactor;
-    
-    // Never return 100% if someone can push them out (unless they won 5+ matches)
-    if (teamsThatCanDefinitelyPushOut > 0) {
-      finalPercentage = Math.min(finalPercentage, 95);
-    }
-    
-    // Never return 0% unless mathematically eliminated
-    if (teamMaxPoints >= fourthPlacePoints) {
-      finalPercentage = Math.max(finalPercentage, 5); // Minimum 5% if they can still qualify
-    }
-    
-    return Math.round(Math.max(0, Math.min(100, finalPercentage)));
+
+    // Score-based estimate (non-flat and stable):
+    const pointsGapToCutoff = teamPoints - cutoffPoints;
+    const nrrGapToCutoff = teamNrr - cutoffNrr;
+    const winsGapToCutoff = teamWon - cutoffWon;
+
+    let estimate = 50;
+    estimate += pointsGapToCutoff * 14;                // points are primary driver
+    estimate += nrrGapToCutoff * 10;                   // NRR tie-breaker driver
+    estimate += winsGapToCutoff * 6;                   // wins as explicit qualification factor
+    estimate += Math.max(0, qualifiersCount - teamRank) * 8; // rank advantage
+    estimate -= Math.max(0, teamRank - qualifiersCount) * 10; // rank penalty below cutoff
+
+    // Keep non-final states inside (1..99) so UI doesn't show fake certainty too early.
+    if (estimate >= 100) return 99;
+    if (estimate <= 0) return 1;
+    return Math.round(estimate);
   };
 
   const fetchPointTable = async () => {
