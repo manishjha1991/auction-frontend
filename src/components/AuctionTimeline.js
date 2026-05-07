@@ -94,6 +94,17 @@ const WHATSAPP_MESSAGE = `🏏 Auction Night Schedule (IST) - Updated
   - If second-highest exit is older than 2 min, sell to highest bidder
   - Else keep in exit flow and continue cycle
 
+✅ Bid Queue Logic (Important)
+• Queue joins only when exactly 2 active bidders exist
+• Manual bidding is frozen for outside users while queue is waiting
+• After second-highest exit, queue promotion is auto-triggered
+• Promotion runs only if:
+  - player is unsold
+  - exactly 1 active bidder remains
+  - queue head entry is valid for next bid
+• Sell is blocked if queue has waiting users (status: queued)
+• Sell is also blocked if 2+ active bidders still exist
+
 ℹ️ All timings are in India time (IST).`;
 
 function getCycleEvents(now = new Date(), auctionStartAt = null) {
@@ -124,10 +135,17 @@ export default function AuctionTimeline() {
   const [now, setNow] = useState(() => new Date());
   const [copyStatus, setCopyStatus] = useState('');
   const [auctionStartAt, setAuctionStartAt] = useState(null);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 640);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 640);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   useEffect(() => {
@@ -196,7 +214,7 @@ export default function AuctionTimeline() {
   }
 
   return (
-    <div style={{ maxWidth: 980, margin: '0 auto', padding: 16 }}>
+    <div style={{ maxWidth: 980, margin: '0 auto', padding: isMobile ? 10 : 16 }}>
       <h2 style={{ marginBottom: 8 }}>Auction Timeline (IST)</h2>
       <p style={{ marginTop: 0, color: '#6b7280' }}>
         Human-readable nightly flow with live countdown. Lightweight page: no backend polling.
@@ -213,18 +231,35 @@ export default function AuctionTimeline() {
             color: '#fff',
             border: 'none',
             borderRadius: 8,
-            padding: '8px 12px',
+            padding: isMobile ? '10px 12px' : '8px 12px',
             cursor: 'pointer',
             fontWeight: 600,
+            width: isMobile ? '100%' : 'auto',
           }}
         >
           Copy WhatsApp Format
         </button>
         {copyStatus ? (
-          <span style={{ marginLeft: 10, color: '#374151', fontSize: 13 }}>
+          <span style={{ marginLeft: isMobile ? 0 : 10, display: isMobile ? 'block' : 'inline', marginTop: isMobile ? 8 : 0, color: '#374151', fontSize: 13 }}>
             {copyStatus}
           </span>
         ) : null}
+      </div>
+      <div
+        style={{
+          marginBottom: 14,
+          border: '1px solid #dbeafe',
+          borderRadius: 10,
+          padding: isMobile ? 10 : 12,
+          background: '#eff6ff',
+          fontSize: isMobile ? 12 : 13,
+          color: '#1e3a8a',
+          lineHeight: 1.5,
+        }}
+      >
+        <strong>Queue Flow (auto-promotion):</strong> after each second-highest exit (manual + bulk + scheduler), the system tries queue promotion.
+        Promotion happens only when player is unsold, exactly one active bidder remains, and queue head is eligible for next bid.
+        Selling is blocked if queue has waiting users.
       </div>
       <div style={{ display: 'grid', gap: 10 }}>
         {events.map((event, idx) => {
@@ -237,7 +272,7 @@ export default function AuctionTimeline() {
               style={{
                 border: '1px solid #e5e7eb',
                 borderRadius: 10,
-                padding: 12,
+                padding: isMobile ? 10 : 12,
                 background: isCurrent ? '#ecfeff' : '#fff',
               }}
             >
@@ -256,7 +291,7 @@ export default function AuctionTimeline() {
                 </span>
               </div>
               <div style={{ color: '#6b7280', fontSize: 13, marginTop: 4 }}>{event.note}</div>
-              <div style={{ marginTop: 6, fontSize: 13 }}>
+              <div style={{ marginTop: 6, fontSize: isMobile ? 12 : 13 }}>
                 {isCurrent
                   ? 'Live now'
                   : isPast
@@ -275,7 +310,7 @@ export default function AuctionTimeline() {
           padding: 12,
           background: '#fafafa',
           whiteSpace: 'pre-wrap',
-          fontSize: 13,
+          fontSize: isMobile ? 12 : 13,
           color: '#1f2937',
         }}
       >
