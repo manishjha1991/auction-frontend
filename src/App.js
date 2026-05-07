@@ -51,6 +51,7 @@ import CplHistorySummary from './components/CplHistorySummary';
 import CplCompositeReport from './components/CplCompositeReport';
 import CplPlayerCareerStats from './components/CplPlayerCareerStats';
 import AdminRosterTools from './components/AdminRosterTools';
+import AuctionTimeline from './components/AuctionTimeline';
 
 // AdminDashboard removed - performance dashboard disabled
 
@@ -463,6 +464,12 @@ function App() {
                         <span>Rules Book</span>
                       </Link>
                     </li>
+                    <li>
+                      <Link to="/auction-timeline" onClick={closeSidebar} className={`menu-item ${isActive('/auction-timeline') ? 'active' : ''}`}>
+                        <FaCalendarAlt className="menu-icon" />
+                        <span>Auction Timeline</span>
+                      </Link>
+                    </li>
                   </ul>
                 </div>
 
@@ -570,6 +577,7 @@ function App() {
             <Route path="/cpl-player-career-stats" element={<PrivateRoute><CplPlayerCareerStats /></PrivateRoute>} />
             <Route path="/ocr" element={<PrivateRoute><OcrExtractor /></PrivateRoute>} />
             <Route path="/dls-calculator" element={<PrivateRoute><DLSCalculator /></PrivateRoute>} />
+            <Route path="/auction-timeline" element={<PrivateRoute><AuctionTimeline /></PrivateRoute>} />
             
 
             {/* NEW: StatsOverview Route */}
