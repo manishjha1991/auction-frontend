@@ -46,6 +46,12 @@ const PlayerStatsList = () => {
   const [submitMessage, setSubmitMessage] = useState('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [worldCupMode, setWorldCupMode] = useState(false);
+  const [runningTournaments, setRunningTournaments] = useState([]);
+  const [tournamentsLoading, setTournamentsLoading] = useState(false);
+  const [existingEntries, setExistingEntries] = useState([]);
+  const [existingEntriesLoading, setExistingEntriesLoading] = useState(false);
+  const [selectedExistingEntryId, setSelectedExistingEntryId] = useState('');
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -58,6 +64,9 @@ const PlayerStatsList = () => {
     opponentUserId: '',
     isMom: false,
     isPlayoffScore: false,
+    wcStage: '',
+    tournamentId: '',
+    saveMode: 'update',
   });
 
   useEffect(() => {
@@ -124,11 +133,71 @@ const PlayerStatsList = () => {
     fetchTeams();
   }, []);
 
+  useEffect(() => {
+    const fetchSettingsAndTournaments = async () => {
+      try {
+        setTournamentsLoading(true);
+        const [settingsResponse, tournamentsResponse] = await Promise.all([
+          fetch(`${API_ENDPOINTS}/api/settings`),
+          fetch(`${API_ENDPOINTS}/api/tournaments?limit=100`, {
+            headers: currentUser?.id ? { 'user-id': currentUser.id } : {},
+          }),
+        ]);
+
+        if (settingsResponse.ok) {
+          const settingsData = await settingsResponse.json();
+          const wcEnabled =
+            settingsData?.worldCupMode === true || settingsData?.worldCupMode === 'true';
+          setWorldCupMode(wcEnabled);
+          if (wcEnabled) {
+            setFormData((prev) => ({ ...prev, isPlayoffScore: false }));
+          }
+        }
+
+        if (tournamentsResponse.ok) {
+          const data = await tournamentsResponse.json();
+          const list = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.tournaments)
+            ? data.tournaments
+            : [];
+          const now = Date.now();
+          const runningOnly = list.filter((tn) => {
+            if (!tn) return false;
+            if (tn.status === 'running') return true;
+            const start = tn.startDate ? new Date(tn.startDate).getTime() : null;
+            const end = tn.endDate ? new Date(tn.endDate).getTime() : null;
+            return !!(start && end && start <= now && now <= end);
+          });
+          setRunningTournaments(runningOnly);
+        }
+      } catch (error) {
+        console.error('Error fetching settings/tournaments:', error);
+      } finally {
+        setTournamentsLoading(false);
+      }
+    };
+
+    fetchSettingsAndTournaments();
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!worldCupMode) {
+      setFormData((prev) => ({
+        ...prev,
+        wcStage: '',
+        tournamentId: '',
+      }));
+    }
+  }, [worldCupMode]);
+
   const openModal = (playerName) => {
     setExpandedPlayer(playerName);
     setActiveTab('batting');
     setIsEditing(false);
     setSubmitMessage('');
+    setSelectedExistingEntryId('');
+    setExistingEntries([]);
     setFormData({
       battingRuns: '',
       battingBalls: '',
@@ -138,6 +207,9 @@ const PlayerStatsList = () => {
       opponentUserId: '',
       isMom: false,
       isPlayoffScore: false,
+      wcStage: '',
+      tournamentId: '',
+      saveMode: 'update',
     });
   };
 
@@ -152,8 +224,36 @@ const PlayerStatsList = () => {
 
   const selectedPlayer = players.find((player) => player.name === expandedPlayer);
 
+  useEffect(() => {
+    const fetchExistingEntries = async () => {
+      if (!selectedPlayer?.id) return;
+      try {
+        setExistingEntriesLoading(true);
+        const res = await fetch(`${API_ENDPOINTS}/api/player-stats/stats/${selectedPlayer.id}`);
+        if (!res.ok) {
+          setExistingEntries([]);
+          return;
+        }
+        const data = await res.json();
+        const entries = Array.isArray(data?.stats) ? data.stats : [];
+        entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setExistingEntries(entries);
+      } catch (error) {
+        console.error('Error fetching existing stats entries:', error);
+        setExistingEntries([]);
+      } finally {
+        setExistingEntriesLoading(false);
+      }
+    };
+
+    fetchExistingEntries();
+  }, [selectedPlayer?.id]);
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'saveMode' && value === 'create') {
+      setSelectedExistingEntryId('');
+    }
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
@@ -174,12 +274,51 @@ const PlayerStatsList = () => {
     }, 10);
   };
 
+  const handleExistingEntrySelect = (entryId) => {
+    setSelectedExistingEntryId(entryId);
+    const entry = existingEntries.find((item) => String(item.id) === String(entryId));
+    if (!entry) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      battingRuns: entry.battingStats?.runs ?? '',
+      battingBalls: entry.battingStats?.balls ?? '',
+      bowlingRunsGiven: entry.bowlingStats?.runsGiven ?? '',
+      bowlingBallsBowled: entry.bowlingStats?.ballsBowled ?? '',
+      wicketsTaken: entry.bowlingStats?.wickets ?? '',
+      opponentUserId: entry.opponentUserId ? String(entry.opponentUserId) : '',
+      isMom: !!entry.isMom,
+      isPlayoffScore: !!entry.metadata?.isPlayoffScore,
+      wcStage: entry.metadata?.isWcScore ? entry.metadata?.wcStage || '' : '',
+      tournamentId: entry.metadata?.isWcScore ? (entry.tournamentId ? String(entry.tournamentId) : '') : '',
+      saveMode: 'update',
+    }));
+    setSubmitMessage(`Loaded existing entry from ${new Date(entry.createdAt).toLocaleString('en-IN')}`);
+  };
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
       const userId = currentUser?.id;
       if (!userId) {
         setSubmitMessage('User not found!');
+        return;
+      }
+
+      const confirmMessage = [
+        `Save stats for ${selectedPlayer?.name || 'this player'}?`,
+        '',
+        `Mode: ${formData.saveMode === 'create' ? 'Create new entry' : 'Update existing entry'}`,
+        formData.saveMode === 'update' && selectedExistingEntryId ? `Editing entry: ${selectedExistingEntryId}` : null,
+        `Opponent selected: ${formData.opponentUserId ? 'Yes' : 'No'}`,
+        worldCupMode && formData.wcStage ? `WC Stage: ${formData.wcStage}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      const confirmed = window.confirm(confirmMessage);
+      if (!confirmed) {
+        setSubmitMessage('Save cancelled.');
         return;
       }
 
@@ -197,8 +336,17 @@ const PlayerStatsList = () => {
         },
         wicketsTaken: Number(formData.wicketsTaken),
         isMom: formData.isMom,
-        isPlayoffScore: formData.isPlayoffScore,
+        isPlayoffScore: worldCupMode ? false : formData.isPlayoffScore,
+        isWcScore: !!formData.wcStage,
+        wcStage: formData.wcStage || null,
+        tournamentId: formData.wcStage ? formData.tournamentId : null,
+        forceCreate: formData.saveMode === 'create',
       };
+
+      if (formData.wcStage && !formData.tournamentId) {
+        setSubmitMessage('Please select a tournament for World Cup stage entry.');
+        return;
+      }
 
       const res = await fetch(`${API_ENDPOINTS}/api/player-stats/store`, {
         method: 'POST',
@@ -210,6 +358,7 @@ const PlayerStatsList = () => {
         await res.json();
         setSubmitMessage('Stats saved successfully!');
         setSuccessMessage(`Stats saved for ${selectedPlayer.name}`);
+        setSelectedExistingEntryId('');
         setShowSuccessPopup(true);
         setTimeout(() => {
           setShowSuccessPopup(false);
@@ -461,6 +610,49 @@ const PlayerStatsList = () => {
                 <div className="psl-form-section">
                   <h4 className="psl-form-heading">Match</h4>
                   <div className="psl-field form-group">
+                    <label>Save mode</label>
+                    <select name="saveMode" value={formData.saveMode} onChange={handleInputChange}>
+                      <option value="update">Update existing entry (fix wrong data)</option>
+                      <option value="create">Create new entry</option>
+                    </select>
+                  </div>
+
+                  {formData.saveMode === 'update' && (
+                    <div className="psl-field form-group">
+                      <label>Existing entry to modify</label>
+                      <select
+                        name="existingEntryId"
+                        value={selectedExistingEntryId}
+                        onChange={(e) => handleExistingEntrySelect(e.target.value)}
+                      >
+                        <option value="">
+                          {existingEntriesLoading ? 'Loading entries...' : 'Select existing entry'}
+                        </option>
+                        {existingEntries.map((entry) => {
+                          const dateLabel = entry.createdAt
+                            ? new Date(entry.createdAt).toLocaleDateString('en-IN')
+                            : 'Unknown date';
+                          const stageLabel = entry.metadata?.isWcScore
+                            ? ` | ${String(entry.metadata?.wcStage || '').toUpperCase()}`
+                            : entry.metadata?.isPlayoffScore
+                            ? ' | PLAYOFF'
+                            : '';
+                          const opponentLabel = entry.opponent || 'Unknown opponent';
+                          const scoreLabel = `${entry.battingStats?.runs || 0}/${entry.battingStats?.balls || 0}`;
+                          return (
+                            <option key={entry.id} value={entry.id}>
+                              {`${dateLabel} | vs ${opponentLabel}${stageLabel} | ${scoreLabel}`}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <small style={{ color: '#666' }}>
+                        Selecting an entry will auto-populate the form with that record.
+                      </small>
+                    </div>
+                  )}
+
+                  <div className="psl-field form-group">
                     <label>Opponent team</label>
                     <select
                       name="opponentUserId"
@@ -483,6 +675,44 @@ const PlayerStatsList = () => {
                     </select>
                   </div>
 
+                  {worldCupMode && (
+                    <>
+                      <div className="psl-field form-group">
+                        <label>World Cup stage</label>
+                        <select
+                          name="wcStage"
+                          value={formData.wcStage}
+                          onChange={handleInputChange}
+                          required
+                        >
+                          <option value="">Select stage</option>
+                          <option value="super8">Super 8</option>
+                          <option value="semi">Semi</option>
+                          <option value="final">Final</option>
+                        </select>
+                      </div>
+                      <div className="psl-field form-group">
+                        <label>Tournament</label>
+                        <select
+                          name="tournamentId"
+                          value={formData.tournamentId}
+                          onChange={handleInputChange}
+                          required={!!formData.wcStage}
+                          disabled={tournamentsLoading}
+                        >
+                          <option value="">
+                            {tournamentsLoading ? 'Loading tournaments...' : 'Select tournament'}
+                          </option>
+                          {runningTournaments.map((tn) => (
+                            <option key={tn._id} value={tn._id}>
+                              {tn.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
                   <div className="checkbox-card-grid">
                     <label
                       className={`playoff-checkbox-wrapper lite ${formData.isMom ? 'checked' : ''}`}
@@ -504,25 +734,27 @@ const PlayerStatsList = () => {
                       </span>
                     </label>
 
-                    <label
-                      className={`playoff-checkbox-wrapper lite playoff-accent ${formData.isPlayoffScore ? 'checked' : ''}`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <input
-                        type="checkbox"
-                        className="playoff-checkbox"
-                        name="isPlayoffScore"
-                        checked={formData.isPlayoffScore}
-                        onChange={handleCheckboxChange}
-                      />
-                      <span className="playoff-checkbox-label">
-                        <span className="playoff-icon">🏆</span>
-                        <span className="checkbox-text">
-                          <span className="checkbox-title">Playoff Score</span>
-                          <span className="checkbox-subtitle">Track post-season stats</span>
+                    {!worldCupMode && (
+                      <label
+                        className={`playoff-checkbox-wrapper lite playoff-accent ${formData.isPlayoffScore ? 'checked' : ''}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          className="playoff-checkbox"
+                          name="isPlayoffScore"
+                          checked={formData.isPlayoffScore}
+                          onChange={handleCheckboxChange}
+                        />
+                        <span className="playoff-checkbox-label">
+                          <span className="playoff-icon">🏆</span>
+                          <span className="checkbox-text">
+                            <span className="checkbox-title">Playoff Score</span>
+                            <span className="checkbox-subtitle">Track post-season stats</span>
+                          </span>
                         </span>
-                      </span>
-                    </label>
+                      </label>
+                    )}
                   </div>
                 </div>
 
