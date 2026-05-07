@@ -107,6 +107,22 @@ const WHATSAPP_MESSAGE = `🏏 Auction Night Schedule (IST) - Updated
 
 ℹ️ All timings are in India time (IST).`;
 
+const WHATSAPP_MESSAGE_SHORT = `🏏 Auction Night Schedule (IST)
+
+• 8:00 PM-9:40 PM: Bulk exit every 10 min
+• 10:30 PM: Team lock check
+• 11:00 PM-11:45 PM: Exit-only every 5 min
+• 11:45 PM: One-time special sell sweep
+• 11:50 PM-12:45 AM: 5-min sell/exit cycle (5-min check)
+• 12:46 AM-2:00 AM: 2-min fast sell/exit cycle (2-min check)
+
+Queue:
+• Promotion auto-triggers after second-highest exits
+• Sell blocked if queue has waiting users
+• Sell blocked if 2+ active bidders remain
+
+ℹ️ All timings are IST.`;
+
 function getCycleEvents(now = new Date(), auctionStartAt = null) {
   const nowIst = getIstParts(now);
   let anchor = nowIst.hour < 6 ? addDaysIst(nowIst, -1) : nowIst; // 00:xx belongs to previous evening cycle
@@ -136,6 +152,7 @@ export default function AuctionTimeline() {
   const [copyStatus, setCopyStatus] = useState('');
   const [auctionStartAt, setAuctionStartAt] = useState(null);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 640);
+  const [whatsAppMode, setWhatsAppMode] = useState('detailed');
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -184,13 +201,15 @@ export default function AuctionTimeline() {
     });
   }, [auctionStartAt]);
 
+  const whatsappText = whatsAppMode === 'short' ? WHATSAPP_MESSAGE_SHORT : WHATSAPP_MESSAGE;
+
   const handleCopyWhatsappFormat = async () => {
     try {
       if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(WHATSAPP_MESSAGE);
+        await navigator.clipboard.writeText(whatsappText);
       } else {
         const textArea = document.createElement('textarea');
-        textArea.value = WHATSAPP_MESSAGE;
+        textArea.value = whatsappText;
         textArea.style.position = 'fixed';
         textArea.style.left = '-9999px';
         document.body.appendChild(textArea);
@@ -223,6 +242,36 @@ export default function AuctionTimeline() {
         Base date source: admin setting <strong>Auction Start Time</strong> ({auctionStartLabel === 'Not set' ? 'fallback to current day' : auctionStartLabel + ' IST'}).
       </p>
       <div style={{ marginBottom: 14 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setWhatsAppMode('short')}
+            style={{
+              border: '1px solid #cbd5e1',
+              borderRadius: 8,
+              padding: '6px 10px',
+              cursor: 'pointer',
+              background: whatsAppMode === 'short' ? '#e2e8f0' : '#fff',
+              fontWeight: 600,
+            }}
+          >
+            Short WhatsApp
+          </button>
+          <button
+            type="button"
+            onClick={() => setWhatsAppMode('detailed')}
+            style={{
+              border: '1px solid #cbd5e1',
+              borderRadius: 8,
+              padding: '6px 10px',
+              cursor: 'pointer',
+              background: whatsAppMode === 'detailed' ? '#e2e8f0' : '#fff',
+              fontWeight: 600,
+            }}
+          >
+            Detailed WhatsApp
+          </button>
+        </div>
         <button
           type="button"
           onClick={handleCopyWhatsappFormat}
@@ -314,7 +363,7 @@ export default function AuctionTimeline() {
           color: '#1f2937',
         }}
       >
-        {WHATSAPP_MESSAGE}
+        {whatsappText}
       </div>
     </div>
   );
