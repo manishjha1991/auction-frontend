@@ -123,6 +123,43 @@ Queue:
 
 ℹ️ All timings are IST.`;
 
+const QUEUE_RULES_EXAMPLE = `📢 Queue + Manual Bid Rules (Examples)
+
+Core limits:
+- Gold max 8
+- Silver max 6
+- Sapphire max 2
+- Emerald max 4
+- Emerald + Sapphire combined max 5
+- Retained players are counted in the above limits
+
+Queue join:
+- You can join queue only when exactly 2 active bidders exist on that player
+- If not exactly 2, queue join is blocked
+
+Auto-promotion:
+- After second-highest exits (manual/bulk/scheduler), queue promotion auto-check runs
+- Promotion needs: player unsold + exactly 1 active bidder left + queue head valid for next bid
+
+Manual bid + queue slot consumption:
+- Queue slots consume bid capacity
+- If active bids + queue entries already fill your category/concurrent slots, manual bid is blocked
+
+Example A (Gold):
+- Retained 1 Gold + bought 1 Gold + active bids on 5 Gold = 7 used
+- Join queue on one more Gold => capacity reaches 8
+- Now another new Gold manual bid is blocked until one active/queue slot frees up
+
+Example B (Emerald + Sapphire):
+- Retained: 1 Sapphire + 1 Emerald (2 used)
+- Active bids: 2 Emerald (total 4 used)
+- Join queue on 1 Sapphire => total reaches 5
+- Now new Emerald/Sapphire manual bid is blocked until one ES slot is freed
+
+Max exceeded behavior:
+- If next legal bid becomes greater than your queue max, queue entry is removed and locked amount is refunded
+- If already promoted and max is crossed during auto-bid, proxy exits and refund is processed`;
+
 function getCycleEvents(now = new Date(), auctionStartAt = null) {
   const nowIst = getIstParts(now);
   let anchor = nowIst.hour < 6 ? addDaysIst(nowIst, -1) : nowIst; // 00:xx belongs to previous evening cycle
@@ -364,6 +401,21 @@ export default function AuctionTimeline() {
         }}
       >
         {whatsappText}
+      </div>
+      <div
+        style={{
+          marginTop: 14,
+          border: '1px solid #e5e7eb',
+          borderRadius: 10,
+          padding: 12,
+          background: '#ffffff',
+          whiteSpace: 'pre-wrap',
+          fontSize: isMobile ? 12 : 13,
+          color: '#111827',
+          lineHeight: 1.5,
+        }}
+      >
+        {QUEUE_RULES_EXAMPLE}
       </div>
     </div>
   );
