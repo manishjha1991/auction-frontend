@@ -691,6 +691,11 @@ const PlayerPopup = ({
     bidQueueState.manualBidsFrozen &&
     !bidderIdMatchesTopTwo();
 
+  // If two bidders are already active and you are not one of them,
+  // hide manual Place Bid until one exits and a slot opens.
+  const blockedByActiveDuel =
+    bidQueueState.activeBidderCount >= 2 && !bidderIdMatchesTopTwo();
+
   /** Promoted from queue: auto-bids only — no manual Place Bid (server enforces too). */
   const promotedFromQueue = !!(bidQueueState.you?.isPromotedProxy);
 
@@ -1380,26 +1385,33 @@ const PlayerPopup = ({
                     ) : null}
                   </div>
                 )}
-                <button
-                  className="user-btn place-bid"
-                  onClick={handlePlaceBid}
-                  disabled={placingBid || manualBidBlockedByQueue || promotedFromQueue}
-                >
-                  {promotedFromQueue
-                    ? "Manual bid off — switch to manual or Exit"
-                    : manualBidBlockedByQueue
-                      ? "Manual bid paused (queue active)"
-                      : placingBid
-                        ? "Placing..."
-                        : `Place Bid (${formatHumanReadableAmount(
-                            determineBidIncrement(
-                              playerDetails?.type,
-                              topTwoBids.length > 0
-                                ? topTwoBids[0]?.bidAmount || 0
-                                : playerDetails?.basePrice || 0
-                            )
-                          )} step)`}
-                </button>
+                {!blockedByActiveDuel && (
+                  <button
+                    className="user-btn place-bid"
+                    onClick={handlePlaceBid}
+                    disabled={placingBid || manualBidBlockedByQueue || promotedFromQueue}
+                  >
+                    {promotedFromQueue
+                      ? "Manual bid off — Exit only"
+                      : manualBidBlockedByQueue
+                        ? "Manual bid paused (queue/proxy active)"
+                        : placingBid
+                          ? "Placing..."
+                          : `Place Bid (${formatHumanReadableAmount(
+                              determineBidIncrement(
+                                playerDetails?.type,
+                                topTwoBids.length > 0
+                                  ? topTwoBids[0]?.bidAmount || 0
+                                  : playerDetails?.basePrice || 0
+                              )
+                            )} step)`}
+                  </button>
+                )}
+                {blockedByActiveDuel && (
+                  <p className="bid-queue-hint">
+                    Two active bidders are fighting on this player. Place Bid appears only after one exits.
+                  </p>
+                )}
                 {bidError && <p className="error">{bidError}</p>}
               </div>
             )}
