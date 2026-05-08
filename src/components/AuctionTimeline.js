@@ -160,6 +160,15 @@ Max exceeded behavior:
 - If next legal bid becomes greater than your queue max, queue entry is removed and locked amount is refunded
 - If already promoted and max is crossed during auto-bid, proxy exits and refund is processed`;
 
+const QUEUE_MAX_RULE_UPDATE = `Queue Max Bid Rule (Latest Update)
+
+- Max bid must match legal bid ladder only (no random values)
+- Max must cover at least next 4 legal bid steps from current top
+- Purse must be >= selected max lock amount
+- Silver ladder:
+  - 10L steps below 1 Cr
+  - 50L steps at/after 1 Cr`;
+
 function getCycleEvents(now = new Date(), auctionStartAt = null) {
   const nowIst = getIstParts(now);
   let anchor = nowIst.hour < 6 ? addDaysIst(nowIst, -1) : nowIst; // 00:xx belongs to previous evening cycle
@@ -271,7 +280,7 @@ export default function AuctionTimeline() {
 
   return (
     <div style={{ maxWidth: 980, margin: '0 auto', padding: isMobile ? 10 : 16 }}>
-      <h2 style={{ marginBottom: 8 }}>Auction Timeline (IST)</h2>
+      <h2 style={{ marginBottom: 8 }}>Auction Time and Rules (IST)</h2>
       <p style={{ marginTop: 0, color: '#6b7280' }}>
         Human-readable nightly flow with live countdown. Lightweight page: no backend polling.
       </p>
@@ -346,6 +355,21 @@ export default function AuctionTimeline() {
         <strong>Queue Flow (auto-promotion):</strong> after each second-highest exit (manual + bulk + scheduler), the system tries queue promotion.
         Promotion happens only when player is unsold, exactly one active bidder remains, and queue head is eligible for next bid.
         Selling is blocked if queue has waiting users.
+      </div>
+      <div
+        style={{
+          marginBottom: 14,
+          border: '1px solid #fde68a',
+          borderRadius: 10,
+          padding: isMobile ? 10 : 12,
+          background: '#fffbeb',
+          fontSize: isMobile ? 12 : 13,
+          color: '#92400e',
+          lineHeight: 1.5,
+          whiteSpace: 'pre-wrap',
+        }}
+      >
+        {QUEUE_MAX_RULE_UPDATE}
       </div>
       <div style={{ display: 'grid', gap: 10 }}>
         {events.map((event, idx) => {
