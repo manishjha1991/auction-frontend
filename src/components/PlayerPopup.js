@@ -796,40 +796,6 @@ const PlayerPopup = ({
     }
   };
 
-  const handleResignProxyToManual = async () => {
-    const pid = playerDetails?.id || playerDetails?._id;
-    if (!pid) return;
-    setQueueBusy(true);
-    try {
-      const u = JSON.parse(localStorage.getItem("user"));
-      const res = await fetch(`${API_ENDPOINTS}/api/bid-queue/${pid}/resign-proxy`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${u?.token}` },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || "Could not switch to manual bidding");
-      setBidAlert({
-        message:
-          data.message ||
-          "Auto-bid is off. You can place bids manually. To use queue auto-bid again, exit, re-join the queue, and get promoted.",
-        amount: null,
-        playerName: playerDetails?.name,
-        isSuccess: true,
-      });
-      await fetchBidQueueState();
-      await fetchPlayerData(false);
-    } catch (e) {
-      setBidAlert({
-        message: e.message || "Queue error",
-        amount: null,
-        playerName: playerDetails?.name,
-        isSuccess: false,
-      });
-    } finally {
-      setQueueBusy(false);
-    }
-  };
-
   const handleUpdateQueueMax = async () => {
     const pid = playerDetails?.id || playerDetails?._id;
     const parsed = parseQueueMaxBid();
@@ -1306,8 +1272,8 @@ const PlayerPopup = ({
                           <span className="bid-queue-you-card-title">Promoted — auto-bid on</span>
                           <p className="bid-queue-you-card-detail">
                             Auto-bid is active up to{" "}
-                            <strong>{formatHumanReadableAmount(bidQueueState.you.maxBid)}</strong>. Use{" "}
-                            <strong>Switch to manual bidding</strong> below or <strong>Exit Auction</strong>{" "}
+                            <strong>{formatHumanReadableAmount(bidQueueState.you.maxBid)}</strong>. Manual
+                            bidding is locked for promoted queue users. Use <strong>Exit Auction</strong>{" "}
                             to leave. For auto-bid again: exit, re-join the queue, get promoted.
                             {bidQueueState.you.maxEditTradesRemaining != null ? (
                               <>
@@ -1347,18 +1313,6 @@ const PlayerPopup = ({
                         </>
                       )}
                     </div>
-                  </div>
-                )}
-                {showBidQueuePanel && promotedFromQueue && bidQueueState.you && (
-                  <div className="bid-queue-actions bid-queue-actions--promoted">
-                    <button
-                      type="button"
-                      className="user-btn bid-queue-manual"
-                      disabled={queueBusy}
-                      onClick={handleResignProxyToManual}
-                    >
-                      Switch to manual bidding
-                    </button>
                   </div>
                 )}
                 {showBidQueuePanel &&
