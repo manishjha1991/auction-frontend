@@ -741,26 +741,26 @@ const AdminControlPanel = ({ adminUser }) => {
   const cronDefinitions = [
     {
       key: 'cronSingleBidEnabled',
-      title: '11:30 PM–2:00 AM: Exit & Sell (5 min / 2 min cycle)',
+      title: '11:00 PM–2:00 AM: Exit/Sell Windows (5 min / 2 min cycle)',
       description:
-        '10:30–11:20 PM: exit second-highest only (no selling). 11:30 PM–12:30 AM: every 5 min – if 2 bidders → exit only; if 1 bidder + 5 min since exit → sell. 12:30–2:00 AM: same logic every 2 min. Never sells when 2 bidders active. Enabling this pauses bulk cleanup.',
+        '11:00–11:40 PM: exit-only every 5 min (no selling). 11:45 PM: one-time immediate sell sweep (second already exited). 11:50 PM–12:45 AM: every 5 min – if 2 bidders → exit only; if 1 bidder + 5 min since exit → sell. 12:46–2:00 AM: same logic every 2 min (2-min check). Never sells when 2 bidders are active. Enabling this pauses bulk cleanup.',
     },
     {
       key: 'cronSingleBidFinalizerEnabled',
-      title: '10:30 PM: Sell Single-Bid-Only Players',
+      title: '11:00 PM: Sell Single-Bid-Only Players',
       description:
-        'At 10:30 PM IST sell players who have only ever received one bid (no counter bid since auction start). Skips if second bidder is still active.',
+        'At 11:00 PM IST sell players who have only ever received one bid (no counter bid since auction start). Skips if second bidder is still active.',
     },
     {
       key: 'cronBulkExitEnabled',
-      title: '6:00–9:40 PM & 10:35–11:05 PM: Bulk Exit Second-Highest',
+      title: '8:00–9:40 PM & 10:35–11:05 PM: Bulk Exit Second-Highest',
       description:
-        'Window 1: 6:00–9:40 PM IST every 10 min. Window 2: 10:35–11:05 PM every 10 min. Then stops. No selling. Enabling this pauses the 11:30 PM–2:00 AM timed windows.',
+        'Window 1: 8:00–9:40 PM IST every 10 min. Window 2: 10:35–11:05 PM every 10 min. Then stops. No selling. Enabling this pauses the 11:00 PM–2:00 AM timed windows.',
     },
     {
       key: 'cronLockEnabled',
       title: 'Lock Under Limit',
-      description: 'Nightly at 10:00 PM IST lock teams that violate roster rules. Choose which categories to check (only active auction categories).',
+      description: 'Nightly at 10:30 PM IST lock teams that violate roster rules. Choose which categories to check (only active auction categories).',
     },
   ];
 
@@ -1125,7 +1125,7 @@ const AdminControlPanel = ({ adminUser }) => {
         <div className="section-header">
           <div>
             <h2>Auction Auto Mode</h2>
-            <p>When enabled: 6 PM categories + bulk; 9:40 bulk off; 10:25 finalizer on; 10:35 bulk on; 11:20 bulk off; 11:25 sell-after-exit on. No manual toggling. When disabled, you must manually control Cron Controls and Player Availability. Turning Auto Mode OFF does not change Player Availability—it stays as is.</p>
+            <p>When enabled: 8:00 PM start categories + bulk; 9:40 PM bulk off / single-bid on; 10:34 PM bulk on; 10:55 PM single-bid finalizer on; 11:20 PM bulk off; 11:50 PM sell-after-exit on. No manual toggling. When disabled, manually control Cron Controls and Player Availability. Turning Auto Mode OFF does not change Player Availability—it stays as is.</p>
           </div>
           {cronSaving && <span className="cron-saving-pill">Saving…</span>}
         </div>
@@ -1185,7 +1185,7 @@ const AdminControlPanel = ({ adminUser }) => {
         <div className="section-header">
           <div>
             <h2>Cron Controls</h2>
-            <p>Toggle background jobs on or off. The 11:30 PM–2:00 AM exit/sell cycle and the bulk exit (6–9:40 PM & 10:35–11:05 PM) cannot run at the same time.</p>
+            <p>Toggle background jobs on or off. The 11:00 PM–2:00 AM exit/sell windows and the bulk exit (8:00–9:40 PM & 10:35–11:05 PM) cannot run at the same time.</p>
             {cronSettings.auctionAutoModeEnabled ? (
               <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(46, 204, 113, 0.9)' }}>
                 ✓ Auto Mode on – toggles update every 60s to match cron schedule (6 PM, 9:40 PM, etc.)
