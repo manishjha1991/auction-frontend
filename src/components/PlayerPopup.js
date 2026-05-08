@@ -729,6 +729,14 @@ const PlayerPopup = ({
     }
     return { ok: true, amount, unit, maxBid };
   };
+  const handleQueueMaxInputChange = (event) => {
+    const next = String(event.target.value ?? "");
+    // Allow only up to 2 decimal places while typing.
+    if (!/^\d*(\.\d{0,2})?$/.test(next)) {
+      return;
+    }
+    setQueueMaxInput(next);
+  };
   const queueMaxPreview = (() => {
     const p = parseQueueMaxBid();
     return p.ok ? p.maxBid : null;
@@ -1361,11 +1369,11 @@ const PlayerPopup = ({
                       <input
                         type="number"
                         min="0"
-                        step="0.1"
+                        step="0.01"
                         className="bid-queue-max-input bid-queue-max-value"
                         placeholder="Enter value"
                         value={queueMaxInput}
-                        onChange={(e) => setQueueMaxInput(e.target.value)}
+                        onChange={handleQueueMaxInputChange}
                         disabled={queueBusy}
                       />
                       <select
