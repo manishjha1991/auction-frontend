@@ -889,16 +889,22 @@ const PlayerPopup = ({
       setBidAlert(null); // Reset the alert
 
       const user = JSON.parse(localStorage.getItem("user"));
-      const userId = user?.id;
+      const pid = player?.id || player?._id || playerDetails?.id || playerDetails?._id;
+      const token = user?.token;
 
-      if (!userId) {
-        throw new Error("User ID not found in local storage.");
+      if (!pid) {
+        throw new Error("Player ID not found.");
+      }
+      if (!token) {
+        throw new Error("Authentication required. Please login again.");
       }
 
-      const response = await fetch(`${API_ENDPOINTS}/api/bids/${player.id}/exit`, {
+      const response = await fetch(`${API_ENDPOINTS}/api/bids/${pid}/exit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const result = await response.json();
@@ -915,7 +921,7 @@ const PlayerPopup = ({
         isExit: true
       });
       if (onBidExited) {
-        onBidExited(player.id || player._id);
+        onBidExited(pid);
       }
     } catch (err) {
       setBidAlert({
