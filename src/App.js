@@ -36,6 +36,7 @@ import AdminUserManagement from './components/AdminUserManagement';
 import AdminRetainedPlayers from './components/AdminRetainedPlayers';
 import AdminTeamLocks from './components/AdminTeamLocks';
 import AdminFairnessManagement from './components/AdminFairnessManagement';
+import AdminQueueMonitor from './components/AdminQueueMonitor';
 import TournamentList from './components/TournamentList';
 import TrophyHall from './components/TrophyHall';
 import AdminMatchResults from './components/AdminMatchResults';
@@ -523,6 +524,14 @@ function App() {
                           <span>Retention Locks</span>
                         </Link>
                       </li>
+                      {/* Queue Monitor menu hidden for now; uncomment when needed
+                      <li>
+                        <Link to="/admin/queue-monitor" onClick={closeSidebar} className={`menu-item ${isActive('/admin/queue-monitor') ? 'active' : ''}`}>
+                          <FaUsers className="menu-icon" />
+                          <span>Queue Monitor</span>
+                        </Link>
+                      </li>
+                      */}
                       <li>
                         <Link to="/admin/settings" onClick={closeSidebar} className={`menu-item ${isActive('/admin/settings') ? 'active' : ''}`}>
                           <FaCog className="menu-icon" />
@@ -682,6 +691,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <AdminTeamLocks />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/queue-monitor"
+              element={
+                <PrivateRoute>
+                  <AdminQueueMonitor />
                 </PrivateRoute>
               }
             />
