@@ -86,8 +86,11 @@ const PlayerPopup = ({
     activeBidderCount: 0,
   });
   const [queueMaxInput, setQueueMaxInput] = useState("");
+  const [queueMaxUnit, setQueueMaxUnit] = useState("cr");
   const [queueBusy, setQueueBusy] = useState(false);
   const [liveWatcherCount, setLiveWatcherCount] = useState(0);
+  const QUEUE_UNIT_MULTIPLIER = { lakh: 100000, cr: 10000000 };
+  const MAX_QUEUE_BID_RUPEES = 1000000000; // 100 Cr hard cap
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -707,13 +710,45 @@ const PlayerPopup = ({
   const showJoinQueueControls =
     bidQueueState.canJoinQueue && !bidderIdMatchesTopTwo();
 
+  const parseQueueMaxBid = () => {
+    const raw = String(queueMaxInput || "").replace(/,/g, "").trim();
+    const unit = queueMaxUnit === "lakh" ? "lakh" : "cr";
+    if (!raw) {
+      return { ok: false, message: "Enter max bid value." };
+    }
+    if (!/^\d+(\.\d{1,2})?$/.test(raw)) {
+      return { ok: false, message: "Use number format like 1 or 1.5 (up to 2 decimals)." };
+    }
+    const amount = Number(raw);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { ok: false, message: "Enter a valid positive max bid value." };
+    }
+    const maxBid = Math.round(amount * QUEUE_UNIT_MULTIPLIER[unit]);
+    if (!Number.isFinite(maxBid) || maxBid <= 0) {
+      return { ok: false, message: "Converted max bid is invalid. Please adjust value." };
+    }
+    return { ok: true, amount, unit, maxBid };
+  };
+  const queueMaxPreview = (() => {
+    const p = parseQueueMaxBid();
+    return p.ok ? p.maxBid : null;
+  })();
+
   const handleJoinBidQueue = async () => {
     const pid = playerDetails?.id || playerDetails?._id;
-    const raw = String(queueMaxInput || "").replace(/,/g, "").trim();
-    const maxBid = Number(raw);
-    if (!pid || !Number.isFinite(maxBid) || maxBid <= 0) {
+    const parsed = parseQueueMaxBid();
+    if (!pid || !parsed.ok) {
       setBidAlert({
-        message: "Enter a valid max bid amount (number).",
+        message: parsed?.message || "Enter a valid max bid number and choose unit (Lakh/Cr).",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: false,
+      });
+      return;
+    }
+    if (parsed.maxBid > MAX_QUEUE_BID_RUPEES) {
+      setBidAlert({
+        message: "Queue max cannot exceed 100 Cr.",
         amount: null,
         playerName: playerDetails?.name,
         isSuccess: false,
@@ -729,7 +764,7 @@ const PlayerPopup = ({
           "Content-Type": "application/json",
           Authorization: `Bearer ${u?.token}`,
         },
-        body: JSON.stringify({ maxBid }),
+        body: JSON.stringify({ maxBid: parsed.maxBid }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Could not join queue");
@@ -789,11 +824,19 @@ const PlayerPopup = ({
 
   const handleUpdateQueueMax = async () => {
     const pid = playerDetails?.id || playerDetails?._id;
-    const raw = String(queueMaxInput || "").replace(/,/g, "").trim();
-    const maxBid = Number(raw);
-    if (!pid || !Number.isFinite(maxBid) || maxBid <= 0) {
+    const parsed = parseQueueMaxBid();
+    if (!pid || !parsed.ok) {
       setBidAlert({
-        message: "Enter a valid new max bid.",
+        message: parsed?.message || "Enter a valid new max bid number and choose unit (Lakh/Cr).",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: false,
+      });
+      return;
+    }
+    if (parsed.maxBid > MAX_QUEUE_BID_RUPEES) {
+      setBidAlert({
+        message: "Queue max cannot exceed 100 Cr.",
         amount: null,
         playerName: playerDetails?.name,
         isSuccess: false,
@@ -809,7 +852,7 @@ const PlayerPopup = ({
           "Content-Type": "application/json",
           Authorization: `Bearer ${u?.token}`,
         },
-        body: JSON.stringify({ maxBid }),
+        body: JSON.stringify({ maxBid: parsed.maxBid }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Could not update max");
@@ -1314,14 +1357,31 @@ const PlayerPopup = ({
                         is locked until you are promoted; you cannot leave the queue early.
                       </p>
                     )}
-                    <input
-                      type="text"
-                      className="bid-queue-max-input"
-                      placeholder="Max bid (absolute amount)"
-                      value={queueMaxInput}
-                      onChange={(e) => setQueueMaxInput(e.target.value)}
-                      disabled={queueBusy}
-                    />
+                    <div className="bid-queue-max-row">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        className="bid-queue-max-input bid-queue-max-value"
+                        placeholder="Enter value"
+                        value={queueMaxInput}
+                        onChange={(e) => setQueueMaxInput(e.target.value)}
+                        disabled={queueBusy}
+                      />
+                      <select
+                        className="bid-queue-max-input bid-queue-max-unit"
+                        value={queueMaxUnit}
+                        onChange={(e) => setQueueMaxUnit(e.target.value)}
+                        disabled={queueBusy}
+                      >
+                        <option value="lakh">Lakh</option>
+                        <option value="cr">Cr</option>
+                      </select>
+                    </div>
+                    <p className="bid-queue-hint" style={{ marginTop: 6 }}>
+                      Example: 6 + Cr means 6 Cr, 1.5 + Cr means 1.5 Cr, 30 + Lakh means 30 Lakh. Max allowed: 100 Cr.
+                      {queueMaxPreview != null ? ` Converted value: ${formatHumanReadableAmount(queueMaxPreview)}.` : ""}
+                    </p>
                     {showJoinQueueControls ? (
                       <button
                         type="button"

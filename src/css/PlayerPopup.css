@@ -936,6 +936,65 @@
   font-size: 14px;
 }
 
+.bid-queue-max-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.bid-queue-max-value {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.bid-queue-max-unit {
+  flex: 0 0 100px;
+  min-width: 100px;
+  text-align: center;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .bid-queue-max-row {
+    flex-wrap: wrap;
+  }
+  .bid-queue-max-value,
+  .bid-queue-max-unit {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .bid-queue-max-input {
+    min-height: 44px;
+    font-size: 16px; /* avoid iOS zoom on focus */
+    border-radius: 12px;
+  }
+
+  .bid-queue-actions {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .user-btn.bid-queue-join,
+  .user-btn.bid-queue-update,
+  .user-btn.bid-queue-manual,
+  .user-btn.bid-queue-leave {
+    width: 100%;
+    min-height: 44px;
+    font-size: 15px;
+    border-radius: 12px;
+    margin: 0;
+  }
+
+  .bid-queue-hint,
+  .bid-queue-no-leave-hint {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}
+
 .user-btn.bid-queue-join,
 .user-btn.bid-queue-update,
 .user-btn.bid-queue-leave {
