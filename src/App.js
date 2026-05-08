@@ -60,6 +60,9 @@ import './App.css';
 import { SocketProvider } from './contexts/SocketContext';
 import { ToastProvider } from './components/ToastNotification';
 
+const CONSISTENCY_BADGE_KEY = 'adminConsistencyBadgeCount';
+const CONSISTENCY_BADGE_UPDATED_EVENT = 'consistency-check-updated';
+
 // Helper component for menu items with search filtering
 const MenuItem = ({ to, icon: Icon, children, onClick, searchQuery, location }) => {
   const isActive = location.pathname === to;
@@ -88,6 +91,7 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [appSettings, setAppSettings] = useState({ enableTradeCenter: true, enableUnsoldPlayers: true, worldCupMode: false });
+  const [consistencyBadgeCount, setConsistencyBadgeCount] = useState(0);
 
   useEffect(() => {
     const cachedAuth = localStorage.getItem('isLoggedIn') === 'true';
@@ -121,6 +125,45 @@ function App() {
     window.addEventListener('settings-updated', handler);
     return () => window.removeEventListener('settings-updated', handler);
   }, []);
+
+  useEffect(() => {
+    if (!user?.isAdmin) {
+      setConsistencyBadgeCount(0);
+      return;
+    }
+
+    const refreshConsistencyBadge = () => {
+      try {
+        const raw = window.localStorage.getItem(CONSISTENCY_BADGE_KEY);
+        const parsed = Number(raw || 0);
+        setConsistencyBadgeCount(Number.isFinite(parsed) && parsed > 0 ? parsed : 0);
+      } catch {
+        setConsistencyBadgeCount(0);
+      }
+    };
+
+    refreshConsistencyBadge();
+
+    const onConsistencyUpdated = (evt) => {
+      const next = Number(evt?.detail?.totalIssues);
+      if (Number.isFinite(next)) {
+        setConsistencyBadgeCount(next > 0 ? next : 0);
+        return;
+      }
+      refreshConsistencyBadge();
+    };
+
+    const onStorage = (evt) => {
+      if (evt.key === CONSISTENCY_BADGE_KEY) refreshConsistencyBadge();
+    };
+
+    window.addEventListener(CONSISTENCY_BADGE_UPDATED_EVENT, onConsistencyUpdated);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener(CONSISTENCY_BADGE_UPDATED_EVENT, onConsistencyUpdated);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [user?.isAdmin]);
 
   const handleLogin = (userData) => {
     setIsAuthenticated(true);
@@ -524,18 +567,36 @@ function App() {
                           <span>Retention Locks</span>
                         </Link>
                       </li>
-                      {/* Queue Monitor menu hidden for now; uncomment when needed
-                      <li>
+                      {/* <li>
                         <Link to="/admin/queue-monitor" onClick={closeSidebar} className={`menu-item ${isActive('/admin/queue-monitor') ? 'active' : ''}`}>
                           <FaUsers className="menu-icon" />
                           <span>Queue Monitor</span>
                         </Link>
-                      </li>
-                      */}
+                      </li> */}
                       <li>
                         <Link to="/admin/settings" onClick={closeSidebar} className={`menu-item ${isActive('/admin/settings') ? 'active' : ''}`}>
                           <FaCog className="menu-icon" />
-                          <span>Admin Settings</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                            Admin Settings
+                            {consistencyBadgeCount > 0 && (
+                              <span
+                                style={{
+                                  minWidth: 18,
+                                  height: 18,
+                                  borderRadius: 9,
+                                  background: '#dc2626',
+                                  color: '#fff',
+                                  fontSize: 11,
+                                  lineHeight: '18px',
+                                  textAlign: 'center',
+                                  padding: '0 6px',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {consistencyBadgeCount > 99 ? '99+' : consistencyBadgeCount}
+                              </span>
+                            )}
+                          </span>
                         </Link>
                       </li>
                     </ul>

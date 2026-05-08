@@ -4,6 +4,8 @@ import { API_ENDPOINTS } from '../const';
 import PlayerTypeControls from './PlayerTypeControls';
 
 const formatCr = (value) => `${value.toFixed(2)} Cr`;
+const CONSISTENCY_BADGE_KEY = 'adminConsistencyBadgeCount';
+const CONSISTENCY_BADGE_UPDATED_EVENT = 'consistency-check-updated';
 
 const deriveAdminId = (adminUser) => {
   if (adminUser?.id) return adminUser.id;
@@ -28,6 +30,8 @@ const AdminControlPanel = ({ adminUser }) => {
   const [purseLoading, setPurseLoading] = useState(false);
   const [purseExecuting, setPurseExecuting] = useState(false);
   const [purseResult, setPurseResult] = useState(null);
+  const [consistencyLoading, setConsistencyLoading] = useState(false);
+  const [consistencyReport, setConsistencyReport] = useState(null);
 
   const [syncPreview, setSyncPreview] = useState(null);
   const [syncLoading, setSyncLoading] = useState(false);
@@ -302,6 +306,37 @@ const AdminControlPanel = ({ adminUser }) => {
       handleToast(err.message || 'Unable to execute purse update');
     } finally {
       setPurseExecuting(false);
+    }
+  };
+
+  const runConsistencyCheck = async () => {
+    if (!adminUserId) return;
+    setConsistencyLoading(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/consistency-check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to run consistency check');
+      setConsistencyReport(data);
+      const retainedIssues = data?.retained?.issueCount || 0;
+      const purseIssues = data?.purse?.mismatchCount || 0;
+      const totalIssues = retainedIssues + purseIssues;
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(CONSISTENCY_BADGE_KEY, String(totalIssues));
+          window.dispatchEvent(
+            new CustomEvent(CONSISTENCY_BADGE_UPDATED_EVENT, { detail: { totalIssues } })
+          );
+        } catch {}
+      }
+      handleToast(`Consistency check done: retained=${retainedIssues}, purse=${purseIssues}`);
+    } catch (err) {
+      handleToast(err.message || 'Unable to run consistency check');
+    } finally {
+      setConsistencyLoading(false);
     }
   };
 
@@ -1285,8 +1320,108 @@ const AdminControlPanel = ({ adminUser }) => {
       <section className="admin-section">
         <div className="section-header">
           <div>
+            <h2>Consistency Monitor (Read-Only)</h2>
+            <p>Checks retained players at 17 Cr and purse drift. No data is changed.</p>
+          </div>
+          <div className="section-actions">
+            <button
+              className="btn ghost"
+              onClick={runConsistencyCheck}
+              disabled={consistencyLoading || !adminUserId}
+            >
+              {consistencyLoading ? 'Checking…' : 'Run Consistency Check'}
+            </button>
+          </div>
+        </div>
+
+        {consistencyReport && (
+          <div className="summary-grid">
+            <div className="summary-card">
+              <span>Retained checked</span>
+              <strong>{consistencyReport.retained?.activeCount || 0}</strong>
+            </div>
+            <div className="summary-card">
+              <span>Retained issues</span>
+              <strong>{consistencyReport.retained?.issueCount || 0}</strong>
+            </div>
+            <div className="summary-card">
+              <span>Users checked</span>
+              <strong>{consistencyReport.purse?.checkedUsers || 0}</strong>
+            </div>
+            <div className="summary-card">
+              <span>Purse mismatches</span>
+              <strong>{consistencyReport.purse?.mismatchCount || 0}</strong>
+            </div>
+          </div>
+        )}
+
+        {consistencyReport && (
+          <div className="result-banner" style={{ marginTop: 10 }}>
+            <strong>
+              Checked at {new Date(consistencyReport.checkedAt).toLocaleString()}
+            </strong>
+          </div>
+        )}
+
+        {consistencyReport?.retained?.issues?.length > 0 && (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Team</th>
+                  <th>Player</th>
+                  <th>Retained Price</th>
+                  <th>UserPlayer Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {consistencyReport.retained.issues.slice(0, 30).map((row) => (
+                  <tr key={`${row.userId}-${row.playerId}`}>
+                    <td>{row.teamName || row.userName || '-'}</td>
+                    <td>{row.playerName || '-'}</td>
+                    <td>{row.retainedPriceField ?? '-'}</td>
+                    <td>{row.userPlayerBidValue ?? '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {consistencyReport?.purse?.mismatches?.length > 0 && (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Team</th>
+                  <th>Actual</th>
+                  <th>Expected</th>
+                  <th>Delta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {consistencyReport.purse.mismatches.slice(0, 30).map((row) => (
+                  <tr key={row.userId}>
+                    <td>{row.teamName || row.name || '-'}</td>
+                    <td>{row.actual}</td>
+                    <td>{row.expected}</td>
+                    <td>{row.delta}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
             <h2>Purse Audit (100 - Players)</h2>
-            <p>Preview purse adjustments before applying them to every team.</p>
+            <p>
+              Preview purse adjustments using full consistency math:
+              100 Cr - players value - active bid locks - queue locks.
+            </p>
           </div>
           <div className="section-actions">
             <button
@@ -1343,7 +1478,15 @@ const AdminControlPanel = ({ adminUser }) => {
                     <strong>{formatCr(team.playersValueCr)}</strong>
                   </div>
                   <div className="data-card-row">
-                    <span>New Purse</span>
+                    <span>Bid Locks</span>
+                    <strong>{formatCr(team.bidLocksCr || 0)}</strong>
+                  </div>
+                  <div className="data-card-row">
+                    <span>Queue Locks</span>
+                    <strong>{formatCr(team.queueLocksCr || 0)}</strong>
+                  </div>
+                  <div className="data-card-row">
+                    <span>Expected Purse</span>
                     <strong>{formatCr(team.newPurseCr)}</strong>
                   </div>
                   <div className="data-card-row">
@@ -1364,14 +1507,16 @@ const AdminControlPanel = ({ adminUser }) => {
                     <th>Team</th>
                     <th>Current Purse</th>
                     <th>Players Value</th>
-                    <th>New Purse</th>
+                    <th>Bid Locks</th>
+                    <th>Queue Locks</th>
+                    <th>Expected Purse</th>
                     <th>Difference</th>
                   </tr>
                 </thead>
                 <tbody>
                   {actionableTeams.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="muted">
+                      <td colSpan={7} className="muted">
                         All purses are aligned. No changes needed.
                       </td>
                     </tr>
@@ -1381,6 +1526,8 @@ const AdminControlPanel = ({ adminUser }) => {
                       <td>{team.teamName}</td>
                       <td>{formatCr(team.currentPurseCr)}</td>
                       <td>{formatCr(team.playersValueCr)}</td>
+                      <td>{formatCr(team.bidLocksCr || 0)}</td>
+                      <td>{formatCr(team.queueLocksCr || 0)}</td>
                       <td>{formatCr(team.newPurseCr)}</td>
                       <td className={team.differenceCr < 0 ? 'negative' : 'positive'}>
                         {team.differenceCr > 0 ? '+' : ''}
