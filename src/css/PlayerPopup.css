@@ -521,6 +521,42 @@
   overflow: hidden;
 }
 
+.bid-winner-text {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-left: 8px;
+  box-shadow:
+    0 4px 15px rgba(22, 163, 74, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.bid-winner-banner {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  margin: 5px 0 2px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.24);
+}
+
+.bid-winner-inline-banner {
+  display: inline-block;
+  width: 120px;
+  max-width: 38vw;
+  margin-left: 8px;
+  vertical-align: middle;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
 .bid-out-text::before {
   content: '';
   position: absolute;
@@ -534,6 +570,21 @@
 
 .bid-out-text:hover::before {
   left: 100%;
+}
+
+@media (max-width: 768px) {
+  .bid-winner-banner {
+    max-width: 170px;
+    border-radius: 7px;
+    margin: 4px 0 2px;
+  }
+
+  .bid-winner-inline-banner {
+    width: 90px;
+    max-width: 44vw;
+    margin-left: 6px;
+    border-radius: 5px;
+  }
 }
 
 @keyframes bidOutPulse {

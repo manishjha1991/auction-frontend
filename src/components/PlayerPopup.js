@@ -4,6 +4,7 @@ import "../css/PlayerPopup.css";
 import { FaBolt, FaClock, FaEye, FaHourglassHalf, FaListOl } from "react-icons/fa";
 import { API_ENDPOINTS } from "../const";
 import { resolvePlayerImageUrl } from "../utils/resolvePlayerImageUrl";
+import winnerBannerImage from "../assets/winner-banner.png";
 
 const getPopupTypeStyles = (type) => {
   const baseStyles = {
@@ -1183,13 +1184,23 @@ const PlayerPopup = ({
               <div className="bids-section">
                 <h3>Last Two Bids</h3>
                     {topTwoBids.map((bid, index) => {
+                  const showWinnerTag = !!bid.isWinner || (isSold && index === 0);
                   return (
                     <div key={bid.id} className={`bid-row ${index === 0 ? 'first-bid' : 'second-bid'}`}>
                       <p>
                         <b>Bidder:</b>{" "}
                         <span className="bidder-name">
-                          {bid.isBidOn === false && <span className="bid-out-text">Out</span>}{" "}
+                          {bid.isBidOn === false && !showWinnerTag ? (
+                            <span className="bid-out-text">Out</span>
+                          ) : null}{" "}
                           {bid.bidder?.name || bid.bidderName || 'Unknown Bidder'}
+                          {showWinnerTag ? (
+                            <img
+                              src={winnerBannerImage}
+                              alt="Winner banner"
+                              className="bid-winner-inline-banner"
+                            />
+                          ) : null}
                         </span>
                         <span className="bid-amount">
                           {formatHumanReadableAmount(bid.bidAmount)}
