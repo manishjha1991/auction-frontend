@@ -37,6 +37,7 @@ import AdminRetainedPlayers from './components/AdminRetainedPlayers';
 import AdminTeamLocks from './components/AdminTeamLocks';
 import AdminFairnessManagement from './components/AdminFairnessManagement';
 import AdminQueueMonitor from './components/AdminQueueMonitor';
+import AdminPurseAudit from './components/AdminPurseAudit';
 import TournamentList from './components/TournamentList';
 import TrophyHall from './components/TrophyHall';
 import AdminMatchResults from './components/AdminMatchResults';
@@ -567,6 +568,12 @@ function App() {
                           <span>Retention Locks</span>
                         </Link>
                       </li>
+                      <li>
+                        <Link to="/admin/purse-audit" onClick={closeSidebar} className={`menu-item ${isActive('/admin/purse-audit') ? 'active' : ''}`}>
+                          <FaDollarSign className="menu-icon" />
+                          <span>Purse Audit Ledger</span>
+                        </Link>
+                      </li>
                       {/* <li>
                         <Link to="/admin/queue-monitor" onClick={closeSidebar} className={`menu-item ${isActive('/admin/queue-monitor') ? 'active' : ''}`}>
                           <FaUsers className="menu-icon" />
@@ -752,6 +759,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <AdminTeamLocks />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/purse-audit"
+              element={
+                <PrivateRoute>
+                  <AdminPurseAudit />
                 </PrivateRoute>
               }
             />
