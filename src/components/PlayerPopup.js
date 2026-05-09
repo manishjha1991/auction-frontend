@@ -89,6 +89,9 @@ const PlayerPopup = ({
   const [queueMaxInput, setQueueMaxInput] = useState("");
   const [queueMaxUnit, setQueueMaxUnit] = useState("cr");
   const [queueBusy, setQueueBusy] = useState(false);
+  const [manualBidConfirm, setManualBidConfirm] = useState(null);
+  const [exitBidConfirm, setExitBidConfirm] = useState(null);
+  const [queueJoinConfirm, setQueueJoinConfirm] = useState(null);
   const [liveWatcherCount, setLiveWatcherCount] = useState(0);
   const QUEUE_UNIT_MULTIPLIER = { lakh: 100000, cr: 10000000 };
   const MAX_QUEUE_BID_RUPEES = 1000000000; // 100 Cr hard cap
@@ -602,10 +605,38 @@ const PlayerPopup = ({
     return 1000000; // Default increment
   };
 
-  const handlePlaceBid = async () => {
+  const getManualBidPreview = () => {
+    const isFirstBid = topTwoBids.length === 0;
+    const lastBidAmount =
+      topTwoBids.length > 0 ? topTwoBids[0]?.bidAmount || 0 : playerDetails?.basePrice || 0;
+    const bidIncrement = determineBidIncrement(playerDetails?.type, lastBidAmount);
+    const bidAmount = topTwoBids.length > 0 ? lastBidAmount + bidIncrement : playerDetails?.basePrice || 0;
+    return {
+      playerName: playerDetails?.name || "",
+      playerType: playerDetails?.type || "",
+      currentTop: lastBidAmount,
+      step: bidIncrement,
+      bidAmount,
+      isFirstBid,
+    };
+  };
+
+  const openManualBidConfirm = () => {
+    setManualBidConfirm(getManualBidPreview());
+  };
+
+  const openExitBidConfirm = () => {
+    setExitBidConfirm({
+      playerName: playerDetails?.name || player?.name || "",
+      isAdminExit: !!isAdmin,
+    });
+  };
+
+  const handlePlaceBid = async (forcedBidAmount = null) => {
     try {
       setPlacingBid(true);
       setBidError(null);
+      setManualBidConfirm(null);
 
       const user = JSON.parse(localStorage.getItem("user"));
       const bidderId = user?.id;
@@ -617,15 +648,8 @@ const PlayerPopup = ({
       if (!token) {
         throw new Error("Authentication token not found. Please login again.");
       }
-      const lastBidAmount =
-        topTwoBids.length > 0 ? topTwoBids[0]?.bidAmount || 0 : playerDetails?.basePrice || 0;
-
-      // Determine the bid increment based on player type and last bid amount
-      const bidIncrement = determineBidIncrement(playerDetails?.type, lastBidAmount);
-
-      // Calculate the bid amount
-      // For first bidder, bid amount should be base price, not base price + increment
-      const bidAmount = topTwoBids.length > 0 ? lastBidAmount + bidIncrement : playerDetails?.basePrice || 0;
+      const preview = getManualBidPreview();
+      const bidAmount = forcedBidAmount ?? preview.bidAmount;
       console.log("Calculated Bid Amount:", bidAmount);
 
       const payload = {
@@ -748,9 +772,38 @@ const PlayerPopup = ({
     return p.ok ? p.maxBid : null;
   })();
 
-  const handleJoinBidQueue = async () => {
-    const pid = playerDetails?.id || playerDetails?._id;
+  const openQueueJoinConfirm = () => {
     const parsed = parseQueueMaxBid();
+    if (!parsed.ok) {
+      setBidAlert({
+        message: parsed?.message || "Enter a valid max bid number and choose unit (Lakh/Cr).",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: false,
+      });
+      return;
+    }
+    if (parsed.maxBid > MAX_QUEUE_BID_RUPEES) {
+      setBidAlert({
+        message: "Queue max cannot exceed 100 Cr.",
+        amount: null,
+        playerName: playerDetails?.name,
+        isSuccess: false,
+      });
+      return;
+    }
+    setQueueJoinConfirm({
+      maxBid: parsed.maxBid,
+      amount: parsed.amount,
+      unit: parsed.unit,
+      playerName: playerDetails?.name || "",
+    });
+  };
+
+  const handleJoinBidQueue = async (forcedMaxBid = null) => {
+    const pid = playerDetails?.id || playerDetails?._id;
+    const parsed =
+      forcedMaxBid != null ? { ok: true, maxBid: forcedMaxBid } : parseQueueMaxBid();
     if (!pid || !parsed.ok) {
       setBidAlert({
         message: parsed?.message || "Enter a valid max bid number and choose unit (Lakh/Cr).",
@@ -769,6 +822,7 @@ const PlayerPopup = ({
       });
       return;
     }
+    setQueueJoinConfirm(null);
     setQueueBusy(true);
     try {
       const u = JSON.parse(localStorage.getItem("user"));
@@ -859,6 +913,7 @@ const PlayerPopup = ({
   const handleExitAuction = async () => {
     try {
       setBidAlert(null); // Reset the alert
+      setExitBidConfirm(null);
 
       const user = JSON.parse(localStorage.getItem("user"));
       const pid = player?.id || player?._id || playerDetails?.id || playerDetails?._id;
@@ -947,6 +1002,125 @@ const PlayerPopup = ({
               <div className="bid-loading-progress-bar"></div>
             </div>
             <div className="bid-loading-status">Processing...</div>
+          </div>
+        </div>
+      )}
+
+      {manualBidConfirm && !placingBid && (
+        <div className="bid-confirm-overlay">
+          <div className="bid-confirm-card">
+            <div className="bid-confirm-title">Confirm Manual Bid</div>
+            <div className="bid-confirm-row">
+              <span>Player</span>
+              <strong>{manualBidConfirm.playerName}</strong>
+            </div>
+            <div className="bid-confirm-row">
+              <span>Type</span>
+              <strong>{manualBidConfirm.playerType || "-"}</strong>
+            </div>
+            <div className="bid-confirm-row">
+              <span>{manualBidConfirm.isFirstBid ? "Base price" : "Current top"}</span>
+              <strong>{formatHumanReadableAmount(manualBidConfirm.currentTop)}</strong>
+            </div>
+            <div className="bid-confirm-row">
+              <span>Bid step</span>
+              <strong>{formatHumanReadableAmount(manualBidConfirm.step)}</strong>
+            </div>
+            <div className="bid-confirm-total">
+              {manualBidConfirm.isFirstBid
+                ? `Opening bid (base price): ${formatHumanReadableAmount(manualBidConfirm.bidAmount)}`
+                : `Next bid amount: ${formatHumanReadableAmount(manualBidConfirm.bidAmount)}`}
+            </div>
+            <div className="bid-confirm-actions">
+              <button
+                type="button"
+                className="bid-confirm-cancel"
+                onClick={() => setManualBidConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bid-confirm-submit"
+                onClick={() => handlePlaceBid(manualBidConfirm.bidAmount)}
+              >
+                Confirm Bid
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {queueJoinConfirm && !placingBid && (
+        <div className="bid-confirm-overlay">
+          <div className="bid-confirm-card">
+            <div className="bid-confirm-title">Confirm Queue Join</div>
+            <div className="bid-confirm-row">
+              <span>Player</span>
+              <strong>{queueJoinConfirm.playerName}</strong>
+            </div>
+            <div className="bid-confirm-row">
+              <span>Your max input</span>
+              <strong>
+                {queueJoinConfirm.amount} {queueJoinConfirm.unit === "cr" ? "Cr" : "Lakh"}
+              </strong>
+            </div>
+            <div className="bid-confirm-row">
+              <span>Converted lock amount</span>
+              <strong>{formatHumanReadableAmount(queueJoinConfirm.maxBid)}</strong>
+            </div>
+            <div className="bid-confirm-total">
+              This amount will be locked while you stay in queue for this player.
+            </div>
+            <div className="bid-confirm-actions">
+              <button
+                type="button"
+                className="bid-confirm-cancel"
+                onClick={() => setQueueJoinConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bid-confirm-submit"
+                onClick={() => handleJoinBidQueue(queueJoinConfirm.maxBid)}
+              >
+                Confirm Join Queue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {exitBidConfirm && !placingBid && (
+        <div className="bid-confirm-overlay">
+          <div className="bid-confirm-card bid-confirm-card--danger">
+            <div className="bid-confirm-title">Confirm Exit Auction</div>
+            <div className="bid-confirm-row">
+              <span>Player</span>
+              <strong>{exitBidConfirm.playerName}</strong>
+            </div>
+            <div className="bid-confirm-total bid-confirm-total--danger">
+              {exitBidConfirm.isAdminExit
+                ? "You are about to force exit from this auction for this slot."
+                : "You are about to exit this auction. Locked bid amount for this player will be released if allowed."}
+            </div>
+            <div className="bid-confirm-actions">
+              <button
+                type="button"
+                className="bid-confirm-cancel"
+                onClick={() => setExitBidConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bid-confirm-submit bid-confirm-submit--danger"
+                onClick={handleExitAuction}
+              >
+                Confirm Exit
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1371,7 +1545,7 @@ const PlayerPopup = ({
                         type="button"
                         className="user-btn bid-queue-join"
                         disabled={queueBusy}
-                        onClick={handleJoinBidQueue}
+                        onClick={openQueueJoinConfirm}
                       >
                         Join queue
                       </button>
@@ -1399,7 +1573,7 @@ const PlayerPopup = ({
                 {!blockedByActiveDuel && (
                   <button
                     className="user-btn place-bid"
-                    onClick={handlePlaceBid}
+                    onClick={openManualBidConfirm}
                     disabled={placingBid || manualBidBlockedByQueue || promotedFromQueue}
                   >
                     {promotedFromQueue
@@ -1468,7 +1642,7 @@ const PlayerPopup = ({
                 )}
                 <button
                   className="exit-btn"
-                  onClick={handleExitAuction}
+                  onClick={openExitBidConfirm}
                   style={{
                     padding: "10px 20px",
                     fontSize: "18px",
@@ -1537,7 +1711,7 @@ const PlayerPopup = ({
 
             {!hideAuctionActions && !isAdmin && !isSold && (
               <div className="exit-auction-section">
-                <button className="unique-exit-btn" onClick={handleExitAuction}>
+                <button className="unique-exit-btn" onClick={openExitBidConfirm}>
                   Exit Auction 🚪
                 </button>
               </div>
