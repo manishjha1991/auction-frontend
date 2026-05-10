@@ -1062,28 +1062,30 @@ const UserPursePage = () => {
     setSelectedPlayer(null);
   }, []);
 
-  const fetchUserData = useCallback(async () => {
+  const fetchUserData = useCallback(async (silent = false) => {
     if (fetchInFlightRef.current) {
       pendingFetchRef.current = true;
       return;
     }
     fetchInFlightRef.current = true;
     try {
-      setLoading(true);
-      setLoadingProgress(0);
+      if (!silent) {
+        setLoading(true);
+        setLoadingProgress(0);
+      }
       const startTime = Date.now();
       
       // Smooth progress updates
-      setLoadingProgress(20);
+      if (!silent) setLoadingProgress(20);
       const response = await fetch(`${API_ENDPOINTS}/api/users/purses`);
-      setLoadingProgress(60);
+      if (!silent) setLoadingProgress(60);
       
       if (!response.ok) {
         throw new Error("Failed to fetch user purse data.");
       }
       const data = await response.json();
       setUsersData(data);
-      setLoadingProgress(80);
+      if (!silent) setLoadingProgress(80);
       
       // 🚀 PERFORMANCE: Extract bidding statuses and competitor info efficiently from API response
       if (currentUser) {
@@ -1138,26 +1140,28 @@ const UserPursePage = () => {
         }
       }
       
-      setLoadingProgress(100);
+      if (!silent) setLoadingProgress(100);
       const loadTime = Date.now() - startTime;
       console.log(`⚡ UserPurse loaded in ${loadTime}ms`);
       
       // Small delay for smooth transition
-      setTimeout(() => setLoading(false), 200);
+      if (!silent) {
+        setTimeout(() => setLoading(false), 200);
+      }
     } catch (err) {
       setError(err.message || "Failed to fetch data.");
-      setLoading(false);
+      if (!silent) setLoading(false);
     } finally {
       fetchInFlightRef.current = false;
       if (pendingFetchRef.current) {
         pendingFetchRef.current = false;
-        fetchUserData();
+        fetchUserData(silent);
       }
     }
   }, [currentUser]);
 
   useEffect(() => {
-    fetchUserData();
+    fetchUserData(false);
   }, [fetchUserData]);
 
   // Re-extract bidding statuses and competitor info when usersData or currentUser changes
@@ -1305,6 +1309,8 @@ const UserPursePage = () => {
         
         return updatedUsers;
       });
+      // Re-sync from backend to clear exited users from bidding lists.
+      fetchUserData(true);
     });
     
     const cleanup2 = on('player_sold_update', (update) => {
@@ -1327,13 +1333,21 @@ const UserPursePage = () => {
           };
         });
       });
+      // Sold event changes ownership and locks; refresh snapshot silently.
+      fetchUserData(true);
+    });
+
+    const cleanup3 = on('bid_exit_notification', () => {
+      // Exit events are user-specific; pull latest server truth.
+      fetchUserData(true);
     });
     
     return () => {
       cleanup1();
       cleanup2();
+      cleanup3();
     };
-  }, [currentUser, on]);
+  }, [currentUser, on, fetchUserData]);
 
   // 🚀 PERFORMANCE: Removed N+1 query - competitor info now comes from main API response
   // No need for separate API calls per player
