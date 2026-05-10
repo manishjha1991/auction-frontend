@@ -1215,12 +1215,24 @@ const UserPursePage = () => {
     const cleanup1 = on('player_bid_update', (update) => {
       // Update bid values in real-time
       setUsersData(prevUsers => {
+        const currentBidderId = update?.currentBidder ? String(update.currentBidder) : '';
+        const currentBidderName = (update?.bidderName || '').trim().toLowerCase();
         const updatedUsers = prevUsers.map(user => {
+          const userId = String(user.id || user._id || '');
+          const userName = (user.userName || user.name || '').trim().toLowerCase();
+          const isCurrentTopBidder =
+            (currentBidderId && userId && currentBidderId === userId) ||
+            (currentBidderName && userName && currentBidderName === userName);
+
           const updatedPlayers = user.players.map(player => {
             if (player.id === update.playerId || player._id === update.playerId) {
               return {
                 ...player,
-                biddingPrice: update.bidAmount || update.currentBid || player.biddingPrice,
+                // Important: only top bidder row should receive live top bid value.
+                // Other teams keep their own locked bid amount.
+                biddingPrice: isCurrentTopBidder
+                  ? (update.bidAmount || update.currentBid || player.biddingPrice)
+                  : player.biddingPrice,
                 currentBidder: update.currentBidder || player.currentBidder
               };
             }
