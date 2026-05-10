@@ -1395,6 +1395,31 @@ const UserPursePage = () => {
     }
   };
 
+  // Show the global highest bid for each active player on all team cards.
+  const highestBidByPlayerId = useMemo(() => {
+    const map = new Map();
+    (usersData || []).forEach((u) => {
+      (u.players || []).forEach((p) => {
+        if (!p?.isBidOn) return;
+        const pid = String(p.id || p._id || '');
+        if (!pid) return;
+        const amount = Number(p.biddingPrice || 0);
+        if (!Number.isFinite(amount) || amount <= 0) return;
+        const prev = map.get(pid) || 0;
+        if (amount > prev) map.set(pid, amount);
+      });
+    });
+    return map;
+  }, [usersData]);
+
+  const getDisplayedBidAmount = (player) => {
+    const pid = String(player?.id || player?._id || '');
+    const own = Number(player?.biddingPrice || 0);
+    if (!pid) return Number.isFinite(own) ? own : 0;
+    const top = highestBidByPlayerId.get(pid);
+    return Number.isFinite(top) && top > 0 ? top : (Number.isFinite(own) ? own : 0);
+  };
+
   if (loading) {
     return (
       <PageContainer>
@@ -1840,7 +1865,7 @@ const UserPursePage = () => {
                                   <PlayerName>{player.name}</PlayerName>
                                 </div>
                                 <PlayerPriceCircle>
-                                  <PriceAmount>₹{(player.biddingPrice / 10000000).toFixed(2)}</PriceAmount>
+                                  <PriceAmount>₹{(getDisplayedBidAmount(player) / 10000000).toFixed(2)}</PriceAmount>
                                   <PriceUnit>Cr</PriceUnit>
                                 </PlayerPriceCircle>
                                 
