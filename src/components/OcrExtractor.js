@@ -438,6 +438,7 @@ const OcrExtractor = () => {
     return [...wcLike, ...others];
   }, [tournaments]);
   const hasActiveWorldCup = wcTournaments.length > 0;
+  const showWcStageControls = worldCupMode || hasActiveWorldCup;
 
   // Auto-dismiss toast after 5 seconds
   useEffect(() => {
@@ -554,14 +555,13 @@ const OcrExtractor = () => {
     fetchTournaments();
   }, [currentUserId]);
 
-  // If no active World Cup tournament exists, force-clear any WC selection so
-  // the user can't accidentally submit WC-tagged entries.
+  // If WC stage controls are not available at all, clear any stale WC selection.
   useEffect(() => {
-    if (!hasActiveWorldCup) {
+    if (!showWcStageControls) {
       if (wcStage) setWcStage('');
       if (tournamentId) setTournamentId('');
     }
-  }, [hasActiveWorldCup, wcStage, tournamentId]);
+  }, [showWcStageControls, wcStage, tournamentId]);
 
   // Reset tournament selection if WC is unticked
   useEffect(() => {
@@ -2272,7 +2272,7 @@ const OcrExtractor = () => {
             </p>
           ) : null}
 
-          {hasActiveWorldCup && (
+          {showWcStageControls && (
             <div className="wc-stage-card" role="group" aria-label="World Cup stage selector">
               <div className="wc-stage-card__header">
                 <div className="wc-stage-card__title">

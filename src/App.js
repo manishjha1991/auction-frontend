@@ -574,12 +574,12 @@ function App() {
                           <span>Purse Audit Ledger</span>
                         </Link>
                       </li>
-                      {/* <li>
+                      <li>
                         <Link to="/admin/queue-monitor" onClick={closeSidebar} className={`menu-item ${isActive('/admin/queue-monitor') ? 'active' : ''}`}>
                           <FaUsers className="menu-icon" />
                           <span>Queue Monitor</span>
                         </Link>
-                      </li> */}
+                      </li>
                       <li>
                         <Link to="/admin/settings" onClick={closeSidebar} className={`menu-item ${isActive('/admin/settings') ? 'active' : ''}`}>
                           <FaCog className="menu-icon" />
