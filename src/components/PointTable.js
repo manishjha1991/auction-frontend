@@ -499,7 +499,8 @@ const ModalOverlay = styled.div`
 const ModalContent = styled.div`
   background: ${({ $themePrimary, $themeSecondary }) =>
     $themePrimary && $themeSecondary
-      ? `linear-gradient(145deg, ${$themePrimary} 0%, ${$themeSecondary} 58%, #0f172a 100%)`
+      ? `linear-gradient(145deg, rgba(2, 6, 23, 0.62) 0%, rgba(2, 6, 23, 0.78) 100%),
+         linear-gradient(145deg, ${$themePrimary} 0%, ${$themeSecondary} 58%, #0f172a 100%)`
       : '#ffffff'};
   border-radius: 20px;
   padding: clamp(1rem, 3vw, 1.75rem);
@@ -524,8 +525,8 @@ const ModalContent = styled.div`
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(circle at 18% 12%, rgba(255,255,255,0.42), transparent 30%),
-      radial-gradient(circle at 88% 88%, rgba(255,255,255,0.16), transparent 34%);
+      radial-gradient(circle at 18% 12%, rgba(255,255,255,0.18), transparent 30%),
+      radial-gradient(circle at 88% 88%, rgba(255,255,255,0.1), transparent 34%);
     pointer-events: none;
   }
 
@@ -696,6 +697,8 @@ const MatchTableCell = styled.td`
   padding: 0.65rem 0.55rem;
   text-align: left;
   color: ${({ $textColor }) => $textColor || '#0f172a'};
+  text-shadow: ${({ $textColor }) =>
+    $textColor === '#ffffff' ? '0 2px 5px rgba(0, 0, 0, 0.75)' : 'none'};
 
   &:first-child {
     font-weight: 700;
@@ -789,7 +792,7 @@ const getReadableTextColor = (primary, secondary) => {
 
   const primaryLum = luminance(hexToRgb(primary));
   const secondaryLum = luminance(hexToRgb(secondary || primary));
-  return (primaryLum + secondaryLum) / 2 < 0.46 ? '#ffffff' : '#0f172a';
+  return primaryLum > 0.68 && secondaryLum > 0.68 ? '#0f172a' : '#ffffff';
 };
 
 const calculateRequiredGames = (teamCount, fallback = 13) => {
