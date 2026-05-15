@@ -4,6 +4,7 @@ import axios from "axios";
 import { API_ENDPOINTS } from "../const";
 import { useMemo } from "react";
 import PlayoffFixtures from "./PlayoffFixtures";
+import { FaWhatsapp } from "react-icons/fa";
 
 /* =========================================================
    Points Table — mobile-first redesign
@@ -97,6 +98,58 @@ const TableWrapper = styled.div`
   @media (max-width: 600px) {
     padding: 0.5rem 0.5rem 0.75rem;
     overflow: visible;
+  }
+`;
+
+const TableTitleBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+
+  h2 {
+    margin-bottom: 0 !important;
+  }
+
+  @media (max-width: 600px) {
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+`;
+
+const WhatsAppShareButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(187, 247, 208, 0.5);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #ffffff;
+  padding: 0.45rem 0.8rem;
+  font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif);
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 8px 18px -12px rgba(34, 197, 94, 0.9);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 22px -14px rgba(34, 197, 94, 1);
+  }
+
+  @media (max-width: 600px) {
+    padding: 0.4rem 0.58rem;
+    font-size: 0.76rem;
+
+    span {
+      display: none;
+    }
   }
 `;
 
@@ -752,6 +805,12 @@ const calculateRequiredGames = (teamCount, fallback = 13) => {
   return count > 1 ? count - 1 : fallback;
 };
 
+const formatShareNRR = (nrr) => {
+  if (nrr === null || nrr === undefined || isNaN(nrr)) return '0.000';
+  const formatted = parseFloat(nrr).toFixed(3);
+  return formatted >= 0 ? `+${formatted}` : formatted;
+};
+
 const PointsTable = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1140,6 +1199,25 @@ const PointsTable = () => {
     ? 'rgba(255, 255, 255, 0.76)'
     : '#475569';
 
+  const handleSharePointsTable = (title, list, qualifiers) => {
+    const rows = list.map((team, index) => {
+      const losses = (Number(team.matchesPlayed) || 0) - (Number(team.wins) || 0);
+      const points = String(Math.max(0, Number(team.points) || 0)).padStart(2, '0');
+      return `${index + 1}. ${team.teamName} | P:${team.matchesPlayed || 0} W:${team.wins || 0} L:${losses} PTS:${points} NRR:${formatShareNRR(team.nrr)}`;
+    });
+
+    const message = [
+      `*${title.toUpperCase()}*`,
+      '',
+      ...rows,
+      '',
+      `Top ${qualifiers} teams qualify for playoffs`,
+      window.location.href
+    ].join('\n');
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <>
       {mode === 'groups' ? (
@@ -1169,9 +1247,17 @@ const PointsTable = () => {
           <TableWrapper>
             {activeTab === 'groupA' && (
               <>
-                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
-                  Group A
-                </h2>
+                <TableTitleBar>
+                  <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
+                    Group A
+                  </h2>
+                  <WhatsAppShareButton
+                    type="button"
+                    onClick={() => handleSharePointsTable('CPL Group A Points Table', groups.A, GROUP_QUALIFIERS)}
+                  >
+                    <FaWhatsapp /> <span>Share</span>
+                  </WhatsAppShareButton>
+                </TableTitleBar>
                 <Table>
                   <TableHead>
                     <tr>
@@ -1192,9 +1278,17 @@ const PointsTable = () => {
             
             {activeTab === 'groupB' && (
               <>
-                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
-                  Group B
-                </h2>
+                <TableTitleBar>
+                  <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
+                    Group B
+                  </h2>
+                  <WhatsAppShareButton
+                    type="button"
+                    onClick={() => handleSharePointsTable('CPL Group B Points Table', groups.B, GROUP_QUALIFIERS)}
+                  >
+                    <FaWhatsapp /> <span>Share</span>
+                  </WhatsAppShareButton>
+                </TableTitleBar>
                 <Table>
                   <TableHead>
                     <tr>
@@ -1246,9 +1340,17 @@ const PointsTable = () => {
           <TableWrapper>
             {activeTab === 'overall' && (
               <>
-                <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
-                  Points Table
-                </h2>
+                <TableTitleBar>
+                  <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
+                    Points Table
+                  </h2>
+                  <WhatsAppShareButton
+                    type="button"
+                    onClick={() => handleSharePointsTable('CPL Points Table', sortedTeams, NUM_QUALIFIERS)}
+                  >
+                    <FaWhatsapp /> <span>Share</span>
+                  </WhatsAppShareButton>
+                </TableTitleBar>
                 <Table>
                   <TableHead>
                     <tr>
