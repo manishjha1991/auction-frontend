@@ -96,7 +96,6 @@ const TableWrapper = styled.div`
     font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif) !important;
     text-align: left !important;
     text-transform: uppercase;
-    text-shadow: 0 3px 10px rgba(0, 0, 0, 0.65);
   }
 
   @media (max-width: 600px) {
@@ -152,7 +151,6 @@ const WhatsAppShareButton = styled.button`
   text-transform: uppercase;
   cursor: pointer;
   box-shadow: 0 8px 18px -12px rgba(34, 197, 94, 0.9);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
   white-space: nowrap;
 
   &:hover {
@@ -232,7 +230,6 @@ const TableHead = styled.thead`
     color: rgba(255, 255, 255, 0.86);
     border-bottom: 1px solid rgba(56, 189, 248, 0.45);
     background: transparent;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
   }
 
   td.pts-cell { color: #ffffff; }
@@ -297,7 +294,6 @@ const TableRow = styled.tr`
     font-weight: 900;
     color: #ffffff;
     vertical-align: middle;
-    text-shadow: 0 2px 7px rgba(0, 0, 0, 0.72);
     letter-spacing: 0.07em;
     font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif);
   }
@@ -396,7 +392,6 @@ const TableFooterNote = styled.div`
   font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  text-shadow: 0 2px 7px rgba(0, 0, 0, 0.72);
 
   @media (max-width: 600px) {
     margin-top: 0.28rem;
@@ -448,11 +443,6 @@ const HighlightCell = styled(TableCell)`
     border-radius: 0;
     padding: 0;
     line-height: 1.05;
-    text-shadow:
-      0 2px 4px rgba(0, 0, 0, 0.95),
-      0 0 10px rgba(0, 0, 0, 0.9),
-      1px 1px 0 rgba(0, 0, 0, 0.85),
-      -1px 1px 0 rgba(0, 0, 0, 0.85);
     -webkit-text-stroke: 0.35px rgba(0, 0, 0, 0.78);
     box-shadow: none;
   }
@@ -517,10 +507,6 @@ const RankCell = styled(TableCell)`
   padding-left: 0 !important;
   font-size: 1.22rem;
   letter-spacing: 0.04em;
-  text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.95),
-    0 0 8px rgba(0, 0, 0, 0.9);
-  -webkit-text-stroke: 0;
 
   @media (max-width: 600px) {
     font-size: 0.88rem;
@@ -749,8 +735,6 @@ const MatchTableCell = styled.td`
   padding: 0.65rem 0.55rem;
   text-align: left;
   color: ${({ $textColor }) => $textColor || '#0f172a'};
-  text-shadow: ${({ $textColor }) =>
-    $textColor === '#ffffff' ? '0 2px 5px rgba(0, 0, 0, 0.75)' : 'none'};
 
   &:first-child {
     font-weight: 700;
