@@ -13,6 +13,17 @@ import { FaWhatsapp } from "react-icons/fa";
    Team colours from themePrimary / themeSecondary (hash fallback).
    ========================================================= */
 
+/** Keeps board width-bound on phones and avoids pinch/double-tap zoom feel */
+const PointsTablePageRoot = styled.div`
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+`;
+
 const TabContainer = styled.div`
   margin: 0.75rem auto 2rem;
   width: calc(100% - 1rem);
@@ -27,8 +38,7 @@ const TabContainer = styled.div`
     width: calc(100% - 0.35rem);
     margin: 0.2rem auto 0.45rem;
     border-radius: 8px;
-    overflow-x: visible;
-    overflow-y: visible;
+    overflow-x: hidden;
   }
 `;
 
@@ -48,6 +58,13 @@ const TabHeader = styled.div`
   -ms-overflow-style: none;
 
   &::-webkit-scrollbar { display: none; }
+
+  @media (max-width: 640px) {
+    padding: calc(0.16rem + env(safe-area-inset-top, 0px)) 0.2rem 0;
+    padding-left: max(0.2rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.2rem, env(safe-area-inset-right, 0px));
+    gap: 0.18rem;
+  }
 `;
 
 const TabButton = styled.button`
@@ -75,9 +92,9 @@ const TabButton = styled.button`
   }
 
   @media (max-width: 640px) {
-    padding: 0.38rem 0.55rem 0.45rem;
-    font-size: 0.72rem;
-    min-height: 32px;
+    padding: 0.26rem 0.42rem 0.3rem;
+    font-size: 0.62rem;
+    min-height: 26px;
   }
 `;
 
@@ -87,10 +104,10 @@ const TableWrapper = styled.div`
   background: transparent;
 
   @media (max-width: 640px) {
-    padding: 0.22rem 0.28rem 0.42rem;
-    padding-bottom: calc(0.42rem + env(safe-area-inset-bottom, 0px));
-    padding-left: max(0.28rem, env(safe-area-inset-left, 0px));
-    padding-right: max(0.28rem, env(safe-area-inset-right, 0px));
+    padding: 0.14rem 0.22rem 0.28rem;
+    padding-bottom: calc(0.28rem + env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.22rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.22rem, env(safe-area-inset-right, 0px));
   }
 `;
 
@@ -133,16 +150,16 @@ const TableCaptureArea = styled.div`
   }
 
   @media (max-width: 640px) {
-    padding: 0.32rem max(0.32rem, env(safe-area-inset-left, 0px))
-      calc(0.38rem + env(safe-area-inset-bottom, 0px))
-      max(0.32rem, env(safe-area-inset-right, 0px));
+    padding: 0.26rem max(0.26rem, env(safe-area-inset-left, 0px))
+      calc(0.28rem + env(safe-area-inset-bottom, 0px))
+      max(0.26rem, env(safe-area-inset-right, 0px));
     border-radius: 6px;
   }
 
   @media (max-width: 380px) {
-    padding: 0.28rem max(0.28rem, env(safe-area-inset-left, 0px))
-      calc(0.32rem + env(safe-area-inset-bottom, 0px))
-      max(0.28rem, env(safe-area-inset-right, 0px));
+    padding: 0.22rem max(0.22rem, env(safe-area-inset-left, 0px))
+      calc(0.24rem + env(safe-area-inset-bottom, 0px))
+      max(0.22rem, env(safe-area-inset-right, 0px));
   }
 `;
 
@@ -181,14 +198,16 @@ const BroadcastHeroRow = styled.div`
   flex-wrap: wrap;
 
   @media (max-width: 640px) {
-    gap: 0.38rem;
-    margin-bottom: 0.32rem;
+    gap: 0.28rem;
+    margin-bottom: 0.18rem;
+    flex-wrap: nowrap;
+    justify-content: center;
   }
 
   @media (max-width: 420px) {
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 0.32rem;
+    gap: 0.24rem;
   }
 `;
 
@@ -215,14 +234,14 @@ const BroadcastSkewTitle = styled.div`
   }
 
   @media (max-width: 640px) {
-    padding: 0.34rem 1.25rem 0.38rem;
+    padding: 0.26rem 0.95rem 0.3rem;
   }
 
   @media (max-width: 380px) {
-    padding: 0.3rem 1rem 0.34rem;
+    padding: 0.22rem 0.72rem 0.26rem;
 
     span {
-      font-size: clamp(1rem, 5.5vw, 1.35rem);
+      font-size: clamp(0.88rem, 4.2vw, 1.15rem);
     }
   }
 `;
@@ -277,11 +296,11 @@ const BroadcastTableHeadRow = styled.div`
 
   @media (max-width: 640px) {
     gap: 0.06rem;
-    margin-bottom: 0.22rem;
+    margin-bottom: 0.14rem;
   }
 
   @media (max-width: 380px) {
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.12rem;
   }
 `;
 
@@ -321,13 +340,13 @@ const BroadcastRank = styled.div`
   @media (max-width: 640px) {
     flex-basis: 1.45rem;
     width: 1.45rem;
-    font-size: 0.95rem;
+    font-size: 0.82rem;
   }
 
   @media (max-width: 380px) {
     flex-basis: 1.3rem;
     width: 1.3rem;
-    font-size: 0.88rem;
+    font-size: 0.76rem;
   }
 `;
 
@@ -399,17 +418,17 @@ const BroadcastHeadGrid = styled.div`
   }
 
   @media (max-width: 640px) {
-    grid-template-columns: minmax(34px, 1fr) 26px 26px 26px minmax(46px, 1fr);
-    font-size: 0.48rem;
-    gap: 0 0.09rem;
-    padding: 0.14rem 0.16rem 0.14rem 0.12rem;
+    grid-template-columns: minmax(30px, 1fr) 24px 24px 24px minmax(40px, 1fr);
+    font-size: 0.44rem;
+    gap: 0 0.06rem;
+    padding: 0.08rem 0.1rem 0.08rem 0.08rem;
     margin-left: 0;
   }
 
   @media (max-width: 380px) {
-    grid-template-columns: minmax(30px, 1fr) 23px 23px 23px minmax(42px, 1fr);
-    font-size: 0.45rem;
-    padding: 0.12rem 0.12rem 0.12rem 0.1rem;
+    grid-template-columns: minmax(28px, 1fr) 22px 22px 22px minmax(36px, 1fr);
+    font-size: 0.41rem;
+    padding: 0.06rem 0.08rem 0.06rem 0.06rem;
   }
 `;
 
@@ -452,8 +471,17 @@ const BroadcastRowWrap = styled.div`
   margin-bottom: 0.42rem;
 
   @media (max-width: 640px) {
-    gap: 0.06rem;
-    margin-bottom: 0.18rem;
+    gap: 0.05rem;
+    margin-bottom: 0.1rem;
+
+    ${({ $qualifierBoundary }) =>
+      $qualifierBoundary
+        ? `
+      padding-bottom: 0.14rem;
+      margin-bottom: 0.22rem;
+      border-bottom-width: 1px;
+    `
+        : ''}
   }
 `;
 
@@ -488,11 +516,11 @@ const BroadcastCard = styled.div`
   }
 
   @media (max-width: 640px) {
-    min-height: 42px;
+    min-height: 34px;
   }
 
   @media (max-width: 380px) {
-    min-height: 40px;
+    min-height: 32px;
   }
 
   @media (pointer: coarse) and (min-width: 641px) {
@@ -630,17 +658,17 @@ const StatsStrip = styled.div`
   }
 
   @media (max-width: 640px) {
-    grid-template-columns: minmax(34px, 1fr) 26px 26px 26px minmax(46px, 1fr);
-    padding: 0.14rem 0.16rem 0.14rem 0.12rem;
+    grid-template-columns: minmax(30px, 1fr) 24px 24px 24px minmax(40px, 1fr);
+    padding: 0.08rem 0.1rem 0.08rem 0.08rem;
     margin-left: 0;
-    font-size: 0.58rem;
-    gap: 0 0.09rem;
+    font-size: 0.52rem;
+    gap: 0 0.06rem;
   }
 
   @media (max-width: 380px) {
-    grid-template-columns: minmax(30px, 1fr) 23px 23px 23px minmax(42px, 1fr);
-    font-size: 0.54rem;
-    padding: 0.12rem 0.12rem 0.12rem 0.1rem;
+    grid-template-columns: minmax(28px, 1fr) 22px 22px 22px minmax(36px, 1fr);
+    font-size: 0.48rem;
+    padding: 0.06rem 0.08rem 0.06rem 0.06rem;
   }
 `;
 
@@ -694,14 +722,14 @@ const PtsSlab = styled.div`
   @media (max-width: 640px) {
     flex-basis: 40px;
     width: 40px;
-    font-size: 0.68rem;
+    font-size: 0.62rem;
     border-radius: 0 3px 3px 0;
   }
 
   @media (max-width: 380px) {
     flex-basis: 36px;
     width: 36px;
-    font-size: 0.62rem;
+    font-size: 0.56rem;
   }
 `;
 
@@ -721,9 +749,9 @@ const TableFooterNote = styled.div`
   text-transform: uppercase;
 
   @media (max-width: 640px) {
-    margin-top: 0.32rem;
-    padding: 0.32rem 0.38rem;
-    font-size: 0.58rem;
+    margin-top: 0.22rem;
+    padding: 0.22rem 0.28rem;
+    font-size: 0.52rem;
   }
 `;
 
@@ -1265,6 +1293,20 @@ const PointsTable = () => {
     fetchModeAndData();
   }, []);
 
+  /** Lock pinch-zoom while on this route (restored when you navigate away). */
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) return undefined;
+    const original = meta.getAttribute('content');
+    meta.setAttribute(
+      'content',
+      'width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, viewport-fit=cover'
+    );
+    return () => {
+      if (original != null) meta.setAttribute('content', original);
+    };
+  }, []);
+
   const fetchTeamFixtures = async (teamName) => {
     try {
       const response = await axios.get(`${API_ENDPOINTS}/api/fixtures`);
@@ -1644,7 +1686,7 @@ const PointsTable = () => {
   };
 
   return (
-    <>
+    <PointsTablePageRoot>
       {mode === 'groups' ? (
         // Group mode - show tabs for Group A, Group B, and Playoffs
         <TabContainer>
@@ -1908,7 +1950,7 @@ const PointsTable = () => {
           </ModalContent>
         </ModalOverlay>
       )}
-    </>
+    </PointsTablePageRoot>
   );
 };
 
