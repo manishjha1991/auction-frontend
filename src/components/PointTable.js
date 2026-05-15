@@ -271,12 +271,11 @@ const WhatsAppShareButton = styled.button`
 /** Mirrors BroadcastRowWrap + BroadcastCard geometry so P/W/L/NRR align with body cells */
 const BroadcastTableHeadRow = styled.div`
   display: flex;
-  align-items: center;
-  gap: 0.32rem;
+  align-items: stretch;
+  gap: 0;
   margin-bottom: 0.4rem;
 
   @media (max-width: 640px) {
-    gap: 0.18rem;
     margin-bottom: 0.22rem;
   }
 
@@ -286,36 +285,53 @@ const BroadcastTableHeadRow = styled.div`
 `;
 
 const BroadcastRankSpacer = styled.div`
-  flex: 0 0 2.2rem;
-  width: 2.2rem;
+  flex: 0 0 2.65rem;
+  width: 2.65rem;
   flex-shrink: 0;
+  align-self: stretch;
+  background: #ffffff;
+  clip-path: polygon(0 0, 100% 0, 68% 100%, 0 100%);
+  border-radius: 4px 0 0 4px;
 
   @media (max-width: 640px) {
-    flex-basis: 1.65rem;
-    width: 1.65rem;
+    flex-basis: 2rem;
+    width: 2rem;
+    clip-path: polygon(0 0, 100% 0, 62% 100%, 0 100%);
   }
 
   @media (max-width: 380px) {
-    flex-basis: 1.45rem;
-    width: 1.45rem;
+    flex-basis: 1.78rem;
+    width: 1.78rem;
+    clip-path: polygon(0 0, 100% 0, 58% 100%, 0 100%);
   }
 `;
 
 const BroadcastHeadCard = styled.div`
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0;
   min-width: 0;
+  border-radius: 0 4px 4px 0;
+  overflow: hidden;
 `;
 
 const BroadcastHeadMain = styled.div`
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   min-width: 0;
+  margin-left: -0.95rem;
   overflow: hidden;
-  border-radius: 3px 0 0 3px;
+  border-radius: 0;
+
+  @media (max-width: 640px) {
+    margin-left: -0.72rem;
+  }
+
+  @media (max-width: 380px) {
+    margin-left: -0.62rem;
+  }
 `;
 
 const BroadcastHeadLogoSpacer = styled.div`
@@ -410,7 +426,7 @@ const PtsHeadLabel = styled.div`
 const BroadcastRowWrap = styled.div`
   display: flex;
   align-items: stretch;
-  gap: 0.32rem;
+  gap: 0;
   margin-bottom: 0.42rem;
 
   ${({ $qualifierBoundary }) =>
@@ -419,35 +435,42 @@ const BroadcastRowWrap = styled.div`
       : ''}
 
   @media (max-width: 640px) {
-    gap: 0.18rem;
     margin-bottom: 0.2rem;
   }
 `;
 
-const BroadcastRank = styled.div`
-  flex: 0 0 2.2rem;
-  width: 2.2rem;
+/** IPL-style white rank tile with diagonal cut; overlaps navy logo slab beneath */
+const BroadcastRankPanel = styled.div`
+  flex: 0 0 2.65rem;
+  width: 2.65rem;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  font-family: var(--font-broadcast);
-  font-size: clamp(1.2rem, 4.2vw, 2.15rem);
-  font-weight: 700;
+  justify-content: center;
+  align-self: stretch;
+  background: #ffffff;
+  color: #0b2135;
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  font-size: clamp(1rem, 3.6vw, 1.92rem);
+  font-weight: 800;
   font-style: italic;
-  color: #0c0c0c;
   line-height: 1;
-  padding-right: 0.08rem;
+  clip-path: polygon(0 0, 100% 0, 68% 100%, 0 100%);
+  position: relative;
+  z-index: 2;
 
   @media (max-width: 640px) {
-    flex-basis: 1.65rem;
-    width: 1.65rem;
-    font-size: 1.02rem;
+    flex-basis: 2rem;
+    width: 2rem;
+    font-size: 1rem;
+    clip-path: polygon(0 0, 100% 0, 62% 100%, 0 100%);
   }
 
   @media (max-width: 380px) {
-    flex-basis: 1.45rem;
-    width: 1.45rem;
+    flex-basis: 1.78rem;
+    width: 1.78rem;
     font-size: 0.92rem;
+    clip-path: polygon(0 0, 100% 0, 58% 100%, 0 100%);
   }
 `;
 
@@ -460,6 +483,7 @@ const BroadcastCard = styled.div`
   min-height: 48px;
   overflow: hidden;
   border-radius: 4px;
+  background: #0b2135;
   box-shadow: 0 3px 10px rgba(12, 35, 68, 0.14);
   cursor: pointer;
   outline: none;
@@ -493,14 +517,25 @@ const BroadcastCard = styled.div`
   }
 `;
 
-/** Logo slab + stats strip — stretches with row height; PTS sits flush right (IPL cap). */
+/** Pulled left so navy logo slab sits under the rank diagonal cut */
 const BroadcastCardMain = styled.div`
   flex: 1;
   display: flex;
   align-items: stretch;
   min-width: 0;
-  overflow: hidden;
-  border-radius: 3px 0 0 3px;
+  margin-left: -0.95rem;
+  overflow: visible;
+  border-radius: 0;
+  position: relative;
+  z-index: 1;
+
+  @media (max-width: 640px) {
+    margin-left: -0.72rem;
+  }
+
+  @media (max-width: 380px) {
+    margin-left: -0.62rem;
+  }
 `;
 
 const LogoSlab = styled.div`
@@ -512,7 +547,7 @@ const LogoSlab = styled.div`
   justify-content: center;
   align-self: stretch;
   background: ${({ $dark }) => $dark};
-  clip-path: polygon(12% 0, 100% 0, 90% 100%, 0% 100%);
+  clip-path: polygon(16% 0, 100% 0, 86% 100%, 0 100%);
 
   img {
     width: 34px;
@@ -596,17 +631,24 @@ const StatsStrip = styled.div`
 
   &::after {
     content: '';
-    display: ${({ $lightStrip }) => ($lightStrip ? 'block' : 'none')};
+    display: block;
     position: absolute;
     inset: 0;
     left: 0;
     width: 46%;
     z-index: 0;
     pointer-events: none;
-    opacity: 0.42;
+    opacity: ${({ $fg }) => ($fg === '#ffffff' ? 0.14 : 0.44)};
     background:
-      radial-gradient(ellipse 95% 145% at -8% 48%, rgba(255, 255, 255, 0.82), transparent 58%),
-      radial-gradient(ellipse 55% 100% at 14% 22%, rgba(255, 255, 255, 0.38), transparent 52%);
+      repeating-linear-gradient(
+        121deg,
+        transparent 0 11px,
+        rgba(255, 255, 255, 0.42) 11px 12px,
+        transparent 12px 24px
+      ),
+      radial-gradient(ellipse 98% 145% at -8% 50%, rgba(255, 255, 255, 0.78), transparent 58%),
+      radial-gradient(ellipse 48% 88% at 10% 26%, rgba(255, 255, 255, 0.38), transparent 54%);
+    mix-blend-mode: soft-light;
   }
 
   & > * {
@@ -665,7 +707,7 @@ const PtsSlab = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #009fe3;
+  background: #008dce;
   color: #ffffff;
   font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
   font-style: italic;
@@ -1517,7 +1559,6 @@ const PointsTable = () => {
               key={team._id || `${team.teamName}-${index}`}
               $qualifierBoundary={index === qualifiers - 1}
             >
-              <BroadcastRank>{index + 1}</BroadcastRank>
               <BroadcastCard
                 role="button"
                 tabIndex={0}
@@ -1529,6 +1570,7 @@ const PointsTable = () => {
                   }
                 }}
               >
+                <BroadcastRankPanel>{index + 1}</BroadcastRankPanel>
                 <BroadcastCardMain>
                   <LogoSlab $dark={bp.slabDark}>
                     <img src={teamImage} alt={team.teamName || 'Team'} />
