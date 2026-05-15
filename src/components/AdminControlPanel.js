@@ -107,6 +107,11 @@ const AdminControlPanel = ({ adminUser }) => {
   const [cplReportLoading, setCplReportLoading] = useState(false);
   const [cplReportSaving, setCplReportSaving] = useState(false);
 
+  // Team Participation Management
+  const [participatingTeams, setParticipatingTeams] = useState([]);
+  const [participatingTeamsLoading, setParticipatingTeamsLoading] = useState(false);
+  const [participatingTeamsSaving, setParticipatingTeamsSaving] = useState(false);
+
   const handleToast = (message) => {
     setToast(message);
     setTimeout(() => setToast(''), 4000);
@@ -923,8 +928,103 @@ const AdminControlPanel = ({ adminUser }) => {
     if (adminUserId) {
       loadDatabases();
       loadCplReportConfig();
+      loadParticipatingTeams();
     }
   }, [adminUserId]);
+
+  // Team Participation Management Functions
+  const loadParticipatingTeams = async () => {
+    setParticipatingTeamsLoading(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/participating-teams`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setParticipatingTeams(data.teams || []);
+      }
+    } catch (err) {
+      console.error('Failed to load participating teams:', err);
+    } finally {
+      setParticipatingTeamsLoading(false);
+    }
+  };
+
+  const toggleTeamParticipation = (teamId) => {
+    setParticipatingTeams(prev => 
+      prev.map(team => 
+        team.id === teamId 
+          ? { ...team, isParticipating: !team.isParticipating }
+          : team
+      )
+    );
+  };
+
+  const saveParticipatingTeams = async () => {
+    // Build confirmation message with details
+    const participating = participatingTeams.filter(t => t.isParticipating);
+    const notParticipating = participatingTeams.filter(t => !t.isParticipating);
+    
+    let confirmMessage = '🔔 CONFIRM TEAM PARTICIPATION STATUS UPDATE\n\n';
+    
+    confirmMessage += `✅ PARTICIPATING TEAMS (${participating.length}):\n`;
+    if (participating.length > 0) {
+      confirmMessage += participating.map(t => `  • ${t.teamName || t.name}`).join('\n') + '\n';
+    } else {
+      confirmMessage += '  (none)\n';
+    }
+    
+    confirmMessage += `\n❌ NOT PARTICIPATING TEAMS (${notParticipating.length}):\n`;
+    if (notParticipating.length > 0) {
+      confirmMessage += notParticipating.map(t => `  • ${t.teamName || t.name}`).join('\n') + '\n';
+    } else {
+      confirmMessage += '  (none)\n';
+    }
+    
+    confirmMessage += '\n⚠️ IMPACT OF THIS CHANGE:\n';
+    if (notParticipating.length > 0) {
+      confirmMessage += '  • Non-participating teams will be HIDDEN from point tables\n';
+      confirmMessage += '  • Non-participating teams will be HIDDEN from fixtures\n';
+      confirmMessage += '  • Non-participating teams will be HIDDEN from playoff fixtures\n';
+      confirmMessage += '  • Non-participating teams CANNOT make trades\n';
+      confirmMessage += `  • Playoff games requirement will adjust to ${participating.length - 1} matches\n`;
+    } else {
+      confirmMessage += '  • All teams are participating (standard mode)\n';
+    }
+    
+    confirmMessage += '\n📊 TOTALS:\n';
+    confirmMessage += `  • Total Teams: ${participatingTeams.length}\n`;
+    confirmMessage += `  • Participating: ${participating.length}\n`;
+    confirmMessage += `  • Not Participating: ${notParticipating.length}\n`;
+    
+    confirmMessage += '\nDo you want to proceed with these changes?';
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+    
+    setParticipatingTeamsSaving(true);
+    try {
+      const teamUpdates = participatingTeams.map(team => ({
+        teamId: team.id,
+        isParticipating: team.isParticipating,
+      }));
+
+      const res = await fetch(`${API_ENDPOINTS}/api/participating-teams/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamUpdates }),
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to save');
+      
+      handleToast(`Updated ${data.updated} team(s) participation status`);
+      await loadParticipatingTeams();
+    } catch (err) {
+      handleToast(err.message || 'Failed to save team participation');
+    } finally {
+      setParticipatingTeamsSaving(false);
+    }
+  };
 
   // CPL Report Configuration Functions
   const loadCplReportConfig = async () => {
@@ -1386,6 +1486,120 @@ const AdminControlPanel = ({ adminUser }) => {
               💡 Will include: <strong>{cplReportStartDb}</strong> and all subsequent databases that exist (e.g., if {cplReportStartDb.replace(/\d+$/, (m) => `cpl_${parseInt(m) + 1}`)} and {cplReportStartDb.replace(/\d+$/, (m) => `cpl_${parseInt(m) + 2}`)} exist, they'll be included)
             </div>
           </div>
+        )}
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header" style={{ flexDirection: isCompact ? 'column' : 'row', gap: isCompact ? '12px' : '0' }}>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ fontSize: isCompact ? '18px' : '20px' }}>Team Participation Management</h2>
+            <p style={{ fontSize: isCompact ? '13px' : '14px' }}>
+              Mark teams as participating or not participating in the current season. Non-participating teams will be hidden from point tables, fixtures, and playoffs. They also cannot make trades.
+            </p>
+          </div>
+          <div className="section-actions" style={{ 
+            flexDirection: isCompact ? 'column' : 'row', 
+            width: isCompact ? '100%' : 'auto',
+            gap: isCompact ? '8px' : '12px'
+          }}>
+            <button
+              className="btn primary"
+              onClick={saveParticipatingTeams}
+              disabled={participatingTeamsSaving || participatingTeamsLoading}
+              style={{ 
+                width: isCompact ? '100%' : 'auto',
+                padding: isCompact ? '10px 16px' : '8px 16px',
+                fontSize: isCompact ? '14px' : '15px'
+              }}
+            >
+              {participatingTeamsSaving ? 'Saving...' : 'Save Participation Status'}
+            </button>
+          </div>
+        </div>
+
+        {participatingTeamsLoading ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
+            Loading teams...
+          </div>
+        ) : (
+          <>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: isCompact ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
+              gap: 12,
+              marginBottom: 16
+            }}>
+              {participatingTeams.map(team => (
+                <label 
+                  key={team.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px',
+                    background: team.isParticipating 
+                      ? 'rgba(46, 204, 113, 0.1)' 
+                      : 'rgba(231, 76, 60, 0.1)',
+                    border: team.isParticipating 
+                      ? '1px solid rgba(46, 204, 113, 0.3)' 
+                      : '1px solid rgba(231, 76, 60, 0.3)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={team.isParticipating}
+                    onChange={() => toggleTeamParticipation(team.id)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: 600 }}>
+                      {team.teamName || team.name}
+                    </div>
+                    {team.abbreviation && (
+                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>
+                        {team.abbreviation}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ 
+                    fontSize: '11px', 
+                    fontWeight: 600,
+                    color: team.isParticipating ? '#2ecc71' : '#e74c3c'
+                  }}>
+                    {team.isParticipating ? '✓ Participating' : '✗ Not Participating'}
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div style={{ 
+              padding: '12px', 
+              background: 'rgba(241, 196, 15, 0.1)', 
+              borderRadius: '6px',
+              border: '1px solid rgba(241, 196, 15, 0.3)',
+              fontSize: '13px',
+              lineHeight: '1.6'
+            }}>
+              <strong>⚠️ Important:</strong>
+              <ul style={{ marginTop: '8px', marginBottom: 0, paddingLeft: '20px' }}>
+                <li>Non-participating teams will be hidden from point tables and fixtures</li>
+                <li>Playoff calculations will be adjusted based on participating teams only</li>
+                <li>Non-participating teams cannot make trades</li>
+                <li>Required games per team will be calculated based on participating teams</li>
+              </ul>
+            </div>
+
+            {participatingTeams.length > 0 && (
+              <div style={{ marginTop: '12px', fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
+                Total: {participatingTeams.length} teams • 
+                Participating: {participatingTeams.filter(t => t.isParticipating).length} • 
+                Not Participating: {participatingTeams.filter(t => !t.isParticipating).length}
+              </div>
+            )}
+          </>
         )}
       </section>
 
