@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import axios from "axios";
+import html2canvas from "html2canvas";
 import { API_ENDPOINTS } from "../const";
 import { useMemo } from "react";
 import PlayoffFixtures from "./PlayoffFixtures";
@@ -96,9 +97,21 @@ const TableWrapper = styled.div`
   }
 
   @media (max-width: 600px) {
-    padding: 0.5rem 0.5rem 0.75rem;
+    padding: 0.38rem 0.4rem 0.48rem;
     overflow: visible;
+
+    h2 {
+      font-size: 1rem !important;
+      line-height: 1;
+      letter-spacing: 0.06em;
+    }
   }
+`;
+
+const TableCaptureArea = styled.div`
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.28), rgba(2, 6, 23, 0.72)),
+    radial-gradient(circle at 95% 12%, rgba(14, 165, 233, 0.18), transparent 32%);
 `;
 
 const TableTitleBar = styled.div`
@@ -115,6 +128,7 @@ const TableTitleBar = styled.div`
   @media (max-width: 600px) {
     align-items: flex-start;
     gap: 0.5rem;
+    margin-bottom: 0.36rem;
   }
 `;
 
@@ -141,6 +155,12 @@ const WhatsAppShareButton = styled.button`
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 12px 22px -14px rgba(34, 197, 94, 1);
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.75;
+    transform: none;
   }
 
   @media (max-width: 600px) {
@@ -174,7 +194,7 @@ const Table = styled.table`
 
   @media (max-width: 600px) {
     display: block;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     border-spacing: 0;
 
     thead,
@@ -216,7 +236,7 @@ const TableHead = styled.thead`
   @media (max-width: 600px) {
     tr {
       display: grid;
-      grid-template-columns: 34px minmax(118px, 1fr) 26px 26px 26px 38px 62px;
+      grid-template-columns: 30px minmax(104px, 1fr) 24px 24px 24px 34px 56px;
       align-items: center;
       background: linear-gradient(90deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.88));
       border-bottom: 1px solid rgba(56, 189, 248, 0.45);
@@ -227,8 +247,8 @@ const TableHead = styled.thead`
       align-items: center;
       justify-content: flex-end;
       min-width: 0;
-      padding: 0.45rem 0.18rem;
-      font-size: 0.74rem;
+      padding: 0.28rem 0.14rem;
+      font-size: 0.66rem;
       border-bottom: none;
     }
 
@@ -304,9 +324,9 @@ const TableRow = styled.tr`
 
   @media (max-width: 600px) {
     display: grid;
-    grid-template-columns: 34px minmax(118px, 1fr) 26px 26px 26px 38px 62px;
+    grid-template-columns: 30px minmax(104px, 1fr) 24px 24px 24px 34px 56px;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
     border-bottom: ${({ $qualifierBoundary }) =>
       $qualifierBoundary ? '2px dashed rgba(255, 255, 255, 0.78)' : '1px solid rgba(255, 255, 255, 0.08)'};
     border-radius: 0;
@@ -317,8 +337,8 @@ const TableRow = styled.tr`
       align-items: center;
       justify-content: flex-end;
       min-width: 0;
-      height: 48px;
-      padding: 0.5rem 0.18rem;
+      height: 36px;
+      padding: 0.32rem 0.14rem;
       border: none;
       background: transparent !important;
     }
@@ -352,6 +372,13 @@ const TableFooterNote = styled.div`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-shadow: 0 2px 7px rgba(0, 0, 0, 0.72);
+
+  @media (max-width: 600px) {
+    margin-top: 0.28rem;
+    padding: 0.42rem 0.5rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+  }
 `;
 
 const TableCell = styled.td`
@@ -406,12 +433,12 @@ const HighlightCell = styled(TableCell)`
   }
 
   @media (max-width: 600px) {
-    gap: 0.52rem;
-    img { width: 24px; height: 24px; }
+    gap: 0.42rem;
+    img { width: 20px; height: 20px; }
 
     .team-name {
-      font-size: 1.08rem;
-      letter-spacing: 0.06em;
+      font-size: 0.96rem;
+      letter-spacing: 0.05em;
       padding: 0;
     }
   }
@@ -471,7 +498,7 @@ const RankCell = styled(TableCell)`
   -webkit-text-stroke: 0;
 
   @media (max-width: 600px) {
-    font-size: 1rem;
+    font-size: 0.88rem;
     padding-left: 0 !important;
   }
 `;
@@ -815,6 +842,8 @@ const PointsTable = () => {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [teamFixtures, setTeamFixtures] = useState([]);
   const [showTeamDetails, setShowTeamDetails] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const pointsTableShareRef = useRef(null);
 
   const [worldCupMode, setWorldCupMode] = useState(false);
   const NUM_QUALIFIERS = worldCupMode ? 8 : 6; // top-8 if World Cup enabled, top-6 otherwise
@@ -1046,14 +1075,6 @@ const PointsTable = () => {
         const points = Number(team.points) || 0;
         const playedNow = Number(team.matchesPlayed) || 0;
 
-        // Check if team is eliminated based on early thresholds
-        const isEliminated = (
-          (playedNow >= totalMatches - 1 && points <= 10) ||
-          (playedNow >= totalMatches - 2 && points <= 8) ||
-          (playedNow >= totalMatches - 3 && points <= 6) ||
-          (playedNow >= totalMatches - 4 && points <= 4)
-        );
-
         // Qualification logic based on mode and completion status
         let showQ = false;
         let showE = false;
@@ -1194,7 +1215,7 @@ const PointsTable = () => {
     ? 'rgba(255, 255, 255, 0.76)'
     : '#475569';
 
-  const handleSharePointsTable = (title, list, qualifiers) => {
+  const handleSharePointsTable = async (title, list, qualifiers) => {
     const rows = list.map((team, index) => {
       const losses = (Number(team.matchesPlayed) || 0) - (Number(team.wins) || 0);
       const points = String(Math.max(0, Number(team.points) || 0)).padStart(2, '0');
@@ -1210,7 +1231,42 @@ const PointsTable = () => {
       window.location.href
     ].join('\n');
 
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+    try {
+      setIsSharing(true);
+
+      if (pointsTableShareRef.current && navigator.share) {
+        const canvas = await html2canvas(pointsTableShareRef.current, {
+          backgroundColor: '#07111f',
+          scale: Math.min(2, window.devicePixelRatio || 1),
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+        });
+
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.95));
+        if (blob) {
+          const file = new File([blob], `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`, {
+            type: 'image/png',
+          });
+          if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title,
+              text: `Sharing ${title}`,
+              files: [file],
+            });
+            return;
+          }
+        }
+      }
+
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      if (error?.name !== 'AbortError') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+      }
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   return (
@@ -1241,16 +1297,18 @@ const PointsTable = () => {
           
           <TableWrapper>
             {activeTab === 'groupA' && (
-              <>
+              <TableCaptureArea ref={pointsTableShareRef}>
                 <TableTitleBar>
                   <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
                     Group A
                   </h2>
                   <WhatsAppShareButton
                     type="button"
+                    data-html2canvas-ignore="true"
+                    disabled={isSharing}
                     onClick={() => handleSharePointsTable('CPL Group A Points Table', groups.A, GROUP_QUALIFIERS)}
                   >
-                    <FaWhatsapp /> <span>Share</span>
+                    <FaWhatsapp /> <span>{isSharing ? 'Sharing' : 'Share'}</span>
                   </WhatsAppShareButton>
                 </TableTitleBar>
                 <Table>
@@ -1268,20 +1326,22 @@ const PointsTable = () => {
                   {renderTableBody(groups.A)}
                 </Table>
                 <TableFooterNote>Top {GROUP_QUALIFIERS} Teams Qualify For Playoffs</TableFooterNote>
-              </>
+              </TableCaptureArea>
             )}
             
             {activeTab === 'groupB' && (
-              <>
+              <TableCaptureArea ref={pointsTableShareRef}>
                 <TableTitleBar>
                   <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
                     Group B
                   </h2>
                   <WhatsAppShareButton
                     type="button"
+                    data-html2canvas-ignore="true"
+                    disabled={isSharing}
                     onClick={() => handleSharePointsTable('CPL Group B Points Table', groups.B, GROUP_QUALIFIERS)}
                   >
-                    <FaWhatsapp /> <span>Share</span>
+                    <FaWhatsapp /> <span>{isSharing ? 'Sharing' : 'Share'}</span>
                   </WhatsAppShareButton>
                 </TableTitleBar>
                 <Table>
@@ -1299,7 +1359,7 @@ const PointsTable = () => {
                   {renderTableBody(groups.B)}
                 </Table>
                 <TableFooterNote>Top {GROUP_QUALIFIERS} Teams Qualify For Playoffs</TableFooterNote>
-              </>
+              </TableCaptureArea>
             )}
             
             {activeTab === 'playoffs' && (
@@ -1334,16 +1394,18 @@ const PointsTable = () => {
           
           <TableWrapper>
             {activeTab === 'overall' && (
-              <>
+              <TableCaptureArea ref={pointsTableShareRef}>
                 <TableTitleBar>
                   <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
                     Points Table
                   </h2>
                   <WhatsAppShareButton
                     type="button"
+                    data-html2canvas-ignore="true"
+                    disabled={isSharing}
                     onClick={() => handleSharePointsTable('CPL Points Table', sortedTeams, NUM_QUALIFIERS)}
                   >
-                    <FaWhatsapp /> <span>Share</span>
+                    <FaWhatsapp /> <span>{isSharing ? 'Sharing' : 'Share'}</span>
                   </WhatsAppShareButton>
                 </TableTitleBar>
                 <Table>
@@ -1361,7 +1423,7 @@ const PointsTable = () => {
                   {renderTableBody(sortedTeams)}
                 </Table>
                 <TableFooterNote>Top {NUM_QUALIFIERS} Teams Qualify For Playoffs</TableFooterNote>
-              </>
+              </TableCaptureArea>
             )}
             
             {activeTab === 'playoffs' && (
