@@ -1179,7 +1179,12 @@ const AdminControlPanel = ({ adminUser }) => {
           </label>
 
           <label className="field-label" style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', position: 'relative' }}>
-            <span style={{ fontSize: isCompact ? '13px' : '14px', fontWeight: 500 }}>Migration Type</span>
+            <span style={{ fontSize: isCompact ? '13px' : '14px', fontWeight: 500 }}>
+              Migration Type
+              <span style={{ fontSize: '11px', fontWeight: 400, color: 'rgba(255,255,255,0.6)', marginLeft: '8px' }}>
+                (What to migrate)
+              </span>
+            </span>
             <select
               className="select"
               value={migrationType}
@@ -1187,9 +1192,9 @@ const AdminControlPanel = ({ adminUser }) => {
               disabled={dbMigrationExecuting}
               style={{ width: '100%', fontSize: isCompact ? '14px' : '15px', padding: isCompact ? '8px' : '10px' }}
             >
-              <option value="player_stats">Player Stats Only (Top Rankings)</option>
-              <option value="tournaments">Tournaments Only</option>
-              <option value="player_stats_and_tournaments">Player Stats + Tournaments</option>
+              <option value="player_stats">🏏 Player Stats Only (Top Rankings)</option>
+              <option value="tournaments">🏆 Tournaments Only (Select Specific Tournament)</option>
+              <option value="player_stats_and_tournaments">📦 ALL TOGETHER (Player Stats + All Tournaments)</option>
             </select>
           </label>
 
