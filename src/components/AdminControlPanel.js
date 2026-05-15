@@ -111,6 +111,8 @@ const AdminControlPanel = ({ adminUser }) => {
   const [participatingTeams, setParticipatingTeams] = useState([]);
   const [participatingTeamsLoading, setParticipatingTeamsLoading] = useState(false);
   const [participatingTeamsSaving, setParticipatingTeamsSaving] = useState(false);
+  const [showParticipationConfirm, setShowParticipationConfirm] = useState(false);
+  const [participationConfirmData, setParticipationConfirmData] = useState(null);
 
   const handleToast = (message) => {
     setToast(message);
@@ -959,48 +961,20 @@ const AdminControlPanel = ({ adminUser }) => {
   };
 
   const saveParticipatingTeams = async () => {
-    // Build confirmation message with details
+    // Build confirmation data
     const participating = participatingTeams.filter(t => t.isParticipating);
     const notParticipating = participatingTeams.filter(t => !t.isParticipating);
     
-    let confirmMessage = '🔔 CONFIRM TEAM PARTICIPATION STATUS UPDATE\n\n';
-    
-    confirmMessage += `✅ PARTICIPATING TEAMS (${participating.length}):\n`;
-    if (participating.length > 0) {
-      confirmMessage += participating.map(t => `  • ${t.teamName || t.name}`).join('\n') + '\n';
-    } else {
-      confirmMessage += '  (none)\n';
-    }
-    
-    confirmMessage += `\n❌ NOT PARTICIPATING TEAMS (${notParticipating.length}):\n`;
-    if (notParticipating.length > 0) {
-      confirmMessage += notParticipating.map(t => `  • ${t.teamName || t.name}`).join('\n') + '\n';
-    } else {
-      confirmMessage += '  (none)\n';
-    }
-    
-    confirmMessage += '\n⚠️ IMPACT OF THIS CHANGE:\n';
-    if (notParticipating.length > 0) {
-      confirmMessage += '  • Non-participating teams will be HIDDEN from point tables\n';
-      confirmMessage += '  • Non-participating teams will be HIDDEN from fixtures\n';
-      confirmMessage += '  • Non-participating teams will be HIDDEN from playoff fixtures\n';
-      confirmMessage += '  • Non-participating teams CANNOT make trades\n';
-      confirmMessage += `  • Playoff games requirement will adjust to ${participating.length - 1} matches\n`;
-    } else {
-      confirmMessage += '  • All teams are participating (standard mode)\n';
-    }
-    
-    confirmMessage += '\n📊 TOTALS:\n';
-    confirmMessage += `  • Total Teams: ${participatingTeams.length}\n`;
-    confirmMessage += `  • Participating: ${participating.length}\n`;
-    confirmMessage += `  • Not Participating: ${notParticipating.length}\n`;
-    
-    confirmMessage += '\nDo you want to proceed with these changes?';
-    
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
-    
+    setParticipationConfirmData({
+      participating,
+      notParticipating,
+      totalTeams: participatingTeams.length
+    });
+    setShowParticipationConfirm(true);
+  };
+
+  const executeParticipationSave = async () => {
+    setShowParticipationConfirm(false);
     setParticipatingTeamsSaving(true);
     try {
       const teamUpdates = participatingTeams.map(team => ({
@@ -1017,7 +991,14 @@ const AdminControlPanel = ({ adminUser }) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to save');
       
-      handleToast(`Updated ${data.updated} team(s) participation status`);
+      handleToast(`✅ Updated ${data.updated} team(s) participation status`);
+      
+      // Invalidate cache to force refresh of point tables and fixtures
+      await fetch(`${API_ENDPOINTS}/api/cache/invalidate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      }).catch(err => console.warn('Cache invalidation failed:', err));
+      
       await loadParticipatingTeams();
     } catch (err) {
       handleToast(err.message || 'Failed to save team participation');
@@ -2638,6 +2619,310 @@ const AdminControlPanel = ({ adminUser }) => {
           </div>
         )}
       </section>
+
+      {/* Team Participation Confirmation Modal */}
+      {showParticipationConfirm && participationConfirmData && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: isCompact ? '16px' : '20px',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+            borderRadius: '16px',
+            padding: isCompact ? '20px' : '32px',
+            maxWidth: isCompact ? '95%' : '600px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            animation: 'slideIn 0.3s ease-out'
+          }}>
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '24px',
+              paddingBottom: '16px',
+              borderBottom: '2px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <div style={{
+                fontSize: isCompact ? '32px' : '40px',
+                animation: 'pulse 2s infinite'
+              }}>🔔</div>
+              <div>
+                <h2 style={{
+                  margin: 0,
+                  fontSize: isCompact ? '20px' : '24px',
+                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}>Confirm Participation Changes</h2>
+                <p style={{
+                  margin: '4px 0 0 0',
+                  fontSize: isCompact ? '12px' : '13px',
+                  color: 'rgba(255, 255, 255, 0.6)'
+                }}>Review the changes before saving</p>
+              </div>
+            </div>
+
+            {/* Participating Teams */}
+            <div style={{
+              marginBottom: '20px',
+              padding: '16px',
+              background: 'rgba(46, 204, 113, 0.1)',
+              borderRadius: '12px',
+              border: '2px solid rgba(46, 204, 113, 0.3)'
+            }}>
+              <div style={{
+                fontSize: isCompact ? '14px' : '16px',
+                fontWeight: 700,
+                color: '#2ecc71',
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span>✅</span>
+                <span>PARTICIPATING TEAMS ({participationConfirmData.participating.length})</span>
+              </div>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                maxHeight: '150px',
+                overflowY: 'auto'
+              }}>
+                {participationConfirmData.participating.length > 0 ? (
+                  participationConfirmData.participating.map((team, idx) => (
+                    <div key={idx} style={{
+                      padding: '6px 12px',
+                      background: 'rgba(46, 204, 113, 0.2)',
+                      borderRadius: '6px',
+                      fontSize: isCompact ? '12px' : '13px',
+                      color: '#2ecc71',
+                      fontWeight: 600
+                    }}>
+                      {team.teamName || team.name}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '13px' }}>(none)</div>
+                )}
+              </div>
+            </div>
+
+            {/* Not Participating Teams */}
+            <div style={{
+              marginBottom: '20px',
+              padding: '16px',
+              background: 'rgba(231, 76, 60, 0.1)',
+              borderRadius: '12px',
+              border: '2px solid rgba(231, 76, 60, 0.3)'
+            }}>
+              <div style={{
+                fontSize: isCompact ? '14px' : '16px',
+                fontWeight: 700,
+                color: '#e74c3c',
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span>❌</span>
+                <span>NOT PARTICIPATING TEAMS ({participationConfirmData.notParticipating.length})</span>
+              </div>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                maxHeight: '150px',
+                overflowY: 'auto'
+              }}>
+                {participationConfirmData.notParticipating.length > 0 ? (
+                  participationConfirmData.notParticipating.map((team, idx) => (
+                    <div key={idx} style={{
+                      padding: '6px 12px',
+                      background: 'rgba(231, 76, 60, 0.2)',
+                      borderRadius: '6px',
+                      fontSize: isCompact ? '12px' : '13px',
+                      color: '#e74c3c',
+                      fontWeight: 600
+                    }}>
+                      {team.teamName || team.name}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '13px' }}>(none)</div>
+                )}
+              </div>
+            </div>
+
+            {/* Impact Warning */}
+            {participationConfirmData.notParticipating.length > 0 && (
+              <div style={{
+                marginBottom: '20px',
+                padding: '16px',
+                background: 'rgba(241, 196, 15, 0.1)',
+                borderRadius: '12px',
+                border: '2px solid rgba(241, 196, 15, 0.3)'
+              }}>
+                <div style={{
+                  fontSize: isCompact ? '14px' : '15px',
+                  fontWeight: 700,
+                  color: '#f1c40f',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span>⚠️</span>
+                  <span>IMPACT OF THIS CHANGE</span>
+                </div>
+                <ul style={{
+                  margin: 0,
+                  paddingLeft: '20px',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  fontSize: isCompact ? '12px' : '13px',
+                  lineHeight: '1.8'
+                }}>
+                  <li>Non-participating teams will be <strong>HIDDEN from point tables</strong></li>
+                  <li>Non-participating teams will be <strong>HIDDEN from fixtures</strong></li>
+                  <li>Non-participating teams will be <strong>HIDDEN from playoff fixtures</strong></li>
+                  <li>Non-participating teams <strong>CANNOT make trades</strong></li>
+                  <li>Playoff requirement will adjust to <strong>{participationConfirmData.participating.length - 1} matches</strong></li>
+                </ul>
+              </div>
+            )}
+
+            {/* Statistics */}
+            <div style={{
+              marginBottom: '24px',
+              padding: '16px',
+              background: 'rgba(52, 152, 219, 0.1)',
+              borderRadius: '12px',
+              border: '2px solid rgba(52, 152, 219, 0.3)'
+            }}>
+              <div style={{
+                fontSize: isCompact ? '14px' : '15px',
+                fontWeight: 700,
+                color: '#3498db',
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span>📊</span>
+                <span>SUMMARY</span>
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '12px',
+                color: 'rgba(255, 255, 255, 0.8)',
+                fontSize: isCompact ? '12px' : '13px'
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: isCompact ? '20px' : '24px', fontWeight: 700, color: '#3498db' }}>
+                    {participationConfirmData.totalTeams}
+                  </div>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Total</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: isCompact ? '20px' : '24px', fontWeight: 700, color: '#2ecc71' }}>
+                    {participationConfirmData.participating.length}
+                  </div>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Participating</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: isCompact ? '20px' : '24px', fontWeight: 700, color: '#e74c3c' }}>
+                    {participationConfirmData.notParticipating.length}
+                  </div>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Not Playing</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              flexDirection: isCompact ? 'column' : 'row'
+            }}>
+              <button
+                onClick={() => setShowParticipationConfirm(false)}
+                style={{
+                  flex: 1,
+                  padding: isCompact ? '14px' : '16px',
+                  fontSize: isCompact ? '14px' : '16px',
+                  fontWeight: 700,
+                  border: '2px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  ':hover': {
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: 'rgba(255, 255, 255, 0.3)'
+                  }
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }}
+              >
+                ❌ Cancel
+              </button>
+              <button
+                onClick={executeParticipationSave}
+                disabled={participatingTeamsSaving}
+                style={{
+                  flex: 1,
+                  padding: isCompact ? '14px' : '16px',
+                  fontSize: isCompact ? '14px' : '16px',
+                  fontWeight: 700,
+                  border: 'none',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  cursor: participatingTeamsSaving ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: participatingTeamsSaving ? 0.6 : 1,
+                  boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!participatingTeamsSaving) {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+                }}
+              >
+                {participatingTeamsSaving ? '⏳ Saving...' : '✅ Confirm & Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
