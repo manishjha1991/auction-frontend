@@ -187,27 +187,30 @@ const TrophyHall = () => {
       
       // Calculate trophy counts and runner-up data
       const teamsWithData = teamsData.map(team => {
+        const normalizedTeamName = normalizeTeamName(team.teamName);
+
         // Regular match wins (from MatchResult)
         const teamWins = matchResultsData.filter(match => {
           if (!match.winner || match.winner === 'tie' || match.winner === 'no_result') return false;
           // Check if this team won by comparing winner field with team1/team2
           const winningTeam = match.winner === 'team1' ? match.team1 : match.team2;
-          return winningTeam === team.teamName;
+          return normalizeTeamName(winningTeam) === normalizedTeamName;
         });
 
         const teamLosses = matchResultsData.filter(match => {
           if (!match.winner || match.winner === 'tie' || match.winner === 'no_result') return false;
           // Check if this team played but didn't win
           const winningTeam = match.winner === 'team1' ? match.team1 : match.team2;
-          return (match.team1 === team.teamName || match.team2 === team.teamName) && winningTeam !== team.teamName;
+          const playedMatch =
+            normalizeTeamName(match.team1) === normalizedTeamName ||
+            normalizeTeamName(match.team2) === normalizedTeamName;
+          return playedMatch && normalizeTeamName(winningTeam) !== normalizedTeamName;
         });
 
         // Trophy count = only regular match wins (World Cup is separate)
         const trophyCount = teamWins.length;
         const runnerUpCount = teamLosses.length;
 
-        const normalizedTeamName = normalizeTeamName(team.teamName);
-        
         // World Cup wins
         const worldCupWins = fetchedWorldCupWinners.filter(wc => {
           const normalizedWinner = normalizeTeamName(wc.winner.teamName);
