@@ -8,31 +8,25 @@ import PlayoffFixtures from "./PlayoffFixtures";
 import { FaWhatsapp } from "react-icons/fa";
 
 /* =========================================================
-   Points Table — mobile-first redesign
-   Same JSX/state/logic; only the styled-components change.
-   On narrow screens each row becomes a compact grid-card so
-   the whole table fits without horizontal scroll and there's
-   no inner-table vertical scroll.
+   Points Table — broadcast (IPL-style) board
+   Row = rank (light) + skew logo slab + themed stat strip + PTS block.
+   Team colours from themePrimary / themeSecondary (hash fallback).
    ========================================================= */
 
-// Tab styles -------------------------------------------------
 const TabContainer = styled.div`
   margin: 0.75rem auto 2rem;
   width: calc(100% - 1rem);
-  max-width: 1100px;
-  background:
-    radial-gradient(circle at 8% 0%, rgba(56, 189, 248, 0.28), transparent 28%),
-    linear-gradient(145deg, #07111f 0%, #0b1830 48%, #050914 100%);
-  border-radius: 18px;
-  box-shadow: 0 24px 60px -28px rgba(2, 6, 23, 0.85);
-  border: 1px solid rgba(125, 211, 252, 0.35);
+  max-width: 960px;
+  background: linear-gradient(180deg, #eef1f6 0%, #e4e8ef 100%);
+  border-radius: 14px;
+  border: 1px solid rgba(12, 35, 68, 0.14);
+  box-shadow: 0 18px 48px -28px rgba(12, 35, 68, 0.45);
   overflow: hidden;
 
-  @media (max-width: 600px) {
-    width: calc(100% - 0.5rem);
-    margin: 0.5rem auto 1.25rem;
-    border-radius: 12px;
-    /* Allow full NRR (+X.XXX) to show — inner rows must not clip past rounded corners only */
+  @media (max-width: 640px) {
+    width: calc(100% - 0.35rem);
+    margin: 0.2rem auto 0.45rem;
+    border-radius: 8px;
     overflow-x: visible;
     overflow-y: visible;
   }
@@ -44,9 +38,11 @@ const TabHeader = styled.div`
   z-index: 20;
   display: flex;
   gap: 0.25rem;
-  padding: 0.35rem 0.35rem 0;
-  background: linear-gradient(90deg, rgba(15, 23, 42, 0.98), rgba(30, 64, 175, 0.62), rgba(15, 23, 42, 0.98));
-  border-bottom: 1px solid rgba(125, 211, 252, 0.3);
+  padding: calc(0.28rem + env(safe-area-inset-top, 0px)) 0.28rem 0;
+  padding-left: max(0.28rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.28rem, env(safe-area-inset-right, 0px));
+  background: linear-gradient(180deg, #d9dee8 0%, #ccd4e2 100%);
+  border-bottom: 2px solid #0c2344;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -56,81 +52,178 @@ const TabHeader = styled.div`
 
 const TabButton = styled.button`
   flex: 0 0 auto;
-  padding: 0.7rem 1.1rem 0.75rem;
-  min-height: 42px;
+  padding: 0.45rem 0.75rem 0.52rem;
+  min-height: 34px;
   background: transparent;
-  color: ${props => props.active ? "#ffffff" : "rgba(226, 232, 240, 0.72)"};
+  color: ${(props) => (props.active ? '#0c2344' : 'rgba(12, 35, 68, 0.52)')};
   border: none;
-  border-bottom: 2px solid ${props => props.active ? "#38bdf8" : "transparent"};
+  border-bottom: 3px solid ${(props) => (props.active ? '#00b4d8' : 'transparent')};
   border-radius: 0;
-  font-weight: ${props => props.active ? "700" : "500"};
+  font-weight: ${(props) => (props.active ? '800' : '600')};
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;
-  font-size: 0.9rem;
-  font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif);
-  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   white-space: nowrap;
-  margin-bottom: -1px;
+  margin-bottom: -2px;
 
-  &:hover { color: #ffffff; }
+  &:hover {
+    color: #0c2344;
+  }
 
-  @media (max-width: 600px) {
-    padding: 0.6rem 0.85rem 0.65rem;
-    font-size: 0.82rem;
+  @media (max-width: 640px) {
+    padding: 0.38rem 0.55rem 0.45rem;
+    font-size: 0.72rem;
+    min-height: 32px;
   }
 `;
 
-// Table container --------------------------------------------
 const TableWrapper = styled.div`
-  padding: clamp(0.5rem, 2vw, 1rem) clamp(0.5rem, 2vw, 1.25rem) clamp(0.75rem, 2vw, 1.25rem);
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.28), rgba(2, 6, 23, 0.72)),
-    radial-gradient(circle at 95% 12%, rgba(14, 165, 233, 0.18), transparent 32%);
+  padding: 0.45rem 0.55rem 0.85rem;
+  padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  background: transparent;
 
-  h2 {
-    margin: 0.15rem 0 0.75rem;
-    color: #ffffff !important;
-    font-size: clamp(1.25rem, 4.2vw, 2.05rem) !important;
-    font-weight: 950;
-    letter-spacing: 0.08em;
-    font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif) !important;
-    text-align: left !important;
-    text-transform: uppercase;
-  }
-
-  @media (max-width: 600px) {
-    padding: 0.38rem 0.4rem 0.48rem;
-    overflow: visible;
-
-    h2 {
-      font-size: 1rem !important;
-      line-height: 1;
-      letter-spacing: 0.06em;
-    }
+  @media (max-width: 640px) {
+    padding: 0.22rem 0.28rem 0.42rem;
+    padding-bottom: calc(0.42rem + env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.28rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.28rem, env(safe-area-inset-right, 0px));
   }
 `;
 
 const TableCaptureArea = styled.div`
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.28), rgba(2, 6, 23, 0.72)),
-    radial-gradient(circle at 95% 12%, rgba(14, 165, 233, 0.18), transparent 32%);
-`;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  border-radius: 8px;
+  padding: 0.72rem 0.72rem 0.65rem;
+  border: 1px solid rgba(12, 35, 68, 0.1);
+  background: linear-gradient(168deg, #ebecef 0%, #e1e4eb 42%, #d7dbe4 100%);
 
-const TableTitleBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-
-  h2 {
-    margin-bottom: 0 !important;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.62;
+    background:
+      radial-gradient(ellipse 90% 60% at -8% -18%, rgba(255, 214, 98, 0.55), transparent 58%),
+      radial-gradient(ellipse 75% 55% at 10% 8%, rgba(255, 148, 92, 0.42), transparent 52%),
+      radial-gradient(ellipse 70% 50% at -5% 22%, rgba(130, 206, 255, 0.48), transparent 55%);
   }
 
-  @media (max-width: 600px) {
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin-bottom: 0.36rem;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 640px) {
+    padding: 0.32rem max(0.32rem, env(safe-area-inset-left, 0px))
+      calc(0.38rem + env(safe-area-inset-bottom, 0px))
+      max(0.32rem, env(safe-area-inset-right, 0px));
+    border-radius: 6px;
+  }
+
+  @media (max-width: 380px) {
+    padding: 0.28rem max(0.28rem, env(safe-area-inset-left, 0px))
+      calc(0.32rem + env(safe-area-inset-bottom, 0px))
+      max(0.28rem, env(safe-area-inset-right, 0px));
+  }
+`;
+
+/** Reference-style opener: dark navy season/context line above the skew banner */
+const BroadcastTitleStack = styled.div`
+  text-align: center;
+  margin-bottom: 0.2rem;
+
+  @media (max-width: 640px) {
+    margin-bottom: 0.12rem;
+  }
+`;
+
+const BroadcastSeasonLine = styled.div`
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  font-style: italic;
+  font-weight: 800;
+  font-size: clamp(0.88rem, 3.35vw, 1.42rem);
+  color: #0a1f44;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  line-height: 1.12;
+
+  @media (max-width: 640px) {
+    font-size: clamp(0.76rem, 2.95vw, 1.05rem);
+    letter-spacing: 0.05em;
+  }
+`;
+
+const BroadcastHeroRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-bottom: 0.52rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    gap: 0.38rem;
+    margin-bottom: 0.32rem;
+  }
+
+  @media (max-width: 420px) {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.32rem;
+  }
+`;
+
+const BroadcastSkewTitle = styled.div`
+  display: inline-block;
+  transform: skewX(-12deg);
+  background: linear-gradient(90deg, #071a33 0%, #0f3561 52%, #143a64 100%);
+  padding: 0.42rem 1.85rem 0.46rem;
+  border-radius: 2px;
+  box-shadow: 0 4px 14px rgba(12, 35, 68, 0.28);
+
+  span {
+    display: block;
+    transform: skewX(12deg);
+    font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+    font-size: clamp(1.12rem, 4.85vw, 2.18rem);
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: 0.07em;
+    color: #8ae9ff;
+    text-transform: uppercase;
+    text-shadow: none;
+    line-height: 1;
+  }
+
+  @media (max-width: 640px) {
+    padding: 0.34rem 1.25rem 0.38rem;
+  }
+
+  @media (max-width: 380px) {
+    padding: 0.3rem 1rem 0.34rem;
+
+    span {
+      font-size: clamp(1rem, 5.5vw, 1.35rem);
+    }
   }
 `;
 
@@ -139,23 +232,24 @@ const WhatsAppShareButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  border: 1px solid rgba(187, 247, 208, 0.5);
+  border: 1px solid rgba(6, 95, 70, 0.35);
   border-radius: 999px;
   background: linear-gradient(135deg, #22c55e, #16a34a);
   color: #ffffff;
-  padding: 0.45rem 0.8rem;
-  font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif);
-  font-size: 0.9rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
+  padding: 0.42rem 0.75rem;
+  font-family: var(--font-broadcast);
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 8px 18px -12px rgba(34, 197, 94, 0.9);
+  box-shadow: 0 6px 16px -8px rgba(22, 163, 74, 0.8);
   white-space: nowrap;
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 12px 22px -14px rgba(34, 197, 94, 1);
+    filter: brightness(1.05);
   }
 
   &:disabled {
@@ -164,9 +258,9 @@ const WhatsAppShareButton = styled.button`
     transform: none;
   }
 
-  @media (max-width: 600px) {
-    padding: 0.4rem 0.58rem;
-    font-size: 0.76rem;
+  @media (max-width: 640px) {
+    padding: 0.38rem 0.55rem;
+    font-size: 0.72rem;
 
     span {
       display: none;
@@ -174,288 +268,467 @@ const WhatsAppShareButton = styled.button`
   }
 `;
 
-const Table = styled.table`
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 4px;
-  table-layout: fixed;
-  font-size: 0.98rem;
-  color: #ffffff;
-  font-variant-numeric: tabular-nums;
-  font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif);
+/** Mirrors BroadcastRowWrap + BroadcastCard geometry so P/W/L/NRR align with body cells */
+const BroadcastTableHeadRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  margin-bottom: 0.4rem;
 
-  /* Desktop column widths */
-  th:nth-child(1), td:nth-child(1) { width: 46px; text-align: center; }        /* POS */
-  th:nth-child(2), td:nth-child(2) { width: auto; min-width: 180px; text-align: left; } /* TEAM */
-  th:nth-child(3), td:nth-child(3),
-  th:nth-child(4), td:nth-child(4),
-  th:nth-child(5), td:nth-child(5) { width: 52px; text-align: right; }         /* P W L */
-  th:nth-child(6), td:nth-child(6) { width: 64px; text-align: right; }         /* PTS */
-  th:nth-child(7), td:nth-child(7) { width: 80px; text-align: center; padding-right: 0.4rem; } /* NRR */
+  @media (max-width: 640px) {
+    gap: 0.18rem;
+    margin-bottom: 0.22rem;
+  }
 
-  @media (max-width: 600px) {
-    display: block;
-    font-size: 0.72rem;
-    border-spacing: 0;
-
-    thead,
-    tbody {
-      display: block;
-      width: 100%;
-    }
-
-    th:nth-child(1), td:nth-child(1) { width: 34px; }
-    th:nth-child(2), td:nth-child(2) { min-width: 0; }
-    th:nth-child(3), td:nth-child(3),
-    th:nth-child(4), td:nth-child(4),
-    th:nth-child(5), td:nth-child(5) { width: 26px; }
-    th:nth-child(6), td:nth-child(6) { width: 36px; }  /* PTS */
-    /* NRR needs ~72px+ for "+X.XXX" tabular figures */
-    th:nth-child(7), td:nth-child(7) { width: auto; min-width: 72px; padding-right: 0.18rem; }
+  @media (max-width: 380px) {
+    margin-bottom: 0.2rem;
   }
 `;
 
-const TableHead = styled.thead`
-  tr {
-    background: linear-gradient(90deg, rgba(2, 6, 23, 0.92), rgba(15, 23, 42, 0.82));
+const BroadcastRankSpacer = styled.div`
+  flex: 0 0 2.2rem;
+  width: 2.2rem;
+  flex-shrink: 0;
+
+  @media (max-width: 640px) {
+    flex-basis: 1.65rem;
+    width: 1.65rem;
   }
 
-  td {
-    /* Match body padding exactly so right-aligned headers sit above values. */
-    padding: 0.5rem 0.55rem;
-    font-size: 0.96rem;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: rgba(255, 255, 255, 0.86);
-    border-bottom: 1px solid rgba(56, 189, 248, 0.45);
-    background: transparent;
-  }
-
-  td.pts-cell { color: #ffffff; }
-
-  @media (max-width: 600px) {
-    tr {
-      display: grid;
-      grid-template-columns:
-        26px minmax(78px, 1fr) 21px 21px 21px 28px minmax(72px, max-content);
-      align-items: center;
-      background: linear-gradient(90deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.88));
-      border-bottom: 1px solid rgba(56, 189, 248, 0.45);
-      overflow: visible;
-    }
-
-    td {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      min-width: 0;
-      padding: 0.28rem 0.14rem;
-      font-size: 0.66rem;
-      border-bottom: none;
-    }
-
-    td:first-child {
-      justify-content: center;
-    }
-
-    td:nth-child(2) {
-      justify-content: flex-start;
-    }
-
-    td:nth-child(7),
-    td.nrr-cell {
-      min-width: 72px;
-      flex-shrink: 0;
-      justify-content: flex-end;
-      padding-right: 0.2rem;
-      letter-spacing: 0.02em;
-    }
+  @media (max-width: 380px) {
+    flex-basis: 1.45rem;
+    width: 1.45rem;
   }
 `;
 
-const TableRow = styled.tr`
-  background: ${({ $themePrimary, $themeSecondary }) =>
-    $themePrimary && $themeSecondary
-      ? `linear-gradient(90deg, ${$themePrimary} 0%, ${$themeSecondary} 100%)`
-      : '#1d4ed8'};
-  box-shadow: ${({ $themePrimary }) =>
-    $themePrimary
-      ? `inset 0 0 0 1px rgba(255,255,255,0.12)`
-      : 'inset 0 0 0 1px rgba(255,255,255,0.12)'};
+const BroadcastHeadCard = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+`;
+
+const BroadcastHeadMain = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 3px 0 0 3px;
+`;
+
+const BroadcastHeadLogoSpacer = styled.div`
+  flex: 0 0 50px;
+  width: 50px;
+  flex-shrink: 0;
+
+  @media (max-width: 640px) {
+    flex-basis: 36px;
+    width: 36px;
+  }
+
+  @media (max-width: 380px) {
+    flex-basis: 34px;
+    width: 34px;
+  }
+`;
+
+/** Keep grid-template columns, gaps, padding, margin-left identical to StatsStrip */
+const BroadcastHeadGrid = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(48px, 1.08fr) 36px 36px 36px minmax(58px, 1fr);
+  align-items: center;
+  gap: 0 0.14rem;
+  padding: 0.28rem 0.32rem 0.28rem 0.26rem;
+  margin-left: -8px;
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  font-style: italic;
+  font-weight: 800;
+  font-size: clamp(0.58rem, 1.85vw, 0.78rem);
+  color: #0c2344;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+
+  span:nth-child(1) {
+    text-align: left;
+    padding-left: 0.15rem;
+  }
+
+  span:nth-child(n + 2) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(34px, 1fr) 26px 26px 26px minmax(46px, 1fr);
+    font-size: 0.48rem;
+    gap: 0 0.09rem;
+    padding: 0.14rem 0.16rem 0.14rem 0.12rem;
+    margin-left: -6px;
+  }
+
+  @media (max-width: 380px) {
+    grid-template-columns: minmax(30px, 1fr) 23px 23px 23px minmax(42px, 1fr);
+    font-size: 0.45rem;
+    padding: 0.12rem 0.12rem 0.12rem 0.1rem;
+  }
+`;
+
+const PtsHeadLabel = styled.div`
+  flex: 0 0 54px;
+  width: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  font-size: clamp(0.62rem, 2vw, 0.82rem);
+  font-weight: 800;
+  font-style: italic;
+  color: #0c2344;
+  text-transform: uppercase;
+
+  @media (max-width: 640px) {
+    flex-basis: 40px;
+    width: 40px;
+    font-size: 0.47rem;
+  }
+
+  @media (max-width: 380px) {
+    flex-basis: 36px;
+    width: 36px;
+    font-size: 0.44rem;
+  }
+`;
+
+const BroadcastRowWrap = styled.div`
+  display: flex;
+  align-items: stretch;
+  gap: 0.32rem;
+  margin-bottom: 0.42rem;
+
+  ${({ $qualifierBoundary }) =>
+    $qualifierBoundary
+      ? `padding-bottom: 0.38rem; margin-bottom: 0.48rem; border-bottom: 2px dashed rgba(12, 35, 68, 0.35);`
+      : ''}
+
+  @media (max-width: 640px) {
+    gap: 0.18rem;
+    margin-bottom: 0.2rem;
+  }
+`;
+
+const BroadcastRank = styled.div`
+  flex: 0 0 2.2rem;
+  width: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-family: var(--font-broadcast);
+  font-size: clamp(1.2rem, 4.2vw, 2.15rem);
+  font-weight: 700;
+  font-style: italic;
+  color: #0c0c0c;
+  line-height: 1;
+  padding-right: 0.08rem;
+
+  @media (max-width: 640px) {
+    flex-basis: 1.65rem;
+    width: 1.65rem;
+    font-size: 1.02rem;
+  }
+
+  @media (max-width: 380px) {
+    flex-basis: 1.45rem;
+    width: 1.45rem;
+    font-size: 0.92rem;
+  }
+`;
+
+const BroadcastCard = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-width: 0;
+  min-height: 48px;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: 0 3px 10px rgba(12, 35, 68, 0.14);
   cursor: pointer;
-
-  td {
-    padding: 0.62rem 0.55rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    border-bottom: ${({ $qualifierBoundary }) =>
-      $qualifierBoundary ? '2px dashed rgba(255, 255, 255, 0.72)' : '1px solid rgba(2, 6, 23, 0.82)'};
-    background: transparent;
-    font-weight: 900;
-    color: #ffffff;
-    vertical-align: middle;
-    letter-spacing: 0.07em;
-    font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif);
-  }
-
-  td:first-child {
-    border-radius: 2px 0 0 2px;
-    background: transparent;
-  }
-
-  td:last-child {
-    border-radius: 0 2px 2px 0;
-  }
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 
   &:hover {
-    filter: brightness(1.04);
-  }
-  &:hover td {
-    background: transparent;
-  }
-  &:focus { outline: none; }
-  &:focus-visible td { outline: 2px solid rgba(56, 189, 248, 0.7); outline-offset: -2px; }
-  &:last-child td { border-bottom: none; }
-
-  /* NRR sign colour */
-  td.nrr-cell {
-    color: #ffffff;
-    font-weight: 900;
+    filter: brightness(1.03);
+    box-shadow: 0 4px 14px rgba(12, 35, 68, 0.18);
   }
 
-  /* PTS highlighted — colour depends on qualifying zone */
-  td.pts-cell {
-    font-weight: 950;
-    font-size: 1.08em;
-    color: #ffffff;
+  &:active {
+    filter: brightness(0.97);
   }
-  td.pts-cell.pts-top,
-  td.pts-cell.pts-mid,
-  td.pts-cell.pts-low { color: #ffffff; }
 
-  @media (max-width: 600px) {
-    display: grid;
-    grid-template-columns:
-      26px minmax(78px, 1fr) 21px 21px 21px 28px minmax(72px, max-content);
-    align-items: center;
-    margin-bottom: 3px;
-    border-bottom: ${({ $qualifierBoundary }) =>
-      $qualifierBoundary ? '2px dashed rgba(255, 255, 255, 0.78)' : '1px solid rgba(255, 255, 255, 0.08)'};
-    border-radius: 0;
-    overflow: visible;
+  &:focus-visible {
+    box-shadow: 0 0 0 2px #00b4d8, 0 3px 10px rgba(12, 35, 68, 0.14);
+  }
 
-    td {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      min-width: 0;
-      height: 36px;
-      padding: 0.32rem 0.14rem;
-      border: none;
-      background: transparent !important;
+  @media (max-width: 640px) {
+    min-height: 42px;
+  }
+
+  @media (max-width: 380px) {
+    min-height: 40px;
+  }
+
+  @media (pointer: coarse) and (min-width: 641px) {
+    min-height: 46px;
+  }
+`;
+
+/** Logo slab + stats strip — stretches with row height; PTS sits flush right (IPL cap). */
+const BroadcastCardMain = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 3px 0 0 3px;
+`;
+
+const LogoSlab = styled.div`
+  flex: 0 0 50px;
+  flex-shrink: 0;
+  width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  background: ${({ $dark }) => $dark};
+  clip-path: polygon(12% 0, 100% 0, 90% 100%, 0% 100%);
+
+  img {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    background: rgba(255, 255, 255, 0.92);
+    display: block;
+  }
+
+  @media (max-width: 640px) {
+    flex-basis: 36px;
+    width: 36px;
+
+    img {
+      width: 22px;
+      height: 22px;
+      border-width: 1.5px;
     }
+  }
 
-    td:first-child {
-      justify-content: center;
+  @media (max-width: 380px) {
+    flex-basis: 34px;
+    width: 34px;
+
+    img {
+      width: 21px;
+      height: 21px;
     }
+  }
+`;
 
-    td:nth-child(2) {
-      justify-content: flex-start;
-    }
+const StatsStrip = styled.div`
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: minmax(48px, 1.08fr) 36px 36px 36px minmax(58px, 1fr);
+  align-items: center;
+  gap: 0 0.14rem;
+  padding: 0.28rem 0.32rem 0.28rem 0.26rem;
+  margin-left: -8px;
+  position: relative;
+  isolation: isolate;
+  background: ${({ $fill }) => $fill};
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  font-style: italic;
+  font-weight: 800;
+  font-size: clamp(0.66rem, 2.2vw, 1.12rem);
+  color: ${({ $fg }) => $fg};
+  letter-spacing: 0.02em;
 
-    td:nth-child(7),
-    td.nrr-cell {
-      min-width: 72px;
-      flex-shrink: 0;
-      justify-content: flex-end;
-      padding-right: 0.2rem;
-      overflow: visible;
-    }
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: ${({ $pattern, $lightStrip }) =>
+      $lightStrip ? ($pattern === 'waves' ? 0.09 : $pattern === 'stripes' ? 0.07 : 0) : ($pattern === 'waves' ? 0.14 : $pattern === 'stripes' ? 0.12 : 0)};
+    background: ${({ $pattern, $fg }) =>
+      $pattern === 'waves'
+        ? `repeating-linear-gradient(
+            118deg,
+            transparent 0 6px,
+            rgba(255, 255, 255, 0.22) 6px 7px,
+            transparent 7px 14px
+          ),
+          radial-gradient(ellipse 120% 80% at 20% 50%, rgba(255, 255, 255, 0.2), transparent 55%)`
+        : $pattern === 'stripes'
+        ? `repeating-linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.18) 0 1px,
+            transparent 1px 5px
+          )`
+        : 'none'};
+    mix-blend-mode: ${({ $pattern }) => ($pattern ? 'soft-light' : 'normal')};
+  }
 
-    &:hover td {
-      background: transparent !important;
-    }
+  &::after {
+    content: '';
+    display: ${({ $lightStrip }) => ($lightStrip ? 'block' : 'none')};
+    position: absolute;
+    inset: 0;
+    left: 0;
+    width: 46%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.42;
+    background:
+      radial-gradient(ellipse 95% 145% at -8% 48%, rgba(255, 255, 255, 0.82), transparent 58%),
+      radial-gradient(ellipse 55% 100% at 14% 22%, rgba(255, 255, 255, 0.38), transparent 52%);
+  }
 
-    td.pts-cell { font-size: 1em; }
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(34px, 1fr) 26px 26px 26px minmax(46px, 1fr);
+    padding: 0.14rem 0.16rem 0.14rem 0.12rem;
+    margin-left: -6px;
+    font-size: 0.58rem;
+    gap: 0 0.09rem;
+  }
+
+  @media (max-width: 380px) {
+    grid-template-columns: minmax(30px, 1fr) 23px 23px 23px minmax(42px, 1fr);
+    font-size: 0.54rem;
+    padding: 0.12rem 0.12rem 0.12rem 0.1rem;
+  }
+`;
+
+const TeamAbbrCell = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+  padding-left: 0.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-self: start;
+  align-self: center;
+  color: ${({ $abbrInk }) => $abbrInk ?? 'inherit'};
+
+  @media (max-width: 640px) {
+    gap: 0.18rem;
+  }
+`;
+
+const StatCell = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  justify-self: stretch;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+`;
+
+const PtsSlab = styled.div`
+  flex: 0 0 54px;
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #009fe3;
+  color: #ffffff;
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  font-style: italic;
+  font-weight: 800;
+  font-size: clamp(0.82rem, 2.8vw, 1.38rem);
+  font-variant-numeric: tabular-nums;
+  border-radius: 0 4px 4px 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.55);
+
+  @media (max-width: 640px) {
+    flex-basis: 40px;
+    width: 40px;
+    font-size: 0.68rem;
+    border-radius: 0 3px 3px 0;
+  }
+
+  @media (max-width: 380px) {
+    flex-basis: 36px;
+    width: 36px;
+    font-size: 0.62rem;
   }
 `;
 
 const TableFooterNote = styled.div`
-  margin-top: 0.45rem;
-  padding: 0.62rem 0.75rem;
-  background: linear-gradient(90deg, rgba(2, 6, 23, 0.92), rgba(15, 23, 42, 0.72), rgba(2, 6, 23, 0.92));
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  margin-top: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  background: rgba(12, 35, 68, 0.06);
+  border: 1px solid rgba(12, 35, 68, 0.12);
+  border-radius: 6px;
+  color: #0c2344;
   text-align: center;
-  font-size: clamp(0.78rem, 2.6vw, 0.95rem);
-  font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif);
-  font-weight: 400;
-  letter-spacing: 0.08em;
+  font-size: clamp(0.72rem, 2.4vw, 0.88rem);
+  font-family: var(--font-broadcast);
+  font-weight: 600;
+  font-style: italic;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 
-  @media (max-width: 600px) {
-    margin-top: 0.28rem;
-    padding: 0.42rem 0.5rem;
-    font-size: 0.68rem;
-    letter-spacing: 0.06em;
+  @media (max-width: 640px) {
+    margin-top: 0.32rem;
+    padding: 0.32rem 0.38rem;
+    font-size: 0.58rem;
   }
 `;
 
-const TableCell = styled.td`
-  white-space: nowrap;
-`;
-
-const HighlightCell = styled(TableCell)`
+const BroadcastBoardFooter = styled.div`
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.65rem;
-  color: #ffffff;
-  font-weight: 950;
-  min-width: 0;
+  margin-top: 0.28rem;
+  padding: 0.12rem 0.05rem 0;
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  font-size: clamp(0.48rem, 1.65vw, 0.62rem);
+  font-weight: 700;
+  font-style: italic;
+  color: #0a2744;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.88;
 
-  tr:hover & .team-name { color: #ffffff; }
-
-  img {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: rgba(255, 255, 255, 0.9);
-    flex-shrink: 0;
-    border: 1px solid rgba(255, 255, 255, 0.75);
-    box-shadow: 0 4px 10px -6px rgba(0, 0, 0, 0.8);
-  }
-
-  .team-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
-    transition: color 0.15s ease;
-    letter-spacing: 0.08em;
-    font-family: Impact, 'Arial Black', var(--font-scoreboard, 'Arial Narrow', sans-serif);
-    font-size: 1.25rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    color: #ffffff;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    padding: 0;
-    line-height: 1.05;
-    -webkit-text-stroke: 0.35px rgba(0, 0, 0, 0.78);
-    box-shadow: none;
-  }
-
-  @media (max-width: 600px) {
-    gap: 0.42rem;
-    img { width: 20px; height: 20px; }
-
-    .team-name {
-      font-size: 0.96rem;
-      letter-spacing: 0.05em;
-      padding: 0;
-    }
+  @media (max-width: 640px) {
+    margin-top: 0.18rem;
+    font-size: 0.45rem;
   }
 `;
 
@@ -463,55 +736,42 @@ const QualifierBadge = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: 4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
+  margin-left: 2px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
   border-radius: 999px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.95);
   color: #065f46;
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1;
-  font-weight: 950;
-  letter-spacing: 0.04em;
+  font-weight: 900;
+  letter-spacing: 0.03em;
   flex-shrink: 0;
-  border: 1px solid rgba(6, 95, 70, 0.35);
-  box-shadow: 0 2px 8px -4px rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(6, 95, 70, 0.4);
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  font-style: italic;
 `;
 
 const EliminatedBadge = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: 4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
+  margin-left: 2px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
   border-radius: 999px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.95);
   color: #991b1b;
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1;
-  font-weight: 950;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
-  border: 1px solid rgba(153, 27, 27, 0.35);
-  box-shadow: 0 2px 8px -4px rgba(0, 0, 0, 0.9);
-`;
-
-const RankCell = styled(TableCell)`
-  color: #ffffff;
-  font-family: Impact, 'Arial Black', var(--font-scoreboard, 'Arial Narrow', sans-serif);
   font-weight: 900;
-  text-align: center !important;
-  padding-left: 0 !important;
-  font-size: 1.22rem;
-  letter-spacing: 0.04em;
-
-  @media (max-width: 600px) {
-    font-size: 0.88rem;
-    padding-left: 0 !important;
-  }
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+  border: 1px solid rgba(153, 27, 27, 0.4);
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  font-style: italic;
 `;
 
 // Team Details Modal Styles ---------------------------------
@@ -804,31 +1064,123 @@ const FairnessCell = styled(MatchTableCell)`
 const normalizeThemeHex = (value) =>
   /^#[0-9a-f]{6}$/i.test(String(value || '').trim()) ? String(value).trim() : null;
 
+const THEME_FALLBACK_PALETTES = [
+  ['#0f2744', '#eab308'],
+  ['#1e40af', '#dc2626'],
+  ['#4c1d95', '#fbbf24'],
+  ['#0d9488', '#111827'],
+  ['#b45309', '#1c1917'],
+  ['#be123c', '#0c4a6e'],
+  ['#166534', '#fef08a'],
+  ['#7c2d12', '#fde68a'],
+];
+
+function hashThemeFallback(teamName) {
+  let h = 0;
+  const s = teamName || '';
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) | 0;
+  const pair = THEME_FALLBACK_PALETTES[Math.abs(h) % THEME_FALLBACK_PALETTES.length];
+  return { primary: pair[0], secondary: pair[1] };
+}
+
+function resolveTeamTheme(team) {
+  const p = normalizeThemeHex(team?.themePrimary);
+  const s = normalizeThemeHex(team?.themeSecondary);
+  const label = team?.teamName || team?.originalTeamName || '';
+  if (p && s) return { primary: p, secondary: s };
+  if (p && !s) return { primary: p, secondary: p };
+  return hashThemeFallback(label);
+}
+
+function mixHex(hexA, hexB, t) {
+  const a = normalizeThemeHex(hexA);
+  const b = normalizeThemeHex(hexB);
+  if (!a) return '#1e293b';
+  if (!b) return a;
+  const parse = (h) => [
+    parseInt(h.slice(1, 3), 16),
+    parseInt(h.slice(3, 5), 16),
+    parseInt(h.slice(5, 7), 16),
+  ];
+  const [ar, ag, ab] = parse(a);
+  const [br, bg, bb] = parse(b);
+  const blend = (x, y) => Math.round(x + (y - x) * t);
+  const r = blend(ar, br).toString(16).padStart(2, '0');
+  const g = blend(ag, bg).toString(16).padStart(2, '0');
+  const bl = blend(ab, bb).toString(16).padStart(2, '0');
+  return `#${r}${g}${bl}`;
+}
+
+const hexLuminance = (hex) => {
+  const normalized = normalizeThemeHex(hex);
+  if (!normalized) return 0.12;
+  const r = parseInt(normalized.slice(1, 3), 16);
+  const g = parseInt(normalized.slice(3, 5), 16);
+  const b = parseInt(normalized.slice(5, 7), 16);
+  const srgb = [r, g, b].map((value) => {
+    const channel = value / 255;
+    return channel <= 0.03928
+      ? channel / 12.92
+      : Math.pow((channel + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+};
+
+function wcagContrastRatio(bgHex, fgHex) {
+  const L = (hex) => {
+    const n = normalizeThemeHex(hex);
+    if (!n) return 0;
+    return hexLuminance(n);
+  };
+  const Lbg = L(bgHex);
+  const Lfg = L(fgHex);
+  const lighter = Math.max(Lbg, Lfg);
+  const darker = Math.min(Lbg, Lfg);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/** IPL-style: full theme gradient + WCAG ink (dark strip → white; light strip → navy/black). */
+function broadcastRowPresentation(primary, secondary) {
+  const p = normalizeThemeHex(primary) || '#2563eb';
+  const s = normalizeThemeHex(secondary || primary) || p;
+  const lp = hexLuminance(p);
+  const ls = hexLuminance(s);
+  const lumAvg = (lp + ls) / 2;
+
+  const stripFill = `linear-gradient(92deg, ${p} 0%, ${mixHex(p, s, 0.42)} 52%, ${s} 100%)`;
+  const mid = mixHex(p, s, 0.5);
+  const lumMid = hexLuminance(mid);
+
+  const cw = wcagContrastRatio(mid, '#ffffff');
+  const cd = wcagContrastRatio(mid, '#0a1f44');
+  let stripInk = cw >= cd ? '#ffffff' : '#0a1f44';
+
+  if (cw < 3.2 && cd >= cw) stripInk = '#0a1f44';
+  if (cd < 3.2 && cw > cd) stripInk = '#ffffff';
+
+  const veryLightTeam = lumAvg > 0.78 || (lp > 0.74 && ls > 0.74);
+  const abbrInk =
+    stripInk === '#ffffff'
+      ? '#ffffff'
+      : veryLightTeam || lumMid > 0.74
+        ? '#0c0c0c'
+        : stripInk;
+
+  const slabDark = mixHex(p, '#061526', 0.74);
+
+  return {
+    stripFill,
+    stripInk,
+    abbrInk,
+    slabDark,
+    lightStrip: stripInk === '#0a1f44',
+  };
+}
+
 const getReadableTextColor = (primary, secondary) => {
-  const hexToRgb = (hex) => {
-    const normalized = normalizeThemeHex(hex);
-    if (!normalized) return null;
-    return {
-      r: parseInt(normalized.slice(1, 3), 16),
-      g: parseInt(normalized.slice(3, 5), 16),
-      b: parseInt(normalized.slice(5, 7), 16),
-    };
-  };
-
-  const luminance = (rgb) => {
-    if (!rgb) return 1;
-    const srgb = [rgb.r, rgb.g, rgb.b].map((value) => {
-      const channel = value / 255;
-      return channel <= 0.03928
-        ? channel / 12.92
-        : Math.pow((channel + 0.055) / 1.055, 2.4);
-    });
-    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
-  };
-
-  const primaryLum = luminance(hexToRgb(primary));
-  const secondaryLum = luminance(hexToRgb(secondary || primary));
-  return primaryLum > 0.68 && secondaryLum > 0.68 ? '#0f172a' : '#ffffff';
+  const lp = hexLuminance(primary);
+  const ls = hexLuminance(secondary || primary);
+  return lp > 0.68 && ls > 0.68 ? '#0f172a' : '#ffffff';
 };
 
 const calculateRequiredGames = (teamCount, fallback = 13) => {
@@ -836,11 +1188,46 @@ const calculateRequiredGames = (teamCount, fallback = 13) => {
   return count > 1 ? count - 1 : fallback;
 };
 
-const formatShareNRR = (nrr) => {
+/** IPL-style board / share: three decimals, no leading "+" on positives */
+const formatBoardNRR = (nrr) => {
   if (nrr === null || nrr === undefined || isNaN(nrr)) return '0.000';
-  const formatted = parseFloat(nrr).toFixed(3);
-  return formatted >= 0 ? `+${formatted}` : formatted;
+  return parseFloat(nrr).toFixed(3);
 };
+
+const formatShareNRR = formatBoardNRR;
+
+const broadcastStripPattern = (team) => {
+  const key = `${team?.teamName || ''}-${team?._id || ''}`;
+  let h = 0;
+  for (let i = 0; i < key.length; i += 1) {
+    h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  }
+  const r = h % 5;
+  if (r <= 1) return 'waves';
+  if (r <= 3) return 'stripes';
+  return null;
+};
+
+function BroadcastColumnHeaders() {
+  return (
+    <BroadcastTableHeadRow>
+      <BroadcastRankSpacer aria-hidden />
+      <BroadcastHeadCard>
+        <BroadcastHeadMain>
+          <BroadcastHeadLogoSpacer aria-hidden />
+          <BroadcastHeadGrid>
+            <span>Team</span>
+            <span>P</span>
+            <span>W</span>
+            <span>L</span>
+            <span>NRR</span>
+          </BroadcastHeadGrid>
+        </BroadcastHeadMain>
+        <PtsHeadLabel>PTS</PtsHeadLabel>
+      </BroadcastHeadCard>
+    </BroadcastTableHeadRow>
+  );
+}
 
 const PointsTable = () => {
   const [teams, setTeams] = useState([]);
@@ -940,6 +1327,7 @@ const PointsTable = () => {
     () => teams.filter((team) => team.teamName !== "NA"),
     [teams]
   );
+
   const totalMatches = useMemo(
     () => calculateRequiredGames(filteredTeams.length, 13),
     [filteredTeams.length]
@@ -1063,162 +1451,122 @@ const PointsTable = () => {
     return ids;
   }, [allCompleted, filteredTeams, NUM_QUALIFIERS]);
 
-  const renderTableBody = (list) => {
+  const renderBroadcastRows = (list) => {
     const qualifiers = mode === 'groups' ? GROUP_QUALIFIERS : NUM_QUALIFIERS;
-    const totalTeams = list.length;
-    const remaining = Math.max(0, totalTeams - qualifiers);
-    // Upper half of the remaining rows get yellow, lower half get red.
-    // If the remainder is odd, the extra row goes to yellow (nicer for tight tables).
-    const yellowCount = Math.ceil(remaining / 2);
 
     return (
-    <tbody>
-      {list.map((team, index) => {
-        const losses = team.matchesPlayed - team.wins;
-        const teamImage = team.teamImage
-          ? `${API_ENDPOINTS}${team.teamImage}`
-          : "https://via.placeholder.com/100";
-        const themePrimary = normalizeThemeHex(team.themePrimary);
-        const themeSecondary = normalizeThemeHex(team.themeSecondary);
+      <>
+        {list.map((team, index) => {
+          const mp = Number(team.matchesPlayed) || 0;
+          const w = Number(team.wins) || 0;
+          const l = Math.max(0, mp - w);
+          const teamImage = team.teamImage
+            ? `${API_ENDPOINTS}${team.teamImage}`
+            : 'https://via.placeholder.com/100';
+          const { primary: tp, secondary: ts } = resolveTeamTheme(team);
+          const bp = broadcastRowPresentation(tp, ts);
 
-        const points = Number(team.points) || 0;
-        const playedNow = Number(team.matchesPlayed) || 0;
+          const points = Number(team.points) || 0;
+          const playedNow = Number(team.matchesPlayed) || 0;
 
-        // Qualification logic based on mode and completion status
-        let showQ = false;
-        let showE = false;
-        let qTitle = "";
-        let eTitle = "";
+          let showQ = false;
+          let showE = false;
+          let qTitle = '';
+          let eTitle = '';
 
-        if (mode === 'groups') {
-          // Group mode logic
-          if (groupsCompleted) {
-            // All teams completed 6 matches - show Q for top 3, E for others
-            showQ = index < GROUP_QUALIFIERS;
-            showE = index >= GROUP_QUALIFIERS;
-            qTitle = "Qualified (Top 3)";
-            eTitle = "Eliminated";
-          } else {
-            // During group stage - use early elimination thresholds
-            const earlyEliminated = (
-              (playedNow >= 6 && points <= 4) ||
-              (playedNow >= 5 && points <= 3) ||
-              (playedNow >= 4 && points <= 2) ||
-              (playedNow >= 3 && points <= 1)
-            );
-            showQ = points > 10; // High points during group stage
-            showE = earlyEliminated;
-            qTitle = "Qualified (10+ points)";
-            eTitle = "Eliminated (early threshold)";
-          }
-        } else {
-          // Overall mode logic
-          if (allCompleted) {
-            // All participating teams completed their round-robin matches - show Q for top 6/8, E for rest.
+          if (mode === 'groups') {
+            if (groupsCompleted) {
+              showQ = index < GROUP_QUALIFIERS;
+              showE = index >= GROUP_QUALIFIERS;
+              qTitle = 'Qualified (Top 3)';
+              eTitle = 'Eliminated';
+            } else {
+              const earlyEliminated = (
+                (playedNow >= 6 && points <= 4) ||
+                (playedNow >= 5 && points <= 3) ||
+                (playedNow >= 4 && points <= 2) ||
+                (playedNow >= 3 && points <= 1)
+              );
+              showQ = points > 10;
+              showE = earlyEliminated;
+              qTitle = 'Qualified (10+ points)';
+              eTitle = 'Eliminated (early threshold)';
+            }
+          } else if (allCompleted) {
             showQ = index < NUM_QUALIFIERS;
             showE = index >= NUM_QUALIFIERS;
-            qTitle = worldCupMode ? "Qualified (Top 8)" : "Qualified (Top 6)";
-            eTitle = "Eliminated";
+            qTitle = worldCupMode ? 'Qualified (Top 8)' : 'Qualified (Top 6)';
+            eTitle = 'Eliminated';
           } else {
-            // During season: progressive Q/E based on participating team count.
             const earlyEliminated = (
               (playedNow >= totalMatches - 1 && points <= 10) ||
-              (playedNow >= totalMatches - 2 && points <= 8)  ||
-              (playedNow >= totalMatches - 3 && points <= 6)  ||
+              (playedNow >= totalMatches - 2 && points <= 8) ||
+              (playedNow >= totalMatches - 3 && points <= 6) ||
               (playedNow >= totalMatches - 4 && points <= 4)
             );
             showQ = playedNow >= totalMatches && points >= 18;
             showE = earlyEliminated;
             qTitle = `Qualified (${totalMatches} games, 18+ pts)`;
-            eTitle = "Eliminated (early threshold)";
+            eTitle = 'Eliminated (early threshold)';
           }
-        }
 
-        // Variant logic: different for groups vs overall
-        let variant;
-        if (mode === 'groups') {
-          // Group mode: Top 3 green, E teams red, others yellow
-          if (showE) {
-            variant = "eliminated"; // Red
-          } else if (showQ) {
-            variant = "top"; // Green for qualified teams
-          } else {
-            variant = "middle"; // Yellow for others
-          }
-        } else {
-          // Overall mode: original logic
-          if (showE) {
-            variant = "eliminated"; // Red card design
-          } else if (showQ) {
-            variant = "top"; // Green for qualified teams
-          } else if (index >= list.length - 3) {
-            variant = "bottom";
-          } else {
-            variant = "middle";
-          }
-        }
+          const stripPat = broadcastStripPattern(team);
 
-        // Format NRR with proper sign and 3 decimal places
-        const formatNRR = (nrr) => {
-          if (nrr === null || nrr === undefined || isNaN(nrr)) {
-            return '0.000';
-          }
-          const formatted = parseFloat(nrr).toFixed(3);
-          return formatted >= 0 ? `+${formatted}` : formatted;
-        };
-
-        return (
-          <TableRow
-            key={team._id || `${team.teamName}-${index}`}
-            index={index}
-            variant={variant}
-            $themePrimary={themePrimary}
-            $themeSecondary={themeSecondary}
-            $qualifierBoundary={index === qualifiers - 1}
-            onClick={() => handleTeamClick(team)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleTeamClick(team);
-              }
-            }}
-          >
-            <RankCell>{index + 1}</RankCell>
-            <HighlightCell>
-              <img src={teamImage} alt={team.teamName} />
-              <span className="team-name">{team.teamName}</span>
-              {showQ ? (
-                <QualifierBadge title={qTitle}>Q</QualifierBadge>
-              ) : showE ? (
-                <EliminatedBadge title={eTitle}>E</EliminatedBadge>
-              ) : null}
-            </HighlightCell>
-            <TableCell>{team.matchesPlayed}</TableCell>
-            <TableCell>{team.wins}</TableCell>
-            <TableCell>{losses}</TableCell>
-            <TableCell
-              className={`pts-cell ${
-                index < qualifiers
-                  ? 'pts-top'
-                  : (index - qualifiers) < yellowCount
-                  ? 'pts-mid'
-                  : 'pts-low'
-              }`}
+          return (
+            <BroadcastRowWrap
+              key={team._id || `${team.teamName}-${index}`}
+              $qualifierBoundary={index === qualifiers - 1}
             >
-              {String(Math.max(0, Number(team.points) || 0)).padStart(2, '0')}
-            </TableCell>
-            <TableCell className="nrr-cell">{formatNRR(team.nrr)}</TableCell>
-          </TableRow>
-        );
-      })}
-    </tbody>
+              <BroadcastRank>{index + 1}</BroadcastRank>
+              <BroadcastCard
+                role="button"
+                tabIndex={0}
+                onClick={() => handleTeamClick(team)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleTeamClick(team);
+                  }
+                }}
+              >
+                <BroadcastCardMain>
+                  <LogoSlab $dark={bp.slabDark}>
+                    <img src={teamImage} alt={team.teamName || 'Team'} />
+                  </LogoSlab>
+                  <StatsStrip
+                    $fill={bp.stripFill}
+                    $fg={bp.stripInk}
+                    $lightStrip={bp.lightStrip}
+                    $pattern={stripPat}
+                  >
+                    <TeamAbbrCell $abbrInk={bp.abbrInk}>
+                      {team.teamName}
+                      {showQ ? (
+                        <QualifierBadge title={qTitle}>Q</QualifierBadge>
+                      ) : showE ? (
+                        <EliminatedBadge title={eTitle}>E</EliminatedBadge>
+                      ) : null}
+                    </TeamAbbrCell>
+                    <StatCell>{mp}</StatCell>
+                    <StatCell>{w}</StatCell>
+                    <StatCell>{l}</StatCell>
+                    <StatCell>{formatBoardNRR(team.nrr)}</StatCell>
+                  </StatsStrip>
+                </BroadcastCardMain>
+                <PtsSlab>
+                  {String(Math.max(0, Number(team.points) || 0)).padStart(2, '0')}
+                </PtsSlab>
+              </BroadcastCard>
+            </BroadcastRowWrap>
+          );
+        })}
+      </>
     );
   };
 
-  const selectedThemePrimary = normalizeThemeHex(selectedTeam?.themePrimary);
-  const selectedThemeSecondary = normalizeThemeHex(selectedTeam?.themeSecondary) || selectedThemePrimary;
+  const selectedResolved = selectedTeam ? resolveTeamTheme(selectedTeam) : null;
+  const selectedThemePrimary = selectedResolved?.primary || null;
+  const selectedThemeSecondary = selectedResolved?.secondary || selectedThemePrimary;
   const selectedTextColor = getReadableTextColor(selectedThemePrimary, selectedThemeSecondary);
   const selectedMutedColor = selectedTextColor === '#ffffff'
     ? 'rgba(255, 255, 255, 0.76)'
@@ -1226,9 +1574,11 @@ const PointsTable = () => {
 
   const handleSharePointsTable = async (title, list, qualifiers) => {
     const rows = list.map((team, index) => {
-      const losses = (Number(team.matchesPlayed) || 0) - (Number(team.wins) || 0);
+      const mp = Number(team.matchesPlayed) || 0;
+      const w = Number(team.wins) || 0;
+      const l = Math.max(0, mp - w);
       const points = String(Math.max(0, Number(team.points) || 0)).padStart(2, '0');
-      return `${index + 1}. ${team.teamName} | P:${team.matchesPlayed || 0} W:${team.wins || 0} L:${losses} PTS:${points} NRR:${formatShareNRR(team.nrr)}`;
+      return `${index + 1}. ${team.teamName} | P:${mp} W:${w} L:${l} PTS:${points} NRR:${formatShareNRR(team.nrr)}`;
     });
 
     const message = [
@@ -1245,7 +1595,7 @@ const PointsTable = () => {
 
       if (pointsTableShareRef.current && navigator.share) {
         const canvas = await html2canvas(pointsTableShareRef.current, {
-          backgroundColor: '#07111f',
+          backgroundColor: '#e5e8ec',
           scale: Math.min(2, window.devicePixelRatio || 1),
           useCORS: true,
           allowTaint: false,
@@ -1307,10 +1657,15 @@ const PointsTable = () => {
           <TableWrapper>
             {activeTab === 'groupA' && (
               <TableCaptureArea ref={pointsTableShareRef}>
-                <TableTitleBar>
-                  <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
-                    Group A
-                  </h2>
+                <BroadcastTitleStack>
+                  <BroadcastSeasonLine>
+                    {worldCupMode ? 'WORLD CUP' : 'CPL'} · GROUP A
+                  </BroadcastSeasonLine>
+                </BroadcastTitleStack>
+                <BroadcastHeroRow>
+                  <BroadcastSkewTitle>
+                    <span>POINTS TABLE</span>
+                  </BroadcastSkewTitle>
                   <WhatsAppShareButton
                     type="button"
                     data-html2canvas-ignore="true"
@@ -1319,31 +1674,28 @@ const PointsTable = () => {
                   >
                     <FaWhatsapp /> <span>{isSharing ? 'Sharing' : 'Share'}</span>
                   </WhatsAppShareButton>
-                </TableTitleBar>
-                <Table>
-                  <TableHead>
-                    <tr>
-                      <TableCell>POS</TableCell>
-                      <TableCell>TEAM</TableCell>
-                      <TableCell>P</TableCell>
-                      <TableCell>W</TableCell>
-                      <TableCell>L</TableCell>
-                      <TableCell className="pts-cell">PTS</TableCell>
-                      <TableCell className="nrr-cell">NRR</TableCell>
-                    </tr>
-                  </TableHead>
-                  {renderTableBody(groups.A)}
-                </Table>
+                </BroadcastHeroRow>
+                <BroadcastColumnHeaders />
+                {renderBroadcastRows(groups.A)}
+                <BroadcastBoardFooter>
+                  <span>{worldCupMode ? 'WORLD CUP' : 'CPL'} TABLE</span>
+                  <span>#POINTS</span>
+                </BroadcastBoardFooter>
                 <TableFooterNote>Top {GROUP_QUALIFIERS} Teams Qualify For Playoffs</TableFooterNote>
               </TableCaptureArea>
             )}
             
             {activeTab === 'groupB' && (
               <TableCaptureArea ref={pointsTableShareRef}>
-                <TableTitleBar>
-                  <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
-                    Group B
-                  </h2>
+                <BroadcastTitleStack>
+                  <BroadcastSeasonLine>
+                    {worldCupMode ? 'WORLD CUP' : 'CPL'} · GROUP B
+                  </BroadcastSeasonLine>
+                </BroadcastTitleStack>
+                <BroadcastHeroRow>
+                  <BroadcastSkewTitle>
+                    <span>POINTS TABLE</span>
+                  </BroadcastSkewTitle>
                   <WhatsAppShareButton
                     type="button"
                     data-html2canvas-ignore="true"
@@ -1352,21 +1704,13 @@ const PointsTable = () => {
                   >
                     <FaWhatsapp /> <span>{isSharing ? 'Sharing' : 'Share'}</span>
                   </WhatsAppShareButton>
-                </TableTitleBar>
-                <Table>
-                  <TableHead>
-                    <tr>
-                      <TableCell>POS</TableCell>
-                      <TableCell>TEAM</TableCell>
-                      <TableCell>P</TableCell>
-                      <TableCell>W</TableCell>
-                      <TableCell>L</TableCell>
-                      <TableCell className="pts-cell">PTS</TableCell>
-                      <TableCell className="nrr-cell">NRR</TableCell>
-                    </tr>
-                  </TableHead>
-                  {renderTableBody(groups.B)}
-                </Table>
+                </BroadcastHeroRow>
+                <BroadcastColumnHeaders />
+                {renderBroadcastRows(groups.B)}
+                <BroadcastBoardFooter>
+                  <span>{worldCupMode ? 'WORLD CUP' : 'CPL'} TABLE</span>
+                  <span>#POINTS</span>
+                </BroadcastBoardFooter>
                 <TableFooterNote>Top {GROUP_QUALIFIERS} Teams Qualify For Playoffs</TableFooterNote>
               </TableCaptureArea>
             )}
@@ -1404,10 +1748,15 @@ const PointsTable = () => {
           <TableWrapper>
             {activeTab === 'overall' && (
               <TableCaptureArea ref={pointsTableShareRef}>
-                <TableTitleBar>
-                  <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
-                    Points Table
-                  </h2>
+                <BroadcastTitleStack>
+                  <BroadcastSeasonLine>
+                    {worldCupMode ? 'WORLD CUP' : 'CPL'} · OVERALL STANDINGS
+                  </BroadcastSeasonLine>
+                </BroadcastTitleStack>
+                <BroadcastHeroRow>
+                  <BroadcastSkewTitle>
+                    <span>POINTS TABLE</span>
+                  </BroadcastSkewTitle>
                   <WhatsAppShareButton
                     type="button"
                     data-html2canvas-ignore="true"
@@ -1416,21 +1765,13 @@ const PointsTable = () => {
                   >
                     <FaWhatsapp /> <span>{isSharing ? 'Sharing' : 'Share'}</span>
                   </WhatsAppShareButton>
-                </TableTitleBar>
-                <Table>
-                  <TableHead>
-                    <tr>
-                      <TableCell>POS</TableCell>
-                      <TableCell>TEAM</TableCell>
-                      <TableCell>P</TableCell>
-                      <TableCell>W</TableCell>
-                      <TableCell>L</TableCell>
-                      <TableCell className="pts-cell">PTS</TableCell>
-                      <TableCell className="nrr-cell">NRR</TableCell>
-                    </tr>
-                  </TableHead>
-                  {renderTableBody(sortedTeams)}
-                </Table>
+                </BroadcastHeroRow>
+                <BroadcastColumnHeaders />
+                {renderBroadcastRows(sortedTeams)}
+                <BroadcastBoardFooter>
+                  <span>{worldCupMode ? 'WORLD CUP' : 'CPL'} TABLE</span>
+                  <span>#POINTS</span>
+                </BroadcastBoardFooter>
                 <TableFooterNote>Top {NUM_QUALIFIERS} Teams Qualify For Playoffs</TableFooterNote>
               </TableCaptureArea>
             )}

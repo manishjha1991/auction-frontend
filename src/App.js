@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import PlayerList from './components/PlayerList';
 import Profile from './components/Profile';
@@ -60,6 +60,11 @@ import AuctionTimeline from './components/AuctionTimeline';
 import './App.css';
 import { SocketProvider } from './contexts/SocketContext';
 import { ToastProvider } from './components/ToastNotification';
+import {
+  applyUserThemeToDocument,
+  clearUserThemeFromDocument,
+  normalizeThemeHex,
+} from './utils/userThemeSync';
 
 const CONSISTENCY_BADGE_KEY = 'adminConsistencyBadgeCount';
 const CONSISTENCY_BADGE_UPDATED_EVENT = 'consistency-check-updated';
@@ -93,6 +98,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [appSettings, setAppSettings] = useState({ enableTradeCenter: true, enableUnsoldPlayers: true, worldCupMode: false });
   const [consistencyBadgeCount, setConsistencyBadgeCount] = useState(0);
+  const themeHydrateAttemptedRef = useRef(null);
 
   useEffect(() => {
     const cachedAuth = localStorage.getItem('isLoggedIn') === 'true';
@@ -166,6 +172,77 @@ function App() {
     };
   }, [user?.isAdmin]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      clearUserThemeFromDocument();
+      return;
+    }
+    applyUserThemeToDocument(user.themePrimary, user.themeSecondary);
+  }, [isAuthenticated, user?.themePrimary, user?.themeSecondary]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      themeHydrateAttemptedRef.current = null;
+      return;
+    }
+    const uid = String(user.id || user._id || '');
+    if (!uid) return;
+    const hasHex =
+      normalizeThemeHex(user.themePrimary) || normalizeThemeHex(user.themeSecondary);
+    if (hasHex) return;
+
+    if (themeHydrateAttemptedRef.current === uid) return;
+    themeHydrateAttemptedRef.current = uid;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_ENDPOINTS}/api/users/theme/${uid}`);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const tp = data.themePrimary ?? null;
+        const ts = data.themeSecondary ?? null;
+        setUser((prev) => {
+          if (!prev || String(prev.id || prev._id) !== String(uid)) return prev;
+          return { ...prev, themePrimary: tp, themeSecondary: ts };
+        });
+        try {
+          const raw = localStorage.getItem('user');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            parsed.themePrimary = tp;
+            parsed.themeSecondary = ts;
+            localStorage.setItem('user', JSON.stringify(parsed));
+          }
+        } catch (_) {}
+      } catch (_) {}
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, user?.id, user?._id, user?.themePrimary, user?.themeSecondary]);
+
+  useEffect(() => {
+    const onThemeUpdated = (e) => {
+      const detail = e.detail || {};
+      setUser((prev) => {
+        if (!prev) return prev;
+        const next = {
+          ...prev,
+          themePrimary: detail.themePrimary ?? null,
+          themeSecondary: detail.themeSecondary ?? null,
+        };
+        try {
+          localStorage.setItem('user', JSON.stringify(next));
+        } catch (_) {}
+        return next;
+      });
+    };
+    window.addEventListener('user-squad-theme-updated', onThemeUpdated);
+    return () => window.removeEventListener('user-squad-theme-updated', onThemeUpdated);
+  }, []);
+
   const handleLogin = (userData) => {
     setIsAuthenticated(true);
     setUser(userData);
@@ -174,6 +251,7 @@ function App() {
   };
 
   const handleLogout = () => {
+    clearUserThemeFromDocument();
     setIsAuthenticated(false);
     setUser(null);
     localStorage.removeItem('isLoggedIn');
@@ -623,7 +701,9 @@ function App() {
           </>
         )}
         
-        <main className={getContentClass()}>
+        <main
+          className={`${getContentClass()}${isAuthenticated ? ' content-authenticated' : ''}`}
+        >
           {isAuthenticated && <GlobalNotification />}
           <Routes>
             <Route path="/login" element={<Login onLogin={handleLogin} />} />

@@ -313,6 +313,18 @@ export default function TeamSquadsShowcase() {
         setDraftThemePrimary(data.themePrimary || fb.top);
         setDraftThemeSecondary(data.themeSecondary || fb.bottom);
       }
+      if (String(themeEditTeamId) === String(viewerId)) {
+        try {
+          window.dispatchEvent(
+            new CustomEvent('user-squad-theme-updated', {
+              detail: {
+                themePrimary: data.themePrimary ?? null,
+                themeSecondary: data.themeSecondary ?? null,
+              },
+            })
+          );
+        } catch (_) {}
+      }
     } catch (e) {
       alert(e.message || 'Could not save colours');
     } finally {

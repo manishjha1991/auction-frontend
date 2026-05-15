@@ -6,6 +6,8 @@
     'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-scoreboard: 'Bebas Neue', 'Arial Narrow', 'Arial Black', Impact, sans-serif;
+  /* IPL-style broadcast graphics: single condensed italic sans everywhere on points board */
+  --font-broadcast: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
 }
 
 body {
