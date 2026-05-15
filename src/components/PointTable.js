@@ -120,7 +120,15 @@ const Table = styled.table`
   th:nth-child(7), td:nth-child(7) { width: 80px; text-align: center; padding-right: 0.4rem; } /* NRR */
 
   @media (max-width: 600px) {
+    display: block;
     font-size: 0.8rem;
+    border-spacing: 0;
+
+    thead,
+    tbody {
+      display: block;
+      width: 100%;
+    }
 
     th:nth-child(1), td:nth-child(1) { width: 34px; }
     th:nth-child(2), td:nth-child(2) { min-width: 0; }
@@ -153,9 +161,30 @@ const TableHead = styled.thead`
   td.pts-cell { color: #ffffff; }
 
   @media (max-width: 600px) {
+    tr {
+      display: grid;
+      grid-template-columns: 34px minmax(118px, 1fr) 26px 26px 26px 38px 62px;
+      align-items: center;
+      background: linear-gradient(90deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.88));
+      border-bottom: 1px solid rgba(56, 189, 248, 0.45);
+    }
+
     td {
-      padding: 0.45rem 0.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 0;
+      padding: 0.45rem 0.18rem;
       font-size: 0.74rem;
+      border-bottom: none;
+    }
+
+    td:first-child {
+      justify-content: center;
+    }
+
+    td:nth-child(2) {
+      justify-content: flex-start;
     }
   }
 `;
@@ -229,7 +258,38 @@ const TableRow = styled.tr`
   td.pts-cell.pts-low { color: #ffffff; }
 
   @media (max-width: 600px) {
-    td { padding: 0.6rem 0.2rem; }
+    display: grid;
+    grid-template-columns: 34px minmax(118px, 1fr) 26px 26px 26px 38px 62px;
+    align-items: center;
+    margin-bottom: 4px;
+    border-bottom: ${({ $qualifierBoundary }) =>
+      $qualifierBoundary ? '2px dashed rgba(255, 255, 255, 0.78)' : '1px solid rgba(255, 255, 255, 0.08)'};
+    border-radius: 0;
+    overflow: hidden;
+
+    td {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 0;
+      height: 48px;
+      padding: 0.5rem 0.18rem;
+      border: none;
+      background: transparent !important;
+    }
+
+    td:first-child {
+      justify-content: center;
+    }
+
+    td:nth-child(2) {
+      justify-content: flex-start;
+    }
+
+    &:hover td {
+      background: transparent !important;
+    }
+
     td.pts-cell { font-size: 1em; }
   }
 `;
