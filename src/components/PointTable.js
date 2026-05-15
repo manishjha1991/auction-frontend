@@ -245,13 +245,12 @@ const TableHead = styled.thead`
 const TableRow = styled.tr`
   background: ${({ $themePrimary, $themeSecondary }) =>
     $themePrimary && $themeSecondary
-      ? `linear-gradient(92deg, ${$themePrimary} 0%, ${$themeSecondary} 34%, rgba(15, 23, 42, 0.92) 68%, rgba(2, 6, 23, 0.98) 100%)`
-      : 'linear-gradient(92deg, #1e3a8a 0%, #1d4ed8 34%, rgba(15, 23, 42, 0.92) 68%, rgba(2, 6, 23, 0.98) 100%)'};
+      ? `linear-gradient(90deg, ${$themePrimary} 0%, ${$themeSecondary} 100%)`
+      : '#1d4ed8'};
   box-shadow: ${({ $themePrimary }) =>
     $themePrimary
-      ? `inset 8px 0 0 ${$themePrimary}, inset 0 0 0 1px rgba(255,255,255,0.1), 0 8px 18px -16px ${$themePrimary}`
-      : 'inset 8px 0 0 #38bdf8, inset 0 0 0 1px rgba(255,255,255,0.1)'};
-  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+      ? `inset 0 0 0 1px rgba(255,255,255,0.12)`
+      : 'inset 0 0 0 1px rgba(255,255,255,0.12)'};
   cursor: pointer;
 
   td {
@@ -278,17 +277,10 @@ const TableRow = styled.tr`
   }
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: ${({ $themePrimary }) =>
-      $themePrimary
-        ? `inset 7px 0 0 ${$themePrimary}, inset 0 0 0 1px ${$themePrimary}55, 0 12px 24px -16px ${$themePrimary}`
-        : '0 8px 20px -18px rgba(15, 23, 42, 0.45)'};
+    filter: brightness(1.04);
   }
   &:hover td {
-    background: ${({ $themePrimary, $themeSecondary }) =>
-      $themePrimary && $themeSecondary
-        ? `linear-gradient(92deg, ${$themePrimary} 0%, ${$themeSecondary} 38%, rgba(30, 41, 59, 0.78) 100%)`
-        : 'rgba(255, 255, 255, 0.08)'};
+    background: transparent;
   }
   &:focus { outline: none; }
   &:focus-visible td { outline: 2px solid rgba(56, 189, 248, 0.7); outline-offset: -2px; }
