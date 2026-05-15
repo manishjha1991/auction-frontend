@@ -32,6 +32,9 @@ const TabContainer = styled.div`
     width: calc(100% - 0.5rem);
     margin: 0.5rem auto 1.25rem;
     border-radius: 12px;
+    /* Allow full NRR (+X.XXX) to show — inner rows must not clip past rounded corners only */
+    overflow-x: visible;
+    overflow-y: visible;
   }
 `;
 
@@ -209,7 +212,8 @@ const Table = styled.table`
     th:nth-child(4), td:nth-child(4),
     th:nth-child(5), td:nth-child(5) { width: 26px; }
     th:nth-child(6), td:nth-child(6) { width: 36px; }  /* PTS */
-    th:nth-child(7), td:nth-child(7) { width: 64px; padding-right: 0.1rem; }  /* NRR */
+    /* NRR needs ~72px+ for "+X.XXX" tabular figures */
+    th:nth-child(7), td:nth-child(7) { width: auto; min-width: 72px; padding-right: 0.18rem; }
   }
 `;
 
@@ -236,10 +240,12 @@ const TableHead = styled.thead`
   @media (max-width: 600px) {
     tr {
       display: grid;
-      grid-template-columns: 30px minmax(104px, 1fr) 24px 24px 24px 34px 56px;
+      grid-template-columns:
+        26px minmax(78px, 1fr) 21px 21px 21px 28px minmax(72px, max-content);
       align-items: center;
       background: linear-gradient(90deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.88));
       border-bottom: 1px solid rgba(56, 189, 248, 0.45);
+      overflow: visible;
     }
 
     td {
@@ -258,6 +264,15 @@ const TableHead = styled.thead`
 
     td:nth-child(2) {
       justify-content: flex-start;
+    }
+
+    td:nth-child(7),
+    td.nrr-cell {
+      min-width: 72px;
+      flex-shrink: 0;
+      justify-content: flex-end;
+      padding-right: 0.2rem;
+      letter-spacing: 0.02em;
     }
   }
 `;
@@ -324,13 +339,14 @@ const TableRow = styled.tr`
 
   @media (max-width: 600px) {
     display: grid;
-    grid-template-columns: 30px minmax(104px, 1fr) 24px 24px 24px 34px 56px;
+    grid-template-columns:
+      26px minmax(78px, 1fr) 21px 21px 21px 28px minmax(72px, max-content);
     align-items: center;
     margin-bottom: 3px;
     border-bottom: ${({ $qualifierBoundary }) =>
       $qualifierBoundary ? '2px dashed rgba(255, 255, 255, 0.78)' : '1px solid rgba(255, 255, 255, 0.08)'};
     border-radius: 0;
-    overflow: hidden;
+    overflow: visible;
 
     td {
       display: flex;
@@ -349,6 +365,15 @@ const TableRow = styled.tr`
 
     td:nth-child(2) {
       justify-content: flex-start;
+    }
+
+    td:nth-child(7),
+    td.nrr-cell {
+      min-width: 72px;
+      flex-shrink: 0;
+      justify-content: flex-end;
+      padding-right: 0.2rem;
+      overflow: visible;
     }
 
     &:hover td {
