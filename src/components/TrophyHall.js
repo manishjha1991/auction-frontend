@@ -16,6 +16,36 @@ if (!document.getElementById('trophy-hall-animations')) {
         opacity: 0.8;
       }
     }
+    @keyframes trophyFloat {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-10px) rotate(3deg); }
+    }
+    @keyframes championShine {
+      0% { transform: translateX(-140%) rotate(18deg); opacity: 0; }
+      20% { opacity: 0.55; }
+      55% { opacity: 0.2; }
+      100% { transform: translateX(160%) rotate(18deg); opacity: 0; }
+    }
+    .world-cup-carousel {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      padding: 8px 4px 18px;
+      scroll-snap-type: x mandatory;
+    }
+    .world-cup-carousel::-webkit-scrollbar {
+      display: none;
+    }
+    .world-cup-track {
+      display: flex;
+      gap: 20px;
+      width: max-content;
+    }
+    @media (max-width: 768px) {
+      .world-cup-track {
+        gap: 14px;
+      }
+    }
   `;
   document.head.appendChild(styleSheet);
 }
@@ -63,8 +93,8 @@ const TrophyHall = () => {
       
       if (userId) {
         try {
-          // Fetch all completed tournaments to get World Cup winners
-          const tournamentsResponse = await fetch(`${API_ENDPOINTS}/api/tournaments?status=completed&limit=100`, {
+          // Fetch all tournaments and then include only World Cups that have a recorded winner.
+          const tournamentsResponse = await fetch(`${API_ENDPOINTS}/api/tournaments?limit=100`, {
             headers: {
               'user-id': userId
             }
@@ -72,27 +102,14 @@ const TrophyHall = () => {
           if (tournamentsResponse.ok) {
             const tournamentsData = await tournamentsResponse.json();
             const tournaments = tournamentsData.tournaments || tournamentsData || [];
-            
-            console.log('Fetched tournaments:', tournaments.length);
-            console.log('World Cup tournaments:', tournaments.filter(t => t.name && t.name.startsWith('World Cup')).map(t => ({
-              name: t.name,
-              status: t.status,
-              hasWinner: !!t.winner,
-              winner: t.winner
-            })));
-            
+
             // Filter completed World Cup tournaments with winners
             fetchedWorldCupWinners = tournaments
               .filter(t => {
                 const isWorldCup = t.name && t.name.startsWith('World Cup');
-                const isCompleted = t.status === 'completed';
                 const hasWinner = t.winner && t.winner.teamName;
-                
-                if (isWorldCup) {
-                  console.log(`Tournament ${t.name}: status=${t.status}, hasWinner=${hasWinner}, winner=`, t.winner);
-                }
-                
-                return isWorldCup && isCompleted && hasWinner;
+
+                return isWorldCup && hasWinner;
               })
               .map(t => {
                 // Helper function to normalize team names for matching
@@ -107,7 +124,7 @@ const TrophyHall = () => {
                   normalizeTeamName(team.teamName) === normalizeTeamName(winnerTeamName)
                 );
                 
-                // Use teamImage from matching team, or from tournament winner, or null
+                // Use team details from matching team, falling back to tournament winner data.
                 const teamImage = matchingTeam?.teamImage || t.winner.teamImage || null;
                 
                 return {
@@ -115,6 +132,9 @@ const TrophyHall = () => {
                   winner: {
                     teamName: winnerTeamName,
                     teamImage: teamImage,
+                    abbreviation: matchingTeam?.abbreviation || null,
+                    themePrimary: matchingTeam?.themePrimary || null,
+                    themeSecondary: matchingTeam?.themeSecondary || null,
                     wonAt: t.winner.wonAt || t.endDate || new Date()
                   },
                   endDate: t.endDate,
@@ -122,8 +142,6 @@ const TrophyHall = () => {
                 };
               })
               .sort((a, b) => new Date(b.wonAt || b.endDate) - new Date(a.wonAt || a.endDate)); // Most recent first
-            
-            console.log('World Cup winners found:', fetchedWorldCupWinners.length);
           }
         } catch (tournamentError) {
           console.warn('Error fetching World Cup tournaments:', tournamentError);
@@ -137,7 +155,7 @@ const TrophyHall = () => {
       let allWorldCupTournaments = [];
       if (userId) {
         try {
-          const tournamentsResponse = await fetch(`${API_ENDPOINTS}/api/tournaments?status=completed&limit=100`, {
+          const tournamentsResponse = await fetch(`${API_ENDPOINTS}/api/tournaments?limit=100`, {
             headers: {
               'user-id': userId
             }
@@ -146,7 +164,7 @@ const TrophyHall = () => {
             const tournamentsData = await tournamentsResponse.json();
             const tournaments = tournamentsData.tournaments || tournamentsData || [];
             allWorldCupTournaments = tournaments.filter(t => 
-              t.name && t.name.startsWith('World Cup') && t.status === 'completed' && t.winner && t.winner.teamName
+              t.name && t.name.startsWith('World Cup') && t.winner && t.winner.teamName
             );
             // Store full tournament data for match display
             setWorldCupTournaments(allWorldCupTournaments);
@@ -229,7 +247,7 @@ const TrophyHall = () => {
       });
       
       // Show all teams if no match results exist, otherwise filter teams with trophies or runner-ups
-      if (matchResultsData.length === 0 && worldCupWinners.length === 0) {
+      if (matchResultsData.length === 0 && fetchedWorldCupWinners.length === 0) {
         // No match results yet, show all teams with 0 trophies and 0 runner-ups
         setTeams(teamsWithData.sort((a, b) => a.teamName.localeCompare(b.teamName)));
       } else {
@@ -263,9 +281,12 @@ const TrophyHall = () => {
   };
 
   const getTeamMatches = (teamName) => {
+    const normalizeTeamName = (name) => name ? name.trim().toLowerCase() : '';
+    const selectedTeamName = normalizeTeamName(teamName);
+
     // Get CPL matches
     const cplMatches = matchResultsData.filter(match => 
-      match.team1 === teamName || match.team2 === teamName
+      normalizeTeamName(match.team1) === selectedTeamName || normalizeTeamName(match.team2) === selectedTeamName
     );
     
     // Get World Cup tournament final matches where this team participated
@@ -277,7 +298,11 @@ const TrophyHall = () => {
           f.isFinal || f.matchType === 'final' || tournament.tournamentFixtures.indexOf(f) === tournament.tournamentFixtures.length - 1
         ) || tournament.tournamentFixtures[tournament.tournamentFixtures.length - 1];
         
-        if (finalFixture && (finalFixture.team1 === teamName || finalFixture.team2 === teamName)) {
+        if (
+          finalFixture &&
+          (normalizeTeamName(finalFixture.team1) === selectedTeamName ||
+            normalizeTeamName(finalFixture.team2) === selectedTeamName)
+        ) {
           // Create a match object similar to CPL matches for consistency
           worldCupMatches.push({
             team1: finalFixture.team1,
@@ -302,7 +327,6 @@ const TrophyHall = () => {
     
     // Combine CPL and World Cup matches
     const allMatches = [...cplMatches, ...worldCupMatches];
-    console.log('Team matches for', teamName, ':', allMatches);
     return allMatches;
   };
 
@@ -405,55 +429,84 @@ const TrophyHall = () => {
 
           {worldCupWinners.length > 0 ? (
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
-              gap: '15px'
-            }}>
-              {worldCupWinners.map((worldCup, index) => (
+            <div className="world-cup-carousel">
+              <div className="world-cup-track">
+              {worldCupWinners.map((worldCup, index) => {
+                const primary = worldCup.winner.themePrimary || '#facc15';
+                const secondary = worldCup.winner.themeSecondary || '#f97316';
+                const teamInitial = (worldCup.winner.abbreviation || worldCup.winner.teamName || '?')
+                  .trim()
+                  .charAt(0)
+                  .toUpperCase();
+
+                return (
                 <div
-                  key={index}
+                  key={`${worldCup.tournamentName}-${index}`}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.95)',
-                    borderRadius: '12px',
+                    width: 'min(82vw, 360px)',
+                    minHeight: '315px',
+                    background: `linear-gradient(145deg, ${primary} 0%, ${secondary} 52%, #111827 100%)`,
+                    borderRadius: '28px',
                     padding: '20px',
-                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)',
-                    border: '2px solid rgba(255, 215, 0, 0.3)',
+                    boxShadow: `0 18px 40px ${primary}55, 0 8px 18px rgba(0, 0, 0, 0.22)`,
+                    border: '1px solid rgba(255, 255, 255, 0.45)',
                     transition: 'all 0.3s ease',
                     cursor: 'pointer',
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    flex: '0 0 auto',
+                    scrollSnapAlign: 'center',
+                    color: 'white'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-5px)';
-                    e.currentTarget.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.2)';
+                    e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
+                    e.currentTarget.style.boxShadow = `0 24px 55px ${primary}66, 0 12px 24px rgba(0, 0, 0, 0.28)`;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)';
+                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                    e.currentTarget.style.boxShadow = `0 18px 40px ${primary}55, 0 8px 18px rgba(0, 0, 0, 0.22)`;
                   }}
                 >
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'radial-gradient(circle at 25% 15%, rgba(255,255,255,0.52), transparent 34%), radial-gradient(circle at 82% 80%, rgba(255,255,255,0.2), transparent 36%)',
+                    pointerEvents: 'none'
+                  }} />
+                  <div style={{
+                    position: 'absolute',
+                    top: '-30%',
+                    left: 0,
+                    width: '45%',
+                    height: '160%',
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)',
+                    animation: 'championShine 5s ease-in-out infinite',
+                    pointerEvents: 'none'
+                  }} />
                   {/* Trophy Badge */}
                   <div style={{
                     position: 'absolute',
-                    top: '10px',
-                    right: '10px',
-                    fontSize: '2rem',
-                    opacity: 0.2
+                    top: '14px',
+                    right: '16px',
+                    fontSize: '2.3rem',
+                    opacity: 0.34,
+                    animation: 'trophyFloat 3.6s ease-in-out infinite',
+                    filter: 'drop-shadow(0 5px 10px rgba(0,0,0,0.25))'
                   }}>
                     🏆
                   </div>
 
                   {/* Tournament Name */}
                   <div style={{
-                    fontSize: '1.1rem',
-                    fontWeight: '800',
-                    color: '#1a1a1a',
-                    marginBottom: '15px',
+                    fontSize: 'clamp(1rem, 3vw, 1.25rem)',
+                    fontWeight: '900',
+                    color: 'white',
+                    marginBottom: '18px',
                     textAlign: 'center',
-                    background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
+                    letterSpacing: '0.04em',
+                    textShadow: '0 3px 12px rgba(0, 0, 0, 0.35)',
+                    position: 'relative',
+                    zIndex: 1
                   }}>
                     {worldCup.tournamentName}
                   </div>
@@ -463,22 +516,25 @@ const TrophyHall = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '12px'
+                    gap: '12px',
+                    position: 'relative',
+                    zIndex: 1
                   }}>
                     {/* Team Logo/Image in Circle */}
                     <div style={{
                       position: 'relative',
-                      width: '100px',
-                      height: '100px',
+                      width: '112px',
+                      height: '112px',
                       borderRadius: '50%',
-                      border: '5px solid #ffd700',
-                      boxShadow: '0 6px 20px rgba(255, 215, 0, 0.6), inset 0 0 20px rgba(255, 215, 0, 0.2)',
+                      border: '5px solid rgba(255, 255, 255, 0.86)',
+                      boxShadow: '0 14px 30px rgba(0, 0, 0, 0.28), inset 0 0 24px rgba(255, 255, 255, 0.3)',
                       overflow: 'hidden',
-                      background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
+                      background: `linear-gradient(135deg, ${secondary}, ${primary})`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      flexShrink: 0
+                      flexShrink: 0,
+                      animation: 'pulse 3s ease-in-out infinite'
                     }}>
                       {worldCup.winner.teamImage ? (
                         <img
@@ -515,15 +571,15 @@ const TrophyHall = () => {
                           display: worldCup.winner.teamImage ? 'none' : 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#1a1a1a',
+                          color: 'white',
                           fontWeight: 'bold',
-                          fontSize: '2rem',
+                          fontSize: '2.5rem',
                           textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-                          background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
+                          background: `linear-gradient(135deg, ${primary}, ${secondary})`,
                           borderRadius: '50%'
                         }}
                       >
-                        {worldCup.winner.teamName.charAt(0).toUpperCase()}
+                        {teamInitial}
                       </div>
                     </div>
 
@@ -532,13 +588,12 @@ const TrophyHall = () => {
                     }}>
                       <div 
                         style={{
-                          fontSize: '1.1rem',
-                          fontWeight: '700',
-                          color: '#1a1a1a',
+                          fontSize: 'clamp(1.15rem, 4vw, 1.45rem)',
+                          fontWeight: '900',
+                          color: 'white',
                           marginBottom: '5px',
                           cursor: 'pointer',
-                          textDecoration: 'underline',
-                          textDecorationColor: 'rgba(0, 0, 0, 0.3)'
+                          textShadow: '0 3px 14px rgba(0, 0, 0, 0.45)'
                         }}
                         onClick={() => {
                           // Find the team from teams list
@@ -552,12 +607,12 @@ const TrophyHall = () => {
                         }}
                         title="Click to view match details"
                       >
-                        {worldCup.winner.teamName}
+                        {worldCup.winner.teamName?.trim()}
                       </div>
                       <div style={{
                         fontSize: '0.8rem',
-                        color: '#666',
-                        fontWeight: '500'
+                        color: 'rgba(255, 255, 255, 0.86)',
+                        fontWeight: '700'
                       }}>
                         {worldCup.wonAt ? new Date(worldCup.wonAt).toLocaleDateString('en-US', {
                           month: 'long',
@@ -571,21 +626,25 @@ const TrophyHall = () => {
                   {/* Champion Badge */}
                   <div style={{
                     position: 'absolute',
-                    bottom: '10px',
+                    bottom: '14px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
-                    color: '#1a1a1a',
-                    padding: '5px 15px',
-                    borderRadius: '20px',
-                    fontSize: '0.75rem',
-                    fontWeight: '700',
-                    boxShadow: '0 2px 8px rgba(255, 215, 0, 0.4)'
+                    background: 'rgba(255, 255, 255, 0.92)',
+                    color: '#111827',
+                    padding: '7px 18px',
+                    borderRadius: '999px',
+                    fontSize: '0.78rem',
+                    fontWeight: '900',
+                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.22)',
+                    letterSpacing: '0.08em',
+                    zIndex: 1
                   }}>
                     🏆 CHAMPION
                   </div>
                 </div>
-              ))}
+                );
+              })}
+              </div>
             </div>
           ) : (
             <div style={{

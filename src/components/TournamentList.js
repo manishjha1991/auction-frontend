@@ -2204,26 +2204,6 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                   isFinal = true;
                                 }
                                 
-                                if (isFinal) {
-                                  console.log('🏆 FINAL DETECTED:', {
-                                    index,
-                                    actualIndex: finalActualIndex,
-                                    calculatedIndex: actualIndex,
-                                    foundIndex,
-                                    knockoutLength: knockoutFixtures.length,
-                                    totalFixtures: fixtures.length,
-                                    roundRobinCount,
-                                    team1: fixture.team1,
-                                    team2: fixture.team2,
-                                    isLastKnockout,
-                                    isLastOverall,
-                                    isAtFinalPosition,
-                                    isPendingFinal,
-                                    hasWinner: !!fixture.winner,
-                                    isFinal: isFinal
-                                  });
-                                }
-                                
                                 // Match label - ALWAYS show FINAL for the last knockout fixture
                                 // For 31 fixtures: index 30 = match 31 = FINAL
                                 const matchLabel = isFinal
@@ -2232,10 +2212,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                 
                                 // Get team data for final fixture - check both tournament.subscribedTeams and also try to fetch from userId
                                 const getTeamData = (teamName) => {
-                                  if (!teamName) {
-                                    console.log('No team name provided');
-                                    return null;
-                                  }
+                                  if (!teamName) return null;
                                   
                                   // First try tournament.subscribedTeams
                                   if (tournament.subscribedTeams && tournament.subscribedTeams.length > 0) {
@@ -2248,27 +2225,13 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                       return exactMatch || caseMatch || includesMatch;
                                     });
                                     
-                                    if (team) {
-                                      console.log('✅ Team data found:', { teamName, foundTeam: team.teamName, hasImage: !!team.teamImage, abbreviation: team.abbreviation });
-                                      return team;
-                                    }
+                                    if (team) return team;
                                   }
                                   
                                   // If not found, try to get from fixture's userId if available
                                   // For team1, check fixture.team1UserId
                                   // For team2, check fixture.team2UserId
                                   // But we need to match the team name, so this might not work directly
-                                  
-                                  console.log('Team not found in subscribedTeams:', { 
-                                    teamName,
-                                    hasSubscribedTeams: !!tournament.subscribedTeams,
-                                    subscribedTeamsCount: tournament.subscribedTeams?.length || 0,
-                                    availableTeams: tournament.subscribedTeams?.map(t => ({
-                                      name: t.teamName,
-                                      abbreviation: t.abbreviation,
-                                      hasImage: !!t.teamImage
-                                    })) || []
-                                  });
                                   
                                   return null;
                                 };
@@ -2279,36 +2242,6 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                   isFinal && finalTeam1Disp !== KNOCKOUT_TBA ? getTeamData(fixture.team1) : null;
                                 const team2Data =
                                   isFinal && finalTeam2Disp !== KNOCKOUT_TBA ? getTeamData(fixture.team2) : null;
-                                
-                                // Debug logging for final
-                                if (isFinal) {
-                                  console.log('🏆 FINAL FIXTURE DETECTED:', {
-                                    fixtureIndex: index,
-                                    knockoutFixturesLength: knockoutFixtures.length,
-                                    team1: fixture.team1,
-                                    team2: fixture.team2,
-                                    team1UserId: fixture.team1UserId,
-                                    team2UserId: fixture.team2UserId,
-                                    team1Data: team1Data ? { 
-                                      name: team1Data.teamName, 
-                                      abbreviation: team1Data.abbreviation, 
-                                      hasImage: !!team1Data.teamImage,
-                                      imagePath: team1Data.teamImage
-                                    } : null,
-                                    team2Data: team2Data ? { 
-                                      name: team2Data.teamName, 
-                                      abbreviation: team2Data.abbreviation, 
-                                      hasImage: !!team2Data.teamImage,
-                                      imagePath: team2Data.teamImage
-                                    } : null,
-                                    tournamentId: tournament._id,
-                                    subscribedTeams: tournament.subscribedTeams?.map(t => ({
-                                      name: t.teamName,
-                                      abbreviation: t.abbreviation,
-                                      hasImage: !!t.teamImage
-                                    })) || []
-                                  });
-                                }
                                 
                                 return (
                                   <div key={finalActualIndex !== -1 ? finalActualIndex : index} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`} style={{ 
@@ -2350,21 +2283,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                           // If ANY of these are true, it's the final
                                           const displayFinal = isFinal || isLastKnockout || isPosition30 || isLastOverall;
                                           
-                                          if (displayFinal) {
-                                            console.log('🎯 FORCING FINAL DISPLAY:', { 
-                                              isFinal, 
-                                              isLastKnockout, 
-                                              isPosition30,
-                                              isLastOverall,
-                                              index, 
-                                              finalActualIndex,
-                                              knockoutLength: knockoutFixtures.length,
-                                              totalFixtures: fixtures.length,
-                                              team1: fixture.team1,
-                                              team2: fixture.team2
-                                            });
-                                            return 'FINAL';
-                                          }
+                                          if (displayFinal) return 'FINAL';
                                           
                                           return matchLabel;
                                         })()}
@@ -2456,14 +2375,14 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                               </div>
                                             )}
                                             <div style={{ textAlign: 'center' }}>
-                                              {/* Show only abbreviation in final */}
+                                              {/* Show the actual final team name so runner-up slots are clear. */}
                                               <div style={{ 
                                                 fontSize: '1.2rem', 
                                                 fontWeight: 'bold', 
                                                 color: '#1f2937',
                                                 marginBottom: '0.5rem'
                                               }}>
-                                                {team1Data?.abbreviation || (finalTeam1Disp === KNOCKOUT_TBA ? KNOCKOUT_TBA : (fixture.team1 ? fixture.team1.substring(0, 3).toUpperCase() : 'N/A'))}
+                                                {finalTeam1Disp === KNOCKOUT_TBA ? KNOCKOUT_TBA : (team1Data?.teamName || fixture.team1 || 'N/A')}
                                               </div>
                                             </div>
                                             {fixture.team1Score !== undefined && (
@@ -2543,14 +2462,14 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                               </div>
                                             )}
                                             <div style={{ textAlign: 'center' }}>
-                                              {/* Show only abbreviation in final */}
+                                              {/* Show the actual final team name so runner-up slots are clear. */}
                                               <div style={{ 
                                                 fontSize: '1.2rem', 
                                                 fontWeight: 'bold', 
                                                 color: '#1f2937',
                                                 marginBottom: '0.5rem'
                                               }}>
-                                                {team2Data?.abbreviation || (finalTeam2Disp === KNOCKOUT_TBA ? KNOCKOUT_TBA : (fixture.team2 ? fixture.team2.substring(0, 3).toUpperCase() : 'N/A'))}
+                                                {finalTeam2Disp === KNOCKOUT_TBA ? KNOCKOUT_TBA : (team2Data?.teamName || fixture.team2 || 'N/A')}
                                               </div>
                                             </div>
                                             {fixture.team2Score !== undefined && (
