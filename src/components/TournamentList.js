@@ -10,9 +10,11 @@ const KNOCKOUT_TBA = 'TBA';
 const knockoutTeamDisplayName = (name) => {
   if (name == null || String(name).trim() === '') return KNOCKOUT_TBA;
   const s = String(name).trim();
-  if (s.includes('Winner of Semi-Final')) return KNOCKOUT_TBA;
+  // If it's still a placeholder (not yet updated by backend), show TBA
+  if (s.includes('Winner of Semi-Final') || s.includes('Winner of') || s.includes('Loser of')) return KNOCKOUT_TBA;
   // Legacy seeded knockout placeholders only (e.g. "Top 1"), not real team names like "Top Order"
   if (/^Top \d+$/i.test(s)) return KNOCKOUT_TBA;
+  // Otherwise show the actual team name
   return s;
 };
 

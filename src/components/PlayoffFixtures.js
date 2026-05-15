@@ -901,7 +901,8 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   };
 
   const getDisplayTeamName = (teamName) => {
-    // For placeholder teams, show TBA until they're replaced with actual team names
+    // For placeholder teams that haven't been updated yet, show TBA
+    // For actual team names that have advanced, show the team name
     if (teamName.includes('Winner of') || teamName.includes('Loser of')) {
       return 'TBA';
     }
