@@ -7,6 +7,52 @@ import NotificationBell from './NotificationBell';
 import PlayerPopup from './PlayerPopup';
 import PlayerAvatar from './PlayerAvatar';
 
+const PLAYER_TYPE_ORDER = ['Sapphire', 'Emerald', 'Gold', 'Silver'];
+
+function countPlayersOfType(counts, canonicalLabel) {
+  const want = canonicalLabel.toLowerCase();
+  let total = 0;
+  Object.entries(counts).forEach(([k, v]) => {
+    if (String(k).toLowerCase() === want) total += Number(v) || 0;
+  });
+  return total;
+}
+
+function playerTypePresentation(canonicalLabel) {
+  switch (canonicalLabel.toLowerCase()) {
+    case 'sapphire':
+      return {
+        gradient: 'linear-gradient(135deg, #00d4ff, #0099cc)',
+        border: 'rgba(0, 212, 255, 0.35)',
+        shadow: 'rgba(0, 212, 255, 0.28)',
+      };
+    case 'emerald':
+      return {
+        gradient: 'linear-gradient(135deg, #00ff88, #00cc66)',
+        border: 'rgba(0, 255, 136, 0.35)',
+        shadow: 'rgba(0, 255, 136, 0.22)',
+      };
+    case 'gold':
+      return {
+        gradient: 'linear-gradient(135deg, #ffd700, #ffb300)',
+        border: 'rgba(255, 215, 0, 0.4)',
+        shadow: 'rgba(255, 215, 0, 0.25)',
+      };
+    case 'silver':
+      return {
+        gradient: 'linear-gradient(135deg, #c0c0c0, #999999)',
+        border: 'rgba(192, 192, 192, 0.45)',
+        shadow: 'rgba(120, 120, 120, 0.28)',
+      };
+    default:
+      return {
+        gradient: 'linear-gradient(135deg, #ff6b9d, #c44569)',
+        border: 'rgba(255, 107, 157, 0.35)',
+        shadow: 'rgba(255, 107, 157, 0.22)',
+      };
+  }
+}
+
 // Modern Styled Components - Fresh Design
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -193,7 +239,7 @@ const UserCard = styled.div`
   `}
   
   @media (max-width: 768px) {
-    padding: 12px;
+    padding: 10px;
     border-radius: 12px;
     margin: 0 3px;
     
@@ -219,9 +265,9 @@ const UserCardHeader = styled.div`
   @media (max-width: 768px) {
     flex-direction: column;
     text-align: center;
-    gap: 8px;
-    padding: 10px;
-    margin-bottom: 12px;
+    gap: 6px;
+    padding: 8px;
+    margin-bottom: 8px;
   }
 `;
 
@@ -391,7 +437,87 @@ const PurseContainer = styled.div`
   margin-bottom: 15px;
   
   @media (max-width: 768px) {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
+  }
+`;
+
+const PlayerTypesSection = styled.div`
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+
+  @media (max-width: 768px) {
+    margin-bottom: 8px;
+    padding: 6px 8px;
+  }
+`;
+
+const PlayerTypesTitle = styled.h3`
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 6px 0;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+
+  @media (max-width: 768px) {
+    font-size: 0.74rem;
+    margin-bottom: 5px;
+  }
+`;
+
+const PlayerTypesGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+
+  @media (max-width: 380px) {
+    gap: 3px;
+  }
+`;
+
+const PlayerTypeChip = styled.div`
+  background: ${({ $gradient }) => $gradient};
+  padding: 5px 3px;
+  border-radius: 6px;
+  text-align: center;
+  border: 1px solid ${({ $border }) => $border};
+  box-shadow: 0 2px 6px ${({ $shadow }) => $shadow};
+  min-width: 0;
+
+  @media (max-width: 768px) {
+    padding: 4px 2px;
+  }
+`;
+
+const PlayerTypeCount = styled.div`
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  line-height: 1.1;
+
+  @media (max-width: 768px) {
+    font-size: 0.74rem;
+  }
+`;
+
+const PlayerTypeLabel = styled.div`
+  font-size: 0.48rem;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: 768px) {
+    font-size: 0.44rem;
   }
 `;
 
@@ -429,9 +555,9 @@ const PurseCircle = styled.div`
   `}
   
   @media (max-width: 768px) {
-    width: 70px;
-    height: 70px;
-    margin-bottom: 6px;
+    width: 62px;
+    height: 62px;
+    margin-bottom: 4px;
   }
 `;
 
@@ -474,7 +600,7 @@ const PlayersSection = styled.div`
   margin-top: 12px;
   
   @media (max-width: 768px) {
-    margin-top: 10px;
+    margin-top: 6px;
   }
 `;
 
@@ -1073,7 +1199,6 @@ const UserPursePage = () => {
         setLoading(true);
         setLoadingProgress(0);
       }
-      const startTime = Date.now();
       
       // Smooth progress updates
       if (!silent) setLoadingProgress(20);
@@ -1141,8 +1266,6 @@ const UserPursePage = () => {
       }
       
       if (!silent) setLoadingProgress(100);
-      const loadTime = Date.now() - startTime;
-      console.log(`⚡ UserPurse loaded in ${loadTime}ms`);
       
       // Small delay for smooth transition
       if (!silent) {
@@ -1537,24 +1660,8 @@ const UserPursePage = () => {
             return acc;
           }, {});
           
-          // Fix player filtering - check actual data structure
-          console.log('User data for', user.userName, ':', {
-            totalPlayers: user.players.length,
-            players: user.players.map(p => ({
-              name: p.name,
-              isBidOn: p.isBidOn,
-              status: p.status,
-              type: p.type
-            }))
-          });
-          
           const ownedPlayers = user.players.filter(p => !p.isBidOn);
           const biddingPlayers = user.players.filter(p => p.isBidOn);
-          
-          console.log('Filtered players:', {
-            owned: ownedPlayers.length,
-            bidding: biddingPlayers.length
-          });
           
           return (
             <div key={index}>
@@ -1625,18 +1732,18 @@ const UserPursePage = () => {
             {/* Trophy Display */}
             {(user.trophyCount > 0 || user.runnerUpCount > 0 || (user.worldCupCount > 0) || (user.worldCupRunnerUpCount > 0)) && (
               <div style={{ 
-                marginBottom: '15px',
-                padding: '12px',
+                marginBottom: '10px',
+                padding: '8px',
                 background: 'rgba(255, 215, 0, 0.1)',
                 borderRadius: '10px',
                 border: '1px solid rgba(255, 215, 0, 0.3)',
                 backdropFilter: 'blur(10px)'
               }}>
                 <h3 style={{
-                  fontSize: '0.9rem',
+                  fontSize: '0.85rem',
                   fontWeight: '800',
                   color: '#ffd700',
-                  margin: '0 0 8px 0',
+                  margin: '0 0 6px 0',
                   textShadow: '0 1px 5px rgba(0, 0, 0, 0.3)',
                   letterSpacing: '0.5px'
                 }}>🏆 Achievements</h3>
@@ -1724,83 +1831,27 @@ const UserPursePage = () => {
               </div>
             )}
 
-            {/* Player Type Breakdown */}
-            <div style={{ 
-              marginBottom: '15px',
-              padding: '12px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <h3 style={{
-                fontSize: '0.9rem',
-                fontWeight: '800',
-                color: '#fff',
-                margin: '0 0 8px 0',
-                textShadow: '0 1px 5px rgba(0, 0, 0, 0.3)',
-                letterSpacing: '0.5px'
-              }}>Player Types</h3>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
-                gap: '6px',
-                '@media (max-width: 768px)': {
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))',
-                  gap: '4px'
-                }
-              }}>
-                {Object.entries(playerTypeCounts).map(([type, count]) => {
-                  const getTypeColor = (type) => {
-                    switch(type.toLowerCase()) {
-                      case 'sapphire': return '#00d4ff';
-                      case 'emerald': return '#00ff88';
-                      case 'gold': return '#ffd700';
-                      case 'silver': return '#c0c0c0';
-                      default: return '#ff6b9d';
-                    }
-                  };
-                  
-                  const getTypeGradient = (type) => {
-                    switch(type.toLowerCase()) {
-                      case 'sapphire': return 'linear-gradient(135deg, #00d4ff, #0099cc)';
-                      case 'emerald': return 'linear-gradient(135deg, #00ff88, #00cc66)';
-                      case 'gold': return 'linear-gradient(135deg, #ffd700, #ffb300)';
-                      case 'silver': return 'linear-gradient(135deg, #c0c0c0, #999999)';
-                      default: return 'linear-gradient(135deg, #ff6b9d, #c44569)';
-                    }
-                  };
-                  
+            {/* Player Type Breakdown — fixed 4-column row (no auto-fit “pyramid”) */}
+            <PlayerTypesSection>
+              <PlayerTypesTitle>Player Types</PlayerTypesTitle>
+              <PlayerTypesGrid>
+                {PLAYER_TYPE_ORDER.map((label) => {
+                  const count = countPlayersOfType(playerTypeCounts, label);
+                  const pres = playerTypePresentation(label);
                   return (
-                    <div key={type} style={{
-                      background: getTypeGradient(type),
-                      padding: window.innerWidth <= 768 ? '6px 8px' : '8px 10px',
-                      borderRadius: '8px',
-                      textAlign: 'center',
-                      border: `1px solid ${getTypeColor(type)}40`,
-                      boxShadow: `0 2px 8px ${getTypeColor(type)}30`,
-                      transition: 'all 0.3s ease'
-                    }}>
-                      <div style={{
-                        fontSize: window.innerWidth <= 768 ? '0.9rem' : '1rem',
-                        fontWeight: '900',
-                        color: '#fff',
-                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
-                        marginBottom: '2px'
-                      }}>{count}</div>
-                      <div style={{
-                        fontSize: window.innerWidth <= 768 ? '0.5rem' : '0.6rem',
-                        fontWeight: '700',
-                        color: '#fff',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.3px',
-                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
-                      }}>{type}</div>
-                  </div>
+                    <PlayerTypeChip
+                      key={label}
+                      $gradient={pres.gradient}
+                      $border={pres.border}
+                      $shadow={pres.shadow}
+                    >
+                      <PlayerTypeCount>{count}</PlayerTypeCount>
+                      <PlayerTypeLabel>{label}</PlayerTypeLabel>
+                    </PlayerTypeChip>
                   );
                 })}
-              </div>
-            </div>
+              </PlayerTypesGrid>
+            </PlayerTypesSection>
 
             {/* Players Section */}
                 <PlayersSection>

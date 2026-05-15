@@ -272,10 +272,11 @@ const WhatsAppShareButton = styled.button`
 const BroadcastTableHeadRow = styled.div`
   display: flex;
   align-items: stretch;
-  gap: 0;
+  gap: 0.12rem;
   margin-bottom: 0.4rem;
 
   @media (max-width: 640px) {
+    gap: 0.06rem;
     margin-bottom: 0.22rem;
   }
 
@@ -284,25 +285,49 @@ const BroadcastTableHeadRow = styled.div`
   }
 `;
 
+/** Plain width reserve; rank is outside the coloured bar (avoids stacked “pyramid” diagonals). */
 const BroadcastRankSpacer = styled.div`
-  flex: 0 0 2.65rem;
-  width: 2.65rem;
+  flex: 0 0 1.85rem;
+  width: 1.85rem;
   flex-shrink: 0;
   align-self: stretch;
-  background: #ffffff;
-  clip-path: polygon(0 0, 100% 0, 68% 100%, 0 100%);
-  border-radius: 4px 0 0 4px;
 
   @media (max-width: 640px) {
-    flex-basis: 2rem;
-    width: 2rem;
-    clip-path: polygon(0 0, 100% 0, 62% 100%, 0 100%);
+    flex-basis: 1.45rem;
+    width: 1.45rem;
   }
 
   @media (max-width: 380px) {
-    flex-basis: 1.78rem;
-    width: 1.78rem;
-    clip-path: polygon(0 0, 100% 0, 58% 100%, 0 100%);
+    flex-basis: 1.3rem;
+    width: 1.3rem;
+  }
+`;
+
+const BroadcastRank = styled.div`
+  flex: 0 0 1.85rem;
+  width: 1.85rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
+  font-size: clamp(0.95rem, 3.2vw, 1.65rem);
+  font-weight: 800;
+  font-style: italic;
+  color: #0b2135;
+  line-height: 1;
+  padding-right: 0.08rem;
+
+  @media (max-width: 640px) {
+    flex-basis: 1.45rem;
+    width: 1.45rem;
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 380px) {
+    flex-basis: 1.3rem;
+    width: 1.3rem;
+    font-size: 0.88rem;
   }
 `;
 
@@ -321,17 +346,8 @@ const BroadcastHeadMain = styled.div`
   display: flex;
   align-items: stretch;
   min-width: 0;
-  margin-left: -0.95rem;
   overflow: hidden;
   border-radius: 0;
-
-  @media (max-width: 640px) {
-    margin-left: -0.72rem;
-  }
-
-  @media (max-width: 380px) {
-    margin-left: -0.62rem;
-  }
 `;
 
 const BroadcastHeadLogoSpacer = styled.div`
@@ -359,7 +375,7 @@ const BroadcastHeadGrid = styled.div`
   align-items: center;
   gap: 0 0.14rem;
   padding: 0.28rem 0.32rem 0.28rem 0.26rem;
-  margin-left: -8px;
+  margin-left: 0;
   font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
   font-style: italic;
   font-weight: 800;
@@ -387,7 +403,7 @@ const BroadcastHeadGrid = styled.div`
     font-size: 0.48rem;
     gap: 0 0.09rem;
     padding: 0.14rem 0.16rem 0.14rem 0.12rem;
-    margin-left: -6px;
+    margin-left: 0;
   }
 
   @media (max-width: 380px) {
@@ -426,51 +442,18 @@ const PtsHeadLabel = styled.div`
 const BroadcastRowWrap = styled.div`
   display: flex;
   align-items: stretch;
-  gap: 0;
-  margin-bottom: 0.42rem;
+  gap: 0.12rem;
 
   ${({ $qualifierBoundary }) =>
     $qualifierBoundary
       ? `padding-bottom: 0.38rem; margin-bottom: 0.48rem; border-bottom: 2px dashed rgba(12, 35, 68, 0.35);`
       : ''}
 
-  @media (max-width: 640px) {
-    margin-bottom: 0.2rem;
-  }
-`;
-
-/** IPL-style white rank tile with diagonal cut; overlaps navy logo slab beneath */
-const BroadcastRankPanel = styled.div`
-  flex: 0 0 2.65rem;
-  width: 2.65rem;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  align-self: stretch;
-  background: #ffffff;
-  color: #0b2135;
-  font-family: var(--font-broadcast), 'Arial Narrow', sans-serif;
-  font-size: clamp(1rem, 3.6vw, 1.92rem);
-  font-weight: 800;
-  font-style: italic;
-  line-height: 1;
-  clip-path: polygon(0 0, 100% 0, 68% 100%, 0 100%);
-  position: relative;
-  z-index: 2;
+  margin-bottom: 0.42rem;
 
   @media (max-width: 640px) {
-    flex-basis: 2rem;
-    width: 2rem;
-    font-size: 1rem;
-    clip-path: polygon(0 0, 100% 0, 62% 100%, 0 100%);
-  }
-
-  @media (max-width: 380px) {
-    flex-basis: 1.78rem;
-    width: 1.78rem;
-    font-size: 0.92rem;
-    clip-path: polygon(0 0, 100% 0, 58% 100%, 0 100%);
+    gap: 0.06rem;
+    margin-bottom: 0.18rem;
   }
 `;
 
@@ -483,7 +466,7 @@ const BroadcastCard = styled.div`
   min-height: 48px;
   overflow: hidden;
   border-radius: 4px;
-  background: #0b2135;
+  background: transparent;
   box-shadow: 0 3px 10px rgba(12, 35, 68, 0.14);
   cursor: pointer;
   outline: none;
@@ -517,25 +500,15 @@ const BroadcastCard = styled.div`
   }
 `;
 
-/** Pulled left so navy logo slab sits under the rank diagonal cut */
 const BroadcastCardMain = styled.div`
   flex: 1;
   display: flex;
   align-items: stretch;
   min-width: 0;
-  margin-left: -0.95rem;
-  overflow: visible;
-  border-radius: 0;
+  overflow: hidden;
+  border-radius: 3px 0 0 3px;
   position: relative;
   z-index: 1;
-
-  @media (max-width: 640px) {
-    margin-left: -0.72rem;
-  }
-
-  @media (max-width: 380px) {
-    margin-left: -0.62rem;
-  }
 `;
 
 const LogoSlab = styled.div`
@@ -547,7 +520,7 @@ const LogoSlab = styled.div`
   justify-content: center;
   align-self: stretch;
   background: ${({ $dark }) => $dark};
-  clip-path: polygon(16% 0, 100% 0, 86% 100%, 0 100%);
+  clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);
 
   img {
     width: 34px;
@@ -591,7 +564,7 @@ const StatsStrip = styled.div`
   align-items: center;
   gap: 0 0.14rem;
   padding: 0.28rem 0.32rem 0.28rem 0.26rem;
-  margin-left: -8px;
+  margin-left: 0;
   position: relative;
   isolation: isolate;
   background: ${({ $fill }) => $fill};
@@ -659,7 +632,7 @@ const StatsStrip = styled.div`
   @media (max-width: 640px) {
     grid-template-columns: minmax(34px, 1fr) 26px 26px 26px minmax(46px, 1fr);
     padding: 0.14rem 0.16rem 0.14rem 0.12rem;
-    margin-left: -6px;
+    margin-left: 0;
     font-size: 0.58rem;
     gap: 0 0.09rem;
   }
@@ -715,7 +688,8 @@ const PtsSlab = styled.div`
   font-size: clamp(0.82rem, 2.8vw, 1.38rem);
   font-variant-numeric: tabular-nums;
   border-radius: 0 4px 4px 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.55);
+  border-left: 1px solid rgba(0, 20, 40, 0.2);
+  margin-left: 0;
 
   @media (max-width: 640px) {
     flex-basis: 40px;
@@ -1181,7 +1155,7 @@ function wcagContrastRatio(bgHex, fgHex) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-/** IPL-style: full theme gradient + WCAG ink (dark strip → white; light strip → navy/black). */
+/** IPL-style: full theme gradient + readable ink (dark mixtures → white text). */
 function broadcastRowPresentation(primary, secondary) {
   const p = normalizeThemeHex(primary) || '#2563eb';
   const s = normalizeThemeHex(secondary || primary) || p;
@@ -1193,12 +1167,11 @@ function broadcastRowPresentation(primary, secondary) {
   const mid = mixHex(p, s, 0.5);
   const lumMid = hexLuminance(mid);
 
-  const cw = wcagContrastRatio(mid, '#ffffff');
-  const cd = wcagContrastRatio(mid, '#0a1f44');
-  let stripInk = cw >= cd ? '#ffffff' : '#0a1f44';
-
-  if (cw < 3.2 && cd >= cw) stripInk = '#0a1f44';
-  if (cd < 3.2 && cw > cd) stripInk = '#ffffff';
+  let stripInk = lumMid < 0.53 ? '#ffffff' : '#0a1f44';
+  let contrastPick = wcagContrastRatio(mid, stripInk);
+  if (contrastPick < 3.8) stripInk = stripInk === '#ffffff' ? '#0a1f44' : '#ffffff';
+  contrastPick = wcagContrastRatio(mid, stripInk);
+  if (contrastPick < 3.2) stripInk = lumMid < 0.5 ? '#ffffff' : '#0a1f44';
 
   const veryLightTeam = lumAvg > 0.78 || (lp > 0.74 && ls > 0.74);
   const abbrInk =
@@ -1559,6 +1532,7 @@ const PointsTable = () => {
               key={team._id || `${team.teamName}-${index}`}
               $qualifierBoundary={index === qualifiers - 1}
             >
+              <BroadcastRank>{index + 1}</BroadcastRank>
               <BroadcastCard
                 role="button"
                 tabIndex={0}
@@ -1570,7 +1544,6 @@ const PointsTable = () => {
                   }
                 }}
               >
-                <BroadcastRankPanel>{index + 1}</BroadcastRankPanel>
                 <BroadcastCardMain>
                   <LogoSlab $dark={bp.slabDark}>
                     <img src={teamImage} alt={team.teamName || 'Team'} />
