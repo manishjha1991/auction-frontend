@@ -3,6 +3,11 @@ import styled from "styled-components";
 import axios from "axios";
 import { API_ENDPOINTS } from "../const";
 
+const calculateRequiredGames = (teamCount, fallback = 13) => {
+  const count = Number(teamCount) || 0;
+  return count > 1 ? count - 1 : fallback;
+};
+
 const PlayoffContainer = styled.div`
   margin: 2rem auto;
   width: 95%;
@@ -608,7 +613,8 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const [team1Fairness, setTeam1Fairness] = useState("");
   const [team2Fairness, setTeam2Fairness] = useState("");
   const [teams, setTeams] = useState([]);
-  const [requiredGames, setRequiredGames] = useState(13); // Configurable number of games
+  const [requiredGames, setRequiredGames] = useState(13);
+  const [standingsTeams, setStandingsTeams] = useState([]);
   const [worldCupMode, setWorldCupMode] = useState(false);
   const [top8Teams, setTop8Teams] = useState([]);
   const [hasWorldCupTournament, setHasWorldCupTournament] = useState(false);
@@ -653,18 +659,23 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
         );
         setHasWorldCupTournament(!!runningWorldCup);
         
-        const games = settingsRes?.data?.requiredGames || 13;
-        setRequiredGames(games);
+        const configuredGames = settingsRes?.data?.requiredGames || 13;
         const wcMode = settingsRes?.data?.worldCupMode === true || settingsRes?.data?.worldCupMode === 'true';
         setWorldCupMode(wcMode);
         console.log('World Cup Mode from settings:', wcMode, 'Raw value:', settingsRes?.data?.worldCupMode);
         
         if (Array.isArray(pointsRes.data)) {
-          const sorted = pointsRes.data.sort((a, b) => {
+          const participatingTeams = pointsRes.data.filter(team => team.teamName !== 'NA');
+          setRequiredGames(calculateRequiredGames(participatingTeams.length, configuredGames));
+          setStandingsTeams(participatingTeams);
+          const sorted = [...participatingTeams].sort((a, b) => {
             if (b.points !== a.points) return b.points - a.points;
             return b.fairness - a.fairness;
           });
           setTop8Teams(sorted.slice(0, 8));
+        } else {
+          setRequiredGames(configuredGames);
+          setStandingsTeams([]);
         }
         
         const teamsData = teamsRes.data?.teams || teamsRes.data;
@@ -699,9 +710,16 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
 
   const fetchRequiredGames = async () => {
     try {
-      const response = await axios.get(`${API_ENDPOINTS}/api/settings`);
-      const games = response?.data?.requiredGames || 13;
-      setRequiredGames(games);
+      const [settingsResponse, pointsResponse] = await Promise.all([
+        axios.get(`${API_ENDPOINTS}/api/settings`),
+        axios.get(`${API_ENDPOINTS}/api/users/points-table`)
+      ]);
+      const configuredGames = settingsResponse?.data?.requiredGames || 13;
+      const participatingTeams = Array.isArray(pointsResponse.data)
+        ? pointsResponse.data.filter(team => team.teamName !== 'NA')
+        : [];
+      setRequiredGames(calculateRequiredGames(participatingTeams.length, configuredGames));
+      setStandingsTeams(participatingTeams);
     } catch (error) {
       console.error("Error fetching required games:", error);
       setRequiredGames(13); // Default fallback
@@ -722,7 +740,9 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
     try {
       const response = await axios.get(`${API_ENDPOINTS}/api/users/points-table`);
       if (Array.isArray(response.data)) {
-        const sorted = response.data.sort((a, b) => {
+        const participatingTeams = response.data.filter(team => team.teamName !== 'NA');
+        setStandingsTeams(participatingTeams);
+        const sorted = [...participatingTeams].sort((a, b) => {
           if (b.points !== a.points) return b.points - a.points;
           return b.fairness - a.fairness;
         });
@@ -895,8 +915,9 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
       // top6Teams should be [A1, A2, A3, B1, B2, B3] when in groups mode
       return top6Teams.every(team => (team.matchesPlayed || 0) >= 6);
     } else {
-      // In overall mode, check if all teams completed required games (13)
-      return top6Teams.every(team => (team.matchesPlayed || 0) >= requiredGames);
+      // Overall mode is a round robin: required games = participating teams - 1.
+      const teamsToCheck = standingsTeams.length > 0 ? standingsTeams : top6Teams;
+      return teamsToCheck.every(team => (team.matchesPlayed || 0) >= requiredGames);
     }
   };
 
@@ -1017,7 +1038,8 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
                 <div>
                   <p>⏳ Waiting for all teams to complete {mode === 'groups' ? '6' : requiredGames} games</p>
                   <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                    {top6Teams.filter(team => (team.matchesPlayed || 0) < (mode === 'groups' ? 6 : requiredGames)).length} teams still need to complete their games
+                    {(mode === 'groups' ? top6Teams : (standingsTeams.length > 0 ? standingsTeams : top6Teams))
+                      .filter(team => (team.matchesPlayed || 0) < (mode === 'groups' ? 6 : requiredGames)).length} teams still need to complete their games
                   </p>
                 </div>
               )}

@@ -18,10 +18,12 @@ const TabContainer = styled.div`
   margin: 0.75rem auto 2rem;
   width: calc(100% - 1rem);
   max-width: 1100px;
-  background: #ffffff;
-  border-radius: 14px;
-  box-shadow: 0 10px 30px -22px rgba(15, 23, 42, 0.25);
-  border: 1px solid #e2e8f0;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(56, 189, 248, 0.28), transparent 28%),
+    linear-gradient(145deg, #07111f 0%, #0b1830 48%, #050914 100%);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px -28px rgba(2, 6, 23, 0.85);
+  border: 1px solid rgba(125, 211, 252, 0.35);
   overflow: hidden;
 
   @media (max-width: 600px) {
@@ -38,8 +40,8 @@ const TabHeader = styled.div`
   display: flex;
   gap: 0.25rem;
   padding: 0.35rem 0.35rem 0;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.98), rgba(30, 64, 175, 0.62), rgba(15, 23, 42, 0.98));
+  border-bottom: 1px solid rgba(125, 211, 252, 0.3);
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -52,18 +54,20 @@ const TabButton = styled.button`
   padding: 0.7rem 1.1rem 0.75rem;
   min-height: 42px;
   background: transparent;
-  color: ${props => props.active ? "#2563eb" : "#64748b"};
+  color: ${props => props.active ? "#ffffff" : "rgba(226, 232, 240, 0.72)"};
   border: none;
-  border-bottom: 2px solid ${props => props.active ? "#2563eb" : "transparent"};
+  border-bottom: 2px solid ${props => props.active ? "#38bdf8" : "transparent"};
   border-radius: 0;
   font-weight: ${props => props.active ? "700" : "500"};
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;
   font-size: 0.9rem;
+  font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif);
+  letter-spacing: 0.08em;
   white-space: nowrap;
   margin-bottom: -1px;
 
-  &:hover { color: ${props => props.active ? "#2563eb" : "#0f172a"}; }
+  &:hover { color: #ffffff; }
 
   @media (max-width: 600px) {
     padding: 0.6rem 0.85rem 0.65rem;
@@ -74,15 +78,20 @@ const TabButton = styled.button`
 // Table container --------------------------------------------
 const TableWrapper = styled.div`
   padding: clamp(0.5rem, 2vw, 1rem) clamp(0.5rem, 2vw, 1.25rem) clamp(0.75rem, 2vw, 1.25rem);
-  background: #ffffff;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.28), rgba(2, 6, 23, 0.72)),
+    radial-gradient(circle at 95% 12%, rgba(14, 165, 233, 0.18), transparent 32%);
 
   h2 {
-    margin: 0.25rem 0 0.85rem;
-    color: #0f172a;
-    font-size: clamp(0.95rem, 3.2vw, 1.15rem);
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    text-align: left;
+    margin: 0.15rem 0 0.75rem;
+    color: #ffffff !important;
+    font-size: clamp(1.25rem, 4.2vw, 2.05rem) !important;
+    font-weight: 950;
+    letter-spacing: 0.08em;
+    font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif) !important;
+    text-align: left !important;
+    text-transform: uppercase;
+    text-shadow: 0 3px 10px rgba(0, 0, 0, 0.65);
   }
 
   @media (max-width: 600px) {
@@ -91,113 +100,153 @@ const TableWrapper = styled.div`
   }
 `;
 
-/* Clean spreadsheet-style table: white rows, thin dividers, no pill chips. */
 const Table = styled.table`
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 4px;
   table-layout: fixed;
-  font-size: 0.9rem;
-  color: #0f172a;
+  font-size: 0.98rem;
+  color: #ffffff;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif);
 
   /* Desktop column widths */
-  th:nth-child(1), td:nth-child(1) { width: 38px; text-align: left; }          /* POS */
-  th:nth-child(2), td:nth-child(2) { width: auto; min-width: 150px; text-align: left; } /* TEAM */
+  th:nth-child(1), td:nth-child(1) { width: 46px; text-align: center; }        /* POS */
+  th:nth-child(2), td:nth-child(2) { width: auto; min-width: 180px; text-align: left; } /* TEAM */
   th:nth-child(3), td:nth-child(3),
   th:nth-child(4), td:nth-child(4),
-  th:nth-child(5), td:nth-child(5) { width: 52px; text-align: right; }         /* M W L */
-  th:nth-child(6), td:nth-child(6) { width: 80px; text-align: center; }        /* NRR */
-  th:nth-child(7), td:nth-child(7) { width: 64px; text-align: right; }         /* PTS */
-  th:nth-child(8), td:nth-child(8) { width: 60px; text-align: right; padding-right: 0.4rem; } /* FAIR */
+  th:nth-child(5), td:nth-child(5) { width: 52px; text-align: right; }         /* P W L */
+  th:nth-child(6), td:nth-child(6) { width: 64px; text-align: right; }         /* PTS */
+  th:nth-child(7), td:nth-child(7) { width: 80px; text-align: center; padding-right: 0.4rem; } /* NRR */
 
   @media (max-width: 600px) {
     font-size: 0.8rem;
 
-    th:nth-child(1), td:nth-child(1) { width: 24px; }
+    th:nth-child(1), td:nth-child(1) { width: 34px; }
     th:nth-child(2), td:nth-child(2) { min-width: 0; }
     th:nth-child(3), td:nth-child(3),
     th:nth-child(4), td:nth-child(4),
     th:nth-child(5), td:nth-child(5) { width: 26px; }
-    th:nth-child(6), td:nth-child(6) { width: 64px; }  /* NRR needs room for +1.420 */
-    th:nth-child(7), td:nth-child(7) { width: 36px; }  /* PTS */
-    th:nth-child(8), td:nth-child(8) { width: 34px; padding-right: 0.1rem; } /* FAIR */
-  }
-
-  /* Extra-narrow phones: hide FAIR column to keep single-screen fit (all other data stays). */
-  @media (max-width: 360px) {
-    th:nth-child(8), td:nth-child(8) { display: none; }
-    font-size: 0.76rem;
-    th:nth-child(6), td:nth-child(6) { width: 60px; }
+    th:nth-child(6), td:nth-child(6) { width: 36px; }  /* PTS */
+    th:nth-child(7), td:nth-child(7) { width: 64px; padding-right: 0.1rem; }  /* NRR */
   }
 `;
 
 const TableHead = styled.thead`
-  tr { background: transparent; }
+  tr {
+    background: linear-gradient(90deg, rgba(2, 6, 23, 0.92), rgba(15, 23, 42, 0.82));
+  }
 
   td {
     /* Match body padding exactly so right-aligned headers sit above values. */
-    padding: 0.55rem 0.4rem;
-    font-size: 0.7rem;
-    font-weight: 700;
+    padding: 0.5rem 0.55rem;
+    font-size: 0.96rem;
+    font-weight: 950;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #94a3b8;
-    border-bottom: 1px solid #e2e8f0;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.86);
+    border-bottom: 1px solid rgba(56, 189, 248, 0.45);
     background: transparent;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
   }
 
-  td.pts-cell { color: #0f172a; }
+  td.pts-cell { color: #ffffff; }
 
   @media (max-width: 600px) {
     td {
       padding: 0.45rem 0.2rem;
-      font-size: 0.62rem;
+      font-size: 0.74rem;
     }
   }
 `;
 
 const TableRow = styled.tr`
-  background: #ffffff;
-  transition: background-color 0.15s ease;
+  background: ${({ $themePrimary, $themeSecondary }) =>
+    $themePrimary && $themeSecondary
+      ? `linear-gradient(92deg, ${$themePrimary} 0%, ${$themeSecondary} 34%, rgba(15, 23, 42, 0.92) 68%, rgba(2, 6, 23, 0.98) 100%)`
+      : 'linear-gradient(92deg, #1e3a8a 0%, #1d4ed8 34%, rgba(15, 23, 42, 0.92) 68%, rgba(2, 6, 23, 0.98) 100%)'};
+  box-shadow: ${({ $themePrimary }) =>
+    $themePrimary
+      ? `inset 8px 0 0 ${$themePrimary}, inset 0 0 0 1px rgba(255,255,255,0.1), 0 8px 18px -16px ${$themePrimary}`
+      : 'inset 8px 0 0 #38bdf8, inset 0 0 0 1px rgba(255,255,255,0.1)'};
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
 
   td {
-    padding: 0.7rem 0.4rem;
-    border-bottom: 1px solid #eef2f7;
+    padding: 0.62rem 0.55rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: ${({ $qualifierBoundary }) =>
+      $qualifierBoundary ? '2px dashed rgba(255, 255, 255, 0.72)' : '1px solid rgba(2, 6, 23, 0.82)'};
     background: transparent;
-    font-weight: 500;
-    color: #0f172a;
+    font-weight: 900;
+    color: #ffffff;
     vertical-align: middle;
+    text-shadow: 0 2px 7px rgba(0, 0, 0, 0.72);
+    letter-spacing: 0.07em;
+    font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif);
   }
 
-  &:hover td { background: #f8fafc; }
+  td:first-child {
+    border-radius: 2px 0 0 2px;
+    background: transparent;
+  }
+
+  td:last-child {
+    border-radius: 0 2px 2px 0;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: ${({ $themePrimary }) =>
+      $themePrimary
+        ? `inset 7px 0 0 ${$themePrimary}, inset 0 0 0 1px ${$themePrimary}55, 0 12px 24px -16px ${$themePrimary}`
+        : '0 8px 20px -18px rgba(15, 23, 42, 0.45)'};
+  }
+  &:hover td {
+    background: ${({ $themePrimary, $themeSecondary }) =>
+      $themePrimary && $themeSecondary
+        ? `linear-gradient(92deg, ${$themePrimary} 0%, ${$themeSecondary} 38%, rgba(30, 41, 59, 0.78) 100%)`
+        : 'rgba(255, 255, 255, 0.08)'};
+  }
   &:focus { outline: none; }
-  &:focus-visible td { background: #eff6ff; }
+  &:focus-visible td { outline: 2px solid rgba(56, 189, 248, 0.7); outline-offset: -2px; }
   &:last-child td { border-bottom: none; }
 
   /* NRR sign colour */
   td.nrr-cell {
-    color: ${(props) =>
-      props.variant === "top" ? "#059669"
-      : props.variant === "eliminated" || props.variant === "bottom" ? "#dc2626"
-      : "#0f172a"};
-    font-weight: 600;
+    color: #ffffff;
+    font-weight: 900;
   }
 
   /* PTS highlighted — colour depends on qualifying zone */
   td.pts-cell {
-    font-weight: 800;
-    font-size: 1em;
-    color: #0f172a;
+    font-weight: 950;
+    font-size: 1.08em;
+    color: #ffffff;
   }
-  td.pts-cell.pts-top { color: #047857; }  /* dark bold green for top qualifiers */
-  td.pts-cell.pts-mid { color: #b45309; }  /* bold amber/yellow for upper-half of rest */
-  td.pts-cell.pts-low { color: #b91c1c; }  /* bold dark red for lower-half of rest */
+  td.pts-cell.pts-top,
+  td.pts-cell.pts-mid,
+  td.pts-cell.pts-low { color: #ffffff; }
 
   @media (max-width: 600px) {
     td { padding: 0.6rem 0.2rem; }
     td.pts-cell { font-size: 1em; }
   }
+`;
+
+const TableFooterNote = styled.div`
+  margin-top: 0.45rem;
+  padding: 0.62rem 0.75rem;
+  background: linear-gradient(90deg, rgba(2, 6, 23, 0.92), rgba(15, 23, 42, 0.72), rgba(2, 6, 23, 0.92));
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  text-align: center;
+  font-size: clamp(0.78rem, 2.6vw, 0.95rem);
+  font-family: var(--font-scoreboard, 'Arial Narrow', 'Arial Black', Impact, sans-serif);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 7px rgba(0, 0, 0, 0.72);
 `;
 
 const TableCell = styled.td`
@@ -207,20 +256,22 @@ const TableCell = styled.td`
 const HighlightCell = styled(TableCell)`
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  color: #0f172a;
-  font-weight: 600;
+  gap: 0.65rem;
+  color: #ffffff;
+  font-weight: 950;
   min-width: 0;
 
-  tr:hover & .team-name { color: #4f46e5; }
+  tr:hover & .team-name { color: #ffffff; }
 
   img {
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     object-fit: cover;
-    background: #f1f5f9;
+    background: rgba(255, 255, 255, 0.9);
     flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow: 0 4px 10px -6px rgba(0, 0, 0, 0.8);
   }
 
   .team-name {
@@ -229,11 +280,35 @@ const HighlightCell = styled(TableCell)`
     text-overflow: ellipsis;
     min-width: 0;
     transition: color 0.15s ease;
+    letter-spacing: 0.08em;
+    font-family: Impact, 'Arial Black', var(--font-scoreboard, 'Arial Narrow', sans-serif);
+    font-size: 1.25rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #ffffff;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    line-height: 1.05;
+    text-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.95),
+      0 0 10px rgba(0, 0, 0, 0.9),
+      1px 1px 0 rgba(0, 0, 0, 0.85),
+      -1px 1px 0 rgba(0, 0, 0, 0.85);
+    -webkit-text-stroke: 0.35px rgba(0, 0, 0, 0.78);
+    box-shadow: none;
   }
 
   @media (max-width: 600px) {
-    gap: 0.45rem;
-    img { width: 22px; height: 22px; }
+    gap: 0.52rem;
+    img { width: 24px; height: 24px; }
+
+    .team-name {
+      font-size: 1.08rem;
+      letter-spacing: 0.06em;
+      padding: 0;
+    }
   }
 `;
 
@@ -246,13 +321,15 @@ const QualifierBadge = styled.span`
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #10b981;
-  color: #ffffff;
+  background: #ffffff;
+  color: #065f46;
   font-size: 10px;
   line-height: 1;
-  font-weight: 800;
+  font-weight: 950;
   letter-spacing: 0.04em;
   flex-shrink: 0;
+  border: 1px solid rgba(6, 95, 70, 0.35);
+  box-shadow: 0 2px 8px -4px rgba(0, 0, 0, 0.9);
 `;
 
 const EliminatedBadge = styled.span`
@@ -264,24 +341,33 @@ const EliminatedBadge = styled.span`
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #ef4444;
-  color: #ffffff;
+  background: #ffffff;
+  color: #991b1b;
   font-size: 10px;
   line-height: 1;
-  font-weight: 800;
+  font-weight: 950;
   letter-spacing: 0.04em;
   flex-shrink: 0;
+  border: 1px solid rgba(153, 27, 27, 0.35);
+  box-shadow: 0 2px 8px -4px rgba(0, 0, 0, 0.9);
 `;
 
 const RankCell = styled(TableCell)`
-  color: #64748b;
-  font-weight: 500;
-  text-align: left;
-  padding-left: 0.25rem !important;
+  color: #ffffff;
+  font-family: Impact, 'Arial Black', var(--font-scoreboard, 'Arial Narrow', sans-serif);
+  font-weight: 900;
+  text-align: center !important;
+  padding-left: 0 !important;
+  font-size: 1.22rem;
+  letter-spacing: 0.04em;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.95),
+    0 0 8px rgba(0, 0, 0, 0.9);
+  -webkit-text-stroke: 0;
 
   @media (max-width: 600px) {
-    font-size: 0.82rem;
-    padding-left: 0.1rem !important;
+    font-size: 1rem;
+    padding-left: 0 !important;
   }
 `;
 
@@ -306,17 +392,42 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background: #ffffff;
+  background: ${({ $themePrimary, $themeSecondary }) =>
+    $themePrimary && $themeSecondary
+      ? `linear-gradient(145deg, ${$themePrimary} 0%, ${$themeSecondary} 58%, #0f172a 100%)`
+      : '#ffffff'};
   border-radius: 20px;
   padding: clamp(1rem, 3vw, 1.75rem);
   max-width: 640px;
   width: 100%;
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
-  box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.45);
+  box-shadow: ${({ $themePrimary }) =>
+    $themePrimary
+      ? `0 30px 70px -22px ${$themePrimary}, 0 18px 40px -24px rgba(15, 23, 42, 0.8)`
+      : '0 30px 60px -20px rgba(15, 23, 42, 0.45)'};
   animation: pt-pop 0.25s ease-out;
   -webkit-overflow-scrolling: touch;
   margin: auto;
+  color: ${({ $textColor }) => $textColor || '#0f172a'};
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(255,255,255,0.42), transparent 30%),
+      radial-gradient(circle at 88% 88%, rgba(255,255,255,0.16), transparent 34%);
+    pointer-events: none;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 
   @keyframes pt-pop {
     from { transform: translateY(12px) scale(0.98); opacity: 0; }
@@ -331,12 +442,13 @@ const ModalHeader = styled.div`
   gap: 0.75rem;
   margin-bottom: 1.25rem;
   padding-bottom: 0.85rem;
-  border-bottom: 1px dashed rgba(148, 163, 184, 0.4);
+  border-bottom: 1px dashed ${({ $textColor }) =>
+    $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(15, 23, 42, 0.22)'};
 `;
 
 const ModalTitle = styled.h2`
   margin: 0;
-  color: #0f172a;
+  color: ${({ $textColor }) => $textColor || '#0f172a'};
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -396,12 +508,16 @@ const TeamStats = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  background: ${({ $textColor }) =>
+    $textColor === '#ffffff'
+      ? 'rgba(255, 255, 255, 0.16)'
+      : 'rgba(255, 255, 255, 0.82)'};
   padding: 0.75rem;
   border-radius: 12px;
   text-align: center;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-left: 4px solid ${props => props.color || '#6366f1'};
+  border: 1px solid ${({ $textColor }) =>
+    $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.28)' : 'rgba(148, 163, 184, 0.25)'};
+  border-left: 4px solid ${props => props.$accentColor || '#6366f1'};
   box-shadow: 0 6px 16px -12px rgba(15, 23, 42, 0.3);
   transition: transform 0.15s ease;
 
@@ -413,14 +529,14 @@ const StatCard = styled.div`
 const StatValue = styled.div`
   font-size: clamp(1.2rem, 4vw, 1.55rem);
   font-weight: 900;
-  color: #0f172a;
+  color: ${({ $textColor }) => $textColor || '#0f172a'};
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 `;
 
 const StatLabel = styled.div`
   font-size: 0.72rem;
-  color: #64748b;
+  color: ${({ $textColor }) => $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.78)' : '#64748b'};
   margin-top: 0.25rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -441,16 +557,19 @@ const MatchTable = styled.table`
 `;
 
 const MatchTableHead = styled.thead`
-  background: #f8fafc;
+  background: ${({ $textColor }) =>
+    $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.14)' : 'rgba(248, 250, 252, 0.86)'};
   font-weight: 700;
 `;
 
 const MatchTableRow = styled.tr`
-  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  border-bottom: 1px solid ${({ $textColor }) =>
+    $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(148, 163, 184, 0.25)'};
   transition: background-color 0.15s ease;
 
   &:hover {
-    background-color: rgba(99, 102, 241, 0.05);
+    background-color: ${({ $textColor }) =>
+      $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(99, 102, 241, 0.05)'};
   }
 
   @media (max-width: 520px) {
@@ -460,16 +579,18 @@ const MatchTableRow = styled.tr`
     align-items: center;
     padding: 0.6rem 0.75rem;
     margin-bottom: 0.5rem;
-    border: 1px solid rgba(148, 163, 184, 0.25);
+    border: 1px solid ${({ $textColor }) =>
+      $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.22)' : 'rgba(148, 163, 184, 0.25)'};
     border-radius: 10px;
-    background: #ffffff;
+    background: ${({ $textColor }) =>
+      $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.12)' : '#ffffff'};
   }
 `;
 
 const MatchTableCell = styled.td`
   padding: 0.65rem 0.55rem;
   text-align: left;
-  color: #0f172a;
+  color: ${({ $textColor }) => $textColor || '#0f172a'};
 
   &:first-child {
     font-weight: 700;
@@ -481,7 +602,12 @@ const MatchTableCell = styled.td`
 
     &:nth-child(1) { grid-column: 1; grid-row: 1; }
     &:nth-child(2) { grid-column: 2; grid-row: 1; }
-    &:nth-child(3) { grid-column: 1; grid-row: 2; color: #64748b; font-size: 0.78rem; }
+    &:nth-child(3) {
+      grid-column: 1;
+      grid-row: 2;
+      color: ${({ $textColor }) => $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.72)' : '#64748b'};
+      font-size: 0.78rem;
+    }
     &:nth-child(4) { grid-column: 2; grid-row: 2; }
   }
 `;
@@ -491,15 +617,18 @@ const MatchTableHeader = styled.th`
   text-align: left;
   font-weight: 700;
   font-size: 0.72rem;
-  color: #64748b;
+  color: ${({ $textColor }) => $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.72)' : '#64748b'};
   text-transform: uppercase;
   letter-spacing: 0.08em;
 `;
 
 const ResultCell = styled(MatchTableCell)`
   color: ${props =>
-    props.result === 'win' ? '#047857' :
-    props.result === 'loss' ? '#b91c1c' : '#64748b'};
+    props.$result === 'win'
+      ? (props.$textColor === '#ffffff' ? '#bbf7d0' : '#047857')
+      : props.$result === 'loss'
+      ? (props.$textColor === '#ffffff' ? '#fecaca' : '#b91c1c')
+      : (props.$textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.78)' : '#64748b')};
   font-weight: 800;
 
   @media (max-width: 520px) {
@@ -522,11 +651,46 @@ const FairnessCell = styled(MatchTableCell)`
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #64748b;
+      color: ${({ $textColor }) => $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.7)' : '#64748b'};
       margin-right: 0.25rem;
     }
   }
 `;
+
+const normalizeThemeHex = (value) =>
+  /^#[0-9a-f]{6}$/i.test(String(value || '').trim()) ? String(value).trim() : null;
+
+const getReadableTextColor = (primary, secondary) => {
+  const hexToRgb = (hex) => {
+    const normalized = normalizeThemeHex(hex);
+    if (!normalized) return null;
+    return {
+      r: parseInt(normalized.slice(1, 3), 16),
+      g: parseInt(normalized.slice(3, 5), 16),
+      b: parseInt(normalized.slice(5, 7), 16),
+    };
+  };
+
+  const luminance = (rgb) => {
+    if (!rgb) return 1;
+    const srgb = [rgb.r, rgb.g, rgb.b].map((value) => {
+      const channel = value / 255;
+      return channel <= 0.03928
+        ? channel / 12.92
+        : Math.pow((channel + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  };
+
+  const primaryLum = luminance(hexToRgb(primary));
+  const secondaryLum = luminance(hexToRgb(secondary || primary));
+  return (primaryLum + secondaryLum) / 2 < 0.46 ? '#ffffff' : '#0f172a';
+};
+
+const calculateRequiredGames = (teamCount, fallback = 13) => {
+  const count = Number(teamCount) || 0;
+  return count > 1 ? count - 1 : fallback;
+};
 
 const PointsTable = () => {
   const [teams, setTeams] = useState([]);
@@ -538,7 +702,6 @@ const PointsTable = () => {
   const [teamFixtures, setTeamFixtures] = useState([]);
   const [showTeamDetails, setShowTeamDetails] = useState(false);
 
-  const TOTAL_MATCHES = 13;
   const [worldCupMode, setWorldCupMode] = useState(false);
   const NUM_QUALIFIERS = worldCupMode ? 8 : 6; // top-8 if World Cup enabled, top-6 otherwise
   const GROUP_MATCHES = 6; // matches per team in group stage
@@ -625,6 +788,10 @@ const PointsTable = () => {
     () => teams.filter((team) => team.teamName !== "NA"),
     [teams]
   );
+  const totalMatches = useMemo(
+    () => calculateRequiredGames(filteredTeams.length, 13),
+    [filteredTeams.length]
+  );
 
   // Sort teams: eliminated teams go to bottom, others by points
   const sortedTeams = useMemo(() => {
@@ -636,17 +803,17 @@ const PointsTable = () => {
       
       // Check if teams are eliminated based on early thresholds
       const isEliminatedA = (
-        (playedA >= 12 && pointsA <= 10) ||
-        (playedA >= 11 && pointsA <= 8) ||
-        (playedA >= 10 && pointsA <= 6) ||
-        (playedA >= 9 && pointsA <= 4)
+        (playedA >= totalMatches - 1 && pointsA <= 10) ||
+        (playedA >= totalMatches - 2 && pointsA <= 8) ||
+        (playedA >= totalMatches - 3 && pointsA <= 6) ||
+        (playedA >= totalMatches - 4 && pointsA <= 4)
       );
       
       const isEliminatedB = (
-        (playedB >= 12 && pointsB <= 10) ||
-        (playedB >= 11 && pointsB <= 8) ||
-        (playedB >= 10 && pointsB <= 6) ||
-        (playedB >= 9 && pointsB <= 4)
+        (playedB >= totalMatches - 1 && pointsB <= 10) ||
+        (playedB >= totalMatches - 2 && pointsB <= 8) ||
+        (playedB >= totalMatches - 3 && pointsB <= 6) ||
+        (playedB >= totalMatches - 4 && pointsB <= 4)
       );
       
       // Eliminated teams go to bottom
@@ -666,20 +833,19 @@ const PointsTable = () => {
       const fairnessB = Number(b.fairness) || 0;
       return fairnessB - fairnessA;
     });
-  }, [filteredTeams]);
+  }, [filteredTeams, totalMatches]);
 
   // Removed unused currentTopMap
 
   // Mathematical status map (Q/E/NONE) from previous logic (kept for reference, not used when season incomplete)
   const _mathStatusMap = useMemo(() => {
     const result = {};
-    const isThirteen = TOTAL_MATCHES === 13;
-    if (!isThirteen || loading || filteredTeams.length === 0) return result;
+    if (loading || filteredTeams.length === 0) return result;
 
     filteredTeams.forEach((team) => {
       const points = Number(team.points) || 0;
       const played = Number(team.matchesPlayed) || 0;
-      const remaining = Math.max(0, TOTAL_MATCHES - played);
+      const remaining = Math.max(0, totalMatches - played);
       const teamMin = points; // lose out
       const teamMax = points + remaining * 2; // win out
 
@@ -688,7 +854,7 @@ const PointsTable = () => {
         .map((t) => {
           const tp = Number(t.points) || 0;
           const pl = Number(t.matchesPlayed) || 0;
-          const rem = Math.max(0, TOTAL_MATCHES - pl);
+          const rem = Math.max(0, totalMatches - pl);
           return tp + rem * 2;
         })
         .sort((a, b) => b - a);
@@ -713,13 +879,13 @@ const PointsTable = () => {
     });
 
     return result;
-  }, [filteredTeams, TOTAL_MATCHES, NUM_QUALIFIERS, loading]);
+  }, [filteredTeams, totalMatches, NUM_QUALIFIERS, loading]);
 
   // Season completion flag: everyone played all matches
   const allCompleted = useMemo(() => {
     if (filteredTeams.length === 0) return false;
-    return filteredTeams.every(t => Number(t.matchesPlayed) >= TOTAL_MATCHES);
-  }, [filteredTeams, TOTAL_MATCHES]);
+    return filteredTeams.every(t => Number(t.matchesPlayed) >= totalMatches);
+  }, [filteredTeams, totalMatches]);
 
   // Group completion flag: everyone in groups played all group matches
   const groupsCompleted = useMemo(() => {
@@ -760,16 +926,18 @@ const PointsTable = () => {
         const teamImage = team.teamImage
           ? `${API_ENDPOINTS}${team.teamImage}`
           : "https://via.placeholder.com/100";
+        const themePrimary = normalizeThemeHex(team.themePrimary);
+        const themeSecondary = normalizeThemeHex(team.themeSecondary);
 
         const points = Number(team.points) || 0;
         const playedNow = Number(team.matchesPlayed) || 0;
 
         // Check if team is eliminated based on early thresholds
         const isEliminated = (
-          (playedNow >= 12 && points <= 10) ||
-          (playedNow >= 11 && points <= 8) ||
-          (playedNow >= 10 && points <= 6) ||
-          (playedNow >= 9 && points <= 4)
+          (playedNow >= totalMatches - 1 && points <= 10) ||
+          (playedNow >= totalMatches - 2 && points <= 8) ||
+          (playedNow >= totalMatches - 3 && points <= 6) ||
+          (playedNow >= totalMatches - 4 && points <= 4)
         );
 
         // Qualification logic based on mode and completion status
@@ -802,22 +970,22 @@ const PointsTable = () => {
         } else {
           // Overall mode logic
           if (allCompleted) {
-            // All teams completed 13 matches - show Q for top 6/8, E for rest
+            // All participating teams completed their round-robin matches - show Q for top 6/8, E for rest.
             showQ = index < NUM_QUALIFIERS;
             showE = index >= NUM_QUALIFIERS;
             qTitle = worldCupMode ? "Qualified (Top 8)" : "Qualified (Top 6)";
             eTitle = "Eliminated";
           } else {
-            // During season: progressive Q for teams with 13 games + 18+ points
+            // During season: progressive Q/E based on participating team count.
             const earlyEliminated = (
-              (playedNow >= 12 && points <= 10) ||
-              (playedNow >= 11 && points <= 8)  ||
-              (playedNow >= 10 && points <= 6)  ||
-              (playedNow >= 9  && points <= 4)
+              (playedNow >= totalMatches - 1 && points <= 10) ||
+              (playedNow >= totalMatches - 2 && points <= 8)  ||
+              (playedNow >= totalMatches - 3 && points <= 6)  ||
+              (playedNow >= totalMatches - 4 && points <= 4)
             );
-            showQ = playedNow >= TOTAL_MATCHES && points >= 18; // 13 games done + 18+ points = qualified early
+            showQ = playedNow >= totalMatches && points >= 18;
             showE = earlyEliminated;
-            qTitle = "Qualified (13 games, 18+ pts)";
+            qTitle = `Qualified (${totalMatches} games, 18+ pts)`;
             eTitle = "Eliminated (early threshold)";
           }
         }
@@ -860,6 +1028,9 @@ const PointsTable = () => {
             key={team._id || `${team.teamName}-${index}`}
             index={index}
             variant={variant}
+            $themePrimary={themePrimary}
+            $themeSecondary={themeSecondary}
+            $qualifierBoundary={index === qualifiers - 1}
             onClick={() => handleTeamClick(team)}
             role="button"
             tabIndex={0}
@@ -883,7 +1054,6 @@ const PointsTable = () => {
             <TableCell>{team.matchesPlayed}</TableCell>
             <TableCell>{team.wins}</TableCell>
             <TableCell>{losses}</TableCell>
-            <TableCell className="nrr-cell">{formatNRR(team.nrr)}</TableCell>
             <TableCell
               className={`pts-cell ${
                 index < qualifiers
@@ -895,13 +1065,20 @@ const PointsTable = () => {
             >
               {String(Math.max(0, Number(team.points) || 0)).padStart(2, '0')}
             </TableCell>
-            <TableCell>{team.fairness}</TableCell>
+            <TableCell className="nrr-cell">{formatNRR(team.nrr)}</TableCell>
           </TableRow>
         );
       })}
     </tbody>
     );
   };
+
+  const selectedThemePrimary = normalizeThemeHex(selectedTeam?.themePrimary);
+  const selectedThemeSecondary = normalizeThemeHex(selectedTeam?.themeSecondary) || selectedThemePrimary;
+  const selectedTextColor = getReadableTextColor(selectedThemePrimary, selectedThemeSecondary);
+  const selectedMutedColor = selectedTextColor === '#ffffff'
+    ? 'rgba(255, 255, 255, 0.76)'
+    : '#475569';
 
   return (
     <>
@@ -940,16 +1117,16 @@ const PointsTable = () => {
                     <tr>
                       <TableCell>POS</TableCell>
                       <TableCell>TEAM</TableCell>
-                      <TableCell>M</TableCell>
+                      <TableCell>P</TableCell>
                       <TableCell>W</TableCell>
                       <TableCell>L</TableCell>
-                      <TableCell className="nrr-cell">NRR</TableCell>
                       <TableCell className="pts-cell">PTS</TableCell>
-                      <TableCell>FAIR</TableCell>
+                      <TableCell className="nrr-cell">NRR</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(groups.A)}
                 </Table>
+                <TableFooterNote>Top {GROUP_QUALIFIERS} Teams Qualify For Playoffs</TableFooterNote>
               </>
             )}
             
@@ -963,16 +1140,16 @@ const PointsTable = () => {
                     <tr>
                       <TableCell>POS</TableCell>
                       <TableCell>TEAM</TableCell>
-                      <TableCell>M</TableCell>
+                      <TableCell>P</TableCell>
                       <TableCell>W</TableCell>
                       <TableCell>L</TableCell>
-                      <TableCell className="nrr-cell">NRR</TableCell>
                       <TableCell className="pts-cell">PTS</TableCell>
-                      <TableCell>FAIR</TableCell>
+                      <TableCell className="nrr-cell">NRR</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(groups.B)}
                 </Table>
+                <TableFooterNote>Top {GROUP_QUALIFIERS} Teams Qualify For Playoffs</TableFooterNote>
               </>
             )}
             
@@ -1017,16 +1194,16 @@ const PointsTable = () => {
                     <tr>
                       <TableCell>POS</TableCell>
                       <TableCell>TEAM</TableCell>
-                      <TableCell>M</TableCell>
+                      <TableCell>P</TableCell>
                       <TableCell>W</TableCell>
                       <TableCell>L</TableCell>
-                      <TableCell className="nrr-cell">NRR</TableCell>
                       <TableCell className="pts-cell">PTS</TableCell>
-                      <TableCell>FAIR</TableCell>
+                      <TableCell className="nrr-cell">NRR</TableCell>
                     </tr>
                   </TableHead>
                   {renderTableBody(sortedTeams)}
                 </Table>
+                <TableFooterNote>Top {NUM_QUALIFIERS} Teams Qualify For Playoffs</TableFooterNote>
               </>
             )}
             
@@ -1044,9 +1221,14 @@ const PointsTable = () => {
       {/* Team Details Modal */}
       {showTeamDetails && selectedTeam && (
         <ModalOverlay onClick={closeTeamDetails}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <ModalTitle>
+          <ModalContent
+            $themePrimary={selectedThemePrimary}
+            $themeSecondary={selectedThemeSecondary}
+            $textColor={selectedTextColor}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ModalHeader $textColor={selectedTextColor}>
+              <ModalTitle $textColor={selectedTextColor}>
                 <img 
                   src={selectedTeam.teamImage ? `${API_ENDPOINTS}${selectedTeam.teamImage}` : "https://via.placeholder.com/100"} 
                   alt={selectedTeam.teamName} 
@@ -1057,37 +1239,37 @@ const PointsTable = () => {
             </ModalHeader>
 
             <TeamStats>
-              <StatCard color="#28a745">
-                <StatValue>{selectedTeam.wins}</StatValue>
-                <StatLabel>Wins</StatLabel>
+              <StatCard $accentColor="#28a745" $textColor={selectedTextColor}>
+                <StatValue $textColor={selectedTextColor}>{selectedTeam.wins}</StatValue>
+                <StatLabel $textColor={selectedTextColor}>Wins</StatLabel>
               </StatCard>
-              <StatCard color="#dc3545">
-                <StatValue>{selectedTeam.losses}</StatValue>
-                <StatLabel>Losses</StatLabel>
+              <StatCard $accentColor="#dc3545" $textColor={selectedTextColor}>
+                <StatValue $textColor={selectedTextColor}>{selectedTeam.losses}</StatValue>
+                <StatLabel $textColor={selectedTextColor}>Losses</StatLabel>
               </StatCard>
-              <StatCard color="#007bff">
-                <StatValue>{selectedTeam.points}</StatValue>
-                <StatLabel>Points</StatLabel>
+              <StatCard $accentColor="#007bff" $textColor={selectedTextColor}>
+                <StatValue $textColor={selectedTextColor}>{selectedTeam.points}</StatValue>
+                <StatLabel $textColor={selectedTextColor}>Points</StatLabel>
               </StatCard>
-              <StatCard color="#ffc107">
-                <StatValue>{selectedTeam.fairness}</StatValue>
-                <StatLabel>Fairness</StatLabel>
+              <StatCard $accentColor="#ffc107" $textColor={selectedTextColor}>
+                <StatValue $textColor={selectedTextColor}>{selectedTeam.fairness}</StatValue>
+                <StatLabel $textColor={selectedTextColor}>Fairness</StatLabel>
               </StatCard>
-              <StatCard color="#6c757d">
-                <StatValue>{selectedTeam.matchesPlayed}</StatValue>
-                <StatLabel>Matches Played</StatLabel>
+              <StatCard $accentColor="#6c757d" $textColor={selectedTextColor}>
+                <StatValue $textColor={selectedTextColor}>{selectedTeam.matchesPlayed}</StatValue>
+                <StatLabel $textColor={selectedTextColor}>Matches Played</StatLabel>
               </StatCard>
             </TeamStats>
 
-            <h3 style={{ color: '#343a40', marginBottom: '1rem' }}>Match History</h3>
+            <h3 style={{ color: selectedTextColor, marginBottom: '1rem' }}>Match History</h3>
             {teamFixtures.length > 0 ? (
               <MatchTable>
-                <MatchTableHead>
+                <MatchTableHead $textColor={selectedTextColor}>
                   <tr>
-                    <MatchTableHeader>Opponent</MatchTableHeader>
-                    <MatchTableHeader>Result</MatchTableHeader>
-                    <MatchTableHeader>Date</MatchTableHeader>
-                    <MatchTableHeader>Fairness</MatchTableHeader>
+                    <MatchTableHeader $textColor={selectedTextColor}>Opponent</MatchTableHeader>
+                    <MatchTableHeader $textColor={selectedTextColor}>Result</MatchTableHeader>
+                    <MatchTableHeader $textColor={selectedTextColor}>Date</MatchTableHeader>
+                    <MatchTableHeader $textColor={selectedTextColor}>Fairness</MatchTableHeader>
                   </tr>
                 </MatchTableHead>
                 <tbody>
@@ -1124,18 +1306,18 @@ const PointsTable = () => {
                     const teamFairness = isTeam1 ? fixture.team1Fairness : fixture.team2Fairness;
 
                     return (
-                      <MatchTableRow key={index}>
-                        <MatchTableCell>{opponent}</MatchTableCell>
-                        <ResultCell result={result}>{resultText}</ResultCell>
-                        <MatchTableCell>{matchDate}</MatchTableCell>
-                        <FairnessCell>{teamFairness || '-'}</FairnessCell>
+                      <MatchTableRow key={index} $textColor={selectedTextColor}>
+                        <MatchTableCell $textColor={selectedTextColor}>{opponent}</MatchTableCell>
+                        <ResultCell $result={result} $textColor={selectedTextColor}>{resultText}</ResultCell>
+                        <MatchTableCell $textColor={selectedTextColor}>{matchDate}</MatchTableCell>
+                        <FairnessCell $textColor={selectedTextColor}>{teamFairness || '-'}</FairnessCell>
                       </MatchTableRow>
                     );
                   })}
                 </tbody>
               </MatchTable>
             ) : (
-              <div style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>
+              <div style={{ textAlign: 'center', color: selectedMutedColor, padding: '2rem' }}>
                 No matches found for this team.
               </div>
             )}
