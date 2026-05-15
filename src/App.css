@@ -444,14 +444,6 @@ main.content.content-authenticated:not(.no-sidebar):not(.content-venue-atlas) {
   min-height: 100vh;
 }
 
-:root[data-app-squad-theme] main.content.content-authenticated:not(.no-sidebar):not(.content-venue-atlas) {
-  background-image:
-    radial-gradient(ellipse 95% 72% at 12% -14%, var(--app-theme-radial-top), transparent 58%),
-    radial-gradient(ellipse 84% 64% at 92% 108%, var(--app-theme-radial-bottom), transparent 54%),
-    radial-gradient(circle at 8% 0%, rgba(56, 189, 248, 0.14), transparent 28%),
-    linear-gradient(160deg, #050914 0%, #0b1830 44%, #07111f 100%);
-}
-
 /* Ground atlas — light scorebook page */
 .content.content-venue-atlas {
   padding: 0;

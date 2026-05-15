@@ -60,11 +60,7 @@ import AuctionTimeline from './components/AuctionTimeline';
 import './App.css';
 import { SocketProvider } from './contexts/SocketContext';
 import { ToastProvider } from './components/ToastNotification';
-import {
-  applyUserThemeToDocument,
-  clearUserThemeFromDocument,
-  normalizeThemeHex,
-} from './utils/userThemeSync';
+import { normalizeThemeHex } from './utils/userThemeSync';
 
 const CONSISTENCY_BADGE_KEY = 'adminConsistencyBadgeCount';
 const CONSISTENCY_BADGE_UPDATED_EVENT = 'consistency-check-updated';
@@ -174,14 +170,6 @@ function App() {
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
-      clearUserThemeFromDocument();
-      return;
-    }
-    applyUserThemeToDocument(user.themePrimary, user.themeSecondary);
-  }, [isAuthenticated, user?.themePrimary, user?.themeSecondary]);
-
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
       themeHydrateAttemptedRef.current = null;
       return;
     }
@@ -251,7 +239,6 @@ function App() {
   };
 
   const handleLogout = () => {
-    clearUserThemeFromDocument();
     setIsAuthenticated(false);
     setUser(null);
     localStorage.removeItem('isLoggedIn');
