@@ -141,7 +141,7 @@ const TrophyHall = () => {
                   startDate: t.startDate
                 };
               })
-              .sort((a, b) => new Date(b.wonAt || b.endDate) - new Date(a.wonAt || a.endDate)); // Most recent first
+              .sort((a, b) => new Date(b.winner?.wonAt || b.endDate) - new Date(a.winner?.wonAt || a.endDate)); // Most recent first
           }
         } catch (tournamentError) {
           console.warn('Error fetching World Cup tournaments:', tournamentError);
@@ -617,11 +617,14 @@ const TrophyHall = () => {
                         color: 'rgba(255, 255, 255, 0.86)',
                         fontWeight: '700'
                       }}>
-                        {worldCup.wonAt ? new Date(worldCup.wonAt).toLocaleDateString('en-US', {
+                        {(() => {
+                          const displayDate = worldCup.endDate || worldCup.winner?.wonAt || worldCup.startDate;
+                          return displayDate ? new Date(displayDate).toLocaleDateString('en-US', {
                           month: 'long',
                           day: 'numeric',
                           year: 'numeric'
-                        }) : 'Date N/A'}
+                          }) : 'Date N/A';
+                        })()}
                       </div>
                     </div>
                   </div>
