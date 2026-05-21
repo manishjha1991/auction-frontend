@@ -633,6 +633,14 @@
 
 .psl-mom-chip svg { font-size: 0.8rem; }
 
+.psl-match-fix-btn {
+  margin-top: 0.55rem;
+  width: 100%;
+  justify-content: center;
+  font-size: 0.78rem;
+  padding: 0.38rem 0.55rem;
+}
+
 /* =========================================================
    Form – redesigned around legacy form-group
    ========================================================= */

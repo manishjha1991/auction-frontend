@@ -37,6 +37,7 @@ const PlayerStatsList = () => {
       return null;
     }
   });
+  const isAdmin = currentUser?.isAdmin === true;
 
   const [expandedPlayer, setExpandedPlayer] = useState(null);
   const [activeTab, setActiveTab] = useState('batting');
@@ -52,6 +53,7 @@ const PlayerStatsList = () => {
   const [existingEntries, setExistingEntries] = useState([]);
   const [existingEntriesLoading, setExistingEntriesLoading] = useState(false);
   const [selectedExistingEntryId, setSelectedExistingEntryId] = useState('');
+  const [modalPlayer, setModalPlayer] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -69,51 +71,61 @@ const PlayerStatsList = () => {
     saveMode: 'update',
   });
 
-  useEffect(() => {
-    const fetchPlayers = async () => {
-      try {
-        const userId = currentUser?.id;
-        if (!userId) {
-          console.error('User ID not found in localStorage');
-          return;
-        }
-        const response = await fetch(
-          `${API_ENDPOINTS}/api/player-stats/list?userId=${userId}`,
-          { method: 'GET' }
-        );
+  const formatPlayersFromApi = (apiPlayers = []) =>
+    apiPlayers.map((player, index) => ({
+      id: player._id || `player-${index}`,
+      name: player.name || 'Unknown Player',
+      type: player.type,
+      role: player.role,
+      ownerUserId: player.ownerUserId || null,
+      ownerTeamName: player.ownerTeamName || player.team || null,
+      matchPerformance: {
+        batting: player.matchPerformance?.batting || [],
+        bowling: player.matchPerformance?.bowling || [],
+      },
+      totalStats: {
+        batting: { runs: player.totalStats?.batting?.runs || 0 },
+        bowling: { wickets: player.totalStats?.bowling?.wickets || 0 },
+      },
+    }));
 
-        if (response.ok) {
-          const data = await response.json();
-          const formattedPlayers = data.players.map((player, index) => ({
-            id: player._id || `player-${index}`,
-            name: player.name || 'Unknown Player',
-            type: player.type,
-            role: player.role,
-            matchPerformance: {
-              batting: player.matchPerformance?.batting || [],
-              bowling: player.matchPerformance?.bowling || [],
-            },
-            totalStats: {
-              batting: { runs: player.totalStats?.batting?.runs || 0 },
-              bowling: { wickets: player.totalStats?.bowling?.wickets || 0 },
-            },
-          }));
-          setPlayers(formattedPlayers);
-        } else {
-          console.error('Failed to fetch player stats');
-        }
-      } catch (error) {
-        console.error('Error fetching player stats:', error);
+  const loadPlayers = async () => {
+    try {
+      const userId = currentUser?.id;
+      if (!userId) {
+        console.error('User ID not found in localStorage');
+        return null;
       }
-    };
+      const response = await fetch(
+        `${API_ENDPOINTS}/api/player-stats/list?userId=${userId}&nocache=1&t=${Date.now()}`,
+        { method: 'GET', cache: 'no-store' }
+      );
 
-    fetchPlayers();
+      if (response.ok) {
+        const data = await response.json();
+        const formattedPlayers = formatPlayersFromApi(data.players);
+        setPlayers(formattedPlayers);
+        return formattedPlayers;
+      }
+      console.error('Failed to fetch player stats');
+      return null;
+    } catch (error) {
+      console.error('Error fetching player stats:', error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    loadPlayers();
   }, []);
 
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        const response = await fetch(`${API_ENDPOINTS}/api/users/teams`);
+        const teamsUrl = isAdmin
+          ? `${API_ENDPOINTS}/api/users/teams?includeInactive=true`
+          : `${API_ENDPOINTS}/api/users/teams`;
+        const response = await fetch(teamsUrl);
         if (response.ok) {
           const data = await response.json();
           const teamsArray = Array.isArray(data)
@@ -131,7 +143,7 @@ const PlayerStatsList = () => {
     };
 
     fetchTeams();
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     const fetchSettingsAndTournaments = async () => {
@@ -192,7 +204,9 @@ const PlayerStatsList = () => {
   }, [worldCupMode]);
 
   const openModal = (playerName) => {
+    const player = players.find((p) => p.name === playerName) || null;
     setExpandedPlayer(playerName);
+    setModalPlayer(player);
     setActiveTab('batting');
     setIsEditing(false);
     setSubmitMessage('');
@@ -215,6 +229,7 @@ const PlayerStatsList = () => {
 
   const closeModal = () => {
     setExpandedPlayer(null);
+    setModalPlayer(null);
     setIsEditing(false);
   };
 
@@ -222,31 +237,43 @@ const PlayerStatsList = () => {
     setActiveTab(tab);
   };
 
-  const selectedPlayer = players.find((player) => player.name === expandedPlayer);
+  const selectedPlayer = modalPlayer || players.find((player) => player.name === expandedPlayer);
 
   useEffect(() => {
-    const fetchExistingEntries = async () => {
-      if (!selectedPlayer?.id) return;
-      try {
-        setExistingEntriesLoading(true);
-        const res = await fetch(`${API_ENDPOINTS}/api/player-stats/stats/${selectedPlayer.id}`);
-        if (!res.ok) {
-          setExistingEntries([]);
-          return;
-        }
-        const data = await res.json();
-        const entries = Array.isArray(data?.stats) ? data.stats : [];
-        entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setExistingEntries(entries);
-      } catch (error) {
-        console.error('Error fetching existing stats entries:', error);
-        setExistingEntries([]);
-      } finally {
-        setExistingEntriesLoading(false);
-      }
-    };
+    if (!expandedPlayer) return;
+    const fresh = players.find((player) => player.name === expandedPlayer);
+    if (fresh) setModalPlayer(fresh);
+  }, [players, expandedPlayer]);
 
-    fetchExistingEntries();
+  const loadExistingEntries = async (playerId) => {
+    if (!playerId) {
+      setExistingEntries([]);
+      return;
+    }
+    try {
+      setExistingEntriesLoading(true);
+      const res = await fetch(
+        `${API_ENDPOINTS}/api/player-stats/stats/${playerId}?t=${Date.now()}`,
+        { cache: 'no-store' }
+      );
+      if (!res.ok) {
+        setExistingEntries([]);
+        return;
+      }
+      const data = await res.json();
+      const entries = Array.isArray(data?.stats) ? data.stats : [];
+      entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setExistingEntries(entries);
+    } catch (error) {
+      console.error('Error fetching existing stats entries:', error);
+      setExistingEntries([]);
+    } finally {
+      setExistingEntriesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadExistingEntries(selectedPlayer?.id);
   }, [selectedPlayer?.id]);
 
   const handleInputChange = (e) => {
@@ -274,26 +301,109 @@ const PlayerStatsList = () => {
     }, 10);
   };
 
-  const handleExistingEntrySelect = (entryId) => {
-    setSelectedExistingEntryId(entryId);
+  const resolveOpponentUserId = (entry) => {
+    if (entry?.opponentUserId) {
+      return String(entry.opponentUserId);
+    }
+    if (entry?.opponent && allTeams.length) {
+      const match = allTeams.find(
+        (team) =>
+          String(team.teamName || '').toLowerCase() === String(entry.opponent).toLowerCase()
+      );
+      if (match?._id) return String(match._id);
+    }
+    return '';
+  };
+
+  const resolveEntryForUpdate = (opponentUserId, entryId = '') => {
+    if (entryId) return entryId;
+
+    if (!opponentUserId || !existingEntries.length) return '';
+
+    const sameOpponent = existingEntries.filter(
+      (entry) => String(resolveOpponentUserId(entry)) === String(opponentUserId)
+    );
+    if (sameOpponent.length === 1) return String(sameOpponent[0].id);
+    return '';
+  };
+
+  const linkExistingEntry = (entryId) => {
+    setSelectedExistingEntryId(entryId || '');
+    if (!entryId) return;
+
     const entry = existingEntries.find((item) => String(item.id) === String(entryId));
     if (!entry) return;
 
     setFormData((prev) => ({
       ...prev,
+      opponentUserId: resolveOpponentUserId(entry) || prev.opponentUserId,
+      isPlayoffScore: !!entry.metadata?.isPlayoffScore,
+      wcStage: entry.metadata?.isWcScore ? entry.metadata?.wcStage || '' : prev.wcStage,
+      tournamentId:
+        entry.metadata?.isWcScore && entry.tournamentId
+          ? String(entry.tournamentId)
+          : prev.tournamentId,
+      saveMode: 'update',
+    }));
+    setSubmitMessage(
+      `Updating match vs ${entry.opponent || 'opponent'}. Your entered numbers will be saved.`
+    );
+  };
+
+  const applyExistingEntry = (entry) => {
+    if (!entry) return;
+
+    setSelectedExistingEntryId(String(entry.id));
+    setFormData({
       battingRuns: entry.battingStats?.runs ?? '',
       battingBalls: entry.battingStats?.balls ?? '',
       bowlingRunsGiven: entry.bowlingStats?.runsGiven ?? '',
       bowlingBallsBowled: entry.bowlingStats?.ballsBowled ?? '',
       wicketsTaken: entry.bowlingStats?.wickets ?? '',
-      opponentUserId: entry.opponentUserId ? String(entry.opponentUserId) : '',
+      opponentUserId: resolveOpponentUserId(entry),
       isMom: !!entry.isMom,
       isPlayoffScore: !!entry.metadata?.isPlayoffScore,
       wcStage: entry.metadata?.isWcScore ? entry.metadata?.wcStage || '' : '',
       tournamentId: entry.metadata?.isWcScore ? (entry.tournamentId ? String(entry.tournamentId) : '') : '',
       saveMode: 'update',
-    }));
-    setSubmitMessage(`Loaded existing entry from ${new Date(entry.createdAt).toLocaleString('en-IN')}`);
+    });
+    setSubmitMessage(`Loaded vs ${entry.opponent || 'opponent'}. Edit the values and click Save stats.`);
+  };
+
+  const handleExistingEntrySelect = (entryId) => {
+    linkExistingEntry(entryId);
+  };
+
+  const startEditMatch = async (statId) => {
+    if (!statId || !selectedPlayer?.id) return;
+
+    setIsEditing(true);
+    setSubmitMessage('Loading match entry...');
+
+    try {
+      const res = await fetch(
+        `${API_ENDPOINTS}/api/player-stats/stats/${selectedPlayer.id}?t=${Date.now()}`,
+        { cache: 'no-store' }
+      );
+      if (!res.ok) {
+        setSubmitMessage('Could not load this match entry.');
+        return;
+      }
+      const data = await res.json();
+      const entries = Array.isArray(data?.stats) ? data.stats : [];
+      entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setExistingEntries(entries);
+
+      const entry = entries.find((item) => String(item.id) === String(statId));
+      if (!entry) {
+        setSubmitMessage('Match entry not found. Try refreshing the page.');
+        return;
+      }
+      applyExistingEntry(entry);
+    } catch (error) {
+      console.error('Error loading match entry:', error);
+      setSubmitMessage('Could not load this match entry.');
+    }
   };
 
   const handleFormSubmit = async (e) => {
@@ -305,42 +415,48 @@ const PlayerStatsList = () => {
         return;
       }
 
-      const confirmMessage = [
-        `Save stats for ${selectedPlayer?.name || 'this player'}?`,
-        '',
-        `Mode: ${formData.saveMode === 'create' ? 'Create new entry' : 'Update existing entry'}`,
-        formData.saveMode === 'update' && selectedExistingEntryId ? `Editing entry: ${selectedExistingEntryId}` : null,
-        `Opponent selected: ${formData.opponentUserId ? 'Yes' : 'No'}`,
-        worldCupMode && formData.wcStage ? `WC Stage: ${formData.wcStage}` : null,
-      ]
-        .filter(Boolean)
-        .join('\n');
+      const runsToSave = Number(formData.battingRuns);
+      const ballsToSave = Number(formData.battingBalls);
+      const runsGivenToSave = Math.max(0, Number(formData.bowlingRunsGiven) || 0);
+      const ballsBowledToSave = Math.max(0, Number(formData.bowlingBallsBowled) || 0);
+      const wicketsToSave = Math.max(0, Number(formData.wicketsTaken) || 0);
 
-      const confirmed = window.confirm(confirmMessage);
-      if (!confirmed) {
-        setSubmitMessage('Save cancelled.');
+      if (formData.saveMode === 'update' && !formData.opponentUserId) {
+        setSubmitMessage('Select the opponent team for the match you are fixing.');
         return;
       }
+
+      const entryIdToSave =
+        formData.saveMode === 'update'
+          ? resolveEntryForUpdate(formData.opponentUserId, selectedExistingEntryId)
+          : '';
+
+      const selectedOpponentTeam = allTeams.find(
+        (team) => String(team._id) === String(formData.opponentUserId)
+      );
 
       const payload = {
         playerId: selectedPlayer.id,
         userId,
+        requestedByUserId: userId,
         opponentUserId: formData.opponentUserId,
+        opponentTeamName: selectedOpponentTeam?.teamName || '',
         battingStats: {
-          runs: Number(formData.battingRuns),
-          balls: Number(formData.battingBalls),
+          runs: runsToSave,
+          balls: ballsToSave,
         },
         bowlingStats: {
-          runsGiven: Number(formData.bowlingRunsGiven),
-          ballsBowled: Number(formData.bowlingBallsBowled),
+          runsGiven: runsGivenToSave,
+          ballsBowled: ballsBowledToSave,
         },
-        wicketsTaken: Number(formData.wicketsTaken),
+        wicketsTaken: wicketsToSave,
         isMom: formData.isMom,
         isPlayoffScore: worldCupMode ? false : formData.isPlayoffScore,
         isWcScore: !!formData.wcStage,
         wcStage: formData.wcStage || null,
         tournamentId: formData.wcStage ? formData.tournamentId : null,
         forceCreate: formData.saveMode === 'create',
+        existingStatsId: entryIdToSave || null,
       };
 
       if (formData.wcStage && !formData.tournamentId) {
@@ -355,17 +471,37 @@ const PlayerStatsList = () => {
       });
 
       if (res.ok) {
-        await res.json();
-        setSubmitMessage('Stats saved successfully!');
-        setSuccessMessage(`Stats saved for ${selectedPlayer.name}`);
-        setSelectedExistingEntryId('');
+        const result = await res.json();
+        const wasUpdate = formData.saveMode === 'update';
+
+        if (result.noChanges) {
+          setSubmitMessage(
+            'Same values as before — change runs/balls/wickets, then save again.'
+          );
+          return;
+        }
+
+        setSubmitMessage(wasUpdate ? 'Stats updated successfully!' : 'Stats saved successfully!');
+        setSuccessMessage(
+          wasUpdate
+            ? `Stats updated for ${selectedPlayer.name}`
+            : `Stats saved for ${selectedPlayer.name}`
+        );
         setShowSuccessPopup(true);
+        setIsEditing(false);
+        const refreshed = await loadPlayers();
+        await loadExistingEntries(selectedPlayer.id);
+        if (refreshed && selectedPlayer?.id) {
+          const updated = refreshed.find((p) => String(p.id) === String(selectedPlayer.id));
+          if (updated) setModalPlayer(updated);
+        }
         setTimeout(() => {
           setShowSuccessPopup(false);
           setSuccessMessage('');
         }, 3000);
       } else {
-        setSubmitMessage('Error saving stats.');
+        const errBody = await res.json().catch(() => ({}));
+        setSubmitMessage(errBody.message || 'Error saving stats.');
       }
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -647,7 +783,7 @@ const PlayerStatsList = () => {
                         })}
                       </select>
                       <small style={{ color: '#666' }}>
-                        Selecting an entry will auto-populate the form with that record.
+                        Optional — links which match to update. Your typed runs/balls/wickets are saved as entered.
                       </small>
                     </div>
                   )}
@@ -663,8 +799,11 @@ const PlayerStatsList = () => {
                       <option value="">Select opponent team</option>
                       {allTeams
                         .filter((team) => {
-                          if (currentUser && team.teamName === currentUser.teamName) return false;
-                          if (selectedPlayer && team.teamName === selectedPlayer.ownerTeamName) return false;
+                          const ownerId = selectedPlayer?.ownerUserId || (isAdmin ? null : currentUser?.id);
+                          if (ownerId && String(team._id) === String(ownerId)) return false;
+                          if (!isAdmin && currentUser?.id && String(team._id) === String(currentUser.id)) {
+                            return false;
+                          }
                           return true;
                         })
                         .map((team) => (
@@ -795,10 +934,10 @@ const PlayerStatsList = () => {
                       selectedPlayer.matchPerformance.batting.map((match, index) => (
                         <div
                           className={`psl-match-card ${match.mom ? 'is-mom' : ''}`}
-                          key={`bat-${index}`}
+                          key={match.statId || `bat-${index}`}
                         >
                           <header>
-                            <span className="psl-match-label">Match {match.match}</span>
+                            <span className="psl-match-label">Match {match.match || index + 1}</span>
                             <span className="psl-match-vs">vs {match.against}</span>
                           </header>
                           <dl>
@@ -811,6 +950,15 @@ const PlayerStatsList = () => {
                               <dd>{match.balls}</dd>
                             </div>
                           </dl>
+                          {match.statId && (
+                            <button
+                              type="button"
+                              className="psl-btn psl-btn--ghost psl-match-fix-btn"
+                              onClick={() => startEditMatch(match.statId)}
+                            >
+                              <FaPen aria-hidden /> Fix this match
+                            </button>
+                          )}
                           {match.mom && (
                             <span className="psl-mom-chip">
                               <FaTrophy aria-hidden /> Man of the Match
@@ -830,10 +978,10 @@ const PlayerStatsList = () => {
                       selectedPlayer.matchPerformance.bowling.map((match, index) => (
                         <div
                           className={`psl-match-card ${match.mom ? 'is-mom' : ''}`}
-                          key={`bowl-${index}`}
+                          key={match.statId || `bowl-${index}`}
                         >
                           <header>
-                            <span className="psl-match-label">Match {match.match}</span>
+                            <span className="psl-match-label">Match {match.match || index + 1}</span>
                             <span className="psl-match-vs">vs {match.against}</span>
                           </header>
                           <dl>
@@ -850,6 +998,15 @@ const PlayerStatsList = () => {
                               <dd>{match.runs}</dd>
                             </div>
                           </dl>
+                          {match.statId && (
+                            <button
+                              type="button"
+                              className="psl-btn psl-btn--ghost psl-match-fix-btn"
+                              onClick={() => startEditMatch(match.statId)}
+                            >
+                              <FaPen aria-hidden /> Fix this match
+                            </button>
+                          )}
                           {match.mom && (
                             <span className="psl-mom-chip">
                               <FaTrophy aria-hidden /> Man of the Match
