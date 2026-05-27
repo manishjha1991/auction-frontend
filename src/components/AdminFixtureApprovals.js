@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { FaCheck, FaEdit, FaTimes } from 'react-icons/fa';
+import { FaCheck, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { API_ENDPOINTS } from '../const';
 import '../css/AdminFixtureApprovals.css';
 
@@ -140,7 +140,7 @@ const SubmissionCard = ({
               disabled={busy}
               onClick={() => onReview(item)}
             >
-              <FaEdit aria-hidden /> Edit & approve
+              <FaEdit aria-hidden /> Edit
             </button>
           )}
           <button
@@ -163,7 +163,9 @@ const SubmissionCard = ({
       )}
 
       {isPending && isAdminMode && (
-        <p className="admin-fixture-tap-hint">Tap card to review and edit all fields before publishing.</p>
+        <p className="admin-fixture-tap-hint">
+          Tap card or Edit to change fields. Save keeps it pending — then Approve or Reject.
+        </p>
       )}
 
       {isPending && isOpponentMode && (
@@ -337,16 +339,9 @@ const AdminFixtureApprovals = () => {
     }
   };
 
-  const handleEditApprove = () => {
-    if (!editItem || !editForm) return;
-    const errors = validateEditForm(editForm);
-    if (Object.keys(errors).length) {
-      setEditErrors(errors);
-      setToast({ type: 'err', message: 'Fix the highlighted fields before publishing.' });
-      return;
-    }
-    setEditErrors({});
-    approve(editItem, {
+  const buildOverridesFromForm = () => {
+    if (!editForm) return {};
+    return {
       winner: editForm.winner,
       margin: editForm.margin,
       team1Score: editForm.team1Score,
@@ -361,7 +356,59 @@ const AdminFixtureApprovals = () => {
       team1Fairness: Number(editForm.team1Fairness),
       team2Fairness: Number(editForm.team2Fairness),
       note: editForm.note,
-    });
+    };
+  };
+
+  const validateEditFormOrToast = () => {
+    if (!editForm) return false;
+    const errors = validateEditForm(editForm);
+    if (Object.keys(errors).length) {
+      setEditErrors(errors);
+      setToast({ type: 'err', message: 'Fix the highlighted fields before continuing.' });
+      return false;
+    }
+    setEditErrors({});
+    return true;
+  };
+
+  const saveEditOnly = async () => {
+    if (!editItem || !validateEditFormOrToast()) return;
+
+    setLoadingId(editItem._id);
+    try {
+      await axios.post(
+        `${API_ENDPOINTS}/api/fixture-submissions/admin/${editItem._id}/update`,
+        buildOverridesFromForm(),
+        { headers: { 'user-id': userId } }
+      );
+      setToast({
+        type: 'ok',
+        message: 'Changes saved. Still pending — use Approve or Reject when ready.',
+      });
+      setEditItem(null);
+      setEditForm(null);
+      await load();
+    } catch (err) {
+      setToast({
+        type: 'err',
+        message: err.response?.data?.error || 'Failed to save changes',
+      });
+    } finally {
+      setLoadingId('');
+    }
+  };
+
+  const handleEditApprove = () => {
+    if (!editItem || !validateEditFormOrToast()) return;
+    approve(editItem, buildOverridesFromForm());
+  };
+
+  const handleRejectFromModal = async () => {
+    if (!editItem) return;
+    const item = editItem;
+    setEditItem(null);
+    setEditForm(null);
+    await reject(item);
   };
 
   const confirmList = isAdmin ? pending : opponentPending;
@@ -463,13 +510,14 @@ const AdminFixtureApprovals = () => {
           onClick={(e) => e.target === e.currentTarget && setEditItem(null)}
         >
           <div className="admin-fixture-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <h3>Edit & approve</h3>
+            <h3>Edit submission</h3>
             <p className="admin-fixture-modal-sub">
               {editItem.team1} vs {editItem.team2} · submitted by{' '}
               <strong>{editItem.submitterName}</strong> ({editItem.submitterTeamName})
             </p>
             <p className="admin-fixture-modal-hint">
-              Change any incorrect OCR values below, then publish.
+              Save changes to fix OCR errors (stays pending). Approve & publish only when you are
+              ready to update the points table.
             </p>
 
             <div className={`admin-fixture-modal-field${editErrors.winner ? ' has-error' : ''}`}>
@@ -616,17 +664,34 @@ const AdminFixtureApprovals = () => {
             <div className="admin-fixture-actions admin-fixture-actions--modal">
               <button
                 type="button"
+                className="admin-fixture-btn admin-fixture-btn--edit"
+                disabled={!!loadingId}
+                onClick={saveEditOnly}
+              >
+                <FaSave aria-hidden /> Save changes
+              </button>
+              <button
+                type="button"
                 className="admin-fixture-btn admin-fixture-btn--approve"
                 disabled={!!loadingId}
                 onClick={handleEditApprove}
               >
-                <FaCheck aria-hidden /> Publish to points table
+                <FaCheck aria-hidden /> Approve & publish
+              </button>
+              <button
+                type="button"
+                className="admin-fixture-btn admin-fixture-btn--reject"
+                disabled={!!loadingId}
+                onClick={handleRejectFromModal}
+              >
+                <FaTimes aria-hidden /> Reject
               </button>
               <button
                 type="button"
                 className="admin-fixture-btn admin-fixture-btn--reject"
                 onClick={() => {
                   setEditItem(null);
+                  setEditForm(null);
                   setEditErrors({});
                 }}
               >
