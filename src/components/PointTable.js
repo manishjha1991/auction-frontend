@@ -772,6 +772,8 @@ const ResultCell = styled(MatchTableCell)`
       ? (props.$textColor === '#ffffff' ? '#bbf7d0' : '#047857')
       : props.$result === 'loss'
       ? (props.$textColor === '#ffffff' ? '#fecaca' : '#b91c1c')
+      : props.$result === 'pending'
+      ? (props.$textColor === '#ffffff' ? '#fde68a' : '#b45309')
       : (props.$textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.78)' : '#64748b')};
   font-weight: 800;
 
@@ -780,6 +782,33 @@ const ResultCell = styled(MatchTableCell)`
     font-size: 0.85rem;
   }
 `;
+
+const PendingApprovalBanner = styled.div`
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: ${({ $textColor }) =>
+    $textColor === '#ffffff' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(251, 191, 36, 0.15)'};
+  border: 1px solid ${({ $textColor }) =>
+    $textColor === '#ffffff' ? 'rgba(251, 191, 36, 0.45)' : 'rgba(180, 83, 9, 0.35)'};
+  color: ${({ $textColor }) => ($textColor === '#ffffff' ? '#fde68a' : '#92400e')};
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.4;
+`;
+
+const PendingResultSub = styled.div`
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.9;
+  line-height: 1.3;
+`;
+
+const normalizeTeamKey = (value = '') =>
+  String(value || '')
+    .replace(/[^a-z0-9]/gi, '')
+    .toLowerCase();
 
 const FairnessCell = styled(MatchTableCell)`
   text-align: center;
@@ -850,6 +879,7 @@ const PointsTable = () => {
   const [activeTab, setActiveTab] = useState('overall');
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [teamFixtures, setTeamFixtures] = useState([]);
+  const [pendingSubmissions, setPendingSubmissions] = useState([]);
   const [showTeamDetails, setShowTeamDetails] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const pointsTableShareRef = useRef(null);
@@ -865,31 +895,36 @@ const PointsTable = () => {
 
   const fetchTeamFixtures = async (teamName) => {
     try {
-      const response = await axios.get(`${API_ENDPOINTS}/api/fixtures`);
-      const allFixtures = response.data;
-      
+      const [fixturesRes, pendingRes] = await Promise.all([
+        axios.get(`${API_ENDPOINTS}/api/fixtures`),
+        axios.get(`${API_ENDPOINTS}/api/fixture-submissions/pending-by-team`, {
+          params: { teamName },
+        }),
+      ]);
+      const allFixtures = fixturesRes.data;
+
       // Filter fixtures where the team is either team1 or team2
-      const teamMatches = allFixtures.filter(fixture => 
-        fixture.team1 === teamName || fixture.team2 === teamName
+      const teamMatches = allFixtures.filter(
+        (fixture) => fixture.team1 === teamName || fixture.team2 === teamName
       );
-      
+
       // Sort: completed matches first (by creation date), then pending matches
       teamMatches.sort((a, b) => {
         const aHasResult = !!a.winner;
         const bHasResult = !!b.winner;
-        
-        // If one has result and other doesn't, prioritize the one with result
+
         if (aHasResult && !bHasResult) return -1;
         if (!aHasResult && bHasResult) return 1;
-        
-        // If both have same status, sort by creation date (most recent first)
+
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
-      
+
       setTeamFixtures(teamMatches);
+      setPendingSubmissions(Array.isArray(pendingRes.data) ? pendingRes.data : []);
     } catch (error) {
       console.error("Error fetching team fixtures:", error);
       setTeamFixtures([]);
+      setPendingSubmissions([]);
     }
   };
 
@@ -907,7 +942,25 @@ const PointsTable = () => {
     setShowTeamDetails(false);
     setSelectedTeam(null);
     setTeamFixtures([]);
+    setPendingSubmissions([]);
   };
+
+  const pendingByFixtureId = useMemo(() => {
+    const map = new Map();
+    pendingSubmissions.forEach((sub) => {
+      const id = sub.fixtureId?._id || sub.fixtureId;
+      if (id) map.set(String(id), sub);
+    });
+    return map;
+  }, [pendingSubmissions]);
+
+  const pendingApprovalCount = useMemo(
+    () =>
+      teamFixtures.filter(
+        (fx) => !fx.winner && pendingByFixtureId.has(String(fx._id))
+      ).length,
+    [teamFixtures, pendingByFixtureId]
+  );
 
   const fetchModeAndData = async () => {
     try {
@@ -1490,6 +1543,12 @@ const PointsTable = () => {
             </TeamStats>
 
             <h3 style={{ color: selectedTextColor, marginBottom: '1rem' }}>Match History</h3>
+            {pendingApprovalCount > 0 && (
+              <PendingApprovalBanner $textColor={selectedTextColor}>
+                {pendingApprovalCount} match{pendingApprovalCount > 1 ? 'es' : ''} awaiting
+                opponent or admin confirmation (result submitted, not yet on points table).
+              </PendingApprovalBanner>
+            )}
             {teamFixtures.length > 0 ? (
               <MatchTable>
                 <MatchTableHead $textColor={selectedTextColor}>
@@ -1504,10 +1563,15 @@ const PointsTable = () => {
                   {teamFixtures.map((fixture, index) => {
                     const isTeam1 = fixture.team1 === selectedTeam.originalTeamName;
                     const opponent = isTeam1 ? fixture.team2 : fixture.team1;
-                    
+                    const selectedTeamKey = normalizeTeamKey(
+                      selectedTeam.originalTeamName || selectedTeam.teamName
+                    );
+                    const submission = pendingByFixtureId.get(String(fixture._id));
+
                     let result = 'vs';
-                    let resultText = 'vs';
-                    
+                    let resultText = 'Not played';
+                    let pendingSubline = null;
+
                     if (fixture.winner) {
                       if (fixture.winner === selectedTeam.originalTeamName) {
                         result = 'win';
@@ -1522,23 +1586,54 @@ const PointsTable = () => {
                           resultText += ` by ${fixture.margin}`;
                         }
                       }
+                    } else if (submission) {
+                      result = 'pending';
+                      const submitterKey = normalizeTeamKey(submission.submitterTeamName);
+                      const submittedByThisTeam = submitterKey === selectedTeamKey;
+
+                      if (submittedByThisTeam) {
+                        resultText = 'Awaiting opponent or admin';
+                        pendingSubline = submission.winner
+                          ? `Submitted: ${submission.winner} wins`
+                          : null;
+                      } else {
+                        resultText = 'Opponent submitted result';
+                        pendingSubline = submission.submitterTeamName
+                          ? `By ${submission.submitterTeamName} — needs opponent or admin OK`
+                          : 'Needs opponent or admin confirmation';
+                      }
+                      if (submission.team1Score && submission.team2Score) {
+                        const scoreLine = `${submission.team1Score} vs ${submission.team2Score}`;
+                        pendingSubline = pendingSubline
+                          ? `${pendingSubline} · ${scoreLine}`
+                          : scoreLine;
+                      }
                     }
 
-                    // Format date
                     const matchDate = new Date(fixture.createdAt).toLocaleDateString('en-GB', {
                       day: '2-digit',
-                      month: 'short'
+                      month: 'short',
                     });
 
-                    // Get fairness for this team
                     const teamFairness = isTeam1 ? fixture.team1Fairness : fixture.team2Fairness;
 
                     return (
-                      <MatchTableRow key={index} $textColor={selectedTextColor}>
+                      <MatchTableRow key={fixture._id || index} $textColor={selectedTextColor}>
                         <MatchTableCell $textColor={selectedTextColor}>{opponent}</MatchTableCell>
-                        <ResultCell $result={result} $textColor={selectedTextColor}>{resultText}</ResultCell>
+                        <ResultCell $result={result} $textColor={selectedTextColor}>
+                          {resultText}
+                          {pendingSubline && (
+                            <PendingResultSub>{pendingSubline}</PendingResultSub>
+                          )}
+                        </ResultCell>
                         <MatchTableCell $textColor={selectedTextColor}>{matchDate}</MatchTableCell>
-                        <FairnessCell $textColor={selectedTextColor}>{teamFairness || '-'}</FairnessCell>
+                        <FairnessCell $textColor={selectedTextColor}>
+                          {submission && result === 'pending'
+                            ? isTeam1
+                              ? submission.team1Fairness ?? '-'
+                              : submission.team2Fairness ?? '-'
+                            : teamFairness || '-'}
+                        </FairnessCell>
                       </MatchTableRow>
                     );
                   })}
