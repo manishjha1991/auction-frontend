@@ -805,10 +805,119 @@ const PendingResultSub = styled.div`
   line-height: 1.3;
 `;
 
+const ProjectedPreviewBlock = styled.div`
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 2px dashed
+    ${({ $textColor }) =>
+      $textColor === '#ffffff' ? 'rgba(56, 189, 248, 0.55)' : 'rgba(37, 99, 235, 0.45)'};
+  background: ${({ $textColor }) =>
+    $textColor === '#ffffff' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(239, 246, 255, 0.9)'};
+`;
+
+const ProjectedPreviewTitle = styled.h4`
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: ${({ $textColor }) => ($textColor === '#ffffff' ? '#7dd3fc' : '#1d4ed8')};
+`;
+
+const ProjectedPreviewHint = styled.p`
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  color: ${({ $textColor }) =>
+    $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.72)' : '#64748b'};
+  line-height: 1.35;
+`;
+
+const CurrentStatsLabel = styled.p`
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: ${({ $textColor }) =>
+    $textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.65)' : '#94a3b8'};
+`;
+
+const StatCardProjected = styled(StatCard)`
+  border-style: dashed;
+  opacity: 0.95;
+`;
+
+const StatDelta = styled.div`
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: ${({ $textColor, $negative }) =>
+    $negative
+      ? $textColor === '#ffffff'
+        ? '#fca5a5'
+        : '#b91c1c'
+      : $textColor === '#ffffff'
+        ? '#86efac'
+        : '#15803d'};
+`;
+
+const IfApprovedTag = styled.span`
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: ${({ $textColor }) =>
+    $textColor === '#ffffff' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(219, 234, 254, 0.95)'};
+  color: ${({ $textColor }) => ($textColor === '#ffffff' ? '#bae6fd' : '#1e40af')};
+`;
+
 const normalizeTeamKey = (value = '') =>
   String(value || '')
     .replace(/[^a-z0-9]/gi, '')
     .toLowerCase();
+
+/** Preview-only: what stats would become if pending submissions are approved (+2 win, +1 MP, +fairness). */
+const computePendingApprovalDeltas = (selectedTeam, teamFixtures, pendingByFixtureId) => {
+  const teamName = selectedTeam?.originalTeamName || selectedTeam?.teamName || '';
+  const teamKey = normalizeTeamKey(teamName);
+  let addPoints = 0;
+  let addMatches = 0;
+  let addFairness = 0;
+  let addWins = 0;
+
+  teamFixtures.forEach((fx) => {
+    if (fx.winner) return;
+    const sub = pendingByFixtureId.get(String(fx._id));
+    if (!sub) return;
+
+    addMatches += 1;
+    const isTeam1 =
+      normalizeTeamKey(fx.team1) === teamKey || fx.team1 === teamName;
+    addFairness += isTeam1
+      ? Number(sub.team1Fairness) || 0
+      : Number(sub.team2Fairness) || 0;
+
+    const won =
+      normalizeTeamKey(sub.winner) === teamKey ||
+      sub.winner === teamName ||
+      (isTeam1 && (sub.winner === fx.team1 || normalizeTeamKey(sub.winner) === normalizeTeamKey(fx.team1))) ||
+      (!isTeam1 && (sub.winner === fx.team2 || normalizeTeamKey(sub.winner) === normalizeTeamKey(fx.team2)));
+
+    if (won) addWins += 1;
+  });
+
+  addPoints = addWins * 2;
+  return {
+    addPoints,
+    addMatches,
+    addFairness,
+    addWins,
+    addLosses: addMatches - addWins,
+  };
+};
 
 const FairnessCell = styled(MatchTableCell)`
   text-align: center;
@@ -870,6 +979,157 @@ const formatShareNRR = (nrr) => {
   const formatted = parseFloat(nrr).toFixed(3);
   return formatted >= 0 ? `+${formatted}` : formatted;
 };
+
+const formatModalNRR = (nrr) => formatShareNRR(nrr);
+
+const DEFAULT_NRR_OVERS = 20;
+
+const parseRunsForNRR = (scoreString) => {
+  if (!scoreString) return 0;
+  const scoreStr = String(scoreString).trim();
+  if (
+    scoreStr === 'null' ||
+    scoreStr === 'TBD' ||
+    scoreStr === 'NA' ||
+    scoreStr === '' ||
+    scoreStr === 'undefined'
+  ) {
+    return 0;
+  }
+  const match = scoreStr.match(/^(\d+)/);
+  if (match) {
+    const runs = parseInt(match[1], 10);
+    return Number.isNaN(runs) ? 0 : runs;
+  }
+  const num = parseFloat(scoreStr);
+  return Number.isNaN(num) ? 0 : Math.floor(num);
+};
+
+const parseWicketsForNRR = (scoreString) => {
+  if (!scoreString) return 0;
+  const scoreStr = String(scoreString).trim();
+  const slashMatch = scoreStr.match(/\/(\d+)/);
+  if (slashMatch) {
+    const wickets = parseInt(slashMatch[1], 10);
+    if (!Number.isNaN(wickets) && wickets >= 0 && wickets <= 10) return wickets;
+  }
+  const hyphenMatch = scoreStr.match(/-(\d+)/);
+  if (hyphenMatch) {
+    const wickets = parseInt(hyphenMatch[1], 10);
+    if (!Number.isNaN(wickets) && wickets >= 0 && wickets <= 10) return wickets;
+  }
+  return 0;
+};
+
+const parseOversForNRR = (oversString) => {
+  if (!oversString) return null;
+  const oversStr = String(oversString).trim();
+  if (
+    oversStr === 'null' ||
+    oversStr === 'TBD' ||
+    oversStr === 'NA' ||
+    oversStr === '' ||
+    oversStr === 'undefined'
+  ) {
+    return null;
+  }
+  const decimalMatch = oversStr.match(/^(\d+)\.(\d+)$/);
+  if (decimalMatch) {
+    const overs = parseInt(decimalMatch[1], 10);
+    const balls = parseInt(decimalMatch[2], 10);
+    if (!Number.isNaN(overs) && !Number.isNaN(balls) && balls >= 0 && balls <= 5) {
+      return overs + balls / 6;
+    }
+  }
+  const wholeMatch = oversStr.match(/^(\d+)$/);
+  if (wholeMatch) {
+    const overs = parseInt(wholeMatch[1], 10);
+    if (!Number.isNaN(overs)) return overs;
+  }
+  const num = parseFloat(oversStr);
+  return Number.isNaN(num) || num < 0 ? null : num;
+};
+
+/** ICC-style NRR from completed fixtures (matches backend points-table logic). */
+const calculateTeamNRR = (fixtures, teamName, userId) => {
+  const userIdStr = userId ? String(userId) : null;
+  const teamNameNorm = (teamName || '').trim().toLowerCase();
+  let totalRunsScored = 0;
+  let totalRunsConceded = 0;
+  let totalOversFaced = 0;
+  let totalOversBowled = 0;
+  let matchesCount = 0;
+
+  fixtures.forEach((fixture) => {
+    if (!fixture.winner) return;
+
+    const team1Runs = parseRunsForNRR(fixture.team1Score);
+    const team2Runs = parseRunsForNRR(fixture.team2Score);
+    if (team1Runs === 0 && team2Runs === 0) return;
+
+    const team1Wickets = parseWicketsForNRR(fixture.team1Score);
+    const team2Wickets = parseWicketsForNRR(fixture.team2Score);
+
+    let team1OversActual = parseOversForNRR(fixture.team1Overs);
+    let team2OversActual = parseOversForNRR(fixture.team2Overs);
+    if (team1OversActual === null) team1OversActual = DEFAULT_NRR_OVERS;
+    if (team2OversActual === null) team2OversActual = DEFAULT_NRR_OVERS;
+
+    const team1OversFaced = team1Wickets === 10 ? DEFAULT_NRR_OVERS : team1OversActual;
+    const team2OversFaced = team2Wickets === 10 ? DEFAULT_NRR_OVERS : team2OversActual;
+    const team1OversBowled = team2Wickets === 10 ? DEFAULT_NRR_OVERS : team2OversActual;
+    const team2OversBowled = team1Wickets === 10 ? DEFAULT_NRR_OVERS : team1OversActual;
+
+    const team1UserIdStr = fixture.team1UserId
+      ? String(fixture.team1UserId?._id || fixture.team1UserId)
+      : null;
+    const team2UserIdStr = fixture.team2UserId
+      ? String(fixture.team2UserId?._id || fixture.team2UserId)
+      : null;
+
+    let isTeam1 = false;
+    let isTeam2 = false;
+
+    if (userIdStr) {
+      if (team1UserIdStr && team1UserIdStr === userIdStr) isTeam1 = true;
+      else if (team2UserIdStr && team2UserIdStr === userIdStr) isTeam2 = true;
+    }
+
+    if (!isTeam1 && !isTeam2) {
+      if (fixture.team1?.trim().toLowerCase() === teamNameNorm) isTeam1 = true;
+      else if (fixture.team2?.trim().toLowerCase() === teamNameNorm) isTeam2 = true;
+    }
+
+    if (!isTeam1 && !isTeam2) return;
+
+    if (isTeam1) {
+      totalRunsScored += team1Runs;
+      totalRunsConceded += team2Runs;
+      totalOversFaced += team1OversFaced;
+      totalOversBowled += team1OversBowled;
+    } else {
+      totalRunsScored += team2Runs;
+      totalRunsConceded += team1Runs;
+      totalOversFaced += team2OversFaced;
+      totalOversBowled += team2OversBowled;
+    }
+    matchesCount += 1;
+  });
+
+  if (matchesCount === 0) return 0;
+  const runsScoredPerOver = totalOversFaced > 0 ? totalRunsScored / totalOversFaced : 0;
+  const runsConcededPerOver = totalOversBowled > 0 ? totalRunsConceded / totalOversBowled : 0;
+  return parseFloat((runsScoredPerOver - runsConcededPerOver).toFixed(3));
+};
+
+const fixtureWithPendingSubmission = (fixture, submission) => ({
+  ...fixture,
+  winner: submission.winner,
+  team1Score: submission.team1Score,
+  team2Score: submission.team2Score,
+  team1Overs: submission.team1Overs,
+  team2Overs: submission.team2Overs,
+});
 
 const PointsTable = () => {
   const [teams, setTeams] = useState([]);
@@ -961,6 +1221,48 @@ const PointsTable = () => {
       ).length,
     [teamFixtures, pendingByFixtureId]
   );
+
+  const projectedPreview = useMemo(() => {
+    if (!selectedTeam || pendingApprovalCount === 0) return null;
+    const deltas = computePendingApprovalDeltas(
+      selectedTeam,
+      teamFixtures,
+      pendingByFixtureId
+    );
+    if (deltas.addMatches === 0) return null;
+
+    const teamName = selectedTeam.originalTeamName || selectedTeam.teamName;
+    const userId = selectedTeam._id;
+
+    const completedForNrr = teamFixtures.filter((fx) => fx.winner);
+    const fixturesIfApproved = teamFixtures
+      .map((fx) => {
+        if (fx.winner) return fx;
+        const sub = pendingByFixtureId.get(String(fx._id));
+        if (!sub || !sub.team1Score || !sub.team2Score) return null;
+        return fixtureWithPendingSubmission(fx, sub);
+      })
+      .filter(Boolean);
+
+    const currentNrr =
+      selectedTeam.nrr != null && !Number.isNaN(Number(selectedTeam.nrr))
+        ? parseFloat(Number(selectedTeam.nrr).toFixed(3))
+        : calculateTeamNRR(completedForNrr, teamName, userId);
+    const projectedNrr = calculateTeamNRR(fixturesIfApproved, teamName, userId);
+    const nrrDelta = parseFloat((projectedNrr - currentNrr).toFixed(3));
+
+    return {
+      wins: (Number(selectedTeam.wins) || 0) + deltas.addWins,
+      losses: (Number(selectedTeam.losses) || 0) + deltas.addLosses,
+      points: (Number(selectedTeam.points) || 0) + deltas.addPoints,
+      fairness: (Number(selectedTeam.fairness) || 0) + deltas.addFairness,
+      matchesPlayed: (Number(selectedTeam.matchesPlayed) || 0) + deltas.addMatches,
+      nrr: projectedNrr,
+      nrrDelta,
+      currentNrr,
+      deltas,
+    };
+  }, [selectedTeam, teamFixtures, pendingByFixtureId, pendingApprovalCount]);
 
   const fetchModeAndData = async () => {
     try {
@@ -1519,6 +1821,9 @@ const PointsTable = () => {
               <CloseButton onClick={closeTeamDetails}>×</CloseButton>
             </ModalHeader>
 
+            <CurrentStatsLabel $textColor={selectedTextColor}>
+              Current on points table
+            </CurrentStatsLabel>
             <TeamStats>
               <StatCard $accentColor="#28a745" $textColor={selectedTextColor}>
                 <StatValue $textColor={selectedTextColor}>{selectedTeam.wins}</StatValue>
@@ -1540,7 +1845,91 @@ const PointsTable = () => {
                 <StatValue $textColor={selectedTextColor}>{selectedTeam.matchesPlayed}</StatValue>
                 <StatLabel $textColor={selectedTextColor}>Matches Played</StatLabel>
               </StatCard>
+              <StatCard $accentColor="#0ea5e9" $textColor={selectedTextColor}>
+                <StatValue $textColor={selectedTextColor}>
+                  {formatModalNRR(selectedTeam.nrr)}
+                </StatValue>
+                <StatLabel $textColor={selectedTextColor}>NRR</StatLabel>
+              </StatCard>
             </TeamStats>
+
+            {projectedPreview && (
+              <ProjectedPreviewBlock $textColor={selectedTextColor}>
+                <ProjectedPreviewTitle $textColor={selectedTextColor}>
+                  If pending result(s) get approved
+                </ProjectedPreviewTitle>
+                <ProjectedPreviewHint $textColor={selectedTextColor}>
+                  Preview only — nothing changes until opponent or admin confirms. After approval,
+                  the points table updates exactly as shown below.
+                </ProjectedPreviewHint>
+                <TeamStats style={{ marginBottom: 0 }}>
+                  <StatCardProjected $accentColor="#28a745" $textColor={selectedTextColor}>
+                    <StatValue $textColor={selectedTextColor}>{projectedPreview.wins}</StatValue>
+                    <StatLabel $textColor={selectedTextColor}>Wins</StatLabel>
+                    {projectedPreview.deltas.addWins > 0 && (
+                      <StatDelta $textColor={selectedTextColor}>
+                        +{projectedPreview.deltas.addWins}
+                      </StatDelta>
+                    )}
+                  </StatCardProjected>
+                  <StatCardProjected $accentColor="#dc3545" $textColor={selectedTextColor}>
+                    <StatValue $textColor={selectedTextColor}>{projectedPreview.losses}</StatValue>
+                    <StatLabel $textColor={selectedTextColor}>Losses</StatLabel>
+                    {projectedPreview.deltas.addLosses > 0 && (
+                      <StatDelta $textColor={selectedTextColor}>
+                        +{projectedPreview.deltas.addLosses}
+                      </StatDelta>
+                    )}
+                  </StatCardProjected>
+                  <StatCardProjected $accentColor="#007bff" $textColor={selectedTextColor}>
+                    <StatValue $textColor={selectedTextColor}>{projectedPreview.points}</StatValue>
+                    <StatLabel $textColor={selectedTextColor}>Points</StatLabel>
+                    {projectedPreview.deltas.addPoints > 0 && (
+                      <StatDelta $textColor={selectedTextColor}>
+                        +{projectedPreview.deltas.addPoints}
+                      </StatDelta>
+                    )}
+                  </StatCardProjected>
+                  <StatCardProjected $accentColor="#ffc107" $textColor={selectedTextColor}>
+                    <StatValue $textColor={selectedTextColor}>
+                      {Number(projectedPreview.fairness).toFixed(2)}
+                    </StatValue>
+                    <StatLabel $textColor={selectedTextColor}>Fairness</StatLabel>
+                    {projectedPreview.deltas.addFairness > 0 && (
+                      <StatDelta $textColor={selectedTextColor}>
+                        +{Number(projectedPreview.deltas.addFairness).toFixed(2)}
+                      </StatDelta>
+                    )}
+                  </StatCardProjected>
+                  <StatCardProjected $accentColor="#6c757d" $textColor={selectedTextColor}>
+                    <StatValue $textColor={selectedTextColor}>
+                      {projectedPreview.matchesPlayed}
+                    </StatValue>
+                    <StatLabel $textColor={selectedTextColor}>Matches Played</StatLabel>
+                    {projectedPreview.deltas.addMatches > 0 && (
+                      <StatDelta $textColor={selectedTextColor}>
+                        +{projectedPreview.deltas.addMatches}
+                      </StatDelta>
+                    )}
+                  </StatCardProjected>
+                  <StatCardProjected $accentColor="#0ea5e9" $textColor={selectedTextColor}>
+                    <StatValue $textColor={selectedTextColor}>
+                      {formatModalNRR(projectedPreview.nrr)}
+                    </StatValue>
+                    <StatLabel $textColor={selectedTextColor}>NRR</StatLabel>
+                    {projectedPreview.nrrDelta !== 0 && (
+                      <StatDelta
+                        $textColor={selectedTextColor}
+                        $negative={projectedPreview.nrrDelta < 0}
+                      >
+                        {projectedPreview.nrrDelta >= 0 ? '+' : ''}
+                        {projectedPreview.nrrDelta.toFixed(3)}
+                      </StatDelta>
+                    )}
+                  </StatCardProjected>
+                </TeamStats>
+              </ProjectedPreviewBlock>
+            )}
 
             <h3 style={{ color: selectedTextColor, marginBottom: '1rem' }}>Match History</h3>
             {pendingApprovalCount > 0 && (
@@ -1610,6 +1999,43 @@ const PointsTable = () => {
                       }
                     }
 
+                    let ifApprovedPreview = null;
+                    if (submission && result === 'pending') {
+                      const won =
+                        normalizeTeamKey(submission.winner) === selectedTeamKey ||
+                        submission.winner === selectedTeam.originalTeamName ||
+                        (isTeam1 &&
+                          (submission.winner === fixture.team1 ||
+                            normalizeTeamKey(submission.winner) === normalizeTeamKey(fixture.team1))) ||
+                        (!isTeam1 &&
+                          (submission.winner === fixture.team2 ||
+                            normalizeTeamKey(submission.winner) === normalizeTeamKey(fixture.team2)));
+                      const pendingFair = isTeam1
+                        ? Number(submission.team1Fairness) || 0
+                        : Number(submission.team2Fairness) || 0;
+                      ifApprovedPreview = won
+                        ? 'If approved: Won · +2 PTS · +1 match'
+                        : `If approved: Lost · +0 PTS · +1 match · +${pendingFair} fairness`;
+
+                      if (submission.team1Score && submission.team2Score && submission.team1Overs && submission.team2Overs) {
+                        const teamName = selectedTeam.originalTeamName || selectedTeam.teamName;
+                        const completedNrrFixtures = teamFixtures.filter((fx) => fx.winner);
+                        const virtualFx = fixtureWithPendingSubmission(fixture, submission);
+                        const nrrBefore = calculateTeamNRR(
+                          completedNrrFixtures,
+                          teamName,
+                          selectedTeam._id
+                        );
+                        const nrrAfter = calculateTeamNRR(
+                          [...completedNrrFixtures, virtualFx],
+                          teamName,
+                          selectedTeam._id
+                        );
+                        const nrrChg = parseFloat((nrrAfter - nrrBefore).toFixed(3));
+                        ifApprovedPreview += ` · NRR ${nrrChg >= 0 ? '+' : ''}${nrrChg.toFixed(3)}`;
+                      }
+                    }
+
                     const matchDate = new Date(fixture.createdAt).toLocaleDateString('en-GB', {
                       day: '2-digit',
                       month: 'short',
@@ -1624,6 +2050,11 @@ const PointsTable = () => {
                           {resultText}
                           {pendingSubline && (
                             <PendingResultSub>{pendingSubline}</PendingResultSub>
+                          )}
+                          {ifApprovedPreview && (
+                            <IfApprovedTag $textColor={selectedTextColor}>
+                              {ifApprovedPreview}
+                            </IfApprovedTag>
                           )}
                         </ResultCell>
                         <MatchTableCell $textColor={selectedTextColor}>{matchDate}</MatchTableCell>
