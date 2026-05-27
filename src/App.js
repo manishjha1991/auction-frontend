@@ -25,7 +25,7 @@ import {
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
   FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaBook,
   FaCalculator, FaCloudRain, FaHistory, FaWrench, FaChartLine, FaAddressCard, FaBullseye,
-  FaMapMarkedAlt
+  FaMapMarkedAlt, FaCheckCircle
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
@@ -43,6 +43,8 @@ import TrophyHall from './components/TrophyHall';
 import AdminMatchResults from './components/AdminMatchResults';
 import AdminTradeActivity from './components/AdminTradeActivity';
 import OcrExtractor from './components/OcrExtractor';
+import FixtureOcr from './components/FixtureOcr';
+import AdminFixtureApprovals from './components/AdminFixtureApprovals';
 import LiveBiddingDashboard from './components/LiveBiddingDashboard';
 import MyBids from './components/MyBids';
 import MyAuctionHub from './components/MyAuctionHub';
@@ -349,6 +351,14 @@ function App() {
                         <span>Fixtures</span>
                       </Link>
                     </li>
+                    {filterItem('Confirm Match Results') && (
+                      <li>
+                        <Link to="/fixture-confirmations" onClick={closeSidebar} className={`menu-item ${isActive('/fixture-confirmations') || isActive('/admin/fixture-approvals') ? 'active' : ''}`}>
+                          <FaCheckCircle className="menu-icon" />
+                          <span>Confirm Match Results</span>
+                        </Link>
+                      </li>
+                    )}
                     <li>
                       <Link to="/match-scheduler" onClick={closeSidebar} className={`menu-item ${isActive('/match-scheduler') ? 'active' : ''}`}>
                         <FaCalendarAlt className="menu-icon" />
@@ -498,6 +508,20 @@ function App() {
                       </Link>
                     </li>
                     <li>
+                      <Link to="/fixture-ocr" onClick={closeSidebar} className={`menu-item ${isActive('/fixture-ocr') ? 'active' : ''}`}>
+                        <FaMedal className="menu-icon" />
+                        <span>Fixture Result OCR</span>
+                      </Link>
+                    </li>
+                    {filterItem('Confirm Match Results') && (
+                      <li>
+                        <Link to="/fixture-confirmations" onClick={closeSidebar} className={`menu-item ${isActive('/fixture-confirmations') || isActive('/admin/fixture-approvals') ? 'active' : ''}`}>
+                          <FaCheckCircle className="menu-icon" />
+                          <span>Confirm Match Results</span>
+                        </Link>
+                      </li>
+                    )}
+                    <li>
                       <Link to="/dls-calculator" onClick={closeSidebar} className={`menu-item ${isActive('/dls-calculator') ? 'active' : ''}`}>
                         <FaCalculator className="menu-icon" />
                         <span>Target Calculator</span>
@@ -526,6 +550,14 @@ function App() {
                       Admin Panel
                     </h3>
                     <ul className="menu">
+                      {filterItem('Fixture Approvals') && (
+                        <li>
+                          <Link to="/fixture-confirmations" onClick={closeSidebar} className={`menu-item ${isActive('/fixture-confirmations') || isActive('/admin/fixture-approvals') ? 'active' : ''}`}>
+                            <FaCheckCircle className="menu-icon" />
+                            <span>Fixture Approvals</span>
+                          </Link>
+                        </li>
+                      )}
                       <li>
                         <Link to="/admin/trades" onClick={closeSidebar} className={`menu-item ${isActive('/admin/trades') ? 'active' : ''}`}>
                           <FaExchangeAlt className="menu-icon" />
@@ -653,6 +685,7 @@ function App() {
             <Route path="/player-insights" element={<PrivateRoute><PlayerInsightsPage /></PrivateRoute>} />
             <Route path="/cpl-player-career-stats" element={<PrivateRoute><CplPlayerCareerStats /></PrivateRoute>} />
             <Route path="/ocr" element={<PrivateRoute><OcrExtractor /></PrivateRoute>} />
+            <Route path="/fixture-ocr" element={<PrivateRoute><FixtureOcr /></PrivateRoute>} />
             <Route path="/dls-calculator" element={<PrivateRoute><DLSCalculator /></PrivateRoute>} />
             <Route path="/auction-timeline" element={<PrivateRoute><AuctionTimeline /></PrivateRoute>} />
             
@@ -703,6 +736,22 @@ function App() {
               element={
                 <PrivateRoute>
                   {appSettings.enableUnsoldPlayers ? <UnsoldPlayers /> : <Navigate to="/profile" />}
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/fixture-confirmations"
+              element={
+                <PrivateRoute>
+                  <AdminFixtureApprovals />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/fixture-approvals"
+              element={
+                <PrivateRoute>
+                  <AdminFixtureApprovals />
                 </PrivateRoute>
               }
             />

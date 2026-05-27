@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { Link } from "react-router-dom";
 import styled from "styled-components";
 import axios from "axios";
 import ReactSelect from "react-select"; // <-- 1) Import react-select
@@ -987,6 +988,34 @@ const Fixtures = () => {
       
       <FixtureWrapper>
         <h2>Fixtures {mode === 'groups' && <span style={{ fontSize: '0.8rem', color: '#007bff', fontWeight: 'normal' }}>(Group Stage Mode)</span>}</h2>
+        {isAdmin && (
+          <p style={{ margin: '0 0 1rem' }}>
+            <Link
+              to="/fixture-confirmations"
+              style={{
+                color: '#2563eb',
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              Review pending fixture OCR submissions →
+            </Link>
+          </p>
+        )}
+        {!isAdmin && (
+          <p style={{ margin: '0 0 1rem' }}>
+            <Link
+              to="/fixture-confirmations"
+              style={{
+                color: '#2563eb',
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              Confirm opponent match results →
+            </Link>
+          </p>
+        )}
         <div style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, color: '#374151' }}>
           {activeTab === 'playoffs' ? (
             'Playoff fixtures'
