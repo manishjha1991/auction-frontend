@@ -510,7 +510,7 @@ function App() {
                     <li>
                       <Link to="/fixture-ocr" onClick={closeSidebar} className={`menu-item ${isActive('/fixture-ocr') ? 'active' : ''}`}>
                         <FaMedal className="menu-icon" />
-                        <span>Fixture Result OCR</span>
+                        <span>Submit match result</span>
                       </Link>
                     </li>
                     {filterItem('Confirm Match Results') && (

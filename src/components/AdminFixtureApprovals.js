@@ -30,7 +30,7 @@ const validateEditForm = (form) => {
   else if (!SCORE_REGEX.test(form.team2Score.trim())) errors.team2Score = 'Use runs/wickets (e.g. 134/10)';
   if (!form.team1Overs?.trim()) errors.team1Overs = 'Overs required';
   if (!form.team2Overs?.trim()) errors.team2Overs = 'Overs required';
-  if (!form.momName?.trim()) errors.momName = 'MoM required';
+  // MoM optional
   if (form.team1Fairness === '' || form.team1Fairness == null) errors.team1Fairness = 'Required';
   if (form.team2Fairness === '' || form.team2Fairness == null) errors.team2Fairness = 'Required';
   return errors;

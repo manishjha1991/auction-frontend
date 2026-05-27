@@ -25,16 +25,6 @@ const EMPTY_FORM = {
   mom: { name: '', score: '', wickets: '' },
   team1Fairness: '',
   team2Fairness: '',
-  fieldConfidence: {},
-};
-
-const hintForField = (confidence, key) => {
-  const c = confidence?.[key];
-  if (c === 'high') return { class: 'ocr', label: 'From screenshot' };
-  if (c === 'low') return { class: 'review', label: 'Check this' };
-  if (c === 'manual') return { class: 'manual', label: 'Enter manually' };
-  if (c === 'missing') return { class: 'missing', label: 'Not detected' };
-  return null;
 };
 
 const FixtureOcr = () => {
@@ -47,13 +37,13 @@ const FixtureOcr = () => {
   const [fixturesLoading, setFixturesLoading] = useState(true);
   const [selectedFixtureId, setSelectedFixtureId] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [modalStep, setModalStep] = useState('match');
   const [form, setForm] = useState(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [lastParsed, setLastParsed] = useState(null);
-  const [fixtureSearch, setFixtureSearch] = useState('');
 
   const user = useMemo(() => {
     try {
@@ -90,22 +80,6 @@ const FixtureOcr = () => {
     [fixtures, fixtureBelongsToUser]
   );
 
-  const filteredFixtures = useMemo(() => {
-    if (!fixtureSearch.trim()) return pendingFixtures;
-    const term = fixtureSearch.trim().toLowerCase();
-    const words = term.split(/\s+/).filter(Boolean);
-    return pendingFixtures.filter((fx) => {
-      const t1 = (fx.team1 || '').toLowerCase();
-      const t2 = (fx.team2 || '').toLowerCase();
-      if (t1.includes(term) || t2.includes(term)) return true;
-      if (`${t1} vs ${t2}`.includes(term)) return true;
-      if (words.length > 1) {
-        return words.every((w) => t1.includes(w) || t2.includes(w));
-      }
-      return false;
-    });
-  }, [pendingFixtures, fixtureSearch]);
-
   const selectedFixture = useMemo(
     () => fixtures.find((fx) => String(fx._id) === String(selectedFixtureId)),
     [fixtures, selectedFixtureId]
@@ -132,21 +106,11 @@ const FixtureOcr = () => {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const playerOptions = useMemo(() => {
-    if (!selectedFixture) return [];
-    const all = [
-      ...(selectedFixture.team1Details?.players || []),
-      ...(selectedFixture.team2Details?.players || []),
-    ];
-    const unique = Array.from(new Map(all.map((p) => [p.name || p._id, p])).values());
-    return unique.map((p) => ({ value: p.name, label: p.name }));
-  }, [selectedFixture]);
-
   const acceptFile = useCallback(
     (nextFile) => {
       if (!nextFile) return;
       if (!nextFile.type.startsWith('image/')) {
-        setOcrError('Please upload an image file (PNG, JPG, etc.).');
+        setOcrError('Please choose a photo (PNG or JPG).');
         return;
       }
       if (nextFile.size > 10 * 1024 * 1024) {
@@ -187,7 +151,7 @@ const FixtureOcr = () => {
 
   const runOcr = useCallback(async () => {
     if (!file) {
-      setOcrError('Select a match summary screenshot first.');
+      setOcrError('Upload a screenshot first.');
       return;
     }
     setOcrStatus('processing');
@@ -204,19 +168,18 @@ const FixtureOcr = () => {
         },
       });
       const text = data?.text?.trim() || '';
-      if (!text) throw new Error('No text found in the image. Try a clearer screenshot.');
+      if (!text) throw new Error('Could not read text. Try a clearer photo.');
 
       const parsed = parseMatchSummaryOcr(text);
       setLastParsed(parsed);
 
-      const ocrSearch = [parsed.team1Name, parsed.team2Name].filter(Boolean).join(' ');
-      setFixtureSearch(ocrSearch);
-
       const matched = findMatchingFixture(pendingFixtures, parsed.team1Name, parsed.team2Name);
       if (matched) {
         setSelectedFixtureId(String(matched._id));
+        setModalStep('review');
       } else {
         setSelectedFixtureId('');
+        setModalStep('match');
       }
 
       const built = buildFormFromParse(parsed, matched || null);
@@ -226,10 +189,10 @@ const FixtureOcr = () => {
       setOcrStatus('done');
     } catch (err) {
       console.error('Fixture OCR failed', err);
-      setOcrError(err.message || 'OCR failed. Try a clearer screenshot.');
+      setOcrError(err.message || 'Could not read screenshot. Try again.');
       setOcrStatus('error');
     }
-  }, [file, fixtures, pendingFixtures, preprocessImage]);
+  }, [file, pendingFixtures, preprocessImage]);
 
   const updateForm = (key, value) => {
     setForm((prev) => {
@@ -239,32 +202,24 @@ const FixtureOcr = () => {
     setFieldErrors((prev) => {
       const next = { ...prev };
       delete next[key];
+      delete next.momName;
       return next;
     });
   };
 
   const validate = () => {
     const errors = {};
-    if (!selectedFixture) errors.fixture = 'Select a fixture';
-    if (!form.winner) errors.winner = 'Winner is required';
-    if (!form.margin?.trim()) errors.margin = 'Margin is required';
-    if (!form.team1Score?.trim()) errors.team1Score = 'Team 1 score is required';
-    else if (!SCORE_REGEX.test(form.team1Score.trim())) {
-      errors.team1Score = 'Use runs/wickets format (e.g. 265/10)';
-    }
-    if (!form.team2Score?.trim()) errors.team2Score = 'Team 2 score is required';
-    else if (!SCORE_REGEX.test(form.team2Score.trim())) {
-      errors.team2Score = 'Use runs/wickets format (e.g. 134/10)';
-    }
-    if (!form.team1Overs?.trim()) errors.team1Overs = 'Team 1 overs required';
-    if (!form.team2Overs?.trim()) errors.team2Overs = 'Team 2 overs required';
-    if (!form.mom?.name?.trim()) errors.momName = 'Man of the Match is required';
-    if (form.team1Fairness === '' || form.team1Fairness == null) {
-      errors.team1Fairness = 'Fairness is required';
-    }
-    if (form.team2Fairness === '' || form.team2Fairness == null) {
-      errors.team2Fairness = 'Fairness is required';
-    }
+    if (!selectedFixture) errors.fixture = 'Pick your match';
+    if (!form.winner) errors.winner = 'Pick the winner';
+    if (!form.margin?.trim()) errors.margin = 'Enter margin (e.g. 50 runs)';
+    if (!form.team1Score?.trim()) errors.team1Score = 'Required';
+    else if (!SCORE_REGEX.test(form.team1Score.trim())) errors.team1Score = 'Use e.g. 265/10';
+    if (!form.team2Score?.trim()) errors.team2Score = 'Required';
+    else if (!SCORE_REGEX.test(form.team2Score.trim())) errors.team2Score = 'Use e.g. 134/10';
+    if (!form.team1Overs?.trim()) errors.team1Overs = 'Required';
+    if (!form.team2Overs?.trim()) errors.team2Overs = 'Required';
+    if (form.team1Fairness === '' || form.team1Fairness == null) errors.team1Fairness = 'Required';
+    if (form.team2Fairness === '' || form.team2Fairness == null) errors.team2Fairness = 'Required';
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -274,57 +229,52 @@ const FixtureOcr = () => {
 
     setSaving(true);
     try {
-      const submissionBody = {
-        fixtureId: selectedFixture._id,
-        winner: form.winner,
-        margin: form.margin.trim(),
-        team1Score: form.team1Score.trim(),
-        team2Score: form.team2Score.trim(),
-        team1Overs: form.team1Overs.trim(),
-        team2Overs: form.team2Overs.trim(),
-        mom: {
-          name: form.mom.name.trim(),
-          score: form.mom.score !== '' ? Number(form.mom.score) : null,
-          wickets: form.mom.wickets !== '' ? Number(form.mom.wickets) : null,
+      await axios.post(
+        `${API_ENDPOINTS}/api/fixture-submissions/submit`,
+        {
+          fixtureId: selectedFixture._id,
+          winner: form.winner,
+          margin: form.margin.trim(),
+          team1Score: form.team1Score.trim(),
+          team2Score: form.team2Score.trim(),
+          team1Overs: form.team1Overs.trim(),
+          team2Overs: form.team2Overs.trim(),
+          mom: {
+            name: form.mom.name?.trim() || null,
+            score: form.mom.score !== '' ? Number(form.mom.score) : null,
+            wickets: form.mom.wickets !== '' ? Number(form.mom.wickets) : null,
+          },
+          team1Fairness: Number(form.team1Fairness),
+          team2Fairness: Number(form.team2Fairness),
         },
-        team1Fairness: Number(form.team1Fairness),
-        team2Fairness: Number(form.team2Fairness),
-      };
-
-      await axios.post(`${API_ENDPOINTS}/api/fixture-submissions/submit`, submissionBody, {
-        headers: { 'user-id': userId },
-      });
-      const submitterLabel = user?.name || user?.teamName || 'You';
+        { headers: { 'user-id': userId } }
+      );
       setToast({
         type: 'success',
-        message: `Submitted as ${submitterLabel}${user?.teamName ? ` (${user.teamName})` : ''}. Waiting for opponent or admin to confirm.`,
+        message: 'Submitted! Your opponent or admin will confirm before points update.',
       });
-
       setShowModal(false);
       setFile(null);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl('');
       setOcrStatus('idle');
       setForm(EMPTY_FORM);
-
+      setModalStep('match');
       const res = await axios.get(`${API_ENDPOINTS}/api/fixtures`);
       setFixtures(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       setToast({
         type: 'error',
-        message: err.response?.data?.error || err.message || 'Failed to save.',
+        message: err.response?.data?.error || err.message || 'Submit failed.',
       });
     } finally {
       setSaving(false);
     }
   };
 
-  const ocrTeams =
-    form.ocrTeams?.team1 || form.ocrTeams?.team2
-      ? form.ocrTeams
-      : lastParsed
-      ? { team1: lastParsed.team1Name, team2: lastParsed.team2Name }
-      : null;
+  const ocrTeams = lastParsed
+    ? { team1: lastParsed.team1Name, team2: lastParsed.team2Name }
+    : null;
 
   const fixtureMismatch =
     selectedFixture &&
@@ -332,8 +282,13 @@ const FixtureOcr = () => {
     ocrTeams?.team2 &&
     !fixtureMatchesOcrTeams(selectedFixture, ocrTeams.team1, ocrTeams.team2);
 
-  const handleFixtureChange = (fixtureId) => {
+  const selectFixture = (fixtureId) => {
     setSelectedFixtureId(fixtureId);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.fixture;
+      return next;
+    });
     if (!lastParsed) return;
     const fx = fixtures.find((f) => String(f._id) === String(fixtureId));
     const built = buildFormFromParse(lastParsed, fx || null);
@@ -344,58 +299,53 @@ const FixtureOcr = () => {
     }));
   };
 
-  useEffect(() => {
-    if (!showModal || !lastParsed || !selectedFixture) return;
-    if (!fixtureMatchesOcrTeams(selectedFixture, lastParsed.team1Name, lastParsed.team2Name)) {
+  const goToReview = () => {
+    if (!selectedFixtureId) {
+      setFieldErrors({ fixture: 'Pick your match first' });
       return;
     }
-    const built = buildFormFromParse(lastParsed, selectedFixture);
-    setForm((prev) => ({
-      ...built,
-      team1Fairness: prev.team1Fairness,
-      team2Fairness: prev.team2Fairness,
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFixtureId, showModal]);
-
-  const renderFieldHint = (key) => {
-    const hint = hintForField(form.fieldConfidence, key);
-    if (!hint) return null;
-    return (
-      <span className={`fixture-ocr-field-hint fixture-ocr-field-hint--${hint.class}`}>
-        {hint.label}
-      </span>
-    );
+    setModalStep('review');
   };
 
-  const fieldClass = (key) => {
-    const c = form.fieldConfidence?.[key];
-    if (fieldErrors[key]) return 'fixture-ocr-field--error';
-    if (c === 'high') return 'fixture-ocr-field--ocr';
-    if (c === 'low' || c === 'missing') return 'fixture-ocr-field--review';
-    return '';
+  const resetUpload = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setFile(null);
+    setPreviewUrl('');
+    setOcrStatus('idle');
+    setOcrError('');
+    setShowModal(false);
   };
+
+  const mainStep = !file ? 1 : showModal ? (modalStep === 'match' ? 2 : 3) : 1;
 
   return (
     <div className="fixture-ocr-page">
       <div className="fixture-ocr-shell">
         <header className="fixture-ocr-header">
-          <h1>Fixture Result OCR</h1>
-          <p>
-            Upload the end-of-match summary screenshot from Cricket 22/24. We&apos;ll read scores,
-            overs, winner and MoM — you review, enter fairness, then submit for opponent or admin
-            confirmation.
-          </p>
-          <span className="fixture-ocr-badge">
-            <FaCamera aria-hidden /> Match summary screen
-          </span>
+          <h1>Submit match result</h1>
+          <p>Upload your Cricket 22/24 end-of-match screen. We fill in scores — you check and send.</p>
           <Link to="/fixture-confirmations" className="fixture-ocr-admin-link">
-            {isAdmin ? 'Review pending submissions →' : 'Confirm opponent results →'}
+            {isAdmin ? 'Pending approvals →' : 'Opponent submitted? Confirm here →'}
           </Link>
         </header>
 
+        <div className="fixture-ocr-steps" aria-label="Steps">
+          <div className={`fixture-ocr-step${mainStep >= 1 ? ' is-active' : ''}${mainStep > 1 ? ' is-done' : ''}`}>
+            <span className="fixture-ocr-step-num">1</span>
+            <span>Upload</span>
+          </div>
+          <div className={`fixture-ocr-step${mainStep >= 2 ? ' is-active' : ''}${mainStep > 2 ? ' is-done' : ''}`}>
+            <span className="fixture-ocr-step-num">2</span>
+            <span>Pick match</span>
+          </div>
+          <div className={`fixture-ocr-step${mainStep >= 3 ? ' is-active' : ''}`}>
+            <span className="fixture-ocr-step-num">3</span>
+            <span>Submit</span>
+          </div>
+        </div>
+
         <div
-          className={`fixture-ocr-upload${isDragOver ? ' is-dragover' : ''}`}
+          className={`fixture-ocr-upload${isDragOver ? ' is-dragover' : ''}${file ? ' has-file' : ''}`}
           onDragOver={(e) => {
             e.preventDefault();
             setIsDragOver(true);
@@ -411,18 +361,18 @@ const FixtureOcr = () => {
             type="file"
             accept="image/*"
             onChange={(e) => acceptFile(e.target.files?.[0])}
-            aria-label="Upload match summary screenshot"
+            aria-label="Upload match screenshot"
           />
           <div className="fixture-ocr-upload-icon">
-            <FaUpload aria-hidden />
+            <FaCamera aria-hidden />
           </div>
-          <strong>Drop screenshot here</strong>
-          <span>or tap to browse · PNG / JPG · max 10 MB</span>
+          <strong>{file ? 'Screenshot added' : 'Tap to add screenshot'}</strong>
+          <span>Full match summary screen · PNG or JPG</span>
         </div>
 
         {previewUrl && (
           <div className="fixture-ocr-preview">
-            <img src={previewUrl} alt="Match summary preview" />
+            <img src={previewUrl} alt="Your screenshot" />
           </div>
         )}
 
@@ -431,7 +381,7 @@ const FixtureOcr = () => {
             <div className="fixture-ocr-progress">
               <div className="fixture-ocr-progress-fill" style={{ width: `${ocrProgress}%` }} />
             </div>
-            <p className="fixture-ocr-progress-label">Reading scorecard… {ocrProgress}%</p>
+            <p className="fixture-ocr-progress-label">Reading screenshot… {ocrProgress}%</p>
           </>
         )}
 
@@ -444,29 +394,21 @@ const FixtureOcr = () => {
             onClick={runOcr}
             disabled={!file || ocrStatus === 'processing'}
           >
-            {ocrStatus === 'processing' ? 'Extracting…' : 'Extract & Review'}
+            {ocrStatus === 'processing' ? 'Reading…' : 'Read screenshot & continue'}
           </button>
           {file && (
-            <button
-              type="button"
-              className="fixture-ocr-btn fixture-ocr-btn--ghost"
-              onClick={() => {
-                if (previewUrl) URL.revokeObjectURL(previewUrl);
-                setFile(null);
-                setPreviewUrl('');
-                setOcrStatus('idle');
-                setOcrError('');
-              }}
-            >
-              Clear image
+            <button type="button" className="fixture-ocr-btn fixture-ocr-btn--ghost" onClick={resetUpload}>
+              Start over
             </button>
           )}
         </div>
 
         <div className="fixture-ocr-tip">
-          <strong>Tip:</strong> Use the full post-match screen showing both teams&apos; totals, overs,
-          &ldquo;Player of the Match&rdquo;, and the result line (e.g. &ldquo;BL WON BY 131 RUNS&rdquo;).
-          Wickets may need a quick check — fairness is always entered by hand.
+          <strong>Need:</strong> both team scores, overs, who won, and margin on screen.
+          <br />
+          <strong>You type:</strong> fairness for both teams (not on screenshot).
+          <br />
+          Player of the match is optional.
         </div>
       </div>
 
@@ -475,14 +417,17 @@ const FixtureOcr = () => {
           className="fixture-ocr-modal-overlay"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="fixture-ocr-modal-title"
           onClick={(e) => e.target === e.currentTarget && setShowModal(false)}
         >
           <div className="fixture-ocr-modal">
             <div className="fixture-ocr-modal-handle" aria-hidden />
             <div className="fixture-ocr-modal-head">
-              <h2 id="fixture-ocr-modal-title">Review fixture result</h2>
-              <p>Fields marked in yellow need a quick check. Fairness is manual.</p>
+              <h2>{modalStep === 'match' ? 'Which match was this?' : 'Check & submit'}</h2>
+              <p>
+                {modalStep === 'match'
+                  ? 'Choose from your remaining fixtures.'
+                  : 'Fix anything wrong, add fairness, then submit.'}
+              </p>
               <button
                 type="button"
                 className="fixture-ocr-modal-close"
@@ -494,319 +439,221 @@ const FixtureOcr = () => {
             </div>
 
             <div className="fixture-ocr-modal-body">
-              {ocrTeams?.team1 && ocrTeams?.team2 && (
-                <div className="fixture-ocr-detected-banner">
-                  <span className="fixture-ocr-detected-label">Read from screenshot</span>
-                  <strong>
-                    {ocrTeams.team1} vs {ocrTeams.team2}
-                  </strong>
-                </div>
-              )}
-
-              {fixtureMismatch && (
-                <div className="fixture-ocr-mismatch-warn">
-                  Selected fixture does not match the screenshot teams. Pick the correct fixture
-                  below — scores are mapped to the wrong teams until you do.
-                </div>
-              )}
-
-              {!selectedFixtureId && ocrTeams?.team1 && ocrTeams?.team2 && (
-                <div className="fixture-ocr-mismatch-warn">
-                  No matching fixture found automatically. Select{' '}
-                  <strong>
-                    {ocrTeams.team1} vs {ocrTeams.team2}
-                  </strong>{' '}
-                  from the list.
-                </div>
-              )}
-
-              <div className={`fixture-ocr-field ${fieldErrors.fixture || fixtureMismatch ? 'fixture-ocr-field--error' : ''}`}>
-                <label>
-                  Fixture <span className="fixture-ocr-required">*</span>
-                  <span className="fixture-ocr-field-hint fixture-ocr-field-hint--manual">
-                    Your pending · {filteredFixtures.length} shown
-                  </span>
-                </label>
-                <input
-                  type="search"
-                  className="fixture-ocr-fixture-search"
-                  placeholder="Search by team name…"
-                  value={fixtureSearch}
-                  onChange={(e) => setFixtureSearch(e.target.value)}
-                  aria-label="Search fixtures by team name"
-                />
-                <select
-                  value={selectedFixtureId}
-                  onChange={(e) => handleFixtureChange(e.target.value)}
-                  disabled={fixturesLoading}
-                >
-                  <option value="">
-                    {filteredFixtures.length
-                      ? 'Select fixture…'
-                      : userTeamName
-                        ? `No remaining matches for ${userTeamName}`
-                        : 'No pending fixtures match search'}
-                  </option>
-                  {filteredFixtures.map((fx) => (
-                    <option key={fx._id} value={fx._id}>
-                      {fx.team1} vs {fx.team2}
-                    </option>
-                  ))}
-                </select>
-                {fixtureSearch.trim() && filteredFixtures.length === 0 && (
-                  <span className="fixture-ocr-field-error">
-                    No remaining matches for &ldquo;{fixtureSearch.trim()}&rdquo;. Try another team
-                    name or clear search.
-                  </span>
-                )}
-                {!fixtureSearch.trim() && filteredFixtures.length === 0 && userTeamName && (
-                  <span className="fixture-ocr-field-error">
-                    You have no remaining matches to update.
-                  </span>
-                )}
-                {fieldErrors.fixture && (
-                  <span className="fixture-ocr-field-error">{fieldErrors.fixture}</span>
-                )}
-              </div>
-
-              {selectedFixture && (
-                <div className="fixture-ocr-match-banner">
-                  {selectedFixture.team1} vs {selectedFixture.team2}
-                </div>
-              )}
-
-              <div className={`fixture-ocr-field ${fieldClass('winner')}`}>
-                <label>
-                  Winner <span className="fixture-ocr-required">*</span>
-                  {renderFieldHint('winner')}
-                </label>
-                <select
-                  value={form.winner}
-                  onChange={(e) => updateForm('winner', e.target.value)}
-                  disabled={!selectedFixture}
-                >
-                  <option value="">Select winner…</option>
-                  {selectedFixture && (
-                    <>
-                      <option value={selectedFixture.team1}>{selectedFixture.team1}</option>
-                      <option value={selectedFixture.team2}>{selectedFixture.team2}</option>
-                    </>
+              {modalStep === 'match' && (
+                <>
+                  {ocrTeams?.team1 && ocrTeams?.team2 && (
+                    <div className="fixture-ocr-simple-note">
+                      Screenshot shows: <strong>{ocrTeams.team1} vs {ocrTeams.team2}</strong>
+                    </div>
                   )}
-                </select>
-                {fieldErrors.winner && (
-                  <span className="fixture-ocr-field-error">{fieldErrors.winner}</span>
-                )}
-              </div>
-
-              <div className={`fixture-ocr-field ${fieldClass('margin')}`}>
-                <label>
-                  Margin <span className="fixture-ocr-required">*</span>
-                  {renderFieldHint('margin')}
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 131 runs"
-                  value={form.margin}
-                  onChange={(e) => updateForm('margin', e.target.value)}
-                />
-                {fieldErrors.margin && (
-                  <span className="fixture-ocr-field-error">{fieldErrors.margin}</span>
-                )}
-              </div>
-
-              <div className="fixture-ocr-section">
-                <div className="fixture-ocr-section-title">Scores & overs</div>
-                <div className="fixture-ocr-grid-2">
-                  <div className={`fixture-ocr-field ${fieldClass('team1Score')}`}>
-                    <label>
-                      {selectedFixture?.team1 || 'Team 1'} score{' '}
-                      <span className="fixture-ocr-required">*</span>
-                      {renderFieldHint('team1Score')}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="265/10"
-                      value={form.team1Score}
-                      onChange={(e) => updateForm('team1Score', e.target.value)}
-                    />
-                    {fieldErrors.team1Score && (
-                      <span className="fixture-ocr-field-error">{fieldErrors.team1Score}</span>
-                    )}
-                  </div>
-                  <div className={`fixture-ocr-field ${fieldClass('team2Score')}`}>
-                    <label>
-                      {selectedFixture?.team2 || 'Team 2'} score{' '}
-                      <span className="fixture-ocr-required">*</span>
-                      {renderFieldHint('team2Score')}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="134/10"
-                      value={form.team2Score}
-                      onChange={(e) => updateForm('team2Score', e.target.value)}
-                    />
-                    {fieldErrors.team2Score && (
-                      <span className="fixture-ocr-field-error">{fieldErrors.team2Score}</span>
-                    )}
-                  </div>
-                  <div className={`fixture-ocr-field ${fieldClass('team1Overs')}`}>
-                    <label>
-                      {selectedFixture?.team1 || 'Team 1'} overs{' '}
-                      <span className="fixture-ocr-required">*</span>
-                      {renderFieldHint('team1Overs')}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="19.5"
-                      value={form.team1Overs}
-                      onChange={(e) => updateForm('team1Overs', e.target.value)}
-                    />
-                    {fieldErrors.team1Overs && (
-                      <span className="fixture-ocr-field-error">{fieldErrors.team1Overs}</span>
-                    )}
-                  </div>
-                  <div className={`fixture-ocr-field ${fieldClass('team2Overs')}`}>
-                    <label>
-                      {selectedFixture?.team2 || 'Team 2'} overs{' '}
-                      <span className="fixture-ocr-required">*</span>
-                      {renderFieldHint('team2Overs')}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="16.0"
-                      value={form.team2Overs}
-                      onChange={(e) => updateForm('team2Overs', e.target.value)}
-                    />
-                    {fieldErrors.team2Overs && (
-                      <span className="fixture-ocr-field-error">{fieldErrors.team2Overs}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="fixture-ocr-section">
-                <div className="fixture-ocr-section-title">Man of the Match</div>
-                <div className={`fixture-ocr-field ${fieldClass('momName')}`}>
-                  <label>
-                    Player name <span className="fixture-ocr-required">*</span>
-                    {renderFieldHint('momName')}
-                  </label>
-                  <input
-                    type="text"
-                    list="fixture-ocr-mom-list"
-                    placeholder="e.g. Laurie Evans"
-                    value={form.mom.name}
-                    onChange={(e) => updateForm('mom', { name: e.target.value })}
-                  />
-                  <datalist id="fixture-ocr-mom-list">
-                    {playerOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value} />
-                    ))}
-                  </datalist>
-                  {fieldErrors.momName && (
-                    <span className="fixture-ocr-field-error">{fieldErrors.momName}</span>
+                  {fixturesLoading ? (
+                    <p className="fixture-ocr-simple-muted">Loading your matches…</p>
+                  ) : pendingFixtures.length === 0 ? (
+                    <p className="fixture-ocr-simple-muted">
+                      No remaining matches for {userTeamName || 'your team'}.
+                    </p>
+                  ) : (
+                    <ul className="fixture-ocr-match-list">
+                      {pendingFixtures.map((fx) => (
+                        <li key={fx._id}>
+                          <button
+                            type="button"
+                            className={`fixture-ocr-match-card${
+                              String(selectedFixtureId) === String(fx._id) ? ' is-selected' : ''
+                            }`}
+                            onClick={() => selectFixture(String(fx._id))}
+                          >
+                            <span className="fixture-ocr-match-card-teams">
+                              {fx.team1} vs {fx.team2}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </div>
-                <div className="fixture-ocr-grid-2">
-                  <div className={`fixture-ocr-field ${fieldClass('momScore')}`}>
-                    <label>
-                      MoM runs (optional)
-                      {renderFieldHint('momScore')}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="107"
-                      value={form.mom.score}
-                      onChange={(e) => updateForm('mom', { score: e.target.value })}
-                    />
-                  </div>
-                  <div className={`fixture-ocr-field ${fieldClass('momWickets')}`}>
-                    <label>
-                      MoM wickets (optional)
-                      {renderFieldHint('momWickets')}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      placeholder="2"
-                      value={form.mom.wickets}
-                      onChange={(e) => updateForm('mom', { wickets: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
+                  {fieldErrors.fixture && (
+                    <p className="fixture-ocr-field-error">{fieldErrors.fixture}</p>
+                  )}
+                </>
+              )}
 
-              <div className="fixture-ocr-section">
-                <div className="fixture-ocr-section-title">Fairness (manual)</div>
-                <div className="fixture-ocr-grid-2">
-                  <div className={`fixture-ocr-field ${fieldErrors.team1Fairness ? 'fixture-ocr-field--error' : ''}`}>
-                    <label>
-                      {selectedFixture?.team1 || 'Team 1'} fairness{' '}
-                      <span className="fixture-ocr-required">*</span>
-                      {renderFieldHint('team1Fairness')}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Enter fairness"
-                      value={form.team1Fairness}
-                      onChange={(e) => updateForm('team1Fairness', e.target.value)}
-                    />
-                    {fieldErrors.team1Fairness && (
-                      <span className="fixture-ocr-field-error">{fieldErrors.team1Fairness}</span>
+              {modalStep === 'review' && selectedFixture && (
+                <>
+                  <div className="fixture-ocr-simple-note fixture-ocr-simple-note--match">
+                    <button
+                      type="button"
+                      className="fixture-ocr-change-match"
+                      onClick={() => setModalStep('match')}
+                    >
+                      Change match
+                    </button>
+                    <strong>
+                      {selectedFixture.team1} vs {selectedFixture.team2}
+                    </strong>
+                  </div>
+
+                  {fixtureMismatch && (
+                    <div className="fixture-ocr-mismatch-warn">
+                      Teams on screenshot may not match this fixture. Double-check scores.
+                    </div>
+                  )}
+
+                  <div className="fixture-ocr-block">
+                    <h3 className="fixture-ocr-block-title">Who won?</h3>
+                    <div className="fixture-ocr-field-row">
+                      <select
+                        className={fieldErrors.winner ? 'has-error' : ''}
+                        value={form.winner}
+                        onChange={(e) => updateForm('winner', e.target.value)}
+                      >
+                        <option value="">Select winner</option>
+                        <option value={selectedFixture.team1}>{selectedFixture.team1}</option>
+                        <option value={selectedFixture.team2}>{selectedFixture.team2}</option>
+                      </select>
+                      <input
+                        className={fieldErrors.margin ? 'has-error' : ''}
+                        type="text"
+                        placeholder="Margin (e.g. 131 runs)"
+                        value={form.margin}
+                        onChange={(e) => updateForm('margin', e.target.value)}
+                      />
+                    </div>
+                    {(fieldErrors.winner || fieldErrors.margin) && (
+                      <p className="fixture-ocr-field-error">
+                        {fieldErrors.winner || fieldErrors.margin}
+                      </p>
                     )}
                   </div>
-                  <div className={`fixture-ocr-field ${fieldErrors.team2Fairness ? 'fixture-ocr-field--error' : ''}`}>
-                    <label>
-                      {selectedFixture?.team2 || 'Team 2'} fairness{' '}
-                      <span className="fixture-ocr-required">*</span>
-                      {renderFieldHint('team2Fairness')}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Enter fairness"
-                      value={form.team2Fairness}
-                      onChange={(e) => updateForm('team2Fairness', e.target.value)}
-                    />
-                    {fieldErrors.team2Fairness && (
-                      <span className="fixture-ocr-field-error">{fieldErrors.team2Fairness}</span>
+
+                  <div className="fixture-ocr-block">
+                    <h3 className="fixture-ocr-block-title">Scores</h3>
+                    <div className="fixture-ocr-score-grid">
+                      <div className="fixture-ocr-score-col">
+                        <span className="fixture-ocr-score-team">{selectedFixture.team1}</span>
+                        <input
+                          className={fieldErrors.team1Score ? 'has-error' : ''}
+                          placeholder="Runs/wkts 265/10"
+                          value={form.team1Score}
+                          onChange={(e) => updateForm('team1Score', e.target.value)}
+                        />
+                        <input
+                          className={fieldErrors.team1Overs ? 'has-error' : ''}
+                          placeholder="Overs 19.5"
+                          value={form.team1Overs}
+                          onChange={(e) => updateForm('team1Overs', e.target.value)}
+                        />
+                      </div>
+                      <div className="fixture-ocr-score-col">
+                        <span className="fixture-ocr-score-team">{selectedFixture.team2}</span>
+                        <input
+                          className={fieldErrors.team2Score ? 'has-error' : ''}
+                          placeholder="Runs/wkts 134/10"
+                          value={form.team2Score}
+                          onChange={(e) => updateForm('team2Score', e.target.value)}
+                        />
+                        <input
+                          className={fieldErrors.team2Overs ? 'has-error' : ''}
+                          placeholder="Overs 16.0"
+                          value={form.team2Overs}
+                          onChange={(e) => updateForm('team2Overs', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    {(fieldErrors.team1Score ||
+                      fieldErrors.team2Score ||
+                      fieldErrors.team1Overs ||
+                      fieldErrors.team2Overs) && (
+                      <p className="fixture-ocr-field-error">Check score and overs format</p>
                     )}
                   </div>
-                </div>
-              </div>
+
+                  <div className="fixture-ocr-block fixture-ocr-block--fairness">
+                    <h3 className="fixture-ocr-block-title">Fairness (you enter this)</h3>
+                    <div className="fixture-ocr-score-grid">
+                      <div className="fixture-ocr-score-col">
+                        <span className="fixture-ocr-score-team">{selectedFixture.team1}</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className={fieldErrors.team1Fairness ? 'has-error' : ''}
+                          placeholder="Fairness"
+                          value={form.team1Fairness}
+                          onChange={(e) => updateForm('team1Fairness', e.target.value)}
+                        />
+                      </div>
+                      <div className="fixture-ocr-score-col">
+                        <span className="fixture-ocr-score-team">{selectedFixture.team2}</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className={fieldErrors.team2Fairness ? 'has-error' : ''}
+                          placeholder="Fairness"
+                          value={form.team2Fairness}
+                          onChange={(e) => updateForm('team2Fairness', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    {(fieldErrors.team1Fairness || fieldErrors.team2Fairness) && (
+                      <p className="fixture-ocr-field-error">Enter fairness for both teams</p>
+                    )}
+                  </div>
+
+                  <details className="fixture-ocr-optional">
+                    <summary>Player of the match (optional)</summary>
+                    <input
+                      type="text"
+                      placeholder="Player name"
+                      value={form.mom.name}
+                      onChange={(e) => updateForm('mom', { name: e.target.value })}
+                    />
+                    <div className="fixture-ocr-field-row">
+                      <input
+                        type="number"
+                        placeholder="Runs"
+                        value={form.mom.score}
+                        onChange={(e) => updateForm('mom', { score: e.target.value })}
+                      />
+                      <input
+                        type="number"
+                        placeholder="Wickets"
+                        value={form.mom.wickets}
+                        onChange={(e) => updateForm('mom', { wickets: e.target.value })}
+                      />
+                    </div>
+                  </details>
+                </>
+              )}
             </div>
 
             <div className="fixture-ocr-modal-foot">
-              <p className="fixture-ocr-admin-note">
-                Your name and team will be sent with this submission. Your opponent or an admin must
-                confirm before the points table updates.
-              </p>
-              {(user?.name || user?.teamName) && (
-                <p className="fixture-ocr-submitter-preview">
-                  Submitting as <strong>{user?.name || 'User'}</strong>
-                  {user?.teamName ? (
-                    <>
-                      {' '}
-                      · <strong>{user.teamName}</strong>
-                    </>
-                  ) : null}
-                </p>
+              {modalStep === 'match' ? (
+                <button
+                  type="button"
+                  className="fixture-ocr-btn fixture-ocr-btn--primary"
+                  onClick={goToReview}
+                  disabled={!pendingFixtures.length}
+                >
+                  Next — check details
+                </button>
+              ) : (
+                <>
+                  <p className="fixture-ocr-foot-note">
+                    Opponent or admin must confirm before points table updates.
+                  </p>
+                  <button
+                    type="button"
+                    className="fixture-ocr-btn fixture-ocr-btn--primary"
+                    onClick={handleSave}
+                    disabled={saving}
+                  >
+                    {saving ? 'Sending…' : (
+                      <>
+                        <FaCheckCircle aria-hidden /> Send for confirmation
+                      </>
+                    )}
+                  </button>
+                </>
               )}
-              <button
-                type="button"
-                className="fixture-ocr-btn fixture-ocr-btn--primary"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                {saving ? 'Submitting…' : (
-                  <>
-                    <FaCheckCircle aria-hidden /> Submit for confirmation
-                  </>
-                )}
-              </button>
               <button
                 type="button"
                 className="fixture-ocr-btn fixture-ocr-btn--ghost"
