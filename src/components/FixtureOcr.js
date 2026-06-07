@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Tesseract from 'tesseract.js';
 import axios from 'axios';
 import { FaCamera, FaCheckCircle, FaTimes, FaUpload } from 'react-icons/fa';
@@ -27,14 +27,26 @@ const EMPTY_FORM = {
   team2Fairness: '',
 };
 
+const isPlaceholderTeam = (name = '') =>
+  String(name).includes('Winner of') || String(name).includes('Loser of');
+
+const isPlayoffReady = (fx) =>
+  fx && !fx.winner && !isPlaceholderTeam(fx.team1) && !isPlaceholderTeam(fx.team2);
+
+const getFixtureKey = (fx, type) =>
+  type === 'playoff' ? String(fx.matchId) : String(fx._id);
+
 const FixtureOcr = () => {
+  const [searchParams] = useSearchParams();
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [ocrStatus, setOcrStatus] = useState('idle');
   const [ocrProgress, setOcrProgress] = useState(0);
   const [ocrError, setOcrError] = useState('');
   const [fixtures, setFixtures] = useState([]);
+  const [playoffFixtures, setPlayoffFixtures] = useState([]);
   const [fixturesLoading, setFixturesLoading] = useState(true);
+  const [fixtureType, setFixtureType] = useState('league');
   const [selectedFixtureId, setSelectedFixtureId] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [modalStep, setModalStep] = useState('match');
@@ -75,30 +87,69 @@ const FixtureOcr = () => {
     [userId, userTeamName]
   );
 
-  const pendingFixtures = useMemo(
+  const pendingLeagueFixtures = useMemo(
     () => fixtures.filter((fx) => isPendingFixture(fx) && fixtureBelongsToUser(fx)),
     [fixtures, fixtureBelongsToUser]
   );
 
-  const selectedFixture = useMemo(
-    () => fixtures.find((fx) => String(fx._id) === String(selectedFixtureId)),
-    [fixtures, selectedFixtureId]
+  const pendingPlayoffFixtures = useMemo(
+    () =>
+      playoffFixtures.filter(
+        (fx) => isPlayoffReady(fx) && fixtureBelongsToUser(fx)
+      ),
+    [playoffFixtures, fixtureBelongsToUser]
   );
 
-  useEffect(() => {
-    const load = async () => {
-      setFixturesLoading(true);
-      try {
-        const res = await axios.get(`${API_ENDPOINTS}/api/fixtures`);
-        setFixtures(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.error('Fixture OCR: load fixtures failed', err);
-      } finally {
-        setFixturesLoading(false);
-      }
-    };
-    load();
+  const pendingFixtures =
+    fixtureType === 'playoff' ? pendingPlayoffFixtures : pendingLeagueFixtures;
+
+  const activeFixtures = fixtureType === 'playoff' ? playoffFixtures : fixtures;
+
+  const selectedFixture = useMemo(() => {
+    if (fixtureType === 'playoff') {
+      return playoffFixtures.find((fx) => String(fx.matchId) === String(selectedFixtureId));
+    }
+    return fixtures.find((fx) => String(fx._id) === String(selectedFixtureId));
+  }, [fixtures, playoffFixtures, selectedFixtureId, fixtureType]);
+
+  const loadFixtures = useCallback(async () => {
+    setFixturesLoading(true);
+    try {
+      const [leagueRes, playoffRes] = await Promise.all([
+        axios.get(`${API_ENDPOINTS}/api/fixtures`),
+        axios.get(`${API_ENDPOINTS}/api/playoff-fixtures`),
+      ]);
+      setFixtures(Array.isArray(leagueRes.data) ? leagueRes.data : []);
+      setPlayoffFixtures(Array.isArray(playoffRes.data) ? playoffRes.data : []);
+    } catch (err) {
+      console.error('Fixture OCR: load fixtures failed', err);
+    } finally {
+      setFixturesLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadFixtures();
+  }, [loadFixtures]);
+
+  useEffect(() => {
+    if (fixturesLoading) return;
+    const urlType = searchParams.get('type');
+    if (urlType === 'playoff' || urlType === 'league') {
+      setFixtureType(urlType);
+      return;
+    }
+    if (pendingPlayoffFixtures.length > 0 && pendingLeagueFixtures.length === 0) {
+      setFixtureType('playoff');
+    } else {
+      setFixtureType('league');
+    }
+  }, [
+    fixturesLoading,
+    searchParams,
+    pendingPlayoffFixtures.length,
+    pendingLeagueFixtures.length,
+  ]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -173,9 +224,34 @@ const FixtureOcr = () => {
       const parsed = parseMatchSummaryOcr(text);
       setLastParsed(parsed);
 
-      const matched = findMatchingFixture(pendingFixtures, parsed.team1Name, parsed.team2Name);
+      const leagueMatch = findMatchingFixture(
+        pendingLeagueFixtures,
+        parsed.team1Name,
+        parsed.team2Name
+      );
+      const playoffMatch = findMatchingFixture(
+        pendingPlayoffFixtures,
+        parsed.team1Name,
+        parsed.team2Name
+      );
+
+      let matched = null;
+      let nextType = fixtureType;
+      if (leagueMatch && playoffMatch) {
+        matched = fixtureType === 'playoff' ? playoffMatch : leagueMatch;
+        nextType = fixtureType;
+      } else if (playoffMatch) {
+        matched = playoffMatch;
+        nextType = 'playoff';
+      } else if (leagueMatch) {
+        matched = leagueMatch;
+        nextType = 'league';
+      }
+
+      if (nextType !== fixtureType) setFixtureType(nextType);
+
       if (matched) {
-        setSelectedFixtureId(String(matched._id));
+        setSelectedFixtureId(getFixtureKey(matched, nextType));
         setModalStep('review');
       } else {
         setSelectedFixtureId('');
@@ -192,7 +268,7 @@ const FixtureOcr = () => {
       setOcrError(err.message || 'Could not read screenshot. Try again.');
       setOcrStatus('error');
     }
-  }, [file, pendingFixtures, preprocessImage]);
+  }, [file, pendingLeagueFixtures, pendingPlayoffFixtures, preprocessImage, fixtureType]);
 
   const updateForm = (key, value) => {
     setForm((prev) => {
@@ -216,8 +292,10 @@ const FixtureOcr = () => {
     else if (!SCORE_REGEX.test(form.team1Score.trim())) errors.team1Score = 'Use e.g. 265/10';
     if (!form.team2Score?.trim()) errors.team2Score = 'Required';
     else if (!SCORE_REGEX.test(form.team2Score.trim())) errors.team2Score = 'Use e.g. 134/10';
-    if (!form.team1Overs?.trim()) errors.team1Overs = 'Required';
-    if (!form.team2Overs?.trim()) errors.team2Overs = 'Required';
+    if (fixtureType === 'league') {
+      if (!form.team1Overs?.trim()) errors.team1Overs = 'Required';
+      if (!form.team2Overs?.trim()) errors.team2Overs = 'Required';
+    }
     if (form.team1Fairness === '' || form.team1Fairness == null) errors.team1Fairness = 'Required';
     if (form.team2Fairness === '' || form.team2Fairness == null) errors.team2Fairness = 'Required';
     setFieldErrors(errors);
@@ -229,29 +307,42 @@ const FixtureOcr = () => {
 
     setSaving(true);
     try {
-      await axios.post(
-        `${API_ENDPOINTS}/api/fixture-submissions/submit`,
-        {
-          fixtureId: selectedFixture._id,
-          winner: form.winner,
-          margin: form.margin.trim(),
-          team1Score: form.team1Score.trim(),
-          team2Score: form.team2Score.trim(),
-          team1Overs: form.team1Overs.trim(),
-          team2Overs: form.team2Overs.trim(),
-          mom: {
-            name: form.mom.name?.trim() || null,
-            score: form.mom.score !== '' ? Number(form.mom.score) : null,
-            wickets: form.mom.wickets !== '' ? Number(form.mom.wickets) : null,
-          },
-          team1Fairness: Number(form.team1Fairness),
-          team2Fairness: Number(form.team2Fairness),
+      const payload = {
+        winner: form.winner,
+        margin: form.margin.trim(),
+        team1Score: form.team1Score.trim(),
+        team2Score: form.team2Score.trim(),
+        mom: {
+          name: form.mom.name?.trim() || null,
+          score: form.mom.score !== '' ? Number(form.mom.score) : null,
+          wickets: form.mom.wickets !== '' ? Number(form.mom.wickets) : null,
         },
-        { headers: { 'user-id': userId } }
-      );
+        team1Fairness: Number(form.team1Fairness),
+        team2Fairness: Number(form.team2Fairness),
+      };
+
+      if (fixtureType === 'playoff') {
+        payload.matchId = selectedFixture.matchId;
+        if (form.team1Overs?.trim()) payload.team1Overs = form.team1Overs.trim();
+        if (form.team2Overs?.trim()) payload.team2Overs = form.team2Overs.trim();
+        await axios.post(`${API_ENDPOINTS}/api/playoff-submissions/submit`, payload, {
+          headers: { 'user-id': userId },
+        });
+      } else {
+        payload.fixtureId = selectedFixture._id;
+        payload.team1Overs = form.team1Overs.trim();
+        payload.team2Overs = form.team2Overs.trim();
+        await axios.post(`${API_ENDPOINTS}/api/fixture-submissions/submit`, payload, {
+          headers: { 'user-id': userId },
+        });
+      }
+
       setToast({
         type: 'success',
-        message: 'Submitted! Your opponent or admin will confirm before points update.',
+        message:
+          fixtureType === 'playoff'
+            ? 'Playoff result submitted! Opponent or admin will confirm before the bracket updates.'
+            : 'Submitted! Your opponent or admin will confirm before points update.',
       });
       setShowModal(false);
       setFile(null);
@@ -260,8 +351,7 @@ const FixtureOcr = () => {
       setOcrStatus('idle');
       setForm(EMPTY_FORM);
       setModalStep('match');
-      const res = await axios.get(`${API_ENDPOINTS}/api/fixtures`);
-      setFixtures(Array.isArray(res.data) ? res.data : []);
+      await loadFixtures();
     } catch (err) {
       setToast({
         type: 'error',
@@ -290,7 +380,9 @@ const FixtureOcr = () => {
       return next;
     });
     if (!lastParsed) return;
-    const fx = fixtures.find((f) => String(f._id) === String(fixtureId));
+    const fx = activeFixtures.find(
+      (f) => getFixtureKey(f, fixtureType) === String(fixtureId)
+    );
     const built = buildFormFromParse(lastParsed, fx || null);
     setForm((prev) => ({
       ...built,
@@ -324,6 +416,48 @@ const FixtureOcr = () => {
         <header className="fixture-ocr-header">
           <h1>Submit match result</h1>
           <p>Upload your Cricket 22/24 end-of-match screen. We fill in scores — you check and send.</p>
+          {pendingPlayoffFixtures.length > 0 && (
+            <div className="fixture-ocr-type-toggle" role="tablist" aria-label="Match type">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={fixtureType === 'league'}
+                className={`fixture-ocr-type-btn${fixtureType === 'league' ? ' is-active' : ''}`}
+                onClick={() => {
+                  setFixtureType('league');
+                  setSelectedFixtureId('');
+                }}
+                disabled={pendingLeagueFixtures.length === 0}
+              >
+                League
+                {pendingLeagueFixtures.length > 0 && (
+                  <span className="fixture-ocr-type-count">{pendingLeagueFixtures.length}</span>
+                )}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={fixtureType === 'playoff'}
+                className={`fixture-ocr-type-btn${fixtureType === 'playoff' ? ' is-active' : ''}`}
+                onClick={() => {
+                  setFixtureType('playoff');
+                  setSelectedFixtureId('');
+                }}
+                disabled={pendingPlayoffFixtures.length === 0}
+              >
+                Playoff
+                {pendingPlayoffFixtures.length > 0 && (
+                  <span className="fixture-ocr-type-count">{pendingPlayoffFixtures.length}</span>
+                )}
+              </button>
+            </div>
+          )}
+          {fixtureType === 'playoff' && pendingPlayoffFixtures.length > 0 && (
+            <p className="fixture-ocr-playoff-note">
+              You have {pendingPlayoffFixtures.length} playoff match
+              {pendingPlayoffFixtures.length === 1 ? '' : 'es'} ready to submit.
+            </p>
+          )}
           <Link to="/fixture-confirmations" className="fixture-ocr-admin-link">
             {isAdmin ? 'Pending approvals →' : 'Opponent submitted? Confirm here →'}
           </Link>
@@ -450,25 +584,35 @@ const FixtureOcr = () => {
                     <p className="fixture-ocr-simple-muted">Loading your matches…</p>
                   ) : pendingFixtures.length === 0 ? (
                     <p className="fixture-ocr-simple-muted">
-                      No remaining matches for {userTeamName || 'your team'}.
+                      {fixtureType === 'playoff'
+                        ? `No playoff matches ready for ${userTeamName || 'your team'} right now.`
+                        : `No remaining league matches for ${userTeamName || 'your team'}.`}
                     </p>
                   ) : (
                     <ul className="fixture-ocr-match-list">
-                      {pendingFixtures.map((fx) => (
-                        <li key={fx._id}>
-                          <button
-                            type="button"
-                            className={`fixture-ocr-match-card${
-                              String(selectedFixtureId) === String(fx._id) ? ' is-selected' : ''
-                            }`}
-                            onClick={() => selectFixture(String(fx._id))}
-                          >
-                            <span className="fixture-ocr-match-card-teams">
-                              {fx.team1} vs {fx.team2}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
+                      {pendingFixtures.map((fx) => {
+                        const fxKey = getFixtureKey(fx, fixtureType);
+                        return (
+                          <li key={fxKey}>
+                            <button
+                              type="button"
+                              className={`fixture-ocr-match-card${
+                                String(selectedFixtureId) === fxKey ? ' is-selected' : ''
+                              }`}
+                              onClick={() => selectFixture(fxKey)}
+                            >
+                              {fixtureType === 'playoff' && fx.stage && (
+                                <span className="fixture-ocr-match-card-stage">
+                                  Match {fx.matchId} · {fx.stage}
+                                </span>
+                              )}
+                              <span className="fixture-ocr-match-card-teams">
+                                {fx.team1} vs {fx.team2}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                   {fieldErrors.fixture && (
@@ -488,6 +632,9 @@ const FixtureOcr = () => {
                       Change match
                     </button>
                     <strong>
+                      {fixtureType === 'playoff' && selectedFixture.stage
+                        ? `Match ${selectedFixture.matchId} · ${selectedFixture.stage}: `
+                        : ''}
                       {selectedFixture.team1} vs {selectedFixture.team2}
                     </strong>
                   </div>
@@ -536,12 +683,14 @@ const FixtureOcr = () => {
                           value={form.team1Score}
                           onChange={(e) => updateForm('team1Score', e.target.value)}
                         />
-                        <input
-                          className={fieldErrors.team1Overs ? 'has-error' : ''}
-                          placeholder="Overs 19.5"
-                          value={form.team1Overs}
-                          onChange={(e) => updateForm('team1Overs', e.target.value)}
-                        />
+                        {fixtureType === 'league' && (
+                          <input
+                            className={fieldErrors.team1Overs ? 'has-error' : ''}
+                            placeholder="Overs 19.5"
+                            value={form.team1Overs}
+                            onChange={(e) => updateForm('team1Overs', e.target.value)}
+                          />
+                        )}
                       </div>
                       <div className="fixture-ocr-score-col">
                         <span className="fixture-ocr-score-team">{selectedFixture.team2}</span>
@@ -551,19 +700,25 @@ const FixtureOcr = () => {
                           value={form.team2Score}
                           onChange={(e) => updateForm('team2Score', e.target.value)}
                         />
-                        <input
-                          className={fieldErrors.team2Overs ? 'has-error' : ''}
-                          placeholder="Overs 16.0"
-                          value={form.team2Overs}
-                          onChange={(e) => updateForm('team2Overs', e.target.value)}
-                        />
+                        {fixtureType === 'league' && (
+                          <input
+                            className={fieldErrors.team2Overs ? 'has-error' : ''}
+                            placeholder="Overs 16.0"
+                            value={form.team2Overs}
+                            onChange={(e) => updateForm('team2Overs', e.target.value)}
+                          />
+                        )}
                       </div>
                     </div>
                     {(fieldErrors.team1Score ||
                       fieldErrors.team2Score ||
                       fieldErrors.team1Overs ||
                       fieldErrors.team2Overs) && (
-                      <p className="fixture-ocr-field-error">Check score and overs format</p>
+                      <p className="fixture-ocr-field-error">
+                        {fixtureType === 'playoff'
+                          ? 'Check score format'
+                          : 'Check score and overs format'}
+                      </p>
                     )}
                   </div>
 
@@ -638,7 +793,9 @@ const FixtureOcr = () => {
               ) : (
                 <>
                   <p className="fixture-ocr-foot-note">
-                    Opponent or admin must confirm before points table updates.
+                    {fixtureType === 'playoff'
+                      ? 'Opponent or admin must confirm before the playoff bracket updates.'
+                      : 'Opponent or admin must confirm before points table updates.'}
                   </p>
                   <button
                     type="button"

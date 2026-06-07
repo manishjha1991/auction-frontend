@@ -57,6 +57,69 @@
   text-decoration: none;
 }
 
+.fixture-ocr-type-toggle {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 1rem 0 0.5rem;
+}
+
+.fixture-ocr-type-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.65);
+  color: #94a3b8;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fixture-ocr-type-btn.is-active {
+  background: rgba(124, 58, 237, 0.25);
+  border-color: #7c3aed;
+  color: #ddd6fe;
+}
+
+.fixture-ocr-type-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fixture-ocr-type-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+  font-size: 0.75rem;
+}
+
+.fixture-ocr-type-btn.is-active .fixture-ocr-type-count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.fixture-ocr-playoff-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: #c4b5fd;
+  font-weight: 500;
+}
+
+.fixture-ocr-match-card-stage {
+  display: block;
+  font-size: 0.75rem;
+  color: #c4b5fd;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
 .fixture-ocr-admin-link:hover {
   color: #bfdbfe;
   text-decoration: underline;

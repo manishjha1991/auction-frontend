@@ -374,3 +374,20 @@
   background: #7f1d1d;
   color: #fecaca;
 }
+
+.admin-fixture-playoff-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  margin-right: 0.25rem;
+  border-radius: 4px;
+  background: #ede9fe;
+  color: #6d28d9;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.admin-fixture-card--playoff {
+  border-left: 3px solid #7c3aed;
+}

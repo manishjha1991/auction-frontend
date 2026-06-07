@@ -20,7 +20,7 @@ const fmtDate = (d) => {
 
 const SCORE_REGEX = /^\d+\/\d+$/;
 
-const validateEditForm = (form) => {
+const validateEditForm = (form, isPlayoff = false) => {
   const errors = {};
   if (!form.winner) errors.winner = 'Winner is required';
   if (!form.margin?.trim()) errors.margin = 'Margin is required';
@@ -28,13 +28,17 @@ const validateEditForm = (form) => {
   else if (!SCORE_REGEX.test(form.team1Score.trim())) errors.team1Score = 'Use runs/wickets (e.g. 265/10)';
   if (!form.team2Score?.trim()) errors.team2Score = 'Score required';
   else if (!SCORE_REGEX.test(form.team2Score.trim())) errors.team2Score = 'Use runs/wickets (e.g. 134/10)';
-  if (!form.team1Overs?.trim()) errors.team1Overs = 'Overs required';
-  if (!form.team2Overs?.trim()) errors.team2Overs = 'Overs required';
-  // MoM optional
+  if (!isPlayoff) {
+    if (!form.team1Overs?.trim()) errors.team1Overs = 'Overs required';
+    if (!form.team2Overs?.trim()) errors.team2Overs = 'Overs required';
+  }
   if (form.team1Fairness === '' || form.team1Fairness == null) errors.team1Fairness = 'Required';
   if (form.team2Fairness === '' || form.team2Fairness == null) errors.team2Fairness = 'Required';
   return errors;
 };
+
+const apiBaseForKind = (kind) =>
+  kind === 'playoff' ? 'playoff-submissions' : 'fixture-submissions';
 
 const roleLabel = (role) => (role === 'opponent' ? 'Opponent' : 'Admin');
 
@@ -51,10 +55,11 @@ const SubmissionCard = ({
   const isAdminMode = mode === 'admin';
   const isOpponentMode = mode === 'opponent';
   const isMineMode = mode === 'mine';
+  const isPlayoff = item.kind === 'playoff';
 
   return (
     <article
-      className={`admin-fixture-card${isPending && isAdminMode ? ' admin-fixture-card--clickable' : ''}`}
+      className={`admin-fixture-card${isPending && isAdminMode ? ' admin-fixture-card--clickable' : ''}${isPlayoff ? ' admin-fixture-card--playoff' : ''}`}
       onClick={isPending && isAdminMode && !busy ? () => onReview(item) : undefined}
       onKeyDown={
         isPending && isAdminMode && !busy
@@ -72,6 +77,13 @@ const SubmissionCard = ({
       <div className="admin-fixture-card-head">
         <div>
           <div className="admin-fixture-match">
+            {isPlayoff && item.matchId ? (
+              <>
+                <span className="admin-fixture-playoff-badge">Playoff · Match {item.matchId}</span>
+                {item.stage ? ` · ${item.stage}` : ''}
+                <br />
+              </>
+            ) : null}
             {item.team1} vs {item.team2}
           </div>
           <div className="admin-fixture-submitter">
@@ -106,14 +118,18 @@ const SubmissionCard = ({
           <span>{item.team2} score</span>
           <strong>{item.team2Score || '—'}</strong>
         </div>
-        <div className="admin-fixture-kv">
-          <span>{item.team1} overs</span>
-          <strong>{item.team1Overs || '—'}</strong>
-        </div>
-        <div className="admin-fixture-kv">
-          <span>{item.team2} overs</span>
-          <strong>{item.team2Overs || '—'}</strong>
-        </div>
+        {!isPlayoff && (
+          <>
+            <div className="admin-fixture-kv">
+              <span>{item.team1} overs</span>
+              <strong>{item.team1Overs || '—'}</strong>
+            </div>
+            <div className="admin-fixture-kv">
+              <span>{item.team2} overs</span>
+              <strong>{item.team2Overs || '—'}</strong>
+            </div>
+          </>
+        )}
         <div className="admin-fixture-kv">
           <span>Man of the Match</span>
           <strong>
@@ -229,21 +245,41 @@ const AdminFixtureApprovals = () => {
       const headers = { 'user-id': userId };
       const requests = [
         axios.get(`${API_ENDPOINTS}/api/fixture-submissions/opponent/pending`, { headers }),
+        axios.get(`${API_ENDPOINTS}/api/playoff-submissions/opponent/pending`, { headers }),
         axios.get(`${API_ENDPOINTS}/api/fixture-submissions/my`, { headers }),
+        axios.get(`${API_ENDPOINTS}/api/playoff-submissions/my`, { headers }),
       ];
       if (isAdmin) {
         requests.push(
           axios.get(`${API_ENDPOINTS}/api/fixture-submissions/admin/pending`, { headers }),
-          axios.get(`${API_ENDPOINTS}/api/fixture-submissions/admin/history`, { headers })
+          axios.get(`${API_ENDPOINTS}/api/playoff-submissions/admin/pending`, { headers }),
+          axios.get(`${API_ENDPOINTS}/api/fixture-submissions/admin/history`, { headers }),
+          axios.get(`${API_ENDPOINTS}/api/playoff-submissions/admin/history`, { headers })
         );
       }
 
       const results = await Promise.all(requests);
-      setOpponentPending(Array.isArray(results[0].data) ? results[0].data : []);
-      setMySubmissions(Array.isArray(results[1].data) ? results[1].data : []);
+      const tag = (rows, kind) =>
+        (Array.isArray(rows) ? rows : []).map((row) => ({ ...row, kind }));
+
+      const mergeByDate = (a, b) =>
+        [...a, ...b].sort(
+          (x, y) => new Date(y.createdAt || 0) - new Date(x.createdAt || 0)
+        );
+
+      setOpponentPending(
+        mergeByDate(tag(results[0].data, 'league'), tag(results[1].data, 'playoff'))
+      );
+      setMySubmissions(
+        mergeByDate(tag(results[2].data, 'league'), tag(results[3].data, 'playoff'))
+      );
       if (isAdmin) {
-        setPending(Array.isArray(results[2].data) ? results[2].data : []);
-        setHistory(Array.isArray(results[3].data) ? results[3].data : []);
+        setPending(
+          mergeByDate(tag(results[4].data, 'league'), tag(results[5].data, 'playoff'))
+        );
+        setHistory(
+          mergeByDate(tag(results[6].data, 'league'), tag(results[7].data, 'playoff'))
+        );
       } else {
         setPending([]);
         setHistory([]);
@@ -302,12 +338,17 @@ const AdminFixtureApprovals = () => {
           }
         : {};
 
-      await axios.post(
-        `${API_ENDPOINTS}/api/fixture-submissions/${item._id}/approve`,
-        body,
-        { headers: { 'user-id': userId } }
-      );
-      setToast({ type: 'ok', message: 'Fixture confirmed — points table updated.' });
+      const apiBase = apiBaseForKind(item.kind);
+      await axios.post(`${API_ENDPOINTS}/api/${apiBase}/${item._id}/approve`, body, {
+        headers: { 'user-id': userId },
+      });
+      setToast({
+        type: 'ok',
+        message:
+          item.kind === 'playoff'
+            ? 'Playoff result confirmed — bracket updated.'
+            : 'Fixture confirmed — points table updated.',
+      });
       setEditItem(null);
       await load();
     } catch (err) {
@@ -325,8 +366,9 @@ const AdminFixtureApprovals = () => {
     const note = window.prompt(promptText) ?? '';
     setLoadingId(item._id);
     try {
+      const apiBase = apiBaseForKind(item.kind);
       await axios.post(
-        `${API_ENDPOINTS}/api/fixture-submissions/${item._id}/reject`,
+        `${API_ENDPOINTS}/api/${apiBase}/${item._id}/reject`,
         { note },
         { headers: { 'user-id': userId } }
       );
@@ -361,7 +403,7 @@ const AdminFixtureApprovals = () => {
 
   const validateEditFormOrToast = () => {
     if (!editForm) return false;
-    const errors = validateEditForm(editForm);
+    const errors = validateEditForm(editForm, editItem?.kind === 'playoff');
     if (Object.keys(errors).length) {
       setEditErrors(errors);
       setToast({ type: 'err', message: 'Fix the highlighted fields before continuing.' });
@@ -376,8 +418,9 @@ const AdminFixtureApprovals = () => {
 
     setLoadingId(editItem._id);
     try {
+      const apiBase = apiBaseForKind(editItem.kind);
       await axios.post(
-        `${API_ENDPOINTS}/api/fixture-submissions/admin/${editItem._id}/update`,
+        `${API_ENDPOINTS}/api/${apiBase}/admin/${editItem._id}/update`,
         buildOverridesFromForm(),
         { headers: { 'user-id': userId } }
       );
@@ -438,11 +481,11 @@ const AdminFixtureApprovals = () => {
     <div className="admin-fixture-page">
       <div className="admin-fixture-shell">
         <header className="admin-fixture-header">
-          <h1>{isAdmin ? 'Fixture Result Approvals' : 'Confirm Match Results'}</h1>
+          <h1>{isAdmin ? 'Match Result Approvals' : 'Confirm Match Results'}</h1>
           <p>
             {isAdmin
-              ? 'Review OCR submissions from teams. You or the opposing team can confirm a result.'
-              : 'When your opponent submits a match result, confirm it here. An admin can also confirm.'}
+              ? 'Review league and playoff OCR submissions. You or the opposing team can confirm a result.'
+              : 'When your opponent submits a league or playoff result, confirm it here. An admin can also confirm.'}
           </p>
         </header>
 
@@ -484,9 +527,9 @@ const AdminFixtureApprovals = () => {
           <p className="admin-fixture-empty">
             {tab === 'confirm' &&
               (isAdmin
-                ? 'No pending fixture submissions.'
+                ? 'No pending league or playoff submissions.'
                 : 'No results waiting for your confirmation.')}
-            {tab === 'mine' && 'You have not submitted any fixture results yet.'}
+            {tab === 'mine' && 'You have not submitted any match results yet.'}
             {tab === 'history' && 'No approval history yet.'}
           </p>
         ) : (
@@ -510,14 +553,20 @@ const AdminFixtureApprovals = () => {
           onClick={(e) => e.target === e.currentTarget && setEditItem(null)}
         >
           <div className="admin-fixture-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <h3>Edit submission</h3>
+            <h3>Edit submission{editItem.kind === 'playoff' ? ' (Playoff)' : ''}</h3>
             <p className="admin-fixture-modal-sub">
+              {editItem.kind === 'playoff' && editItem.matchId ? (
+                <>
+                  Match {editItem.matchId}
+                  {editItem.stage ? ` · ${editItem.stage}` : ''} ·{' '}
+                </>
+              ) : null}
               {editItem.team1} vs {editItem.team2} · submitted by{' '}
               <strong>{editItem.submitterName}</strong> ({editItem.submitterTeamName})
             </p>
             <p className="admin-fixture-modal-hint">
-              Save changes to fix OCR errors (stays pending). Approve & publish only when you are
-              ready to update the points table.
+              Save changes to fix OCR errors (stays pending). Approve & publish when you are
+              ready to update the {editItem.kind === 'playoff' ? 'playoff bracket' : 'points table'}.
             </p>
 
             <div className={`admin-fixture-modal-field${editErrors.winner ? ' has-error' : ''}`}>
@@ -572,30 +621,34 @@ const AdminFixtureApprovals = () => {
                 />
                 {editErrors.team2Score && <span className="field-err">{editErrors.team2Score}</span>}
               </div>
-              <div className={`admin-fixture-modal-field${editErrors.team1Overs ? ' has-error' : ''}`}>
-                <label>{editItem.team1} overs *</label>
-                <input
-                  value={editForm.team1Overs}
-                  onChange={(e) => {
-                    setEditForm({ ...editForm, team1Overs: e.target.value });
-                    setEditErrors((prev) => ({ ...prev, team1Overs: undefined }));
-                  }}
-                  placeholder="19.5"
-                />
-                {editErrors.team1Overs && <span className="field-err">{editErrors.team1Overs}</span>}
-              </div>
-              <div className={`admin-fixture-modal-field${editErrors.team2Overs ? ' has-error' : ''}`}>
-                <label>{editItem.team2} overs *</label>
-                <input
-                  value={editForm.team2Overs}
-                  onChange={(e) => {
-                    setEditForm({ ...editForm, team2Overs: e.target.value });
-                    setEditErrors((prev) => ({ ...prev, team2Overs: undefined }));
-                  }}
-                  placeholder="16.0"
-                />
-                {editErrors.team2Overs && <span className="field-err">{editErrors.team2Overs}</span>}
-              </div>
+              {editItem.kind !== 'playoff' && (
+                <>
+                  <div className={`admin-fixture-modal-field${editErrors.team1Overs ? ' has-error' : ''}`}>
+                    <label>{editItem.team1} overs *</label>
+                    <input
+                      value={editForm.team1Overs}
+                      onChange={(e) => {
+                        setEditForm({ ...editForm, team1Overs: e.target.value });
+                        setEditErrors((prev) => ({ ...prev, team1Overs: undefined }));
+                      }}
+                      placeholder="19.5"
+                    />
+                    {editErrors.team1Overs && <span className="field-err">{editErrors.team1Overs}</span>}
+                  </div>
+                  <div className={`admin-fixture-modal-field${editErrors.team2Overs ? ' has-error' : ''}`}>
+                    <label>{editItem.team2} overs *</label>
+                    <input
+                      value={editForm.team2Overs}
+                      onChange={(e) => {
+                        setEditForm({ ...editForm, team2Overs: e.target.value });
+                        setEditErrors((prev) => ({ ...prev, team2Overs: undefined }));
+                      }}
+                      placeholder="16.0"
+                    />
+                    {editErrors.team2Overs && <span className="field-err">{editErrors.team2Overs}</span>}
+                  </div>
+                </>
+              )}
             </div>
             <div className={`admin-fixture-modal-field${editErrors.momName ? ' has-error' : ''}`}>
               <label>Man of the Match *</label>
