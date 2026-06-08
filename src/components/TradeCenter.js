@@ -281,6 +281,20 @@ function TradeCenter({ user: userProp }) {
     [selectedReleasePlayerMeta]
   );
 
+  const existingActiveTradeForSelection = useMemo(() => {
+    if (!selectedMyPlayer || !selectedTargetPlayer || !trades?.length) return null;
+    const mine = String(selectedMyPlayer);
+    const theirs = String(selectedTargetPlayer);
+    return trades.find(
+      (t) =>
+        ACTIVE_OUTGOING_TRADE_STATUSES.includes(t.status) &&
+        ((String(t.offeredPlayer?._id || t.offeredPlayer) === mine &&
+          String(t.requestedPlayer?._id || t.requestedPlayer) === theirs) ||
+          (String(t.offeredPlayer?._id || t.offeredPlayer) === theirs &&
+            String(t.requestedPlayer?._id || t.requestedPlayer) === mine))
+    ) || null;
+  }, [trades, selectedMyPlayer, selectedTargetPlayer]);
+
   // Simple stale data detection
   const isDataStale = (dataType) => {
     const now = Date.now();
@@ -616,6 +630,17 @@ function TradeCenter({ user: userProp }) {
   async function proposeTrade() {
     if (!selectedMyPlayer || !selectedTargetPlayer || !targetTeamId) {
       setToast('Select player, target team, and target player.');
+      return;
+    }
+    if (existingActiveTradeForSelection) {
+      const st = existingActiveTradeForSelection.status;
+      const hint =
+        st === 'admin_pending'
+          ? 'This swap is already waiting for admin approval. Check Your Trades below — no need to send again.'
+          : st === 'pending'
+            ? 'This swap is already pending with the other team. Withdraw it first if you want to change the proposal.'
+            : 'This swap already has an active trade request.';
+      setAlert({ type: 'error', title: 'Trade Already Active', message: hint });
       return;
     }
     if (parseNonNegativeTradesUsed(tradeUsage.tradesUsed) >= (tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP)) {
@@ -1068,7 +1093,8 @@ function TradeCenter({ user: userProp }) {
                   limitReached ||
                   seasonTradeLimitReached ||
                   loadingStates.propose ||
-                  isSelectingRelease
+                  isSelectingRelease ||
+                  !!existingActiveTradeForSelection
                 }
               >
                 {loadingStates.propose ? (
@@ -1079,7 +1105,11 @@ function TradeCenter({ user: userProp }) {
                 ) : (
                   <>
                     <FaPaperPlane style={{ marginRight: 8 }} />
-                    {limitReached
+                    {existingActiveTradeForSelection
+                      ? existingActiveTradeForSelection.status === 'admin_pending'
+                        ? 'Awaiting Admin'
+                        : 'Trade Already Pending'
+                      : limitReached
                       ? `Pending Limit (${maxPendingCombined})`
                       : seasonTradeLimitReached
                         ? `Season cap (${tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP})`
