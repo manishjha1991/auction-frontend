@@ -8,6 +8,7 @@ import {
   buildFormFromParse,
   findMatchingFixture,
   fixtureMatchesOcrTeams,
+  matchTeamName,
   normalizeTeamKey,
   parseMatchSummaryOcr,
 } from '../utils/fixtureOcrParser';
@@ -35,6 +36,14 @@ const isPlayoffReady = (fx) =>
 
 const getFixtureKey = (fx, type) =>
   type === 'playoff' ? String(fx.matchId) : String(fx._id);
+
+const pairKeyForFixture = (fx) => {
+  if (!fx?.team1 || !fx?.team2) return '';
+  const a = normalizeTeamKey(fx.team1);
+  const b = normalizeTeamKey(fx.team2);
+  if (!a || !b) return '';
+  return [a, b].sort().join('|');
+};
 
 const FixtureOcr = () => {
   const [searchParams] = useSearchParams();
@@ -79,18 +88,54 @@ const FixtureOcr = () => {
       }
       if (!userTeamName) return false;
       const mine = normalizeTeamKey(userTeamName);
-      if (!mine) return false;
+      const candidates = [fx.team1, fx.team2].filter(Boolean);
       return (
-        mine === normalizeTeamKey(fx.team1 || '') || mine === normalizeTeamKey(fx.team2 || '')
+        (!!mine &&
+          (mine === normalizeTeamKey(fx.team1 || '') ||
+            mine === normalizeTeamKey(fx.team2 || ''))) ||
+        !!matchTeamName(userTeamName, candidates)
       );
     },
     [userId, userTeamName]
   );
 
+  const userInPlayoffBracket = useMemo(
+    () =>
+      playoffFixtures.some((fx) => {
+        if (!fixtureBelongsToUser(fx)) return false;
+        const onTeam1 =
+          !isPlaceholderTeam(fx.team1) &&
+          (normalizeTeamKey(userTeamName) === normalizeTeamKey(fx.team1 || '') ||
+            !!matchTeamName(userTeamName, [fx.team1]));
+        const onTeam2 =
+          !isPlaceholderTeam(fx.team2) &&
+          (normalizeTeamKey(userTeamName) === normalizeTeamKey(fx.team2 || '') ||
+            !!matchTeamName(userTeamName, [fx.team2]));
+        return onTeam1 || onTeam2;
+      }),
+    [playoffFixtures, fixtureBelongsToUser, userTeamName]
+  );
+
+  const playoffPairKeys = useMemo(() => {
+    const keys = new Set();
+    playoffFixtures.forEach((fx) => {
+      if (isPlaceholderTeam(fx.team1) || isPlaceholderTeam(fx.team2)) return;
+      const key = pairKeyForFixture(fx);
+      if (key) keys.add(key);
+    });
+    return keys;
+  }, [playoffFixtures]);
+
   const pendingLeagueFixtures = useMemo(
     () => fixtures.filter((fx) => isPendingFixture(fx) && fixtureBelongsToUser(fx)),
     [fixtures, fixtureBelongsToUser]
   );
+
+  /** Hide league rematches that also exist on the playoff bracket during playoffs. */
+  const pendingLeagueForOcr = useMemo(() => {
+    if (!userInPlayoffBracket) return pendingLeagueFixtures;
+    return pendingLeagueFixtures.filter((fx) => !playoffPairKeys.has(pairKeyForFixture(fx)));
+  }, [pendingLeagueFixtures, userInPlayoffBracket, playoffPairKeys]);
 
   const pendingPlayoffFixtures = useMemo(
     () =>
@@ -101,7 +146,7 @@ const FixtureOcr = () => {
   );
 
   const pendingFixtures =
-    fixtureType === 'playoff' ? pendingPlayoffFixtures : pendingLeagueFixtures;
+    fixtureType === 'playoff' ? pendingPlayoffFixtures : pendingLeagueForOcr;
 
   const activeFixtures = fixtureType === 'playoff' ? playoffFixtures : fixtures;
 
@@ -139,7 +184,7 @@ const FixtureOcr = () => {
       setFixtureType(urlType);
       return;
     }
-    if (pendingPlayoffFixtures.length > 0 && pendingLeagueFixtures.length === 0) {
+    if (userInPlayoffBracket || pendingPlayoffFixtures.length > 0) {
       setFixtureType('playoff');
     } else {
       setFixtureType('league');
@@ -147,8 +192,9 @@ const FixtureOcr = () => {
   }, [
     fixturesLoading,
     searchParams,
+    userInPlayoffBracket,
     pendingPlayoffFixtures.length,
-    pendingLeagueFixtures.length,
+    pendingLeagueForOcr.length,
   ]);
 
   useEffect(() => {
@@ -225,7 +271,7 @@ const FixtureOcr = () => {
       setLastParsed(parsed);
 
       const leagueMatch = findMatchingFixture(
-        pendingLeagueFixtures,
+        pendingLeagueForOcr,
         parsed.team1Name,
         parsed.team2Name
       );
@@ -237,9 +283,9 @@ const FixtureOcr = () => {
 
       let matched = null;
       let nextType = fixtureType;
-      if (leagueMatch && playoffMatch) {
-        matched = fixtureType === 'playoff' ? playoffMatch : leagueMatch;
-        nextType = fixtureType;
+      if (playoffMatch && leagueMatch) {
+        matched = playoffMatch;
+        nextType = 'playoff';
       } else if (playoffMatch) {
         matched = playoffMatch;
         nextType = 'playoff';
@@ -268,7 +314,7 @@ const FixtureOcr = () => {
       setOcrError(err.message || 'Could not read screenshot. Try again.');
       setOcrStatus('error');
     }
-  }, [file, pendingLeagueFixtures, pendingPlayoffFixtures, preprocessImage, fixtureType]);
+  }, [file, pendingLeagueForOcr, pendingPlayoffFixtures, preprocessImage, fixtureType]);
 
   const updateForm = (key, value) => {
     setForm((prev) => {
@@ -431,7 +477,7 @@ const FixtureOcr = () => {
               >
                 League
                 {pendingLeagueFixtures.length > 0 && (
-                  <span className="fixture-ocr-type-count">{pendingLeagueFixtures.length}</span>
+                  <span className="fixture-ocr-type-count">{pendingLeagueForOcr.length}</span>
                 )}
               </button>
               <button
@@ -443,11 +489,13 @@ const FixtureOcr = () => {
                   setFixtureType('playoff');
                   setSelectedFixtureId('');
                 }}
-                disabled={pendingPlayoffFixtures.length === 0}
+                disabled={!userInPlayoffBracket && pendingPlayoffFixtures.length === 0}
               >
                 Playoff
-                {pendingPlayoffFixtures.length > 0 && (
-                  <span className="fixture-ocr-type-count">{pendingPlayoffFixtures.length}</span>
+                {(pendingPlayoffFixtures.length > 0 || userInPlayoffBracket) && (
+                  <span className="fixture-ocr-type-count">
+                    {pendingPlayoffFixtures.length > 0 ? pendingPlayoffFixtures.length : '•'}
+                  </span>
                 )}
               </button>
             </div>
@@ -458,6 +506,14 @@ const FixtureOcr = () => {
               {pendingPlayoffFixtures.length === 1 ? '' : 'es'} ready to submit.
             </p>
           )}
+          {fixtureType === 'playoff' &&
+            userInPlayoffBracket &&
+            pendingPlayoffFixtures.length === 0 && (
+              <p className="fixture-ocr-playoff-note">
+                You are in the playoff bracket. Your next knockout match will appear here once the
+                earlier playoff result is in (no league OCR for the same opponent).
+              </p>
+            )}
           <Link to="/fixture-confirmations" className="fixture-ocr-admin-link">
             {isAdmin ? 'Pending approvals →' : 'Opponent submitted? Confirm here →'}
           </Link>
@@ -585,7 +641,9 @@ const FixtureOcr = () => {
                   ) : pendingFixtures.length === 0 ? (
                     <p className="fixture-ocr-simple-muted">
                       {fixtureType === 'playoff'
-                        ? `No playoff matches ready for ${userTeamName || 'your team'} right now.`
+                        ? userInPlayoffBracket
+                          ? `No playoff match ready to submit yet for ${userTeamName || 'your team'} — wait for the previous knockout result, or use the Playoff tab after your opponent is confirmed.`
+                          : `No playoff matches ready for ${userTeamName || 'your team'} right now.`
                         : `No remaining league matches for ${userTeamName || 'your team'}.`}
                     </p>
                   ) : (
