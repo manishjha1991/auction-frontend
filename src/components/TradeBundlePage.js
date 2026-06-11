@@ -12,8 +12,25 @@ import {
   FaArrowLeft,
   FaLayerGroup,
   FaPlus,
+  FaPaperPlane,
+  FaTrash,
 } from 'react-icons/fa';
 import '../css/TradeBundle.css';
+
+function normalizeTeamsResponse(json) {
+  const data = json?.teams ?? json;
+  return Array.isArray(data) ? data : [];
+}
+
+function normalizePlayersResponse(json) {
+  if (Array.isArray(json)) return json;
+  if (Array.isArray(json?.players)) return json.players;
+  return [];
+}
+
+function playerId(p) {
+  return p?.id || p?._id;
+}
 
 function statusLabel(status) {
   const map = {
@@ -28,12 +45,250 @@ function statusLabel(status) {
   return map[status] || status;
 }
 
+function BundleAddLegForm({
+  uid,
+  user,
+  bundle,
+  onAdded,
+  onError,
+}) {
+  const [teams, setTeams] = useState([]);
+  const [allPlayers, setAllPlayers] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [myPlayerId, setMyPlayerId] = useState('');
+  const [targetTeamId, setTargetTeamId] = useState('');
+  const [targetPlayerId, setTargetPlayerId] = useState('');
+
+  const teamName = user?.teamName;
+
+  useEffect(() => {
+    if (!uid) return;
+    let cancelled = false;
+    (async () => {
+      setDataLoading(true);
+      try {
+        const [teamsRes, playersRes] = await Promise.all([
+          fetch(`${API_ENDPOINTS}/api/users/teams`),
+          fetch(`${API_ENDPOINTS}/api/players/data`),
+        ]);
+        if (!teamsRes.ok || !playersRes.ok) throw new Error('Could not load teams or players');
+        const teamsJson = await teamsRes.json();
+        const playersJson = await playersRes.json();
+        if (!cancelled) {
+          setTeams(normalizeTeamsResponse(teamsJson));
+          setAllPlayers(normalizePlayersResponse(playersJson));
+        }
+      } catch (e) {
+        if (!cancelled) onError(e.message || 'Failed to load roster data');
+      } finally {
+        if (!cancelled) setDataLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [uid, onError]);
+
+  const myRoster = useMemo(() => {
+    if (!teamName || !allPlayers.length) return [];
+    return allPlayers.filter((p) => {
+      if (p.teamName === teamName) return true;
+      if (p.status === 'Sold' && uid && p.currentBidderId && String(p.currentBidderId) === String(uid)) {
+        return true;
+      }
+      return false;
+    });
+  }, [allPlayers, teamName, uid]);
+
+  const otherTeams = useMemo(
+    () => teams.filter((t) => String(t._id || t.id) !== String(uid)),
+    [teams, uid]
+  );
+
+  const selectedTargetTeam = useMemo(
+    () => teams.find((t) => String(t._id || t.id) === String(targetTeamId)),
+    [teams, targetTeamId]
+  );
+
+  const targetRoster = useMemo(() => {
+    if (!selectedTargetTeam?.teamName) return [];
+    return allPlayers.filter((p) => p.teamName === selectedTargetTeam.teamName);
+  }, [selectedTargetTeam, allPlayers]);
+
+  const selectedMyPlayer = myRoster.find((p) => String(playerId(p)) === String(myPlayerId));
+  const selectedTheirPlayer = targetRoster.find((p) => String(playerId(p)) === String(targetPlayerId));
+
+  async function submitLeg(e) {
+    e.preventDefault();
+    if (!myPlayerId || !targetTeamId || !targetPlayerId) {
+      onError('Pick your player, target team, and their player.');
+      return;
+    }
+    setAdding(true);
+    try {
+      const r = await fetch(`${API_ENDPOINTS}/api/trades/bundles/${bundle._id}/legs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fromUserId: uid,
+          offeredPlayerId: myPlayerId,
+          requestedPlayerId: targetPlayerId,
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.message || 'Could not add leg');
+      setMyPlayerId('');
+      setTargetTeamId('');
+      setTargetPlayerId('');
+      onAdded(j);
+    } catch (err) {
+      onError(err.message || 'Could not add leg');
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  if (!teamName) {
+    return (
+      <div className="bundle-form-card bundle-add-leg-card">
+        <h3 className="bundle-add-leg-title">Add a leg (your swap)</h3>
+        <p className="bundle-add-leg-hint">
+          Log in as a <strong>team owner</strong> to add a trade leg. Each team adds their own swap here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bundle-form-card bundle-add-leg-card">
+      <div className="bundle-add-leg-header">
+        <h3 className="bundle-add-leg-title">
+          <FaPlus />
+          Add a leg
+        </h3>
+        <span className="bundle-add-leg-team-badge">{teamName}</span>
+      </div>
+      <p className="bundle-add-leg-hint">
+        Step 1 → your player · Step 2 → other team · Step 3 → their player · then tap <strong>Add to bundle</strong>.
+      </p>
+
+      {dataLoading ? (
+        <div className="bundle-loading-inline">
+          <div className="bundle-loading-spinner" />
+          Loading teams &amp; players…
+        </div>
+      ) : (
+        <form className="bundle-leg-form" onSubmit={submitLeg}>
+          <div className="bundle-leg-steps">
+            <div className="bundle-leg-step">
+              <span className="bundle-leg-step-num">1</span>
+              <div className="bundle-field bundle-field-compact">
+                <label htmlFor="leg-my-player">Your player (you give)</label>
+                <select
+                  id="leg-my-player"
+                  className="bundle-select"
+                  value={myPlayerId}
+                  onChange={(ev) => setMyPlayerId(ev.target.value)}
+                >
+                  <option value="">Tap to choose…</option>
+                  {myRoster.length === 0 ? (
+                    <option value="" disabled>No players on your roster</option>
+                  ) : (
+                    myRoster.map((p) => (
+                      <option key={playerId(p)} value={playerId(p)}>
+                        {p.name} ({p.role})
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <div className="bundle-leg-step">
+              <span className="bundle-leg-step-num">2</span>
+              <div className="bundle-field bundle-field-compact">
+                <label htmlFor="leg-target-team">Other team</label>
+                <select
+                  id="leg-target-team"
+                  className="bundle-select"
+                  value={targetTeamId}
+                  onChange={(ev) => {
+                    setTargetTeamId(ev.target.value);
+                    setTargetPlayerId('');
+                  }}
+                >
+                  <option value="">Tap to choose team…</option>
+                  {otherTeams.length === 0 ? (
+                    <option value="" disabled>No other teams found</option>
+                  ) : (
+                    otherTeams.map((t) => (
+                      <option key={t._id || t.id} value={t._id || t.id}>
+                        {t.teamName}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <div className="bundle-leg-step">
+              <span className="bundle-leg-step-num">3</span>
+              <div className="bundle-field bundle-field-compact">
+                <label htmlFor="leg-target-player">Their player (you get)</label>
+                <select
+                  id="leg-target-player"
+                  className="bundle-select"
+                  value={targetPlayerId}
+                  onChange={(ev) => setTargetPlayerId(ev.target.value)}
+                  disabled={!targetTeamId}
+                >
+                  <option value="">
+                    {targetTeamId ? 'Tap to choose player…' : 'Pick a team first'}
+                  </option>
+                  {targetRoster.map((p) => (
+                    <option key={playerId(p)} value={playerId(p)}>
+                      {p.name} ({p.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {selectedMyPlayer && selectedTheirPlayer && selectedTargetTeam && (
+            <div className="bundle-leg-preview">
+              <div className="bundle-leg-preview-chip give">
+                <small>You give</small>
+                <strong>{selectedMyPlayer.name}</strong>
+              </div>
+              <span className="bundle-swap-arrow">↔</span>
+              <div className="bundle-leg-preview-chip get">
+                <small>From {selectedTargetTeam.teamName}</small>
+                <strong>{selectedTheirPlayer.name}</strong>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="bundle-btn-primary bundle-btn-full"
+            disabled={adding || !myPlayerId || !targetTeamId || !targetPlayerId}
+          >
+            <FaPaperPlane />
+            {adding ? 'Adding…' : 'Add to bundle'}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
 function TradeBundlePage() {
   const { bundleId, shareCode } = useParams();
   const [user, setUser] = useState(null);
   const [bundle, setBundle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newNote, setNewNote] = useState('');
@@ -47,7 +302,7 @@ function TradeBundlePage() {
 
   useEffect(() => {
     if (!toast) return undefined;
-    const t = setTimeout(() => setToast(''), 4000);
+    const t = setTimeout(() => setToast(''), 5000);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -82,6 +337,16 @@ function TradeBundlePage() {
     if (!bundle?.progress?.totalLegs) return 0;
     return Math.round((bundle.progress.acceptedLegs / bundle.progress.totalLegs) * 100);
   }, [bundle]);
+
+  const isCreator = bundle && uid && String(bundle.createdBy) === String(uid);
+  const canEditBundle = bundle && ['draft', 'pending_acceptance', 'blocked'].includes(bundle.status);
+  const canDeleteBundle =
+    bundle &&
+    isCreator &&
+    !['completed', 'cancelled', 'rejected'].includes(bundle.status) &&
+    !(bundle.legs || []).some((leg) =>
+      ['admin_pending', 'completed'].includes(leg.trade?.status)
+    );
 
   async function createBundle() {
     if (!uid || !newTitle.trim()) {
@@ -139,9 +404,43 @@ function TradeBundlePage() {
   function shareWhatsApp() {
     if (!shareUrl || !bundle) return;
     const text = encodeURIComponent(
-      `CPL bundle: ${bundle.title}\nOpen: ${shareUrl}\nAll legs must complete together.`
+      `CPL bundle: ${bundle.title}\nOpen: ${shareUrl}\nAdd your leg on this page, then accept when ready.`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
+  }
+
+  function handleLegAdded(updatedBundle) {
+    setBundle(updatedBundle);
+    const n = updatedBundle?.progress?.totalLegs || updatedBundle?.legs?.length || 0;
+    setToast(`Leg ${n} added! ${n < 2 ? 'Add at least one more leg.' : 'Share link so other teams can accept.'}`);
+  }
+
+  async function deleteBundle() {
+    if (!uid || !bundle?._id) return;
+    const legCount = bundle.legs?.length || 0;
+    const msg =
+      legCount > 0
+        ? `Delete "${bundle.title}"? This withdraws ${legCount} pending leg(s) and removes the bundle.`
+        : `Delete draft bundle "${bundle.title}"?`;
+    if (!window.confirm(msg)) return;
+
+    setDeleting(true);
+    try {
+      const r = await fetch(
+        `${API_ENDPOINTS}/api/trades/bundles/${bundle._id}?byUserId=${encodeURIComponent(uid)}`,
+        { method: 'DELETE' }
+      );
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.message || 'Could not delete bundle');
+      setToast('Bundle deleted');
+      setTimeout(() => {
+        window.location.href = '/trade';
+      }, 800);
+    } catch (e) {
+      setToast(e.message || 'Delete failed');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   if (!bundleId && !shareCode) {
@@ -168,7 +467,7 @@ function TradeBundlePage() {
             </div>
             <div className="bundle-step-pill">
               <strong>2</strong>
-              <span>Add legs</span>
+              <span>Add legs here</span>
             </div>
             <div className="bundle-step-pill">
               <strong>3</strong>
@@ -256,6 +555,7 @@ function TradeBundlePage() {
   const legs = bundle.legs || [];
   const totalLegs = bundle.progress?.totalLegs || legs.length;
   const acceptedLegs = bundle.progress?.acceptedLegs || 0;
+  const legsNeeded = Math.max(0, 2 - totalLegs);
 
   return (
     <div className="bundle-page">
@@ -271,7 +571,8 @@ function TradeBundlePage() {
           <span className={`bundle-status-badge ${bundle.status}`}>{statusLabel(bundle.status)}</span>
           <div className="bundle-progress-wrap">
             <div className="bundle-progress-label">
-              {acceptedLegs} / {totalLegs} legs accepted (minimum 2)
+              {acceptedLegs} / {totalLegs} legs accepted
+              {legsNeeded > 0 && ` — need ${legsNeeded} more leg${legsNeeded > 1 ? 's' : ''}`}
             </div>
             <div className="bundle-progress-bar">
               <div className="bundle-progress-fill" style={{ width: `${progressPct}%` }} />
@@ -288,11 +589,31 @@ function TradeBundlePage() {
           <button type="button" className="bundle-btn-secondary" onClick={shareWhatsApp}>
             <FaShareAlt /> WhatsApp
           </button>
+          {canDeleteBundle && (
+            <button
+              type="button"
+              className="bundle-btn-delete"
+              onClick={deleteBundle}
+              disabled={deleting}
+            >
+              <FaTrash /> {deleting ? 'Deleting…' : 'Delete bundle'}
+            </button>
+          )}
           <div className="bundle-link-chip">
             <FaLink />
             {shareUrl}
           </div>
         </div>
+      </div>
+
+      <div className="bundle-how-to-card">
+        <strong>How it works</strong>
+        <ol>
+          <li>Each team opens this link and uses <strong>Add a leg</strong> below.</li>
+          <li>Need at least <strong>2 legs</strong> in the bundle.</li>
+          <li>Receiving team clicks <strong>Accept leg</strong> on their swap.</li>
+          <li>When everyone accepts → all trades complete together.</li>
+        </ol>
       </div>
 
       {bundle.blockers?.length > 0 && (
@@ -306,17 +627,30 @@ function TradeBundlePage() {
         </div>
       )}
 
-      <h2 className="bundle-section-title">Trade legs</h2>
+      {canEditBundle && (
+        uid ? (
+          <BundleAddLegForm
+            uid={uid}
+            user={user}
+            bundle={bundle}
+            onAdded={handleLegAdded}
+            onError={setToast}
+          />
+        ) : (
+          <div className="bundle-form-card">
+            <p style={{ margin: 0, fontWeight: 600, color: '#64748b' }}>
+              <Link to="/login">Log in</Link> to add a leg or accept your swap.
+            </p>
+          </div>
+        )
+      )}
+
+      <h2 className="bundle-section-title">Trade legs ({totalLegs})</h2>
 
       {legs.length === 0 ? (
         <div className="bundle-empty-legs">
           <div className="empty-icon">🔗</div>
-          <p>No legs yet. Add at least 2 trades to this bundle.</p>
-          {uid && ['draft', 'pending_acceptance', 'blocked'].includes(bundle.status) && (
-            <Link to={`/trade?bundleId=${bundle._id}`} className="bundle-btn-primary" style={{ textDecoration: 'none' }}>
-              <FaPlus /> Add first leg
-            </Link>
-          )}
+          <p>No legs yet. Use the form above to add your first swap.</p>
         </div>
       ) : (
         <div className="bundle-legs-grid">
@@ -384,18 +718,6 @@ function TradeBundlePage() {
               </div>
             );
           })}
-        </div>
-      )}
-
-      {uid && ['draft', 'pending_acceptance', 'blocked'].includes(bundle.status) && legs.length > 0 && (
-        <div className="bundle-cta-card">
-          <p>
-            <FaExchangeAlt style={{ marginRight: 8 }} />
-            Need another swap? Add more legs from Trade Center.
-          </p>
-          <Link to={`/trade?bundleId=${bundle._id}`} className="bundle-btn-primary" style={{ textDecoration: 'none' }}>
-            <FaPlus /> Add leg
-          </Link>
         </div>
       )}
     </div>
