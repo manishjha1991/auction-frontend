@@ -657,7 +657,7 @@ function TradeBundlePage() {
             ))}
           </ul>
           <p style={{ margin: '10px 0 0', fontSize: '0.85rem', color: '#92400e' }}>
-            A 2-for-2 deal is validated as one package. If warnings clear after refresh, accept each leg you received.
+            These checks run when <strong>all legs are accepted</strong>. You can still accept each leg — the deal completes only if the full package passes.
           </p>
         </div>
       )}
@@ -671,10 +671,12 @@ function TradeBundlePage() {
         </div>
       ) : (
         <div className="bundle-legs-grid">
-          {legs.map(({ legIndex, trade, approvalWarnings }) => {
-            const isRecipient = uid && String(trade.toUser?._id) === String(uid);
+          {legs.map(({ legIndex, trade, approvalWarnings, acceptBlockers }) => {
+            const toUserId = trade.toUser?._id || trade.toUser;
+            const isRecipient = uid && String(toUserId) === String(uid);
             const canAccept = isRecipient && trade.status === 'pending';
-            const hasBlockers = approvalWarnings?.length > 0;
+            const legBlockers = acceptBlockers?.length ? acceptBlockers : [];
+            const hasLegBlockers = legBlockers.length > 0;
             return (
               <div key={trade._id} className="bundle-leg-card">
                 <div className="bundle-leg-header">
@@ -703,11 +705,11 @@ function TradeBundlePage() {
                     <span>{trade.requestedPlayer?.name}</span>
                   </div>
                 </div>
-                {hasBlockers && (
+                {hasLegBlockers && (
                   <div className="bundle-warn-box">
-                    <div className="bundle-warn-title">Cannot accept yet</div>
+                    <div className="bundle-warn-title">Cannot accept this leg yet</div>
                     <ul>
-                      {approvalWarnings.map((w, i) => (
+                      {legBlockers.map((w, i) => (
                         <li key={i}>{w}</li>
                       ))}
                     </ul>
@@ -718,7 +720,7 @@ function TradeBundlePage() {
                     <button
                       type="button"
                       className="bundle-btn-accept"
-                      disabled={hasBlockers}
+                      disabled={hasLegBlockers}
                       onClick={() => respondLeg(trade._id, 'accept')}
                     >
                       <FaCheck /> Accept leg
