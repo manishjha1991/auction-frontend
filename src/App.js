@@ -567,9 +567,9 @@ function App() {
                       </li>
                       <li>
                         <Link
-                          to="/profile#trade-commissioner"
+                          to="/admin/trades#trade-bundles"
                           onClick={closeSidebar}
-                          className={`menu-item ${currentPath === '/profile' && window.location.hash === '#trade-commissioner' ? 'active' : ''}`}
+                          className={`menu-item ${isActive('/admin/trades') ? 'active' : ''}`}
                         >
                           <FaUserShield className="menu-icon" />
                           <span>Trade Commissioner</span>

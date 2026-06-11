@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import '../css/AdminProfile.css';
 import { API_ENDPOINTS } from '../const';
 import PlayerTypeControls from './PlayerTypeControls';
+import CommissionerTradeMonitor from './CommissionerTradeMonitor';
 
 const formatCr = (value) => `${value.toFixed(2)} Cr`;
 const CONSISTENCY_BADGE_KEY = 'adminConsistencyBadgeCount';
@@ -1888,6 +1889,7 @@ const AdminControlPanel = ({ adminUser }) => {
             {revokeTeamAdminsLoading ? 'Working…' : 'Revoke admin from team owners'}
           </button>
         </div>
+        <CommissionerTradeMonitor adminUserId={adminUserId} />
         <p className="admin-section-tip">
           Tip: Sign up a dedicated account with <strong>no team name</strong>, select it as commissioner, then save.
           Use &quot;Revoke admin from team owners&quot; so team accounts lose admin access. With auto-approve off,

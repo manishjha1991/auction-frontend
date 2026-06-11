@@ -531,3 +531,133 @@
   }
 }
 
+/* Commissioner trade monitor — scoped colors (parent panel uses light text on dark bg) */
+.commissioner-trade-monitor {
+  margin-top: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+
+.commissioner-trade-monitor__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.commissioner-trade-monitor__title {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #f8fafc;
+}
+
+.commissioner-trade-monitor__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.commissioner-trade-monitor__link {
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.commissioner-trade-monitor__error {
+  margin: 0 0 12px;
+  font-weight: 600;
+  color: #fca5a5;
+}
+
+.commissioner-trade-monitor__empty,
+.commissioner-trade-monitor__hint,
+.commissioner-trade-monitor__meta {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.commissioner-trade-monitor__empty {
+  margin: 0;
+}
+
+.commissioner-trade-monitor__group {
+  margin-bottom: 14px;
+}
+
+.commissioner-trade-monitor__subtitle {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.commissioner-trade-monitor__row {
+  font-size: 0.88rem;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+.commissioner-trade-monitor__row strong {
+  color: #f8fafc;
+}
+
+.commissioner-trade-monitor__card {
+  margin-bottom: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.commissioner-trade-monitor__card-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #f8fafc;
+}
+
+.commissioner-trade-monitor__meta {
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+}
+
+.commissioner-trade-monitor__leg {
+  font-size: 0.88rem;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  line-height: 1.45;
+}
+
+.commissioner-trade-monitor__leg:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.commissioner-trade-monitor__leg strong {
+  color: #f8fafc;
+}
+
+.commissioner-trade-monitor__status {
+  font-weight: 600;
+}
+
+.commissioner-trade-monitor__status--ready {
+  margin-left: 8px;
+  color: #4ade80;
+}
+
+.commissioner-trade-monitor__ready-note {
+  margin: 10px 0 0;
+  font-size: 0.88rem;
+  color: #4ade80;
+  font-weight: 600;
+}
+

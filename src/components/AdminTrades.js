@@ -54,6 +54,8 @@ function AdminTrades() {
   const [pickHistory, setPickHistory] = useState([]);
   const [bundlePending, setBundlePending] = useState([]);
   const [bundleAutoApprove, setBundleAutoApprove] = useState(true);
+  const [bundleLoading, setBundleLoading] = useState(false);
+  const [bundleError, setBundleError] = useState('');
   const [toast, setToast] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingStates, setLoadingStates] = useState({
@@ -71,6 +73,15 @@ function AdminTrades() {
     if (cachedUser) setUser(JSON.parse(cachedUser));
   }, []);
 
+  useEffect(() => {
+    if (window.location.hash === '#trade-bundles') {
+      const t = setTimeout(() => {
+        document.getElementById('trade-bundles')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+      return () => clearTimeout(t);
+    }
+  }, [bundlePending.length]);
+
   async function loadPending() {
     const q = user?.id ? `?adminUserId=${user.id}` : '';
     const r = await fetch(`${API_ENDPOINTS}/api/trades/admin/pending${q}`);
@@ -79,10 +90,15 @@ function AdminTrades() {
   }
 
   async function loadBundlePending() {
+    setBundleLoading(true);
+    setBundleError('');
     try {
-      const q = user?.id ? `?adminUserId=${user.id}` : '';
+      const q = user?.id ? `?adminUserId=${encodeURIComponent(user.id)}` : '';
       const r = await fetch(`${API_ENDPOINTS}/api/trades/bundles/admin/pending${q}`);
       const j = await r.json();
+      if (!r.ok) {
+        throw new Error(j.message || 'Failed to load bundle trades');
+      }
       if (Array.isArray(j)) {
         setBundlePending(j);
         setBundleAutoApprove(true);
@@ -90,8 +106,11 @@ function AdminTrades() {
         setBundlePending(Array.isArray(j.bundles) ? j.bundles : []);
         setBundleAutoApprove(j.bundleAutoApprove !== false);
       }
-    } catch {
+    } catch (err) {
       setBundlePending([]);
+      setBundleError(err.message || 'Could not load bundle trades');
+    } finally {
+      setBundleLoading(false);
     }
   }
 
@@ -139,6 +158,8 @@ function AdminTrades() {
     loadReleaseHistory();
     loadPickPending();
     loadPickHistory();
+    const timer = setInterval(loadBundlePending, 20000);
+    return () => clearInterval(timer);
   }, [user?.id]);
 
   async function decide(tradeId, decision) {
@@ -344,22 +365,51 @@ function AdminTrades() {
         />
       </div>
 
-      {bundlePending.length > 0 && (
-        <section style={{ marginBottom: '2rem' }}>
-          <h2>
+      <section id="trade-bundles" style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>
             {bundleAutoApprove
               ? 'Trade bundles (auto-approve when all legs ready)'
               : 'Trade bundles (manual commissioner approval)'}
           </h2>
-          {bundlePending.map((b) => (
+          <button
+            type="button"
+            className="btn"
+            onClick={loadBundlePending}
+            disabled={bundleLoading}
+            style={{ padding: '6px 14px' }}
+          >
+            {bundleLoading ? 'Refreshing…' : 'Refresh bundles'}
+          </button>
+        </div>
+        {bundleError && (
+          <p style={{ color: '#dc2626', fontWeight: 600, marginBottom: 12 }}>{bundleError}</p>
+        )}
+        {!bundleError && !bundleLoading && bundlePending.length === 0 && (
+          <p className="empty">No active trade bundles right now.</p>
+        )}
+        {bundlePending.map((b) => (
             <div className="item" key={b._id} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #e5e7eb', borderRadius: 8 }}>
               <div className="line"><strong>{b.title}</strong> — {b.status}</div>
               <div className="line">Code: {b.shareCode} · {b.progress?.acceptedLegs || 0}/{b.progress?.totalLegs || 0} legs</div>
-              {(b.legs || []).map(({ legIndex, trade }) => (
-                <div key={trade._id} className="line" style={{ fontSize: 13, marginTop: 6 }}>
-                  Leg {legIndex}: {trade.fromUser?.teamName} ↔ {trade.toUser?.teamName} ({trade.offeredPlayer?.name} ↔ {trade.requestedPlayer?.name}) — {trade.status}
-                </div>
-              ))}
+              {(b.legs || []).map(({ legIndex, trade }) => {
+                const statusColor =
+                  trade.status === 'admin_pending' ? '#16a34a'
+                  : trade.status === 'rejected' || trade.status === 'withdrawn' ? '#dc2626'
+                  : '#d97706';
+                const statusLabel =
+                  trade.status === 'admin_pending' ? 'Accepted'
+                  : trade.status === 'pending' ? 'Awaiting response'
+                  : trade.status === 'counter' ? 'Counter offered'
+                  : trade.status;
+                return (
+                  <div key={trade._id} className="line" style={{ fontSize: 13, marginTop: 6 }}>
+                    Leg {legIndex}: {trade.fromUser?.teamName} ↔ {trade.toUser?.teamName} ({trade.offeredPlayer?.name} ↔ {trade.requestedPlayer?.name})
+                    {' — '}
+                    <span style={{ color: statusColor, fontWeight: 600 }}>{statusLabel}</span>
+                  </div>
+                );
+              })}
               {b.blockers?.length > 0 && (
                 <div style={{ color: '#b45309', marginTop: 8 }}>{b.blockers.join(' · ')}</div>
               )}
@@ -443,8 +493,7 @@ function AdminTrades() {
               )}
             </div>
           ))}
-        </section>
-      )}
+      </section>
       
       {/* Group trades by user */}
       {(() => {
