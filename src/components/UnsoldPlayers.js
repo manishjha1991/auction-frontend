@@ -15,6 +15,7 @@ function UnsoldPlayers() {
   const [myPicks, setMyPicks] = useState([]);
   const [pickStatusByPlayer, setPickStatusByPlayer] = useState({});
   const [pickButtonEnabled, setPickButtonEnabled] = useState(true);
+  const [sameTierPickCredits, setSameTierPickCredits] = useState([]);
 
   useEffect(() => {
     const cached = localStorage.getItem('user');
@@ -91,6 +92,26 @@ function UnsoldPlayers() {
 
   useEffect(() => { loadMyPicks(); }, [user]);
 
+  async function loadTradeUsage() {
+    if (!user?.id) return;
+    try {
+      const r = await fetch(`${API_ENDPOINTS}/api/users/${user.id}/trades-usage`, { cache: 'no-store' });
+      const j = await r.json();
+      setSameTierPickCredits(Array.isArray(j.sameTierPickCredits) ? j.sameTierPickCredits : []);
+    } catch {
+      setSameTierPickCredits([]);
+    }
+  }
+
+  useEffect(() => {
+    loadTradeUsage();
+  }, [user?.id]);
+
+  function canPickPlayerType(playerType) {
+    if (!playerType) return true;
+    return sameTierPickCredits.includes(playerType);
+  }
+
   async function pickPlayer(playerId) {
     try {
       const res = await fetch(`${API_ENDPOINTS}/api/picks`, {
@@ -102,6 +123,7 @@ function UnsoldPlayers() {
       // Mark as requested locally and refresh pick list
       setPickStatusByPlayer(prev => ({ ...prev, [playerId]: 'pending' }));
       loadMyPicks();
+      loadTradeUsage();
     } catch (e) {
       setToast(String(e.message || 'Failed to pick'));
     }
@@ -168,6 +190,15 @@ function UnsoldPlayers() {
               <span className="warning-text">Pick button is currently disabled by admin</span>
             </div>
           )}
+          {sameTierPickCredits.length > 0 && (
+            <div className="pick-disabled-info" style={{ background: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.35)' }}>
+              <span className="warning-icon">✓</span>
+              <span className="warning-text">
+                Same-tier replacement available: you released {sameTierPickCredits.join(', ')} — picking that tier
+                uses <strong>no extra</strong> trade slot (counts as one move with your release).
+              </span>
+            </div>
+          )}
           <div className="grid">
             {items.map(p => (
               <div className={`card ${p.hasPendingRequest ? 'card-disabled' : ''}`} key={p._id}>
@@ -191,14 +222,25 @@ function UnsoldPlayers() {
                     if (p.hasPendingRequest) {
                       return <span className="request-raised-badge" title="Request already raised">Request Raised</span>;
                     }
+                    const sameTierCredit = canPickPlayerType(p.type);
                     return (
                       <button 
                         className="btn btn-primary" 
                         onClick={() => pickPlayer(p._id)} 
                         disabled={!user || !pickButtonEnabled}
-                        title={!pickButtonEnabled ? 'Pick button is currently disabled by admin' : ''}
+                        title={
+                          !pickButtonEnabled
+                            ? 'Pick button is currently disabled by admin'
+                            : sameTierCredit
+                              ? `Pairs with your ${p.type} release — no extra trade slot`
+                              : ''
+                        }
                       >
-                        {pickButtonEnabled ? 'Pick' : 'Pick Disabled'}
+                        {pickButtonEnabled
+                          ? sameTierCredit
+                            ? `Pick ${p.type} (no extra slot)`
+                            : 'Pick'
+                          : 'Pick Disabled'}
                       </button>
                     );
                   })()}
