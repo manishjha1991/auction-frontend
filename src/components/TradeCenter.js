@@ -4,7 +4,7 @@ import { API_ENDPOINTS } from '../const';
 import '../css/TradeCenter.css';
 import '../css/TradeBundle.css';
 import PlayerAvatar from './PlayerAvatar';
-import { FaExchangeAlt, FaCheck,FaClock, FaTimes, FaPaperPlane, FaRetweet, FaUsers, FaUnlock, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
+import { FaExchangeAlt, FaCheck, FaClock, FaTimes, FaPaperPlane, FaRetweet, FaUsers, FaUnlock, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaInfoCircle, FaLayerGroup, FaLink } from 'react-icons/fa';
 import {
   FALLBACK_TRADE_SEASON_CAP,
   FALLBACK_MAX_TRADES_PER_OPPONENT_PAIR,
@@ -292,6 +292,42 @@ function TradeCenter({ user: userProp }) {
     if (!teams.length || !uid) return [];
     return teams.filter((t) => String(t._id) !== String(uid));
   }, [teams, uid]);
+
+  const { bundledTradeGroups, standaloneTrades } = useMemo(() => {
+    const groupMap = new Map();
+    const standalone = [];
+    for (const t of trades) {
+      const rawBundle = t.bundleId;
+      const bundleKey = rawBundle?._id || rawBundle;
+      if (bundleKey) {
+        const key = String(bundleKey);
+        if (!groupMap.has(key)) {
+          groupMap.set(key, {
+            bundleId: key,
+            title: rawBundle?.title || 'Trade bundle',
+            shareCode: rawBundle?.shareCode,
+            status: rawBundle?.status,
+            trades: [],
+          });
+        }
+        groupMap.get(key).trades.push(t);
+      } else {
+        standalone.push(t);
+      }
+    }
+    const bundledTradeGroups = [...groupMap.values()].map((g) => ({
+      ...g,
+      trades: [...g.trades].sort(
+        (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
+      ),
+    }));
+    bundledTradeGroups.sort((a, b) => {
+      const aT = a.trades[a.trades.length - 1]?.createdAt;
+      const bT = b.trades[b.trades.length - 1]?.createdAt;
+      return new Date(bT || 0) - new Date(aT || 0);
+    });
+    return { bundledTradeGroups, standaloneTrades: standalone };
+  }, [trades]);
 
   const selectedReleasePlayerMeta = useMemo(
     () => (releasePlayerId ? (allPlayers || []).find((ap) => ap.id === releasePlayerId) : null),
@@ -822,6 +858,15 @@ function TradeCenter({ user: userProp }) {
   }
 
   async function respondTrade(tradeId, decision) {
+    if (decision === 'reject') {
+      const t = trades.find((x) => String(x._id) === String(tradeId));
+      if (
+        (t?.bundleId || t?.isBundleLeg) &&
+        !window.confirm('Reject this leg? The entire bundle will be rejected for all teams.')
+      ) {
+        return;
+      }
+    }
     setLoadingStates(prev => ({ ...prev, respond: true }));
     
     try {
@@ -835,10 +880,23 @@ function TradeCenter({ user: userProp }) {
       if (!res.ok) {
         throw new Error(j.message || 'Failed to respond');
       }
-      const updated = trades.map(t => (t._id === tradeId ? j : t));
+
+      let updated;
+      if (j.bundleCollapsed) {
+        const fresh = await refetchTrades();
+        updated = Array.isArray(fresh) ? fresh : trades.map((t) => (t._id === tradeId ? j : t));
+      } else {
+        updated = trades.map((t) => (t._id === tradeId ? j : t));
+      }
       setTrades(updated);
 
-      if (j.bundleAutoResult?.ok) {
+      if (j.bundleCollapsed) {
+        setAlert({
+          type: 'warning',
+          title: 'Bundle rejected',
+          message: `All ${j.bundleLegsUpdated || ''} legs in this bundle were rejected.`,
+        });
+      } else if (j.bundleAutoResult?.ok) {
         setAlert({
           type: 'success',
           title: 'Bundle completed!',
@@ -888,7 +946,231 @@ function TradeCenter({ user: userProp }) {
     }
   }
 
+  function bundleLegAcceptBlocked(t) {
+    const blockers = t.acceptBlockers?.length ? t.acceptBlockers : [];
+    return blockers.length > 0;
+  }
 
+  function renderTradeCard(t, { legIndex = null, inBundle = false } = {}) {
+    const acceptBlocked = inBundle || t.bundleId || t.isBundleLeg
+      ? bundleLegAcceptBlocked(t)
+      : (t.approvalWarnings?.length > 0);
+
+    return (
+      <div
+        key={t._id}
+        className={`trade-item ${inBundle ? 'bundle-leg-item' : ''} ${['completed', 'rejected', 'withdrawn'].includes(t.status) ? 'disabled' : ''}`}
+      >
+        {legIndex != null && (
+          <div className="bundle-leg-badge">Leg {legIndex}</div>
+        )}
+        <div className="meta">
+          <div className="line team-line">
+            <strong>From:</strong>
+            {(() => {
+              const tm = findTeamByName(t.fromUser?.teamName || '');
+              const img = tm?.teamImage ? `${API_ENDPOINTS}${tm.teamImage}` : '';
+              return (
+                <span className="team-pill">
+                  {img ? (
+                    <img className="team-avatar" src={img} alt={tm?.teamName || 'Team'} />
+                  ) : (
+                    <span className="team-initial">{(tm?.teamName || '?').substring(0, 1).toUpperCase()}</span>
+                  )}
+                  <span className="team-name">{t.fromUser?.teamName}</span>
+                </span>
+              );
+            })()}
+          </div>
+          <div className="line team-line">
+            <strong>To:</strong>
+            {(() => {
+              const tm = findTeamByName(t.toUser?.teamName || '');
+              const img = tm?.teamImage ? `${API_ENDPOINTS}${tm.teamImage}` : '';
+              return (
+                <span className="team-pill">
+                  {img ? (
+                    <img className="team-avatar" src={img} alt={tm?.teamName || 'Team'} />
+                  ) : (
+                    <span className="team-initial">{(tm?.teamName || '?').substring(0, 1).toUpperCase()}</span>
+                  )}
+                  <span className="team-name">{t.toUser?.teamName}</span>
+                </span>
+              );
+            })()}
+          </div>
+          <div className="line offer-line">
+            <strong>Offer:</strong>
+            <span className="offer-chip">
+              {t.offeredPlayer && (
+                <PlayerAvatar profilePicture={t.offeredPlayer.profilePicture} name={t.offeredPlayer.name} size={22} />
+              )}
+              <span className="nm">{t.offeredPlayer?.name}</span>
+              {t.offeredPlayer?.type && (
+                <span className={`type-badge ${String(t.offeredPlayer.type).toLowerCase()}`}>{t.offeredPlayer.type}</span>
+              )}
+            </span>
+            <span className="chip-arrow">↔</span>
+            <span className="offer-chip">
+              {t.requestedPlayer && (
+                <PlayerAvatar profilePicture={t.requestedPlayer.profilePicture} name={t.requestedPlayer.name} size={22} />
+              )}
+              <span className="nm">{t.requestedPlayer?.name}</span>
+              {t.requestedPlayer?.type && (
+                <span className={`type-badge ${String(t.requestedPlayer.type).toLowerCase()}`}>{t.requestedPlayer.type}</span>
+              )}
+            </span>
+          </div>
+          <div className={`status ${t.status}`}>{t.status}</div>
+        </div>
+        {inBundle && ['pending', 'counter', 'admin_pending'].includes(t.status) && (
+          <div className="trade-bundle-leg-note">
+            <FaLayerGroup style={{ marginRight: 6 }} />
+            Bundle leg — all legs in this deal complete together or not at all.
+          </div>
+        )}
+        {Array.isArray(t.approvalWarnings) &&
+          t.approvalWarnings.length > 0 &&
+          ['pending', 'counter', 'admin_pending'].includes(t.status) &&
+          !inBundle && (
+            <div className="trade-approval-warn" role="status">
+              <div className="trade-approval-warn-title">Cannot accept until these are resolved</div>
+              <ul className="trade-approval-warn-list">
+                {t.approvalWarnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        {inBundle &&
+          acceptBlocked &&
+          ['pending', 'counter', 'admin_pending'].includes(t.status) && (
+            <div className="trade-approval-warn" role="status">
+              <div className="trade-approval-warn-title">Cannot accept this leg yet</div>
+              <ul className="trade-approval-warn-list">
+                {(t.acceptBlockers || t.approvalWarnings || []).map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        <div className="history">
+          {t.history?.map((h, idx) => (
+            <div key={idx} className="hline">
+              <span>{h.action}</span>
+              {h.message ? <span> — {h.message}</span> : null}
+            </div>
+          ))}
+        </div>
+        <div className="item-actions">
+          {effectiveUser && isToMe(t) && t.status === 'pending' && (
+            <>
+              <button
+                className="btn btn-success"
+                disabled={loadingStates.respond || acceptBlocked}
+                onClick={() => respondTrade(t._id, 'accept')}
+              >
+                {loadingStates.respond ? (
+                  <>
+                    <div className="loading-spinner" />
+                    Accepting...
+                  </>
+                ) : (
+                  <>
+                    <FaCheck style={{ marginRight: 6 }} />
+                    Accept
+                  </>
+                )}
+              </button>
+              <button
+                className="btn btn-danger"
+                disabled={loadingStates.respond}
+                onClick={() => respondTrade(t._id, 'reject')}
+              >
+                {loadingStates.respond ? (
+                  <>
+                    <div className="loading-spinner" />
+                    Rejecting...
+                  </>
+                ) : (
+                  <>
+                    <FaTimes style={{ marginRight: 6 }} />
+                    Reject
+                  </>
+                )}
+              </button>
+            </>
+          )}
+          {effectiveUser && isFromMe(t) && !['completed', 'rejected', 'withdrawn'].includes(t.status) && (
+            <button
+              className="btn btn-withdraw"
+              disabled={loadingStates.withdraw}
+              onClick={async () => {
+                if (
+                  (inBundle || t.bundleId || t.isBundleLeg) &&
+                  !window.confirm('Withdraw this leg? The entire bundle will be withdrawn for all teams.')
+                ) {
+                  return;
+                }
+                setLoadingStates((prev) => ({ ...prev, withdraw: true }));
+                try {
+                  const r = await fetch(`${API_ENDPOINTS}/api/trades/${t._id}/withdraw`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ byUserId: uid }),
+                  });
+                  const j = await r.json().catch(() => ({}));
+                  if (!r.ok) throw new Error(j.message || 'Failed to withdraw trade');
+                  const fresh = await refetchTrades();
+                  const list = Array.isArray(fresh) ? fresh : trades.map((x) => (x._id === t._id ? j : x));
+                  if (j.bundleCollapsed) {
+                    setAlert({
+                      type: 'warning',
+                      title: 'Bundle withdrawn',
+                      message: `All ${j.bundleLegsUpdated || ''} legs in this bundle were withdrawn.`,
+                    });
+                  }
+                  const activeTrades = list.filter(
+                    (u) =>
+                      ACTIVE_OUTGOING_TRADE_STATUSES.includes(u.status) &&
+                      String(u.fromUser?._id) === String(uid)
+                  );
+                  const activeReleases = myReleases.filter(
+                    (rel) =>
+                      ['pending', 'admin_pending'].includes(rel.status) && String(rel.user) === String(uid)
+                  );
+                  setLimitReached(activeTrades.length + activeReleases.length >= maxPendingCombined);
+                  setPendingTradesCount(activeTrades.length + activeReleases.length);
+                  setAlert({
+                    type: 'success',
+                    title: 'Trade Withdrawn! 🔄',
+                    message: 'Your trade was withdrawn. You can send a new proposal when ready.',
+                  });
+                } catch (e) {
+                  setAlert({
+                    type: 'error',
+                    title: 'Withdrawal Failed! ❌',
+                    message: e.message || 'Failed to withdraw trade. Please try again.',
+                  });
+                } finally {
+                  setLoadingStates((prev) => ({ ...prev, withdraw: false }));
+                }
+              }}
+            >
+              {loadingStates.withdraw ? (
+                <>
+                  <div className="loading-spinner" />
+                  Withdrawing...
+                </>
+              ) : (
+                'Withdraw'
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Counter feature removed
 
@@ -1260,185 +1542,48 @@ function TradeCenter({ user: userProp }) {
         <div className="card glass">
           <h3><FaUsers style={{ marginRight: 8 }} />Your Trades</h3>
           <div className="trade-list">
-            {trades.map(t => (
-              <div key={t._id} className={`trade-item ${['completed','rejected','withdrawn'].includes(t.status) ? 'disabled' : ''}`}>
-                <div className="meta">
-                  <div className="line team-line">
-                    <strong>From:</strong>
-                    {(() => {
-                      const tm = findTeamByName(t.fromUser?.teamName || '');
-                      const img = tm?.teamImage ? `${API_ENDPOINTS}${tm.teamImage}` : '';
-                      return (
-                        <span className="team-pill">
-                          {img ? (
-                            <img className="team-avatar" src={img} alt={tm?.teamName || 'Team'} />
-                          ) : (
-                            <span className="team-initial">{(tm?.teamName || '?').substring(0,1).toUpperCase()}</span>
-                          )}
-                          <span className="team-name">{t.fromUser?.teamName}</span>
-                        </span>
-                      );
-                    })()}
-                  </div>
-                  <div className="line team-line">
-                    <strong>To:</strong>
-                    {(() => {
-                      const tm = findTeamByName(t.toUser?.teamName || '');
-                      const img = tm?.teamImage ? `${API_ENDPOINTS}${tm.teamImage}` : '';
-                      return (
-                        <span className="team-pill">
-                          {img ? (
-                            <img className="team-avatar" src={img} alt={tm?.teamName || 'Team'} />
-                          ) : (
-                            <span className="team-initial">{(tm?.teamName || '?').substring(0,1).toUpperCase()}</span>
-                          )}
-                          <span className="team-name">{t.toUser?.teamName}</span>
-                        </span>
-                      );
-                    })()}
-                  </div>
-                  <div className="line offer-line">
-                    <strong>Offer:</strong>
-                    <span className="offer-chip">
-                      {t.offeredPlayer && (
-                        <PlayerAvatar profilePicture={t.offeredPlayer.profilePicture} name={t.offeredPlayer.name} size={22} />
-                      )}
-                      <span className="nm">{t.offeredPlayer?.name}</span>
-                      {t.offeredPlayer?.type && <span className={`type-badge ${String(t.offeredPlayer.type).toLowerCase()}`}>{t.offeredPlayer.type}</span>}
-                    </span>
-                    <span className="chip-arrow">↔</span>
-                    <span className="offer-chip">
-                      {t.requestedPlayer && (
-                        <PlayerAvatar profilePicture={t.requestedPlayer.profilePicture} name={t.requestedPlayer.name} size={22} />
-                      )}
-                      <span className="nm">{t.requestedPlayer?.name}</span>
-                      {t.requestedPlayer?.type && <span className={`type-badge ${String(t.requestedPlayer.type).toLowerCase()}`}>{t.requestedPlayer.type}</span>}
-                    </span>
-                  </div>
-                  <div className={`status ${t.status}`}>{t.status}</div>
-                </div>
-                {Array.isArray(t.approvalWarnings) &&
-                  t.approvalWarnings.length > 0 &&
-                  ['pending', 'counter', 'admin_pending'].includes(t.status) && (
-                    <div className="trade-approval-warn" role="status">
-                      <div className="trade-approval-warn-title">Cannot accept until these are resolved</div>
-                      <ul className="trade-approval-warn-list">
-                        {t.approvalWarnings.map((w, i) => (
-                          <li key={i}>{w}</li>
-                        ))}
-                      </ul>
+            {bundledTradeGroups.map((group) => {
+              const bundleHref = group.shareCode
+                ? `/trade/bundle/code/${group.shareCode}`
+                : `/trade/bundle/${group.bundleId}`;
+              const pendingLegs = group.trades.filter((t) => t.status === 'pending').length;
+              const acceptedLegs = group.trades.filter((t) =>
+                ['admin_pending', 'completed'].includes(t.status)
+              ).length;
+              return (
+                <div key={group.bundleId} className="trade-bundle-group">
+                  <div className="trade-bundle-header">
+                    <div className="trade-bundle-header-left">
+                      <span className="trade-bundle-icon">
+                        <FaLayerGroup />
+                      </span>
+                      <div>
+                        <div className="trade-bundle-title">{group.title}</div>
+                        <div className="trade-bundle-meta">
+                          <span className="trade-bundle-pill">Bundle deal</span>
+                          <span>{group.trades.length} legs</span>
+                          {group.shareCode && <span>· {group.shareCode}</span>}
+                          <span>· {acceptedLegs}/{group.trades.length} accepted</span>
+                        </div>
+                      </div>
                     </div>
+                    <Link to={bundleHref} className="trade-bundle-link">
+                      <FaLink style={{ marginRight: 6 }} />
+                      Open bundle
+                    </Link>
+                  </div>
+                  {pendingLegs > 0 && (
+                    <p className="trade-bundle-hint">
+                      Accept each leg below (or on the bundle page). Deal runs only when every leg is accepted.
+                    </p>
                   )}
-                <div className="history">
-                  {t.history?.map((h, idx) => (
-                    <div key={idx} className="hline">
-                      <span>{h.action}</span>
-                      {h.message ? <span> — {h.message}</span> : null}
-                    </div>
-                  ))}
+                  <div className="trade-bundle-legs">
+                    {group.trades.map((t, idx) => renderTradeCard(t, { legIndex: idx + 1, inBundle: true }))}
+                  </div>
                 </div>
-                <div className="item-actions">
-                  {effectiveUser && isToMe(t) && t.status === 'pending' && (
-                    <>
-                      <button 
-                        className="btn btn-success" 
-                        disabled={loadingStates.respond || (t.approvalWarnings?.length > 0)}
-                        onClick={() => respondTrade(t._id, 'accept')}
-                      >
-                        {loadingStates.respond ? (
-                          <>
-                            <div className="loading-spinner"></div>
-                            Accepting...
-                          </>
-                        ) : (
-                          <>
-                            <FaCheck style={{ marginRight: 6 }} />
-                            Accept
-                          </>
-                        )}
-                      </button>
-                      <button 
-                        className="btn btn-danger" 
-                        disabled={loadingStates.respond}
-                        onClick={() => respondTrade(t._id, 'reject')}
-                      >
-                        {loadingStates.respond ? (
-                          <>
-                            <div className="loading-spinner"></div>
-                            Rejecting...
-                          </>
-                        ) : (
-                          <>
-                            <FaTimes style={{ marginRight: 6 }} />
-                            Reject
-                          </>
-                        )}
-                      </button>
-                    </>
-                  )}
-                  {effectiveUser && isFromMe(t) && !['completed','rejected','withdrawn'].includes(t.status) && (
-                    <button 
-                      className="btn btn-withdraw" 
-                      disabled={loadingStates.withdraw}
-                      onClick={async () => {
-                        setLoadingStates(prev => ({ ...prev, withdraw: true }));
-                        try {
-                          const r = await fetch(`${API_ENDPOINTS}/api/trades/${t._id}/withdraw`, { 
-                            method: 'POST', 
-                            headers: { 'Content-Type': 'application/json' }, 
-                            body: JSON.stringify({ byUserId: uid }) 
-                          });
-                          const j = await r.json().catch(() => ({}));
-                          if (!r.ok) {
-                            throw new Error(j.message || 'Failed to withdraw trade');
-                          }
-                          const fresh = await refetchTrades();
-                          const list = Array.isArray(fresh) ? fresh : trades.map((x) => (x._id === t._id ? j : x));
-                          const activeTrades = list.filter(
-                            (u) =>
-                              ACTIVE_OUTGOING_TRADE_STATUSES.includes(u.status) &&
-                              String(u.fromUser?._id) === String(uid)
-                          );
-                          const activeReleases = myReleases.filter(
-                            (rel) =>
-                              ['pending', 'admin_pending'].includes(rel.status) &&
-                              String(rel.user) === String(uid)
-                          );
-                          const totalActive = activeTrades.length + activeReleases.length;
-                          setLimitReached(totalActive >= maxPendingCombined);
-                          setPendingTradesCount(totalActive);
-                          
-                          // Show sexy success alert
-                          setAlert({
-                            type: 'success',
-                            title: 'Trade Withdrawn! 🔄',
-                            message: 'Your trade was withdrawn. You can send a new proposal when ready.'
-                          });
-                        } catch (e) {
-                          // Show sexy error alert
-                          setAlert({
-                            type: 'error',
-                            title: 'Withdrawal Failed! ❌',
-                            message: e.message || 'Failed to withdraw trade. Please try again.'
-                          });
-                        } finally {
-                          setLoadingStates(prev => ({ ...prev, withdraw: false }));
-                        }
-                      }}
-                    >
-                      {loadingStates.withdraw ? (
-                        <>
-                          <div className="loading-spinner"></div>
-                          Withdrawing...
-                        </>
-                      ) : (
-                        'Withdraw'
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
+            {standaloneTrades.map((t) => renderTradeCard(t))}
             {trades.length === 0 && (
               <div className="empty-card">
                 <div className="empty-icon">📊</div>

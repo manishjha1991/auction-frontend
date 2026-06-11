@@ -378,6 +378,9 @@ function TradeBundlePage() {
   }
 
   async function respondLeg(tradeId, decision) {
+    if (decision === 'reject' && !window.confirm('Reject this leg? The entire bundle will be rejected for all teams.')) {
+      return;
+    }
     try {
       const r = await fetch(`${API_ENDPOINTS}/api/trades/${tradeId}/respond`, {
         method: 'POST',
@@ -386,7 +389,9 @@ function TradeBundlePage() {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message || 'Failed');
-      if (j.bundleAutoResult?.ok) {
+      if (j.bundleCollapsed) {
+        setToast(`Bundle rejected — all ${j.bundleLegsUpdated || ''} legs were cancelled.`);
+      } else if (j.bundleAutoResult?.ok) {
         setToast('All legs completed — bundle auto-approved!');
       } else if (j.bundleAutoResult?.blockers?.length) {
         setToast('Bundle blocked — see details below');
