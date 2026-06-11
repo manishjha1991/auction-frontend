@@ -74,6 +74,7 @@ const AdminControlPanel = ({ adminUser }) => {
     maxTradesPerOpponentPair: 1,
     tradeApprovalMode: 'any_admin',
     enableTradeBundles: true,
+    bundleAutoApprove: true,
   });
   const [tradeCommissionerAdmins, setTradeCommissionerAdmins] = useState([]);
   const [selectedCommissionerId, setSelectedCommissionerId] = useState('');
@@ -154,6 +155,7 @@ const AdminControlPanel = ({ adminUser }) => {
         maxTradesPerOpponentPair: typeof data.maxTradesPerOpponentPair === 'number' ? data.maxTradesPerOpponentPair : 1,
         tradeApprovalMode: data.tradeApprovalMode === 'commissioner_only' ? 'commissioner_only' : 'any_admin',
         enableTradeBundles: data.enableTradeBundles !== false,
+        bundleAutoApprove: data.bundleAutoApprove !== false,
       });
       setWorldCupMode(data.worldCupMode === true);
     } catch (err) {
@@ -174,6 +176,7 @@ const AdminControlPanel = ({ adminUser }) => {
         ...prev,
         tradeApprovalMode: data.tradeApprovalMode === 'commissioner_only' ? 'commissioner_only' : 'any_admin',
         enableTradeBundles: data.enableTradeBundles !== false,
+        bundleAutoApprove: data.bundleAutoApprove !== false,
       }));
     } catch (err) {
       handleToast(err.message || 'Unable to load commissioner settings');
@@ -718,6 +721,7 @@ const AdminControlPanel = ({ adminUser }) => {
         tradeApprovalMode:
           data.tradeApprovalMode === 'commissioner_only' ? 'commissioner_only' : cronSettings.tradeApprovalMode,
         enableTradeBundles: data.enableTradeBundles !== false ? data.enableTradeBundles : cronSettings.enableTradeBundles,
+        bundleAutoApprove: data.bundleAutoApprove !== false ? data.bundleAutoApprove : cronSettings.bundleAutoApprove,
       });
       handleToast('Cron setting updated');
     } catch (err) {
@@ -822,6 +826,7 @@ const AdminControlPanel = ({ adminUser }) => {
           commissionerUserId: selectedCommissionerId || undefined,
           tradeApprovalMode: cronSettings.tradeApprovalMode,
           enableTradeBundles: cronSettings.enableTradeBundles,
+          bundleAutoApprove: cronSettings.bundleAutoApprove,
         }),
       });
       const data = await res.json();
@@ -1804,8 +1809,8 @@ const AdminControlPanel = ({ adminUser }) => {
             <h2>Trade commissioner &amp; bundles</h2>
             <p>
               <strong>Commissioner account</strong> approves simple 1-for-1 trades (when commissioner-only mode is on).
-              <strong> Bundles</strong> (2+ legs) auto-execute when all teams accept — no leg-by-leg approval.
-              Start with <em>Any admin</em> mode, assign a neutral commissioner, then switch to <em>Commissioner only</em>.
+              <strong> Bundles</strong> (2+ legs) can auto-execute when all teams accept, or wait for manual commissioner approval.
+              Start with <em>Any admin</em> mode, assign a neutral commissioner, then switch to <em>Commissioner only</em> if needed.
             </p>
           </div>
           {tradeGovernanceSaving && <span className="cron-saving-pill">Saving…</span>}
@@ -1854,6 +1859,17 @@ const AdminControlPanel = ({ adminUser }) => {
             />
             <span>Enable trade bundles</span>
           </label>
+          <label className="cron-toggle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="checkbox"
+              checked={cronSettings.bundleAutoApprove !== false}
+              onChange={(e) =>
+                setCronSettings((prev) => ({ ...prev, bundleAutoApprove: e.target.checked }))
+              }
+              disabled={tradeGovernanceSaving || !adminUserId || cronSettings.enableTradeBundles === false}
+            />
+            <span>Auto-approve bundles when all legs ready</span>
+          </label>
           <button
             type="button"
             className="btn primary"
@@ -1874,8 +1890,8 @@ const AdminControlPanel = ({ adminUser }) => {
         </div>
         <p className="admin-section-tip">
           Tip: Sign up a dedicated account with <strong>no team name</strong>, select it as commissioner, then save.
-          Use &quot;Revoke admin from team owners&quot; so team accounts lose admin access. Bundles still auto-approve
-          without commissioner action.
+          Use &quot;Revoke admin from team owners&quot; so team accounts lose admin access. With auto-approve off,
+          bundles appear in Admin Trades for manual <strong>Complete bundle</strong> after all legs are accepted.
         </p>
       </section>
 

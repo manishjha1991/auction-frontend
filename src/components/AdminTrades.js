@@ -53,6 +53,7 @@ function AdminTrades() {
   const [pickPending, setPickPending] = useState([]);
   const [pickHistory, setPickHistory] = useState([]);
   const [bundlePending, setBundlePending] = useState([]);
+  const [bundleAutoApprove, setBundleAutoApprove] = useState(true);
   const [toast, setToast] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingStates, setLoadingStates] = useState({
@@ -82,7 +83,13 @@ function AdminTrades() {
       const q = user?.id ? `?adminUserId=${user.id}` : '';
       const r = await fetch(`${API_ENDPOINTS}/api/trades/bundles/admin/pending${q}`);
       const j = await r.json();
-      setBundlePending(Array.isArray(j) ? j : []);
+      if (Array.isArray(j)) {
+        setBundlePending(j);
+        setBundleAutoApprove(true);
+      } else {
+        setBundlePending(Array.isArray(j.bundles) ? j.bundles : []);
+        setBundleAutoApprove(j.bundleAutoApprove !== false);
+      }
     } catch {
       setBundlePending([]);
     }
@@ -339,7 +346,11 @@ function AdminTrades() {
 
       {bundlePending.length > 0 && (
         <section style={{ marginBottom: '2rem' }}>
-          <h2>Trade bundles (auto-approve when all legs ready)</h2>
+          <h2>
+            {bundleAutoApprove
+              ? 'Trade bundles (auto-approve when all legs ready)'
+              : 'Trade bundles (manual commissioner approval)'}
+          </h2>
           {bundlePending.map((b) => (
             <div className="item" key={b._id} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #e5e7eb', borderRadius: 8 }}>
               <div className="line"><strong>{b.title}</strong> — {b.status}</div>
@@ -359,7 +370,9 @@ function AdminTrades() {
               )}
               {b.status === 'ready_for_admin' && (
                 <p style={{ marginTop: 8, color: '#16a34a' }}>
-                  All teams accepted every leg. Click <strong>Complete bundle</strong> to run all swaps (no per-leg approval).
+                  {bundleAutoApprove
+                    ? 'All teams accepted every leg. Bundle should auto-complete; use Complete bundle if it did not.'
+                    : 'All teams accepted every leg. Commissioner must click Complete bundle to run all swaps.'}
                 </p>
               )}
               {b.status === 'pending_acceptance' &&
@@ -370,7 +383,9 @@ function AdminTrades() {
               )}
               {b.status === 'blocked' && (
                 <p style={{ marginTop: 8, color: '#b45309' }}>
-                  Auto-approve blocked (purse, roster, or slots). Fix issues or reject the bundle.
+                  {bundleAutoApprove
+                    ? 'Auto-approve blocked (purse, roster, or slots). Fix issues or reject the bundle.'
+                    : 'Bundle blocked (purse, roster, or slots). Fix issues, retry Complete bundle, or reject.'}
                 </p>
               )}
               {(b.status === 'ready_for_admin' || b.status === 'blocked') && (
@@ -382,7 +397,7 @@ function AdminTrades() {
                       const r = await fetch(`${API_ENDPOINTS}/api/trades/bundles/${b._id}/retry-auto`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({}),
+                        body: JSON.stringify({ adminUserId: user?.id }),
                       });
                       const j = await r.json();
                       if (j.ok) {
