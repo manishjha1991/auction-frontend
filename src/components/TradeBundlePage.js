@@ -648,6 +648,20 @@ function TradeBundlePage() {
         )
       )}
 
+      {legs.length > 0 && legs.some((l) => l.approvalWarnings?.length > 0) && (
+        <div className="bundle-warn-box">
+          <div className="bundle-warn-title">Bundle checks (all legs together)</div>
+          <ul>
+            {[...new Set(legs.flatMap((l) => l.approvalWarnings || []))].map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+          <p style={{ margin: '10px 0 0', fontSize: '0.85rem', color: '#92400e' }}>
+            A 2-for-2 deal is validated as one package. If warnings clear after refresh, accept each leg you received.
+          </p>
+        </div>
+      )}
+
       <h2 className="bundle-section-title">Trade legs ({totalLegs})</h2>
 
       {legs.length === 0 ? (
