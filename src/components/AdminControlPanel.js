@@ -72,7 +72,13 @@ const AdminControlPanel = ({ adminUser }) => {
     auctionAutoModeCategories: ['Gold', 'Silver', 'Sapphire', 'Emerald'],
     tradeSeasonCap: 3,
     maxTradesPerOpponentPair: 1,
+    tradeApprovalMode: 'any_admin',
+    enableTradeBundles: true,
   });
+  const [tradeCommissionerAdmins, setTradeCommissionerAdmins] = useState([]);
+  const [selectedCommissionerId, setSelectedCommissionerId] = useState('');
+  const [tradeGovernanceSaving, setTradeGovernanceSaving] = useState(false);
+  const [revokeTeamAdminsLoading, setRevokeTeamAdminsLoading] = useState(false);
   const [cronLoading, setCronLoading] = useState(false);
   const [cronSaving, setCronSaving] = useState(false);
   const [tradeRulesSaving, setTradeRulesSaving] = useState(false);
@@ -146,6 +152,8 @@ const AdminControlPanel = ({ adminUser }) => {
         auctionAutoModeCategories: data.auctionAutoModeCategories || ['Gold', 'Silver', 'Sapphire', 'Emerald'],
         tradeSeasonCap: typeof data.tradeSeasonCap === 'number' ? data.tradeSeasonCap : 3,
         maxTradesPerOpponentPair: typeof data.maxTradesPerOpponentPair === 'number' ? data.maxTradesPerOpponentPair : 1,
+        tradeApprovalMode: data.tradeApprovalMode === 'commissioner_only' ? 'commissioner_only' : 'any_admin',
+        enableTradeBundles: data.enableTradeBundles !== false,
       });
       setWorldCupMode(data.worldCupMode === true);
     } catch (err) {
@@ -155,8 +163,26 @@ const AdminControlPanel = ({ adminUser }) => {
     }
   }, []);
 
+  const fetchTradeCommissioners = React.useCallback(async () => {
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/settings/trade-commissioners`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load commissioner settings');
+      setTradeCommissionerAdmins(Array.isArray(data.admins) ? data.admins : []);
+      setSelectedCommissionerId(data.commissionerUserId ? String(data.commissionerUserId) : '');
+      setCronSettings((prev) => ({
+        ...prev,
+        tradeApprovalMode: data.tradeApprovalMode === 'commissioner_only' ? 'commissioner_only' : 'any_admin',
+        enableTradeBundles: data.enableTradeBundles !== false,
+      }));
+    } catch (err) {
+      handleToast(err.message || 'Unable to load commissioner settings');
+    }
+  }, []);
+
   useEffect(() => {
     fetchCronSettings();
+    fetchTradeCommissioners();
   }, [fetchCronSettings]);
 
   const loadReleasePickRepairPreview = React.useCallback(async () => {
@@ -680,6 +706,9 @@ const AdminControlPanel = ({ adminUser }) => {
           typeof data.maxTradesPerOpponentPair === 'number'
             ? data.maxTradesPerOpponentPair
             : cronSettings.maxTradesPerOpponentPair,
+        tradeApprovalMode:
+          data.tradeApprovalMode === 'commissioner_only' ? 'commissioner_only' : cronSettings.tradeApprovalMode,
+        enableTradeBundles: data.enableTradeBundles !== false ? data.enableTradeBundles : cronSettings.enableTradeBundles,
       });
       handleToast('Cron setting updated');
     } catch (err) {
@@ -767,6 +796,63 @@ const AdminControlPanel = ({ adminUser }) => {
   };
 
   const tradeRuleNumberOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+  const saveTradeGovernance = async () => {
+    if (!adminUserId || tradeGovernanceSaving) return;
+    if (cronSettings.tradeApprovalMode === 'commissioner_only' && !selectedCommissionerId) {
+      handleToast('Select a commissioner account before enabling commissioner-only mode');
+      return;
+    }
+    setTradeGovernanceSaving(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/settings/trade-commissioners`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminUserId,
+          commissionerUserId: selectedCommissionerId || undefined,
+          tradeApprovalMode: cronSettings.tradeApprovalMode,
+          enableTradeBundles: cronSettings.enableTradeBundles,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to save trade governance');
+      setTradeCommissionerAdmins(Array.isArray(data.admins) ? data.admins : []);
+      setSelectedCommissionerId(data.commissionerUserId ? String(data.commissionerUserId) : '');
+      handleToast('Trade commissioner settings saved');
+    } catch (err) {
+      handleToast(err.message || 'Unable to save trade governance');
+    } finally {
+      setTradeGovernanceSaving(false);
+    }
+  };
+
+  const revokeTeamOwnerAdmins = async () => {
+    if (!adminUserId || revokeTeamAdminsLoading) return;
+    if (
+      !window.confirm(
+        'Remove isAdmin from all accounts that have a team name? Neutral commissioner accounts (no team) keep admin. Continue?'
+      )
+    ) {
+      return;
+    }
+    setRevokeTeamAdminsLoading(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/settings/revoke-team-owner-admins`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to revoke');
+      handleToast(data.message || 'Team owner admin access revoked');
+      await fetchTradeCommissioners();
+    } catch (err) {
+      handleToast(err.message || 'Unable to revoke team owner admins');
+    } finally {
+      setRevokeTeamAdminsLoading(false);
+    }
+  };
 
   const saveTradeRules = async () => {
     if (!adminUserId || tradeRulesSaving) return;
@@ -1701,6 +1787,87 @@ const AdminControlPanel = ({ adminUser }) => {
             {tradeRulesSaving ? 'Saving…' : 'Save trade rules'}
           </button>
         </div>
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Trade commissioner &amp; bundles</h2>
+            <p>
+              <strong>Commissioner account</strong> approves simple 1-for-1 trades (when commissioner-only mode is on).
+              <strong> Bundles</strong> (2+ legs) auto-execute when all teams accept — no leg-by-leg approval.
+              Start with <em>Any admin</em> mode, assign a neutral commissioner, then switch to <em>Commissioner only</em>.
+            </p>
+          </div>
+          {tradeGovernanceSaving && <span className="cron-saving-pill">Saving…</span>}
+        </div>
+        <div className="cron-toggle-grid" style={{ alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+          <label className="field-label" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span>Standalone trade approval</span>
+            <select
+              className="select"
+              value={cronSettings.tradeApprovalMode}
+              onChange={(e) =>
+                setCronSettings((prev) => ({ ...prev, tradeApprovalMode: e.target.value }))
+              }
+              disabled={tradeGovernanceSaving || !adminUserId}
+            >
+              <option value="any_admin">Any admin (default — no break)</option>
+              <option value="commissioner_only">Commissioner only</option>
+            </select>
+          </label>
+          <label className="field-label" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span>League commissioner</span>
+            <select
+              className="select"
+              value={selectedCommissionerId}
+              onChange={(e) => setSelectedCommissionerId(e.target.value)}
+              disabled={tradeGovernanceSaving || !adminUserId}
+            >
+              <option value="">— Select admin account —</option>
+              {tradeCommissionerAdmins.map((a) => (
+                <option key={a._id} value={a._id}>
+                  {a.name || a.email}
+                  {a.teamName ? ` (${a.teamName})` : ' (no team — recommended)'}
+                  {a.isCommissioner ? ' ★' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="cron-toggle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="checkbox"
+              checked={cronSettings.enableTradeBundles !== false}
+              onChange={(e) =>
+                setCronSettings((prev) => ({ ...prev, enableTradeBundles: e.target.checked }))
+              }
+              disabled={tradeGovernanceSaving || !adminUserId}
+            />
+            <span>Enable trade bundles</span>
+          </label>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={saveTradeGovernance}
+            disabled={tradeGovernanceSaving || !adminUserId}
+          >
+            {tradeGovernanceSaving ? 'Saving…' : 'Save commissioner settings'}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={revokeTeamOwnerAdmins}
+            disabled={revokeTeamAdminsLoading || !adminUserId}
+            style={{ borderColor: '#dc2626', color: '#dc2626' }}
+          >
+            {revokeTeamAdminsLoading ? 'Working…' : 'Revoke admin from team owners'}
+          </button>
+        </div>
+        <p style={{ marginTop: 12, fontSize: 13, color: '#64748b' }}>
+          Tip: Sign up a dedicated account with <strong>no team name</strong>, select it as commissioner, then save.
+          Use &quot;Revoke admin from team owners&quot; so team accounts lose admin access. Bundles still auto-approve
+          without commissioner action.
+        </p>
       </section>
 
       <section className="admin-section">

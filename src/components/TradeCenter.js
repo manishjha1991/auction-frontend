@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { API_ENDPOINTS } from '../const';
 import '../css/TradeCenter.css';
 import PlayerAvatar from './PlayerAvatar';
@@ -37,13 +38,27 @@ function normalizeTradeUsageFromApi(json) {
     if (Number.isFinite(rem)) used = parseNonNegativeTradesUsed(cap - Math.min(rem, cap));
     else used = 0;
   }
-  const remaining = Math.max(0, cap - used);
-  return { tradesUsed: used, cap, remaining, maxActiveOutgoing: maxActive, maxTradesPerOpponentPair: maxPair };
+  const reserved = Number(json.reservedSlots);
+  const reservedSlots = Number.isFinite(reserved) && reserved >= 0 ? reserved : 0;
+  let effectiveUsed = Number(json.effectiveUsed);
+  if (!Number.isFinite(effectiveUsed)) effectiveUsed = used + reservedSlots;
+  const remaining = Math.max(0, cap - effectiveUsed);
+  return {
+    tradesUsed: used,
+    reservedSlots,
+    effectiveUsed,
+    cap,
+    remaining,
+    maxActiveOutgoing: maxActive,
+    maxTradesPerOpponentPair: maxPair,
+  };
 }
 
 function defaultTradeUsageState() {
   return {
     tradesUsed: 0,
+    reservedSlots: 0,
+    effectiveUsed: 0,
     cap: FALLBACK_TRADE_SEASON_CAP,
     remaining: FALLBACK_TRADE_SEASON_CAP,
     maxActiveOutgoing: FALLBACK_TRADE_SEASON_CAP,
@@ -213,15 +228,20 @@ function TradeCenter({ user: userProp }) {
     trades: 0
   });
 
+  const [searchParams] = useSearchParams();
+  const activeBundleId = searchParams.get('bundleId') || '';
+
   const { seasonTradesRemaining, seasonTradeLimitReached } = useMemo(() => {
-    const used = parseNonNegativeTradesUsed(tradeUsage.tradesUsed);
     const cap = tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP;
-    const rawRem = Math.max(0, cap - used);
+    const effective = Number.isFinite(tradeUsage.effectiveUsed)
+      ? tradeUsage.effectiveUsed
+      : parseNonNegativeTradesUsed(tradeUsage.tradesUsed) + (tradeUsage.reservedSlots || 0);
+    const rawRem = Math.max(0, cap - effective);
     return {
       seasonTradesRemaining: Math.min(cap, rawRem),
-      seasonTradeLimitReached: used >= cap,
+      seasonTradeLimitReached: effective >= cap,
     };
-  }, [tradeUsage.tradesUsed, tradeUsage.cap]);
+  }, [tradeUsage.tradesUsed, tradeUsage.reservedSlots, tradeUsage.effectiveUsed, tradeUsage.cap]);
 
   const maxPendingCombined = tradeUsage.maxActiveOutgoing ?? tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP;
   
@@ -643,18 +663,21 @@ function TradeCenter({ user: userProp }) {
       setAlert({ type: 'error', title: 'Trade Already Active', message: hint });
       return;
     }
-    if (parseNonNegativeTradesUsed(tradeUsage.tradesUsed) >= (tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP)) {
-      setToast(`You have used all ${tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP} season trades.`);
+    if (seasonTradeLimitReached) {
+      setToast(`Season trade cap reached (including ${tradeUsage.reservedSlots || 0} reserved by pending deals).`);
       return;
     }
 
     setLoadingStates((prev) => ({ ...prev, propose: true }));
     
     try {
+      const body = { fromUserId: uid, offeredPlayerId: selectedMyPlayer, requestedPlayerId: selectedTargetPlayer };
+      if (activeBundleId) body.bundleId = activeBundleId;
+
       const res = await fetch(`${API_ENDPOINTS}/api/trades`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromUserId: uid, offeredPlayerId: selectedMyPlayer, requestedPlayerId: selectedTargetPlayer })
+        body: JSON.stringify(body),
       });
       
       if (!res.ok) {
@@ -719,8 +742,8 @@ function TradeCenter({ user: userProp }) {
       setToast('This player cannot be released for 48 hours after a completed trade.');
       return;
     }
-    if (parseNonNegativeTradesUsed(tradeUsage.tradesUsed) >= (tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP)) {
-      setToast(`You have used all ${tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP} season trades.`);
+    if (seasonTradeLimitReached) {
+      setToast(`Season trade cap reached (including ${tradeUsage.reservedSlots || 0} reserved by pending deals).`);
       return;
     }
 
@@ -808,8 +831,25 @@ function TradeCenter({ user: userProp }) {
       });
       
       const j = await res.json();
+      if (!res.ok) {
+        throw new Error(j.message || 'Failed to respond');
+      }
       const updated = trades.map(t => (t._id === tradeId ? j : t));
       setTrades(updated);
+
+      if (j.bundleAutoResult?.ok) {
+        setAlert({
+          type: 'success',
+          title: 'Bundle completed!',
+          message: 'All legs in the bundle were auto-approved.',
+        });
+      } else if (j.bundleAutoResult?.blockers?.length) {
+        setAlert({
+          type: 'warning',
+          title: 'Bundle blocked',
+          message: j.bundleAutoResult.blockers.join(' '),
+        });
+      }
       
       // Update pending count including both trades and releases
       const activeTrades = updated.filter(
@@ -840,7 +880,7 @@ function TradeCenter({ user: userProp }) {
       setAlert({
         type: 'error',
         title: 'Action Failed! ❌',
-        message: 'Failed to process your response. Please try again.'
+        message: String(e.message || 'Failed to process your response. Please try again.'),
       });
     } finally {
       setLoadingStates(prev => ({ ...prev, respond: false }));
@@ -872,12 +912,22 @@ function TradeCenter({ user: userProp }) {
       <div className="trade-hero">
         <div className="hero-text">
           <h1 className="gradient-title"><FaExchangeAlt style={{ marginRight: 10 }} />Trade Center</h1>
-          <p>Propose trades and finalize with admin approval.</p>
+          <p>Propose trades and finalize with admin approval. Optional <Link to="/trade/bundle/create">trade bundles</Link> (2+ legs, all-or-nothing).</p>
+          {activeBundleId && (
+            <p style={{ color: '#2563eb' }}>
+              Adding leg to bundle — <Link to={`/trade/bundle/${activeBundleId}`}>view bundle</Link>
+            </p>
+          )}
           <div className="usage-row">
             <span className="usage-badge usage-used">
               <FaExchangeAlt style={{ marginRight: 6 }} />
               Used: {parseNonNegativeTradesUsed(tradeUsage.tradesUsed)} / {tradeUsage.cap ?? FALLBACK_TRADE_SEASON_CAP}
             </span>
+            {(tradeUsage.reservedSlots || 0) > 0 && (
+              <span className="usage-badge usage-pending">
+                Reserved: {tradeUsage.reservedSlots}
+              </span>
+            )}
             <span className="usage-badge usage-left">
               <FaRetweet style={{ marginRight: 6 }} />
               Remaining: {seasonTradesRemaining}
@@ -1260,7 +1310,7 @@ function TradeCenter({ user: userProp }) {
                   t.approvalWarnings.length > 0 &&
                   ['pending', 'counter', 'admin_pending'].includes(t.status) && (
                     <div className="trade-approval-warn" role="status">
-                      <div className="trade-approval-warn-title">May be rejected when admin approves</div>
+                      <div className="trade-approval-warn-title">Cannot accept until these are resolved</div>
                       <ul className="trade-approval-warn-list">
                         {t.approvalWarnings.map((w, i) => (
                           <li key={i}>{w}</li>
@@ -1281,7 +1331,7 @@ function TradeCenter({ user: userProp }) {
                     <>
                       <button 
                         className="btn btn-success" 
-                        disabled={loadingStates.respond}
+                        disabled={loadingStates.respond || (t.approvalWarnings?.length > 0)}
                         onClick={() => respondTrade(t._id, 'accept')}
                       >
                         {loadingStates.respond ? (

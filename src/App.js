@@ -16,6 +16,7 @@ import VenueExplorerPage from './components/VenueExplorerPage';
 import PlayerInsightsPage from './components/PlayerInsightsPage';
 import NewsAlerts from './components/NewsAlerts';
 import TradeCenter from './components/TradeCenter';
+import TradeBundlePage from './components/TradeBundlePage';
 import UnsoldPlayers from './components/UnsoldPlayers';
 import AdminSettings from './components/AdminSettings';
 import { API_ENDPOINTS } from './const';
@@ -728,6 +729,30 @@ function App() {
               element={
                 <PrivateRoute>
                   {appSettings.enableTradeCenter ? <TradeCenter user={user} /> : <Navigate to="/profile" />}
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/trade/bundle/create"
+              element={
+                <PrivateRoute>
+                  {appSettings.enableTradeCenter ? <TradeBundlePage /> : <Navigate to="/profile" />}
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/trade/bundle/code/:shareCode"
+              element={
+                <PrivateRoute>
+                  {appSettings.enableTradeCenter ? <TradeBundlePage /> : <Navigate to="/profile" />}
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/trade/bundle/:bundleId"
+              element={
+                <PrivateRoute>
+                  {appSettings.enableTradeCenter ? <TradeBundlePage /> : <Navigate to="/profile" />}
                 </PrivateRoute>
               }
             />

@@ -52,6 +52,7 @@ function AdminTrades() {
   const [releaseHistory, setReleaseHistory] = useState([]);
   const [pickPending, setPickPending] = useState([]);
   const [pickHistory, setPickHistory] = useState([]);
+  const [bundlePending, setBundlePending] = useState([]);
   const [toast, setToast] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingStates, setLoadingStates] = useState({
@@ -70,9 +71,21 @@ function AdminTrades() {
   }, []);
 
   async function loadPending() {
-    const r = await fetch(`${API_ENDPOINTS}/api/trades/admin/pending`);
+    const q = user?.id ? `?adminUserId=${user.id}` : '';
+    const r = await fetch(`${API_ENDPOINTS}/api/trades/admin/pending${q}`);
     const j = await r.json();
-    setPending(j || []);
+    setPending(Array.isArray(j) ? j : []);
+  }
+
+  async function loadBundlePending() {
+    try {
+      const q = user?.id ? `?adminUserId=${user.id}` : '';
+      const r = await fetch(`${API_ENDPOINTS}/api/trades/bundles/admin/pending${q}`);
+      const j = await r.json();
+      setBundlePending(Array.isArray(j) ? j : []);
+    } catch {
+      setBundlePending([]);
+    }
   }
 
   async function loadHistory() {
@@ -110,14 +123,16 @@ function AdminTrades() {
     }
   }
 
-  useEffect(() => { 
-    loadPending(); 
-    loadHistory(); 
-    loadReleasePending(); 
-    loadReleaseHistory(); 
-    loadPickPending(); 
-    loadPickHistory(); 
-  }, []);
+  useEffect(() => {
+    if (!user?.id) return;
+    loadPending();
+    loadHistory();
+    loadBundlePending();
+    loadReleasePending();
+    loadReleaseHistory();
+    loadPickPending();
+    loadPickHistory();
+  }, [user?.id]);
 
   async function decide(tradeId, decision) {
     const loadingKey = decision === 'approve' ? 'tradeApprove' : 'tradeReject';
@@ -321,6 +336,53 @@ function AdminTrades() {
           }}
         />
       </div>
+
+      {bundlePending.length > 0 && (
+        <section style={{ marginBottom: '2rem' }}>
+          <h2>Trade bundles (auto-approve when all legs ready)</h2>
+          {bundlePending.map((b) => (
+            <div className="item" key={b._id} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+              <div className="line"><strong>{b.title}</strong> — {b.status}</div>
+              <div className="line">Code: {b.shareCode} · {b.progress?.acceptedLegs || 0}/{b.progress?.totalLegs || 0} legs</div>
+              {(b.legs || []).map(({ legIndex, trade }) => (
+                <div key={trade._id} className="line" style={{ fontSize: 13, marginTop: 6 }}>
+                  Leg {legIndex}: {trade.fromUser?.teamName} ↔ {trade.toUser?.teamName} ({trade.offeredPlayer?.name} ↔ {trade.requestedPlayer?.name}) — {trade.status}
+                </div>
+              ))}
+              {b.blockers?.length > 0 && (
+                <div style={{ color: '#b45309', marginTop: 8 }}>{b.blockers.join(' · ')}</div>
+              )}
+              {b.status === 'ready_for_admin' && (
+                <p style={{ marginTop: 8, color: '#16a34a' }}>Auto-approves when all legs are accepted and valid.</p>
+              )}
+              {['blocked', 'ready_for_admin', 'pending_acceptance'].includes(b.status) && (
+                <button
+                  className="btn btn-danger"
+                  style={{ marginTop: 8 }}
+                  onClick={async () => {
+                    if (!window.confirm('Reject entire bundle?')) return;
+                    try {
+                      const r = await fetch(`${API_ENDPOINTS}/api/trades/bundles/${b._id}/reject`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ adminUserId: user?.id, note: 'Commissioner rejected bundle' }),
+                      });
+                      const j = await r.json();
+                      if (!r.ok) throw new Error(j.message || 'Failed');
+                      await loadBundlePending();
+                      setToast('Bundle rejected');
+                    } catch (e) {
+                      setAlert({ type: 'error', title: 'Failed', message: e.message });
+                    }
+                  }}
+                >
+                  Reject bundle
+                </button>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
       
       {/* Group trades by user */}
       {(() => {
