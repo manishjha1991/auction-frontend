@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { API_ENDPOINTS } from '../const';
 import '../css/TradeCenter.css';
+import '../css/TradeBundle.css';
 import PlayerAvatar from './PlayerAvatar';
 import { FaExchangeAlt, FaCheck,FaClock, FaTimes, FaPaperPlane, FaRetweet, FaUsers, FaUnlock, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
 import {
@@ -912,11 +913,21 @@ function TradeCenter({ user: userProp }) {
       <div className="trade-hero">
         <div className="hero-text">
           <h1 className="gradient-title"><FaExchangeAlt style={{ marginRight: 10 }} />Trade Center</h1>
-          <p>Propose trades and finalize with admin approval. Optional <Link to="/trade/bundle/create">trade bundles</Link> (2+ legs, all-or-nothing).</p>
-          {activeBundleId && (
-            <p style={{ color: '#2563eb' }}>
-              Adding leg to bundle — <Link to={`/trade/bundle/${activeBundleId}`}>view bundle</Link>
-            </p>
+          <p>Propose trades and finalize with admin approval.</p>
+          {activeBundleId ? (
+            <div className="bundle-active-banner">
+              Adding leg to bundle — <Link to={`/trade/bundle/${activeBundleId}`}>view bundle progress</Link>
+            </div>
+          ) : (
+            <div className="bundle-promo-card">
+              <div className="promo-text">
+                <h3>Multi-team deal? Use a trade bundle</h3>
+                <p>Link 2+ swaps — all complete together or none. Share one WhatsApp link with every team.</p>
+              </div>
+              <Link to="/trade/bundle/create" className="promo-btn">
+                <FaExchangeAlt /> Create bundle
+              </Link>
+            </div>
           )}
           <div className="usage-row">
             <span className="usage-badge usage-used">
