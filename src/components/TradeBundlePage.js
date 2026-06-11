@@ -29,7 +29,10 @@ function normalizePlayersResponse(json) {
 }
 
 function playerId(p) {
-  return p?.id || p?._id;
+  const raw = p?.id ?? p?._id;
+  if (raw == null) return '';
+  if (typeof raw === 'object' && raw.$oid) return String(raw.$oid);
+  return String(raw);
 }
 
 function statusLabel(status) {
@@ -129,9 +132,9 @@ function BundleAddLegForm({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fromUserId: uid,
-          offeredPlayerId: myPlayerId,
-          requestedPlayerId: targetPlayerId,
+          fromUserId: String(uid),
+          offeredPlayerId: String(myPlayerId),
+          requestedPlayerId: String(targetPlayerId),
         }),
       });
       const j = await r.json();
