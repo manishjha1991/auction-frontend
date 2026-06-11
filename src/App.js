@@ -24,7 +24,7 @@ import {
   FaChartPie, FaBullhorn, FaExchangeAlt, FaBoxOpen, FaTrophy, FaMedal,
   FaUsers, FaUser, FaPlus, FaDollarSign, FaTable, FaChartBar, FaLightbulb,
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
-  FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaBook,
+  FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaBook, FaUserShield,
   FaCalculator, FaCloudRain, FaHistory, FaWrench, FaChartLine, FaAddressCard, FaBullseye,
   FaMapMarkedAlt, FaCheckCircle
 } from 'react-icons/fa';
@@ -563,6 +563,16 @@ function App() {
                         <Link to="/admin/trades" onClick={closeSidebar} className={`menu-item ${isActive('/admin/trades') ? 'active' : ''}`}>
                           <FaExchangeAlt className="menu-icon" />
                           <span>Admin Trades</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/profile#trade-commissioner"
+                          onClick={closeSidebar}
+                          className={`menu-item ${currentPath === '/profile' && window.location.hash === '#trade-commissioner' ? 'active' : ''}`}
+                        >
+                          <FaUserShield className="menu-icon" />
+                          <span>Trade Commissioner</span>
                         </Link>
                       </li>
                       <li>

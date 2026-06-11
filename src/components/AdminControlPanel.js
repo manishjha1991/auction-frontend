@@ -185,6 +185,15 @@ const AdminControlPanel = ({ adminUser }) => {
     fetchTradeCommissioners();
   }, [fetchCronSettings]);
 
+  useEffect(() => {
+    if (window.location.hash === '#trade-commissioner') {
+      const t = setTimeout(() => {
+        document.getElementById('trade-commissioner')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
   const loadReleasePickRepairPreview = React.useCallback(async () => {
     if (!adminUserId) {
       handleToast('Admin session required');
@@ -1789,7 +1798,7 @@ const AdminControlPanel = ({ adminUser }) => {
         </div>
       </section>
 
-      <section className="admin-section">
+      <section className="admin-section" id="trade-commissioner">
         <div className="section-header">
           <div>
             <h2>Trade commissioner &amp; bundles</h2>
@@ -1863,7 +1872,7 @@ const AdminControlPanel = ({ adminUser }) => {
             {revokeTeamAdminsLoading ? 'Working…' : 'Revoke admin from team owners'}
           </button>
         </div>
-        <p style={{ marginTop: 12, fontSize: 13, color: '#64748b' }}>
+        <p className="admin-section-tip">
           Tip: Sign up a dedicated account with <strong>no team name</strong>, select it as commissioner, then save.
           Use &quot;Revoke admin from team owners&quot; so team accounts lose admin access. Bundles still auto-approve
           without commissioner action.

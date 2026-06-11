@@ -239,6 +239,68 @@
   font-weight: 600;
 }
 
+/* Override TradeCenter.css global .field-label / .select (dark text on dark admin panel) */
+.admin-control-panel .field-label {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.admin-control-panel .field-label span {
+  color: #e2e8f0;
+}
+
+.admin-control-panel .field-label::before {
+  background: linear-gradient(90deg, #7f5dff, #5ac8fa);
+}
+
+.admin-control-panel .select {
+  width: 100%;
+  min-width: 200px;
+  padding: 10px 36px 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: #ffffff;
+  color: #0f172a;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath fill='%230f172a' d='M5.5 7l4.5 5 4.5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+.admin-control-panel .select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-control-panel label.cron-toggle span {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.admin-control-panel .admin-section-tip {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.5;
+}
+
+.admin-control-panel .admin-section-tip strong {
+  color: #f8fafc;
+}
+
+.admin-control-panel .btn.secondary,
+.admin-control-panel .btn:not(.primary):not(.danger):not(.ghost) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 .cron-toggle-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
