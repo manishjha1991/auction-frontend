@@ -14,6 +14,20 @@ const RULE_UI_MAX = 10;
 const TRADES_USAGE_FETCH = { cache: 'no-store' };
 const ACTIVE_OUTGOING_TRADE_STATUSES = ['pending', 'counter', 'admin_pending'];
 
+function readCachedUser() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeTeamName(name) {
+  return (name || '').replace(/\p{Emoji}/gu, '').trim().toLowerCase();
+}
+
 function parseNonNegativeTradesUsed(raw) {
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 0) return 0;
@@ -181,7 +195,7 @@ const SexyAlert = ({ alert, onClose }) => {
 };
 
 function TradeCenter({ user: userProp }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => userProp || readCachedUser());
   const effectiveUser = userProp || user;
   const uid = effectiveUser?.id || effectiveUser?._id;
   const [teams, setTeams] = useState([]); // all teams
@@ -250,12 +264,12 @@ function TradeCenter({ user: userProp }) {
   const myRoster = useMemo(() => {
     if (!effectiveUser || !allPlayers.length) return [];
     
-    const userTeamName = effectiveUser.teamName;
-    if (!userTeamName) return [];
+    const userTeamKey = normalizeTeamName(effectiveUser.teamName);
+    if (!userTeamKey) return [];
     
     return allPlayers
       .filter(p => {
-        if (p.teamName === userTeamName) return true;
+        if (normalizeTeamName(p.teamName) === userTeamKey) return true;
         if (p.status === 'Sold' && uid && p.currentBidderId && String(p.currentBidderId) === String(uid)) return true;
         return false;
       })
@@ -276,8 +290,9 @@ function TradeCenter({ user: userProp }) {
     if (!team?.teamName) return [];
     
     // Filter players efficiently
+    const targetTeamKey = normalizeTeamName(team.teamName);
     return allPlayers
-      .filter(p => p.teamName === team.teamName)
+      .filter(p => normalizeTeamName(p.teamName) === targetTeamKey)
       .map(p => ({
         id: p.id,
         name: p.name,
@@ -409,16 +424,11 @@ function TradeCenter({ user: userProp }) {
   const isToMe = (trade) => isMe(trade?.toUser?._id || trade?.toUser);
 
   useEffect(() => {
-    if (!userProp) {
-      const cachedUser = localStorage.getItem('user');
-      if (cachedUser) {
-        try {
-          setUser(JSON.parse(cachedUser));
-        } catch {
-          setUser(null);
-        }
-      }
+    if (userProp) {
+      setUser(userProp);
+      return;
     }
+    setUser(readCachedUser());
   }, [userProp]);
 
   const fetchTradeInsights = async (userId) => {
@@ -555,9 +565,11 @@ function TradeCenter({ user: userProp }) {
       }
     }
 
-    if (effectiveUser) {
-      bootstrap();
+    if (!uid) {
+      setLoading(false);
+      return;
     }
+    bootstrap();
   }, [effectiveUser, uid]);
 
   // periodic refresh so roster updates after admin approval are reflected without manual reload
@@ -1173,6 +1185,15 @@ function TradeCenter({ user: userProp }) {
   }
 
   // Counter feature removed
+
+  if (!uid) {
+    return (
+      <div className="trade-page" style={{ padding: 24 }}>
+        <h1 className="gradient-title">Trade Center</h1>
+        <p>Please log out and log in again to access Trade Center.</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

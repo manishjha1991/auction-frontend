@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import '../css/Profile.css';
 import { API_ENDPOINTS } from "../const";
 import LoadingCube from "./CricketAnimation";
@@ -46,6 +47,7 @@ const Profile = () => {
 
   // Mobile-first section tabs
   const [activeSection, setActiveSection] = useState('squad');
+  const [tradeCenterEnabled, setTradeCenterEnabled] = useState(true);
 
   // Venue stats (this user's per-venue runs/wickets across all match types)
   const [venueStats, setVenueStats] = useState([]);
@@ -68,6 +70,13 @@ const Profile = () => {
       localStorage.setItem('user', JSON.stringify({ ...cached, purse: next }));
     }
   };
+
+  useEffect(() => {
+    fetch(`${API_ENDPOINTS}/api/settings`)
+      .then((res) => res.json())
+      .then((data) => setTradeCenterEnabled(data.enableTradeCenter !== false))
+      .catch(() => setTradeCenterEnabled(true));
+  }, []);
 
   // Check localStorage for user.isAdmin
   useEffect(() => {
@@ -1122,6 +1131,17 @@ const Profile = () => {
           <div className="up-tz-time">{localTimeString}</div>
         </div>
       </header>
+
+      {tradeCenterEnabled && userData?.user?.teamName && (
+        <Link to="/trade" className="up-trade-center-banner">
+          <span className="up-trade-center-banner__icon" aria-hidden>🔄</span>
+          <span>
+            <strong>Trade Center</strong>
+            <small>Propose trades, releases, and multi-leg bundles</small>
+          </span>
+          <span className="up-trade-center-banner__arrow" aria-hidden>→</span>
+        </Link>
+      )}
 
       {/* Edit popup (unchanged markup) */}
       {isEditing && (

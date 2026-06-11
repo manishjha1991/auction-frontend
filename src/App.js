@@ -115,13 +115,11 @@ function App() {
       try {
         const res = await fetch(`${API_ENDPOINTS}/api/settings`);
         const j = await res.json();
-        if (typeof j.enableTradeCenter === 'boolean') {
-          setAppSettings({ 
-            enableTradeCenter: j.enableTradeCenter, 
-            enableUnsoldPlayers: j.enableUnsoldPlayers,
-            worldCupMode: j.worldCupMode || false
-          });
-        }
+        setAppSettings({
+          enableTradeCenter: j.enableTradeCenter !== false,
+          enableUnsoldPlayers: j.enableUnsoldPlayers !== false,
+          worldCupMode: j.worldCupMode === true,
+        });
       } catch {}
     }
     fetchSettings();
@@ -174,6 +172,7 @@ function App() {
     setUser(userData);
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('user', JSON.stringify(userData));
+    window.dispatchEvent(new Event('settings-updated'));
   };
 
   const handleLogout = () => {
@@ -460,7 +459,7 @@ function App() {
                 <div className="menu-section">
                   <h3 className="menu-section-title">Market & Trading</h3>
                   <ul className="menu">
-                {appSettings.enableTradeCenter && (
+                {appSettings.enableTradeCenter && filterItem('Trade Center') && (
                   <li>
                         <Link to="/trade" onClick={closeSidebar} className={`menu-item ${isActive('/trade') ? 'active' : ''}`}>
                           <FaExchangeAlt className="menu-icon" />
