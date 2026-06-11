@@ -9,7 +9,25 @@ import {
   isAllowedCplVenue,
   coerceToAllowedVenue,
 } from '../cplVenues';
+import { matchTeamName, normalizeTeamKey } from '../utils/fixtureOcrParser';
 import '../css/OcrExtractor.css';
+
+const fixtureBelongsToUser = (fx, { userId, userTeamName }) => {
+  if (!fx) return false;
+  if (userId) {
+    const uid = String(userId);
+    if (String(fx.team1UserId) === uid || String(fx.team2UserId) === uid) return true;
+  }
+  if (!userTeamName) return false;
+  const mine = normalizeTeamKey(userTeamName);
+  const candidates = [fx.team1, fx.team2].filter(Boolean);
+  return (
+    (!!mine &&
+      (mine === normalizeTeamKey(fx.team1 || '') ||
+        mine === normalizeTeamKey(fx.team2 || ''))) ||
+    !!matchTeamName(userTeamName, candidates)
+  );
+};
 
 const STATUS_COPY = {
   idle: 'Pick an image to get started.',
@@ -584,11 +602,10 @@ const OcrExtractor = () => {
         if (!Array.isArray(data)) {
           throw new Error('Unexpected fixture response.');
         }
+        const userCtx = { userId: currentUserId, userTeamName: currentUserTeamName };
         const sorted = [...data].sort((a, b) => {
-          const aHasUser =
-            a.team1 === currentUserTeamName || a.team2 === currentUserTeamName ? 1 : 0;
-          const bHasUser =
-            b.team1 === currentUserTeamName || b.team2 === currentUserTeamName ? 1 : 0;
+          const aHasUser = fixtureBelongsToUser(a, userCtx) ? 1 : 0;
+          const bHasUser = fixtureBelongsToUser(b, userCtx) ? 1 : 0;
           if (aHasUser !== bHasUser) return bHasUser - aHasUser;
           const aTime = new Date(a.createdAt || a.matchDate || 0).getTime();
           const bTime = new Date(b.createdAt || b.matchDate || 0).getTime();
@@ -603,7 +620,7 @@ const OcrExtractor = () => {
       }
     };
     fetchFixtures();
-  }, [currentUserTeamName]);
+  }, [currentUserId, currentUserTeamName]);
 
   const selectedFixture = useMemo(
     () => fixtures.find((fixture) => String(fixture._id) === String(selectedFixtureId)),
@@ -669,7 +686,24 @@ const OcrExtractor = () => {
       return;
     }
     const teams = [selectedFixture.team1, selectedFixture.team2].filter(Boolean);
-    let primary = teams.find((team) => team === currentUserTeamName) || teams[0] || '';
+    let primary = '';
+    if (currentUserId) {
+      if (String(selectedFixture.team1UserId) === String(currentUserId)) {
+        primary = selectedFixture.team1 || '';
+      } else if (String(selectedFixture.team2UserId) === String(currentUserId)) {
+        primary = selectedFixture.team2 || '';
+      }
+    }
+    if (!primary) {
+      primary =
+        teams.find(
+          (team) =>
+            normalizeTeamKey(team) === normalizeTeamKey(currentUserTeamName) ||
+            !!matchTeamName(currentUserTeamName, [team])
+        ) ||
+        teams[0] ||
+        '';
+    }
     const secondary = teams.find((team) => team !== primary) || teams[1] || '';
     if (!primary && secondary) {
       primary = secondary;
@@ -687,16 +721,13 @@ const OcrExtractor = () => {
     } else {
       setVenue('');
     }
-  }, [selectedFixture, currentUserTeamName]);
+  }, [selectedFixture, currentUserId, currentUserTeamName]);
 
   const filteredFixtures = useMemo(() => {
+    const userCtx = { userId: currentUserId, userTeamName: currentUserTeamName };
     const baseFixtures = currentUser?.isAdmin
       ? fixtures
-      : fixtures.filter(
-          (fx) =>
-            fx.team1?.toLowerCase() === currentUserTeamName.toLowerCase() ||
-            fx.team2?.toLowerCase() === currentUserTeamName.toLowerCase()
-        );
+      : fixtures.filter((fx) => fixtureBelongsToUser(fx, userCtx));
 
     if (!fixtureSearch.trim()) return baseFixtures;
     const term = fixtureSearch.trim().toLowerCase();
@@ -706,7 +737,7 @@ const OcrExtractor = () => {
         fx.team2?.toLowerCase().includes(term) ||
         (fx.matchTitle || '').toLowerCase().includes(term)
     );
-  }, [fixtures, fixtureSearch]);
+  }, [fixtures, fixtureSearch, currentUser, currentUserId, currentUserTeamName]);
 
   const rosterOptions = useMemo(
     () =>
@@ -2076,6 +2107,12 @@ const OcrExtractor = () => {
                     </option>
                   ))}
                 </select>
+                {fixturesError ? (
+                  <div className="field-error">{fixturesError}</div>
+                ) : null}
+                {!fixturesError && !fixturesLoading && filteredFixtures.length === 0 ? (
+                  <div className="muted">No fixtures found for your team.</div>
+                ) : null}
               </>
             )}
           </label>
