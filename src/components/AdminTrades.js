@@ -352,8 +352,55 @@ function AdminTrades() {
               {b.blockers?.length > 0 && (
                 <div style={{ color: '#b45309', marginTop: 8 }}>{b.blockers.join(' · ')}</div>
               )}
+              {(b.legs || []).some((l) => l.trade?.status === 'rejected') && (
+                <p style={{ marginTop: 8, color: '#b91c1c', fontWeight: 600 }}>
+                  One leg was rejected — bundle cannot complete. Reject the bundle and start a new deal if needed.
+                </p>
+              )}
               {b.status === 'ready_for_admin' && (
-                <p style={{ marginTop: 8, color: '#16a34a' }}>Auto-approves when all legs are accepted and valid.</p>
+                <p style={{ marginTop: 8, color: '#16a34a' }}>
+                  All teams accepted every leg. Click <strong>Complete bundle</strong> to run all swaps (no per-leg approval).
+                </p>
+              )}
+              {b.status === 'pending_acceptance' &&
+                !(b.legs || []).some((l) => ['rejected', 'withdrawn'].includes(l.trade?.status)) && (
+                <p style={{ marginTop: 8, color: '#64748b' }}>
+                  Waiting for all teams to accept every leg. No admin approval until all legs show <em>admin_pending</em>.
+                </p>
+              )}
+              {b.status === 'blocked' && (
+                <p style={{ marginTop: 8, color: '#b45309' }}>
+                  Auto-approve blocked (purse, roster, or slots). Fix issues or reject the bundle.
+                </p>
+              )}
+              {(b.status === 'ready_for_admin' || b.status === 'blocked') && (
+                <button
+                  className="btn btn-success"
+                  style={{ marginTop: 8, marginRight: 8 }}
+                  onClick={async () => {
+                    try {
+                      const r = await fetch(`${API_ENDPOINTS}/api/trades/bundles/${b._id}/retry-auto`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({}),
+                      });
+                      const j = await r.json();
+                      if (j.ok) {
+                        setToast('Bundle completed — all legs executed');
+                      } else if (j.blockers?.length) {
+                        setAlert({ type: 'warning', title: 'Bundle blocked', message: j.blockers.join(' ') });
+                      } else {
+                        setAlert({ type: 'info', title: 'Not ready', message: j.message || 'Not all legs are ready yet.' });
+                      }
+                      await loadBundlePending();
+                      await loadPending();
+                    } catch (e) {
+                      setAlert({ type: 'error', title: 'Failed', message: e.message });
+                    }
+                  }}
+                >
+                  Complete bundle
+                </button>
               )}
               {['blocked', 'ready_for_admin', 'pending_acceptance'].includes(b.status) && (
                 <button
