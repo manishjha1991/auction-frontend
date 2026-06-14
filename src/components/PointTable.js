@@ -1950,11 +1950,13 @@ const PointsTable = () => {
                 </MatchTableHead>
                 <tbody>
                   {teamFixtures.map((fixture, index) => {
-                    const isTeam1 = fixture.team1 === selectedTeam.originalTeamName;
-                    const opponent = isTeam1 ? fixture.team2 : fixture.team1;
                     const selectedTeamKey = normalizeTeamKey(
                       selectedTeam.originalTeamName || selectedTeam.teamName
                     );
+                    const isTeam1 =
+                      normalizeTeamKey(fixture.team1) === selectedTeamKey ||
+                      fixture.team1 === selectedTeam.originalTeamName;
+                    const opponent = isTeam1 ? fixture.team2 : fixture.team1;
                     const submission = pendingByFixtureId.get(String(fixture._id));
 
                     let result = 'vs';
@@ -1962,7 +1964,10 @@ const PointsTable = () => {
                     let pendingSubline = null;
 
                     if (fixture.winner) {
-                      if (fixture.winner === selectedTeam.originalTeamName) {
+                      const won =
+                        normalizeTeamKey(fixture.winner) === selectedTeamKey ||
+                        fixture.winner === selectedTeam.originalTeamName;
+                      if (won) {
                         result = 'win';
                         resultText = 'Won';
                         if (fixture.margin) {
