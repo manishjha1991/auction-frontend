@@ -982,7 +982,6 @@ const PlayerPopup = ({
     }
     return detailValue ?? fallbackValue ?? 0;
   };
-
   const portraitFullUrl = resolvePlayerImageUrl(playerDetails?.profilePicture);
   const otherWatchersCount = Math.max(0, liveWatcherCount - 1);
 

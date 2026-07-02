@@ -1539,6 +1539,7 @@ const OcrExtractor = () => {
       for (const entry of playerEntries) {
         const payload = {
           playerId: entry.playerId,
+          userId: currentUserId,
           opponentTeamName,
           opponentUserId: resolvedOpponentUserId,
           battingStats: entry.battingStats,
@@ -1581,6 +1582,7 @@ const OcrExtractor = () => {
       for (const entry of opponentPlayerEntries) {
         const payload = {
           playerId: entry.playerId,
+          userId: resolvedOpponentUserId,
           opponentTeamName: primaryTeamName,
           opponentUserId: currentUserId, // Flipped: opponent's opponent is us
           battingStats: entry.battingStats,
@@ -2569,4 +2571,3 @@ const OcrExtractor = () => {
 };
 
 export default OcrExtractor;
-

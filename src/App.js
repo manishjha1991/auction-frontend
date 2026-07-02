@@ -14,6 +14,7 @@ import StatsOverview from './components/StatsOverview'; // <-- import your new c
 import TopRankingsPage from './components/TopRankingsPage';
 import VenueExplorerPage from './components/VenueExplorerPage';
 import PlayerInsightsPage from './components/PlayerInsightsPage';
+import PlayerTeamHistoryPage from './components/PlayerTeamHistoryPage';
 import NewsAlerts from './components/NewsAlerts';
 import TradeCenter from './components/TradeCenter';
 import TradeBundlePage from './components/TradeBundlePage';
@@ -439,6 +440,12 @@ function App() {
                       </Link>
                     </li>
                     <li>
+                      <Link to="/player-team-history" onClick={closeSidebar} className={`menu-item ${isActive('/player-team-history') ? 'active' : ''}`}>
+                        <FaUsers className="menu-icon" />
+                        <span>Player Team History</span>
+                      </Link>
+                    </li>
+                    <li>
                       <Link to="/cpl-player-career-stats" onClick={closeSidebar} className={`menu-item ${isActive('/cpl-player-career-stats') ? 'active' : ''}`}>
                         <FaChartBar className="menu-icon" />
                         <span>CPL Player Career</span>
@@ -693,6 +700,7 @@ function App() {
             <Route path="/admin-match-results" element={<PrivateRoute><AdminMatchResults /></PrivateRoute>} />
             <Route path="/player-stats" element={<PrivateRoute><PlayerStatsList /></PrivateRoute>} />
             <Route path="/player-insights" element={<PrivateRoute><PlayerInsightsPage /></PrivateRoute>} />
+            <Route path="/player-team-history" element={<PrivateRoute><PlayerTeamHistoryPage /></PrivateRoute>} />
             <Route path="/cpl-player-career-stats" element={<PrivateRoute><CplPlayerCareerStats /></PrivateRoute>} />
             <Route path="/ocr" element={<PrivateRoute><OcrExtractor /></PrivateRoute>} />
             <Route path="/fixture-ocr" element={<PrivateRoute><FixtureOcr /></PrivateRoute>} />
