@@ -1505,7 +1505,7 @@ const AdminControlPanel = ({ adminUser }) => {
           <div style={{ flex: 1 }}>
             <h2 style={{ fontSize: isCompact ? '18px' : '20px' }}>CPL Composite Report Configuration</h2>
             <p style={{ fontSize: isCompact ? '13px' : '14px' }}>
-              Configure which database to start from for the CPL composite report. The report will include the selected database and all subsequent databases that exist. For example, if you select <code>cpl_21</code> and <code>cpl_22</code> exists, it will include both <code>cpl_21</code> and <code>cpl_22</code>.
+              Configure which database to start from for the CPL composite report. The report will include the selected database and all subsequent databases that exist. For example, if you select <code>cpl_22</code> and <code>cpl_23</code> exists, it will include both <code>cpl_22</code> and <code>cpl_23</code>.
             </p>
           </div>
           <div className="section-actions" style={{ 
