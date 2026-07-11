@@ -51,6 +51,43 @@
   background: transparent;
 }
 
+.pth-formula-box {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #dbe8ff;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+}
+
+.pth-formula-box h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #1e3a8a;
+}
+
+.pth-formula-box p {
+  margin: 6px 0;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pth-formula-code {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  overflow-x: auto;
+}
+
+.pth-formula-weights {
+  font-size: 11px !important;
+  color: #475569 !important;
+}
+
 .pth-state {
   display: flex;
   align-items: center;
@@ -127,10 +164,160 @@
   font-size: 13px;
 }
 
+.pth-form-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pth-performance-strip {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pth-performance-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #1e3a8a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.pth-performance-chip--best {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.pth-performance-chip--worst {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.pth-impact-board {
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+  border: 1px solid #dbe8ff;
+  display: grid;
+  gap: 7px;
+}
+
+.pth-impact-row {
+  display: grid;
+  grid-template-columns: minmax(48px, 72px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.pth-impact-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: #334155;
+}
+
+.pth-impact-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #dbeafe;
+  overflow: hidden;
+}
+
+.pth-impact-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb 0%, #0ea5e9 100%);
+}
+
+.pth-impact-value {
+  font-size: 11px;
+  font-weight: 900;
+  color: #1e3a8a;
+}
+
+.pth-mini-graph {
+  display: inline-block;
+  width: 118px;
+  height: 40px;
+  padding: 2px 4px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fbff 0%, #edf4ff 100%);
+  border: 1px solid #dbeafe;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  position: relative;
+  overflow: visible;
+}
+
+.pth-sparkline {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pth-spark-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  min-width: 138px;
+  max-width: 190px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.96);
+  color: #e2e8f0;
+  font-size: 10px;
+  line-height: 1.35;
+  box-shadow: 0 10px 20px rgba(2, 6, 23, 0.34);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.pth-spark-tooltip strong {
+  display: block;
+  color: #f8fafc;
+  margin-bottom: 3px;
+  font-size: 10px;
+}
+
+.pth-spark-tooltip span {
+  display: block;
+}
+
+.pth-mini-graph--single {
+  display: grid;
+  place-items: center;
+}
+
+.pth-mini-graph-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+.pth-team-score-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #e0ecff;
+  color: #1e40af;
+  font-size: 10px;
+  font-weight: 900;
+}
+
 .pth-player-total,
 .pth-team-totals {
   display: grid;
-  grid-template-columns: repeat(3, minmax(58px, 1fr));
+  grid-template-columns: repeat(4, minmax(52px, 1fr));
   gap: 8px;
 }
 
@@ -257,6 +444,14 @@
     flex-direction: column;
   }
 
+  .pth-formula-box h3 {
+    font-size: 13px;
+  }
+
+  .pth-formula-box p {
+    font-size: 11px;
+  }
+
   .pth-player-head {
     grid-template-columns: 48px minmax(0, 1fr);
     gap: 10px;
@@ -282,7 +477,47 @@
 
   .pth-player-total,
   .pth-team-totals {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pth-form-row {
+    gap: 6px;
+  }
+
+  .pth-performance-strip {
+    gap: 6px;
+  }
+
+  .pth-performance-chip {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+
+  .pth-impact-board {
+    margin: 0 12px 10px;
+    padding: 8px 10px;
+  }
+
+  .pth-impact-row {
+    grid-template-columns: minmax(44px, 60px) minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+
+  .pth-impact-value {
+    font-size: 10px;
+  }
+
+  .pth-mini-graph {
+    width: 94px;
+    height: 32px;
+    padding: 2px 3px;
+  }
+
+  .pth-spark-tooltip {
+    min-width: 120px;
+    max-width: 168px;
+    font-size: 9px;
+    padding: 6px 7px;
   }
 
   .pth-tournament-table {
