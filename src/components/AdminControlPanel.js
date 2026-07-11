@@ -96,19 +96,7 @@ const AdminControlPanel = ({ adminUser }) => {
   const [worldCupMode, setWorldCupMode] = useState(false);
   const [worldCupSaving, setWorldCupSaving] = useState(false);
 
-  // Database Migration
   const [databases, setDatabases] = useState([]);
-  const [sourceDb, setSourceDb] = useState('');
-  const [targetDb, setTargetDb] = useState('');
-  const [migrationType, setMigrationType] = useState('player_stats');
-  const [clearTarget, setClearTarget] = useState(true);
-  const [sourceTournaments, setSourceTournaments] = useState([]);
-  const [selectedTournament, setSelectedTournament] = useState('');
-  const [dbMigrationPreview, setDbMigrationPreview] = useState(null);
-  const [dbMigrationLoading, setDbMigrationLoading] = useState(false);
-  const [dbMigrationExecuting, setDbMigrationExecuting] = useState(false);
-  const [dbMigrationResult, setDbMigrationResult] = useState(null);
-  const [copyPlayerTotals, setCopyPlayerTotals] = useState(true);
 
   // CPL Report Configuration
   const [cplReportStartDb, setCplReportStartDb] = useState('');
@@ -900,130 +888,19 @@ const AdminControlPanel = ({ adminUser }) => {
     }
   };
 
-  // Database Migration Functions
   const loadDatabases = async () => {
     try {
-      const res = await fetch(`${API_ENDPOINTS}/api/db-migration/list-databases`);
+      const res = await fetch(`${API_ENDPOINTS}/api/cpl-report/databases`);
       const data = await res.json();
+      const dbs = Array.isArray(data.databases) ? data.databases : [];
+      setDatabases(dbs);
       if (!res.ok) throw new Error(data.message || 'Failed to load databases');
-      setDatabases(data.databases || []);
-      if (!sourceDb && data.currentDatabase) {
-        setTargetDb(data.currentDatabase);
+    } catch (err) {
+      // Keep dropdown usable even if listing endpoint fails.
+      if (cplReportStartDb) {
+        setDatabases([{ name: cplReportStartDb }]);
       }
-    } catch (err) {
       handleToast(err.message || 'Failed to load databases');
-    }
-  };
-
-  const loadTournaments = async (dbName) => {
-    if (!dbName) return;
-    try {
-      const res = await fetch(`${API_ENDPOINTS}/api/db-migration/list-tournaments/${dbName}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to load tournaments');
-      setSourceTournaments(data.tournaments || []);
-    } catch (err) {
-      handleToast(err.message || 'Failed to load tournaments');
-    }
-  };
-
-  const previewDbMigration = async () => {
-    if (!sourceDb || !targetDb) {
-      handleToast('Select source and target databases');
-      return;
-    }
-    setDbMigrationLoading(true);
-    setDbMigrationPreview(null);
-    setDbMigrationResult(null);
-    try {
-      const res = await fetch(`${API_ENDPOINTS}/api/db-migration/preview`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourceDb,
-          targetDb,
-          migrationType,
-          tournamentId: selectedTournament || null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to preview migration');
-      setDbMigrationPreview(data.preview);
-      handleToast('Preview ready');
-    } catch (err) {
-      handleToast(err.message || 'Preview failed');
-    } finally {
-      setDbMigrationLoading(false);
-    }
-  };
-
-  const executeDbMigration = async () => {
-    if (!sourceDb || !targetDb) {
-      handleToast('Select source and target databases');
-      return;
-    }
-    
-    // Build detailed confirmation message
-    const migrationTypeLabel = 
-      migrationType === 'player_stats' ? 'Player Stats (Top Rankings)' :
-      migrationType === 'tournaments' ? 'Tournaments' :
-      'Player Stats + Tournaments';
-    
-    const selectedTournamentName = selectedTournament 
-      ? sourceTournaments.find(t => t.id === selectedTournament)?.name || 'Selected Tournament'
-      : 'All Tournaments';
-    
-    let confirmMessage = `⚠️ CONFIRM DATABASE MIGRATION\n\n`;
-    confirmMessage += `📊 Migration Details:\n`;
-    confirmMessage += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-    confirmMessage += `Source:  ${sourceDb}\n`;
-    confirmMessage += `Target:  ${targetDb}\n`;
-    confirmMessage += `Type:    ${migrationTypeLabel}\n`;
-    
-    if (migrationType !== 'player_stats') {
-      confirmMessage += `Tournament: ${selectedTournamentName}\n`;
-    }
-    
-    confirmMessage += `\n🔧 Options:\n`;
-    confirmMessage += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-    confirmMessage += clearTarget ? `✓ Clear target data first (removes existing)\n` : `✗ Add to existing data (may cause duplicates)\n`;
-    
-    if (migrationType === 'player_stats' || migrationType === 'player_stats_and_tournaments') {
-      confirmMessage += copyPlayerTotals 
-        ? `✓ Copy exact Top Rankings data (recommended)\n` 
-        : `✗ Rebuild from stats (may not match exactly)\n`;
-    }
-    
-    confirmMessage += `\n⚠️  This action will modify the ${targetDb} database.\n`;
-    confirmMessage += `\nProceed with migration?`;
-    
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
-    
-    setDbMigrationExecuting(true);
-    try {
-      const res = await fetch(`${API_ENDPOINTS}/api/db-migration/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourceDb,
-          targetDb,
-          migrationType,
-          tournamentId: selectedTournament || null,
-          clearTarget,
-          copyPlayerTotals,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Migration failed');
-      setDbMigrationResult(data.result);
-      handleToast('Migration completed successfully!');
-      await previewDbMigration();
-    } catch (err) {
-      handleToast(err.message || 'Migration failed');
-    } finally {
-      setDbMigrationExecuting(false);
     }
   };
 
@@ -1034,6 +911,12 @@ const AdminControlPanel = ({ adminUser }) => {
       loadParticipatingTeams();
     }
   }, [adminUserId]);
+
+  useEffect(() => {
+    if (!cplReportStartDb) return;
+    if (databases.some((db) => db.name === cplReportStartDb)) return;
+    setDatabases((prev) => [...prev, { name: cplReportStartDb }]);
+  }, [cplReportStartDb, databases]);
 
   // Team Participation Management Functions
   const loadParticipatingTeams = async () => {
@@ -1146,15 +1029,6 @@ const AdminControlPanel = ({ adminUser }) => {
     }
   };
 
-  useEffect(() => {
-    if (sourceDb && (migrationType === 'tournaments' || migrationType === 'player_stats_and_tournaments')) {
-      loadTournaments(sourceDb);
-    } else {
-      setSourceTournaments([]);
-      setSelectedTournament('');
-    }
-  }, [sourceDb, migrationType]);
-
   const cronDefinitions = [
     {
       key: 'cronSingleBidEnabled',
@@ -1190,315 +1064,6 @@ const AdminControlPanel = ({ adminUser }) => {
   return (
     <div className="admin-control-panel">
       {toast && <div className="admin-toast">{toast}</div>}
-
-      <section className="admin-section">
-        <div className="section-header" style={{ flexDirection: isCompact ? 'column' : 'row', gap: isCompact ? '12px' : '0' }}>
-          <div style={{ flex: 1 }}>
-            <h2 style={{ fontSize: isCompact ? '18px' : '20px' }}>Database Migration</h2>
-            <p style={{ fontSize: isCompact ? '13px' : '14px' }}>
-              Copy data between CPL databases with automatic de-duplication. Select source and target databases, choose data type, and migrate.
-            </p>
-          </div>
-          <div className="section-actions" style={{ 
-            flexDirection: isCompact ? 'column' : 'row', 
-            width: isCompact ? '100%' : 'auto',
-            gap: isCompact ? '8px' : '12px'
-          }}>
-            <button
-              className="btn secondary"
-              onClick={previewDbMigration}
-              disabled={!sourceDb || !targetDb || dbMigrationLoading || dbMigrationExecuting}
-              style={{ 
-                width: isCompact ? '100%' : 'auto',
-                padding: isCompact ? '10px 16px' : '8px 16px',
-                fontSize: isCompact ? '14px' : '15px'
-              }}
-            >
-              {dbMigrationLoading ? 'Loading...' : 'Preview Migration'}
-            </button>
-            <button
-              className="btn primary"
-              onClick={executeDbMigration}
-              disabled={!sourceDb || !targetDb || !dbMigrationPreview || dbMigrationExecuting}
-              style={{ 
-                width: isCompact ? '100%' : 'auto',
-                padding: isCompact ? '10px 16px' : '8px 16px',
-                fontSize: isCompact ? '14px' : '15px'
-              }}
-            >
-              {dbMigrationExecuting ? 'Migrating...' : 'Execute Migration'}
-            </button>
-          </div>
-        </div>
-
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: isCompact ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: 16, 
-          marginBottom: 16,
-          width: '100%'
-        }}>
-          <label className="field-label" style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', position: 'relative' }}>
-            <span style={{ fontSize: isCompact ? '13px' : '14px', fontWeight: 500 }}>
-              Source Database
-              {databases.length === 0 && <span style={{ fontSize: '11px', color: '#3498db', marginLeft: '8px' }}>(Loading...)</span>}
-            </span>
-            <select
-              className="select"
-              value={sourceDb}
-              onChange={(e) => setSourceDb(e.target.value)}
-              disabled={dbMigrationExecuting || databases.length === 0}
-              style={{ width: '100%', fontSize: isCompact ? '14px' : '15px', padding: isCompact ? '8px' : '10px' }}
-            >
-              <option value="">{databases.length === 0 ? 'Loading databases...' : 'Select source database...'}</option>
-              {databases.map((db) => (
-                <option key={db.name} value={db.name}>
-                  {db.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field-label" style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', position: 'relative' }}>
-            <span style={{ fontSize: isCompact ? '13px' : '14px', fontWeight: 500 }}>
-              Target Database (Current)
-            </span>
-            <select
-              className="select"
-              value={targetDb}
-              onChange={(e) => setTargetDb(e.target.value)}
-              disabled={dbMigrationExecuting || databases.length === 0}
-              style={{ width: '100%', fontSize: isCompact ? '14px' : '15px', padding: isCompact ? '8px' : '10px' }}
-            >
-              <option value="">{databases.length === 0 ? 'Loading databases...' : 'Select target database...'}</option>
-              {databases.map((db) => (
-                <option key={db.name} value={db.name}>
-                  {db.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field-label" style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', position: 'relative' }}>
-            <span style={{ fontSize: isCompact ? '13px' : '14px', fontWeight: 500 }}>
-              Migration Type
-              <span style={{ fontSize: '11px', fontWeight: 400, color: 'rgba(255,255,255,0.6)', marginLeft: '8px' }}>
-                (What to migrate)
-              </span>
-            </span>
-            <select
-              className="select"
-              value={migrationType}
-              onChange={(e) => setMigrationType(e.target.value)}
-              disabled={dbMigrationExecuting}
-              style={{ width: '100%', fontSize: isCompact ? '14px' : '15px', padding: isCompact ? '8px' : '10px' }}
-            >
-              <option value="player_stats">🏏 Player Stats Only (Top Rankings)</option>
-              <option value="tournaments">🏆 Tournaments Only (Select Specific Tournament)</option>
-              <option value="player_stats_and_tournaments">📦 ALL TOGETHER (Player Stats + All Tournaments)</option>
-            </select>
-          </label>
-
-          {(migrationType === 'tournaments' || migrationType === 'player_stats_and_tournaments') && (
-            <label className="field-label" style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', position: 'relative' }}>
-              <span style={{ fontSize: isCompact ? '13px' : '14px', fontWeight: 500 }}>
-                Select Tournament (Optional)
-                {sourceDb && sourceTournaments.length === 0 && <span style={{ fontSize: '11px', color: '#3498db', marginLeft: '8px' }}>(Loading...)</span>}
-              </span>
-              <select
-                className="select"
-                value={selectedTournament}
-                onChange={(e) => setSelectedTournament(e.target.value)}
-                disabled={dbMigrationExecuting || !sourceDb}
-                style={{ width: '100%', fontSize: isCompact ? '14px' : '15px', padding: isCompact ? '8px' : '10px' }}
-              >
-                <option value="">
-                  {!sourceDb ? 'Select source database first' : 
-                   sourceTournaments.length === 0 ? 'Loading tournaments...' : 
-                   'All Tournaments'}
-                </option>
-                {sourceTournaments.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: 16, 
-            padding: isCompact ? '12px' : '16px', 
-            background: 'rgba(255,255,255,0.05)', 
-            borderRadius: '8px', 
-            marginTop: '16px',
-            width: '100%',
-            boxSizing: 'border-box'
-          }}>
-            <div style={{ 
-              fontSize: isCompact ? '12px' : '13px', 
-              fontWeight: 600, 
-              color: 'rgba(255,255,255,0.7)', 
-              marginBottom: '4px' 
-            }}>
-              Migration Options:
-            </div>
-            
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'flex-start', 
-              gap: isCompact ? 8 : 12, 
-              cursor: 'pointer',
-              padding: isCompact ? '10px' : '12px',
-              background: 'rgba(255,255,255,0.03)',
-              borderRadius: '6px',
-              border: '1px solid rgba(255,255,255,0.1)',
-              width: '100%',
-              boxSizing: 'border-box'
-            }}>
-              <input
-                type="checkbox"
-                checked={clearTarget}
-                onChange={(e) => setClearTarget(e.target.checked)}
-                disabled={dbMigrationExecuting}
-                style={{ 
-                  width: isCompact ? '18px' : '20px', 
-                  height: isCompact ? '18px' : '20px', 
-                  marginTop: '2px', 
-                  cursor: 'pointer',
-                  flexShrink: 0
-                }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ 
-                  fontSize: isCompact ? '14px' : '15px', 
-                  fontWeight: 600, 
-                  marginBottom: '4px',
-                  wordBreak: 'break-word'
-                }}>
-                  Clear target data first
-                </div>
-                <div style={{ 
-                  fontSize: isCompact ? '11px' : '12px', 
-                  color: 'rgba(255,255,255,0.6)',
-                  lineHeight: '1.4',
-                  wordBreak: 'break-word'
-                }}>
-                  Recommended: Removes existing data before copying (prevents duplicates)
-                </div>
-              </div>
-            </label>
-
-            {(migrationType === 'player_stats' || migrationType === 'player_stats_and_tournaments') && (
-              <label style={{ 
-                display: 'flex', 
-                alignItems: 'flex-start', 
-                gap: isCompact ? 8 : 12, 
-                cursor: 'pointer',
-                padding: isCompact ? '10px' : '12px',
-                background: 'rgba(46, 204, 113, 0.15)',
-                borderRadius: '6px',
-                border: '2px solid #2ecc71',
-                width: '100%',
-                boxSizing: 'border-box'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={copyPlayerTotals}
-                  onChange={(e) => setCopyPlayerTotals(e.target.checked)}
-                  disabled={dbMigrationExecuting}
-                  style={{ 
-                    width: isCompact ? '18px' : '20px', 
-                    height: isCompact ? '18px' : '20px', 
-                    marginTop: '2px', 
-                    cursor: 'pointer',
-                    flexShrink: 0
-                  }}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ 
-                    fontSize: isCompact ? '14px' : '15px', 
-                    fontWeight: 700, 
-                    color: '#2ecc71', 
-                    marginBottom: '4px',
-                    wordBreak: 'break-word'
-                  }}>
-                    🎯 Copy Top Rankings Data
-                  </div>
-                  <div style={{ 
-                    fontSize: isCompact ? '11px' : '12px', 
-                    color: '#2ecc71',
-                    lineHeight: '1.4',
-                    wordBreak: 'break-word'
-                  }}>
-                    IMPORTANT: Check this to match exact runs/wickets/matches from source
-                  </div>
-                </div>
-              </label>
-            )}
-          </div>
-        </div>
-
-        {dbMigrationPreview && (
-          <div className="summary-grid">
-            <div className="summary-card">
-              <span>Source</span>
-              <strong>{dbMigrationPreview.sourceDb}</strong>
-            </div>
-            <div className="summary-card">
-              <span>Target</span>
-              <strong>{dbMigrationPreview.targetDb}</strong>
-            </div>
-            {dbMigrationPreview.playerStats && (
-              <>
-                <div className="summary-card">
-                  <span>Source Player Stats</span>
-                  <strong>{dbMigrationPreview.playerStats.sourceCount}</strong>
-                </div>
-                <div className="summary-card">
-                  <span>Current Target Stats</span>
-                  <strong>{dbMigrationPreview.playerStats.targetCount}</strong>
-                </div>
-              </>
-            )}
-            {dbMigrationPreview.tournaments && (
-              <div className="summary-card">
-                <span>Tournaments to Migrate</span>
-                <strong>{dbMigrationPreview.tournaments.count}</strong>
-              </div>
-            )}
-          </div>
-        )}
-
-        {dbMigrationResult && (
-          <div className="result-banner">
-            <strong>Migration Completed!</strong>
-            {dbMigrationResult.operations.map((op, idx) => (
-              <div key={idx} style={{ marginTop: 8, fontSize: 13 }}>
-                {op.type === 'delete' && `Deleted ${op.count} ${op.collection} documents`}
-                {op.type === 'insert' && (
-                  <>
-                    Inserted {op.inserted} {op.collection} documents 
-                    {op.duplicatesSkipped > 0 && ` (skipped ${op.duplicatesSkipped} duplicates)`}
-                  </>
-                )}
-              </div>
-            ))}
-            {dbMigrationResult.rankingsSync && (
-              <div style={{ marginTop: 8, fontSize: 13 }}>
-                Rankings synced for {dbMigrationResult.rankingsSync.rankingsPlayersSynced} players
-              </div>
-            )}
-            {dbMigrationResult.playerTotalsCopied && (
-              <div style={{ marginTop: 8, fontSize: 13 }}>
-                Player totals copied: {dbMigrationResult.playerTotalsCopied.playersUpdated} / {dbMigrationResult.playerTotalsCopied.sourcePlayers} players updated (matched {dbMigrationResult.playerTotalsCopied.playersMatched})
-              </div>
-            )}
-          </div>
-        )}
-      </section>
 
       <section className="admin-section">
         <div className="section-header" style={{ flexDirection: isCompact ? 'column' : 'row', gap: isCompact ? '12px' : '0' }}>
@@ -1544,7 +1109,7 @@ const AdminControlPanel = ({ adminUser }) => {
               className="select"
               value={cplReportStartDb}
               onChange={(e) => setCplReportStartDb(e.target.value)}
-              disabled={cplReportSaving || databases.length === 0}
+              disabled={cplReportSaving}
               style={{ width: '100%', fontSize: isCompact ? '14px' : '15px', padding: isCompact ? '8px' : '10px' }}
             >
               <option value="">Select starting database...</option>

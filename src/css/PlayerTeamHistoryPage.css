@@ -257,14 +257,27 @@
     flex-direction: column;
   }
 
-  .pth-player-head,
+  .pth-player-head {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 10px;
+  }
+
   .pth-team-row {
     grid-template-columns: 1fr;
   }
 
-  .pth-player-avatar,
   .pth-team-toggle {
     display: none;
+  }
+
+  .pth-player-avatar {
+    display: block;
+    width: 48px;
+    height: 48px;
+  }
+
+  .pth-player-total {
+    grid-column: 1 / -1;
   }
 
   .pth-player-total,
