@@ -17,9 +17,31 @@ import { resolvePlayerImageUrl } from '../utils/resolvePlayerImageUrl';
 const formatMetricValue = (value) =>
   typeof value === 'number' ? value.toLocaleString('en-IN') : value;
 
+const MIN_RANKING_MATCHES = 50;
+
+const isBattingRole = (role = '') => {
+  const text = String(role || '').toLowerCase();
+  return text.includes('bat') || text.includes('keeper') || text.includes('allrounder');
+};
+
+const isBowlingRole = (role = '') => {
+  const text = String(role || '').toLowerCase();
+  return text.includes('bowl') || text.includes('allrounder') || text.includes('keeper');
+};
+
 /** Fantasy-style tie-break: runs + 22 × wickets (same order of magnitude as CPL helpers). */
 const impactScore = (p) =>
   (Number(p.totalRuns) || 0) + (Number(p.totalWickets) || 0) * 22;
+
+const toVenueRates = (venue) => {
+  const matches = Math.max(1, Number(venue?.matches) || 0);
+  const runs = Number(venue?.batting?.runs) || 0;
+  const wickets = Number(venue?.bowling?.wickets) || 0;
+  const runsPerMatch = runs / matches;
+  const wicketsPerMatch = wickets / matches;
+  const runsPerWicket = wickets > 0 ? runs / wickets : Number.POSITIVE_INFINITY;
+  return { matches, runs, wickets, runsPerMatch, wicketsPerMatch, runsPerWicket };
+};
 
 const resolveImageUrl = (src) =>
   resolvePlayerImageUrl(src) || '/images/logo512.png';
@@ -369,6 +391,9 @@ const TopRankingsPage = () => {
               totalWickets: Number(player.totalWickets) || 0,
               momCount: Number(player.momCount) || 0,
               matchesPlayed: Number(player.matchesPlayed) || 0,
+              totalBalls: Number(player.totalBalls) || 0,
+              totalRunsGiven: Number(player.totalRunsGiven) || 0,
+              totalBallsBowled: Number(player.totalBallsBowled) || 0,
             }))
           : [];
         setPlayers(normalized);
@@ -452,25 +477,48 @@ const TopRankingsPage = () => {
 
   const runFactoryVenue = useMemo(() => {
     if (!venueAggregates.length) return null;
-    const withRuns = venueAggregates.filter(
-      (v) => Number(v?.batting?.runs) > 0
-    );
+    const withRuns = venueAggregates.filter((v) => Number(v?.batting?.runs) > 0);
     if (!withRuns.length) return null;
-    return [...withRuns].sort(
-      (a, b) => (b.batting?.runs || 0) - (a.batting?.runs || 0)
-    )[0];
+    // Batting paradise: high runs per match with minimum sample size.
+    return [...withRuns]
+      .filter((v) => (Number(v?.matches) || 0) >= 3)
+      .sort((a, b) => {
+        const ar = toVenueRates(a);
+        const br = toVenueRates(b);
+        return br.runsPerMatch - ar.runsPerMatch;
+      })[0] || null;
   }, [venueAggregates]);
 
   const wicketGraveyardVenue = useMemo(() => {
     if (!venueAggregates.length) return null;
-    const withWkts = venueAggregates.filter(
-      (v) => Number(v?.bowling?.wickets) > 0
-    );
+    const withWkts = venueAggregates.filter((v) => Number(v?.bowling?.wickets) > 0);
     if (!withWkts.length) return null;
-    return [...withWkts].sort(
-      (a, b) => (b.bowling?.wickets || 0) - (a.bowling?.wickets || 0)
-    )[0];
-  }, [venueAggregates]);
+    // True bowling paradise index:
+    // - more wickets per match is better
+    // - fewer runs per wicket is better
+    // - fewer runs per match is better
+    // Also exclude the selected run-factory venue so one venue can't top both.
+    const runFactoryKey = String(runFactoryVenue?.venue || '').trim().toLowerCase();
+    const candidates = [...withWkts].filter((v) => {
+      const key = String(v?.venue || '').trim().toLowerCase();
+      return (Number(v?.matches) || 0) >= 3 && key !== runFactoryKey;
+    });
+    return (
+      candidates.sort((a, b) => {
+        const ar = toVenueRates(a);
+        const br = toVenueRates(b);
+        const aIndex =
+          ar.wicketsPerMatch * 35 +
+          220 / Math.max(ar.runsPerWicket, 1) +
+          260 / Math.max(ar.runsPerMatch, 1);
+        const bIndex =
+          br.wicketsPerMatch * 35 +
+          220 / Math.max(br.runsPerWicket, 1) +
+          260 / Math.max(br.runsPerMatch, 1);
+        return bIndex - aIndex;
+      })[0] || null
+    );
+  }, [venueAggregates, runFactoryVenue]);
 
   const { mvpPlayer, mvpByMom } = useMemo(() => {
     if (!players.length) return { mvpPlayer: null, mvpByMom: false };
@@ -489,6 +537,48 @@ const TopRankingsPage = () => {
     const top = sorted[0];
     if (!top || impactScore(top) <= 0) return { mvpPlayer: null, mvpByMom: false };
     return { mvpPlayer: top, mvpByMom: false };
+  }, [players]);
+
+  const rateLeaders = useMemo(() => {
+    const eligible = players.filter((p) => (p.matchesPlayed || 0) >= MIN_RANKING_MATCHES);
+
+    const battingEligible = eligible
+      .filter((p) => isBattingRole(p.role) && (p.totalBalls || 0) > 0)
+      .map((p) => ({
+        ...p,
+        battingStrikeRate: Number(((p.totalRuns * 100) / p.totalBalls).toFixed(2)),
+        battingAverageProxy: Number((p.totalRuns / Math.max(1, p.matchesPlayed)).toFixed(2)),
+      }));
+
+    const bowlingEligible = eligible
+      .filter((p) => isBowlingRole(p.role) && (p.totalWickets || 0) > 0 && (p.totalBallsBowled || 0) > 0)
+      .map((p) => ({
+        ...p,
+        bowlingStrikeRate: Number((p.totalBallsBowled / p.totalWickets).toFixed(2)),
+        bowlingAverage: Number((p.totalRunsGiven / p.totalWickets).toFixed(2)),
+      }));
+
+    const highestBattingSr = [...battingEligible].sort(
+      (a, b) => b.battingStrikeRate - a.battingStrikeRate
+    )[0] || null;
+    const highestBattingAvg = [...battingEligible].sort(
+      (a, b) => b.battingAverageProxy - a.battingAverageProxy
+    )[0] || null;
+
+    // ICC-style bowling leaders: lower is better for SR and average.
+    const bestBowlingSr = [...bowlingEligible].sort(
+      (a, b) => a.bowlingStrikeRate - b.bowlingStrikeRate
+    )[0] || null;
+    const bestBowlingAvg = [...bowlingEligible].sort(
+      (a, b) => a.bowlingAverage - b.bowlingAverage
+    )[0] || null;
+
+    return {
+      highestBattingSr,
+      highestBattingAvg,
+      bestBowlingSr,
+      bestBowlingAvg,
+    };
   }, [players]);
 
   const categories = useMemo(
@@ -601,22 +691,70 @@ const TopRankingsPage = () => {
                 accentClass="rk-spot-card--mvp"
                 icon={<FaChartLine aria-hidden />}
               />
+              <SpotlightCard
+                title="Highest Batting SR"
+                subtitle={`Min ${MIN_RANKING_MATCHES} matches · Bat/WK/AR`}
+                player={rateLeaders.highestBattingSr}
+                statLine={
+                  rateLeaders.highestBattingSr
+                    ? `${formatMetricValue(rateLeaders.highestBattingSr.battingStrikeRate)} SR`
+                    : ''
+                }
+                accentClass="rk-spot-card--bat-sr"
+                icon={<FaFireAlt aria-hidden />}
+              />
+              <SpotlightCard
+                title="Highest Batting Avg"
+                subtitle={`Min ${MIN_RANKING_MATCHES} matches · Bat/WK/AR`}
+                player={rateLeaders.highestBattingAvg}
+                statLine={
+                  rateLeaders.highestBattingAvg
+                    ? `${formatMetricValue(rateLeaders.highestBattingAvg.battingAverageProxy)} avg`
+                    : ''
+                }
+                accentClass="rk-spot-card--bat-avg"
+                icon={<FaChartLine aria-hidden />}
+              />
+              <SpotlightCard
+                title="Best Bowling SR"
+                subtitle={`Min ${MIN_RANKING_MATCHES} matches · lower is better`}
+                player={rateLeaders.bestBowlingSr}
+                statLine={
+                  rateLeaders.bestBowlingSr
+                    ? `${formatMetricValue(rateLeaders.bestBowlingSr.bowlingStrikeRate)} balls/wkt`
+                    : ''
+                }
+                accentClass="rk-spot-card--bowl-sr"
+                icon={<FaBowlingBall aria-hidden />}
+              />
+              <SpotlightCard
+                title="Best Bowling Avg"
+                subtitle={`Min ${MIN_RANKING_MATCHES} matches · lower is better`}
+                player={rateLeaders.bestBowlingAvg}
+                statLine={
+                  rateLeaders.bestBowlingAvg
+                    ? `${formatMetricValue(rateLeaders.bestBowlingAvg.bowlingAverage)} runs/wkt`
+                    : ''
+                }
+                accentClass="rk-spot-card--bowl-avg"
+                icon={<FaBalanceScale aria-hidden />}
+              />
               <VenueSpotlightCard
                 title="Run Factory"
                 subtitle="Highest-scoring ground"
                 venue={runFactoryVenue}
                 statLine={
                   runFactoryVenue
-                    ? `${formatMetricValue(runFactoryVenue.batting?.runs || 0)} runs scored`
+                    ? `${formatMetricValue(
+                        Number((toVenueRates(runFactoryVenue).runsPerMatch || 0).toFixed(1))
+                      )} runs/match`
                     : ''
                 }
                 metaLine={
                   runFactoryVenue
                     ? `${formatMetricValue(runFactoryVenue.matches || 0)} ${
                         (runFactoryVenue.matches || 0) === 1 ? 'match' : 'matches'
-                      } · ${formatMetricValue(
-                        runFactoryVenue.bowling?.wickets || 0
-                      )} wkts taken`
+                      } · ${formatMetricValue(runFactoryVenue.batting?.runs || 0)} total runs`
                     : ''
                 }
                 accentClass="rk-spot-card--run-factory"
@@ -624,11 +762,13 @@ const TopRankingsPage = () => {
               />
               <VenueSpotlightCard
                 title="Bowler's Paradise"
-                subtitle="Most wickets fallen at one ground"
+                subtitle="Bowling-friendly index (not just total wickets)"
                 venue={wicketGraveyardVenue}
                 statLine={
                   wicketGraveyardVenue
-                    ? `${formatMetricValue(wicketGraveyardVenue.bowling?.wickets || 0)} wickets fallen`
+                    ? `${formatMetricValue(
+                        Number((toVenueRates(wicketGraveyardVenue).wicketsPerMatch || 0).toFixed(2))
+                      )} wkts/match`
                     : ''
                 }
                 metaLine={
@@ -636,8 +776,8 @@ const TopRankingsPage = () => {
                     ? `${formatMetricValue(wicketGraveyardVenue.matches || 0)} ${
                         (wicketGraveyardVenue.matches || 0) === 1 ? 'match' : 'matches'
                       } · ${formatMetricValue(
-                        wicketGraveyardVenue.batting?.runs || 0
-                      )} runs scored`
+                        Number((toVenueRates(wicketGraveyardVenue).runsPerWicket || 0).toFixed(2))
+                      )} runs/wicket`
                     : ''
                 }
                 accentClass="rk-spot-card--paradise"

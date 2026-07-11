@@ -205,6 +205,10 @@
 .rk-spot-card--mvp::before { background: linear-gradient(90deg, #f59e0b, #f97316); }
 .rk-spot-card--run-factory::before { background: linear-gradient(90deg, #f97316, #ef4444); }
 .rk-spot-card--paradise::before { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+.rk-spot-card--bat-sr::before { background: linear-gradient(90deg, #ef4444, #f97316); }
+.rk-spot-card--bat-avg::before { background: linear-gradient(90deg, #ec4899, #f43f5e); }
+.rk-spot-card--bowl-sr::before { background: linear-gradient(90deg, #14b8a6, #0ea5e9); }
+.rk-spot-card--bowl-avg::before { background: linear-gradient(90deg, #2563eb, #4f46e5); }
 
 .rk-spot-eyebrow {
   display: inline-flex;
@@ -224,6 +228,10 @@
 .rk-spot-card--mvp .rk-spot-eyebrow svg { color: var(--rk-mvp); }
 .rk-spot-card--run-factory .rk-spot-eyebrow svg { color: var(--rk-run-factory); }
 .rk-spot-card--paradise .rk-spot-eyebrow svg { color: var(--rk-paradise); }
+.rk-spot-card--bat-sr .rk-spot-eyebrow svg { color: #ef4444; }
+.rk-spot-card--bat-avg .rk-spot-eyebrow svg { color: #ec4899; }
+.rk-spot-card--bowl-sr .rk-spot-eyebrow svg { color: #14b8a6; }
+.rk-spot-card--bowl-avg .rk-spot-eyebrow svg { color: #2563eb; }
 
 .rk-spot-body {
   display: flex;
@@ -300,6 +308,10 @@
 .rk-spot-card--mvp .rk-spot-stat { color: #b45309; }
 .rk-spot-card--run-factory .rk-spot-stat { color: #c2410c; }
 .rk-spot-card--paradise .rk-spot-stat { color: #4338ca; }
+.rk-spot-card--bat-sr .rk-spot-stat { color: #b91c1c; }
+.rk-spot-card--bat-avg .rk-spot-stat { color: #be185d; }
+.rk-spot-card--bowl-sr .rk-spot-stat { color: #0f766e; }
+.rk-spot-card--bowl-avg .rk-spot-stat { color: #1d4ed8; }
 
 .rk-spot-body--venue { gap: 0.85rem; }
 
