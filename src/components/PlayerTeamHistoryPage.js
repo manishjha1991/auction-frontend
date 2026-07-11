@@ -68,24 +68,6 @@ const weightedImpactScore = (
   return base * confidence;
 };
 
-const computeFormScore = (row, playerRole, recencyWeight = 1) => {
-  const m = Math.max(1, Number(row.matches) || 0);
-  const roleBucket = inferRoleBucket(playerRole);
-  const weights = ROLE_WEIGHTS[roleBucket];
-  const avgRuns = (Number(row.totalRuns) || Number(row.runs) || 0) / m;
-  const avgWickets = (Number(row.totalWickets) || Number(row.wickets) || 0) / m;
-  const momRate = (Number(row.totalMom) || Number(row.mom) || 0) / m;
-
-  // Form favors recent output and per-match quality.
-  const quality =
-    avgRuns * (weights.run + 0.25) +
-    avgWickets * (weights.wicket + 2.5) +
-    momRate * (weights.mom + 1.5);
-  const matchConfidence = Math.sqrt(m / (m + 2));
-  const recencyBoost = 0.82 + recencyWeight * 0.42; // latest points pull graph upward when form improves
-  return quality * matchConfidence * recencyBoost;
-};
-
 const buildPlayerSeries = (player) => {
   const totalsByTournament = new Map();
   (player?.teams || []).forEach((team) => {
@@ -113,7 +95,6 @@ const buildPlayerSeries = (player) => {
     return {
       ...row,
       impact,
-      formScore: computeFormScore(row, player.playerRole, (idx + 1) / Math.max(sorted.length, 1)),
       cplSeasonAverage: impact,
     };
   });
@@ -445,7 +426,7 @@ const PlayerTeamHistoryPage = () => {
                         })));
                         const teamSeries = teamSeriesRaw.map((row, idx) => ({
                           ...row,
-                          formScore: computeFormScore(row, player.playerRole, (idx + 1) / Math.max(teamSeriesRaw.length, 1)),
+                          cplSeasonAverage: weightedImpactScore(row, player.playerRole),
                         }));
                         const perf = teamPerformanceByName.get(team.teamName);
                         return (
@@ -464,7 +445,7 @@ const PlayerTeamHistoryPage = () => {
                                   <small>{team.teamFullName}</small>
                                 ) : null}
                                 <div className="pth-form-row">
-                                  <MiniTrendGraph series={teamSeries} metric="formScore" />
+                                  <MiniTrendGraph series={teamSeries} metric="cplSeasonAverage" />
                                   {perf && (
                                     <span className="pth-team-score-chip">
                                       Avg {perf.avgRuns}R / {perf.avgWickets}W
