@@ -818,6 +818,12 @@
   pointer-events: none;
 }
 
+.notout-helper-text {
+  margin: 0.45rem 0 0;
+  font-size: 0.8rem;
+  color: #9fb1d9;
+}
+
 .selected-player-label {
   margin-top: 0.25rem;
   font-size: 0.8rem;
@@ -1761,6 +1767,12 @@
     text-align: center;
   }
 
+  .scorecard-table .col-notout {
+    width: 10%;
+    min-width: 0;
+    text-align: center;
+  }
+
   .scorecard-table .col-mom {
     width: 12%;
     min-width: 0;
@@ -1790,6 +1802,12 @@
     width: 10%;
     min-width: 0;
     text-align: center;
+  }
+
+  .notout-helper-text {
+    font-size: 0.74rem;
+    line-height: 1.35;
+    margin-top: 0.35rem;
   }
 
   .scorecard-table input {

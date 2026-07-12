@@ -101,6 +101,7 @@ const createEmptyRow = (columns = []) => ({
   ...columns.reduce((acc, column) => ({ ...acc, [column.key]: '' }), {}),
   playerId: '',
   isMom: false,
+  isNotOut: false,
 });
 
 const buildInitialCardState = () =>
@@ -205,10 +206,12 @@ const parseBattingRows = (text = '') =>
       const detailTokens = tokens.slice(2);
       const runs = extractRuns(detailTokens);
       const balls = extractBalls(line);
+      const isNotOut = /\bnot\s*out\b/i.test(line);
       return {
         name,
         runs,
         balls,
+        isNotOut,
         dismissal: '',
         bowler: '',
         raw: line,
@@ -1220,6 +1223,7 @@ const OcrExtractor = () => {
           ([key, value]) =>
             key !== 'playerId' &&
             key !== 'isMom' &&
+            key !== 'isNotOut' &&
             value !== '' &&
             value !== null &&
             value !== undefined
@@ -1239,13 +1243,15 @@ const OcrExtractor = () => {
         dismissal: row.dismissal || '',
         bowler: row.bowler || '',
         playerId: row.playerId || '',
-        isMom: !!row.isMom
+        isMom: !!row.isMom,
+        isNotOut: !!row.isNotOut,
       }))
       .filter(
         (row) =>
           row.playerId ||
           row.runs !== null ||
           row.balls !== null ||
+          row.isNotOut === true ||
           row.dismissal ||
           row.bowler
       );
@@ -1325,7 +1331,8 @@ const OcrExtractor = () => {
       if (!entry) return;
       entry.battingStats = {
         runs: Number.isFinite(row.runs) ? row.runs : 0,
-        balls: Number.isFinite(row.balls) ? row.balls : 0
+        balls: Number.isFinite(row.balls) ? row.balls : 0,
+        notOut: !!row.isNotOut,
       };
       entry.isMom = entry.isMom || row.isMom;
     });
@@ -1388,7 +1395,8 @@ const OcrExtractor = () => {
       if (!entry) return;
       entry.battingStats = {
         runs: Number.isFinite(row.runs) ? row.runs : 0,
-        balls: Number.isFinite(row.balls) ? row.balls : 0
+        balls: Number.isFinite(row.balls) ? row.balls : 0,
+        notOut: !!row.isNotOut,
       };
       entry.isMom = entry.isMom || row.isMom;
     });
@@ -1438,6 +1446,7 @@ const OcrExtractor = () => {
           ([key, value]) =>
             key !== 'playerId' &&
             key !== 'isMom' &&
+            key !== 'isNotOut' &&
             value !== '' &&
             value !== null &&
             value !== undefined
@@ -1699,6 +1708,7 @@ const OcrExtractor = () => {
               <th className="col-player">Player</th>
               <th className="col-runs">R</th>
               <th className="col-balls">B</th>
+              <th className="col-notout" title="Not Out innings">NO</th>
               {allowMomColumn && <th className="col-mom">MoM</th>}
               <th className="col-delete" />
             </tr>
@@ -1785,6 +1795,16 @@ const OcrExtractor = () => {
                     }
                   />
                 </td>
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={row.isNotOut || false}
+                    onChange={(event) =>
+                      updateManualRow(cardKey, rowIdx, { isNotOut: event.target.checked })
+                    }
+                    title="Mark batter as not out"
+                  />
+                </td>
                 {allowMomColumn && (
                   <td>
                     <input
@@ -1804,6 +1824,9 @@ const OcrExtractor = () => {
             })}
           </tbody>
         </table>
+        <p className="notout-helper-text">
+          NO = Not Out. Batting average uses dismissals (innings minus not outs).
+        </p>
       </div>
     );
   };

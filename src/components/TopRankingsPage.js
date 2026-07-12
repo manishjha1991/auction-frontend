@@ -391,6 +391,7 @@ const TopRankingsPage = () => {
               totalWickets: Number(player.totalWickets) || 0,
               momCount: Number(player.momCount) || 0,
               matchesPlayed: Number(player.matchesPlayed) || 0,
+              totalNotOutInnings: Number(player.totalNotOutInnings) || 0,
               totalBalls: Number(player.totalBalls) || 0,
               totalRunsGiven: Number(player.totalRunsGiven) || 0,
               totalBallsBowled: Number(player.totalBallsBowled) || 0,
@@ -546,8 +547,14 @@ const TopRankingsPage = () => {
       .filter((p) => isBattingRole(p.role) && (p.totalBalls || 0) > 0)
       .map((p) => ({
         ...p,
+        dismissals: Math.max(0, (p.matchesPlayed || 0) - (p.totalNotOutInnings || 0)),
         battingStrikeRate: Number(((p.totalRuns * 100) / p.totalBalls).toFixed(2)),
-        battingAverageProxy: Number((p.totalRuns / Math.max(1, p.matchesPlayed)).toFixed(2)),
+        battingAverageProxy: Number(
+          (
+            p.totalRuns /
+            Math.max(1, Math.max(0, (p.matchesPlayed || 0) - (p.totalNotOutInnings || 0)))
+          ).toFixed(2)
+        ),
       }));
 
     const bowlingEligible = eligible
