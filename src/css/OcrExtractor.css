@@ -845,6 +845,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
+  width: 100%;
 }
 
 .match-indicator {
@@ -967,6 +969,10 @@
   border-radius: 6px;
   border: 1px solid rgba(16, 185, 129, 0.2);
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .summary-grid {
@@ -1925,10 +1931,12 @@
     padding: 0.4rem;
     min-width: 44px;
     min-height: 44px;
-    width: 100%;
+    width: 34px;
+    max-width: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin: 0 auto;
     -webkit-tap-highlight-color: rgba(248, 113, 113, 0.3);
     user-select: none;
     -webkit-user-select: none;
@@ -1950,12 +1958,23 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    min-width: 0;
+    width: 100%;
   }
 
   .match-indicator {
     font-size: 1rem;
     width: 22px;
     height: 22px;
+  }
+
+  .match-indicator.matched-auto,
+  .match-indicator.matched-manual {
+    display: none;
+  }
+
+  .scorecard-table td:last-child {
+    text-align: center;
   }
 
   .match-summary {
@@ -2081,6 +2100,14 @@
     min-width: 30px;
     min-height: 30px;
     padding: 0.2rem;
+    width: 30px;
+    max-width: 30px;
+    margin: 0 auto;
+  }
+
+  .matched-name-display {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.35rem;
   }
 
   .upload-zone {
