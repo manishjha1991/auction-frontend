@@ -1736,40 +1736,34 @@ const OcrExtractor = () => {
                       className={needsAttention ? 'input-unmatched' : ''}
                     />
                   )}
-                  {/* For batting: Only show dropdown if NOT matched */}
-                  {!isMatched && (
-                    <div className="player-select-wrapper">
-                      <select
-                        value={row.playerId || ''}
-                        onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
-                        className={needsAttention ? 'select-unmatched' : ''}
-                      >
-                        <option value="">Select roster player</option>
-                        {rosterOptionsToUse.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      {needsAttention && (
-                        <span className="match-indicator unmatched" title="Player not found in roster - please select">
-                          ⚠
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {/* For batting: Show matched indicator if matched (no dropdown) */}
-                  {isMatched && (
-                    <div className="player-select-wrapper">
-                      <span className="matched-name-display">{row.name}</span>
-                      <span 
-                        className={`match-indicator ${wasAutoMatched ? 'matched-auto' : 'matched-manual'}`} 
+                  {/* For batting: always keep dropdown visible so selection can be changed */}
+                  <div className="player-select-wrapper">
+                    <select
+                      value={row.playerId || ''}
+                      onChange={(event) => handlePlayerSelect(cardKey, rowIdx, event.target.value)}
+                      className={needsAttention ? 'select-unmatched' : isMatched ? 'select-matched' : ''}
+                    >
+                      <option value="">Select roster player</option>
+                      {rosterOptionsToUse.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {isMatched && (
+                      <span
+                        className={`match-indicator ${wasAutoMatched ? 'matched-auto' : 'matched-manual'}`}
                         title={wasAutoMatched ? "Auto-matched with roster" : "Manually selected from roster"}
                       >
                         ✓
                       </span>
-                    </div>
-                  )}
+                    )}
+                    {needsAttention && (
+                      <span className="match-indicator unmatched" title="Player not found in roster - please select">
+                        ⚠
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td>
                   <input
