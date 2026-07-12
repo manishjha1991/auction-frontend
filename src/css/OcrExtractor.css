@@ -56,16 +56,25 @@
   margin-bottom: 1.5rem;
 }
 
+.fixture-meta > * {
+  min-width: 0;
+}
+
 .fixture-meta label {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   font-size: 0.9rem;
   color: #d1d7ff;
+  min-width: 0;
 }
 
 .fixture-meta select,
 .fixture-meta input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(3, 9, 21, 0.85);
@@ -1412,16 +1421,25 @@
   margin-bottom: 1.5rem;
 }
 
+.fixture-meta > * {
+  min-width: 0;
+}
+
 .fixture-meta label {
   display: flex;
   flex-direction: column;
   font-size: 0.85rem;
   color: #a7b3d4;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .fixture-meta select,
 .fixture-meta input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(4, 10, 24, 0.8);
@@ -1467,12 +1485,17 @@
   .ocr-page {
     padding: 1rem;
     min-height: calc(100vh - 60px);
+    overflow-x: hidden;
   }
 
   .ocr-card {
     padding: 1.25rem;
     border-radius: 16px;
     margin-bottom: 1.5rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
 
   .ocr-header {
@@ -1497,9 +1520,11 @@
   }
 
   .fixture-meta {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.85rem;
     margin-bottom: 1.25rem;
+    width: 100%;
+    max-width: 100%;
   }
 
   .fixture-meta label {
@@ -1511,6 +1536,9 @@
     padding: 0.7rem 0.85rem;
     font-size: 1rem; /* Prevents zoom on iOS */
     min-height: 44px; /* Touch target size */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .fixture-search-input {
