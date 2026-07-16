@@ -202,6 +202,7 @@
 
 .rk-spot-card--runs::before { background: linear-gradient(90deg, #f43f5e, #ec4899); }
 .rk-spot-card--wkts::before { background: linear-gradient(90deg, #14b8a6, #0ea5e9); }
+.rk-spot-card--hattrick::before { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
 .rk-spot-card--mvp::before { background: linear-gradient(90deg, #f59e0b, #f97316); }
 .rk-spot-card--run-factory::before { background: linear-gradient(90deg, #f97316, #ef4444); }
 .rk-spot-card--paradise::before { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
@@ -225,6 +226,7 @@
 .rk-spot-eyebrow svg { font-size: 0.85rem; color: var(--rk-ink); }
 .rk-spot-card--runs .rk-spot-eyebrow svg { color: var(--rk-runs); }
 .rk-spot-card--wkts .rk-spot-eyebrow svg { color: var(--rk-wkts); }
+.rk-spot-card--hattrick .rk-spot-eyebrow svg { color: #d97706; }
 .rk-spot-card--mvp .rk-spot-eyebrow svg { color: var(--rk-mvp); }
 .rk-spot-card--run-factory .rk-spot-eyebrow svg { color: var(--rk-run-factory); }
 .rk-spot-card--paradise .rk-spot-eyebrow svg { color: var(--rk-paradise); }
@@ -305,6 +307,7 @@
 
 .rk-spot-card--runs .rk-spot-stat { color: var(--rk-runs); }
 .rk-spot-card--wkts .rk-spot-stat { color: var(--rk-wkts); }
+.rk-spot-card--hattrick .rk-spot-stat { color: #b45309; }
 .rk-spot-card--mvp .rk-spot-stat { color: #b45309; }
 .rk-spot-card--run-factory .rk-spot-stat { color: #c2410c; }
 .rk-spot-card--paradise .rk-spot-stat { color: #4338ca; }

@@ -389,6 +389,7 @@ const TopRankingsPage = () => {
               ...player,
               totalRuns: Number(player.totalRuns) || 0,
               totalWickets: Number(player.totalWickets) || 0,
+              totalHattricks: Number(player.totalHattricks) || 0,
               momCount: Number(player.momCount) || 0,
               matchesPlayed: Number(player.matchesPlayed) || 0,
               totalNotOutInnings: Number(player.totalNotOutInnings) || 0,
@@ -474,6 +475,16 @@ const TopRankingsPage = () => {
     const withWkts = players.filter((p) => (p.totalWickets || 0) > 0);
     if (!withWkts.length) return null;
     return [...withWkts].sort((a, b) => b.totalWickets - a.totalWickets)[0];
+  }, [players]);
+
+  const mostHattricksPlayer = useMemo(() => {
+    if (!players.length) return null;
+    const withHt = players.filter((p) => (p.totalHattricks || 0) > 0);
+    if (!withHt.length) return null;
+    return [...withHt].sort((a, b) => {
+      if (b.totalHattricks !== a.totalHattricks) return b.totalHattricks - a.totalHattricks;
+      return (b.totalWickets || 0) - (a.totalWickets || 0);
+    })[0];
   }, [players]);
 
   const runFactoryVenue = useMemo(() => {
@@ -646,8 +657,8 @@ const TopRankingsPage = () => {
               <div>
                 <h2>League leaders</h2>
                 <p>
-                  Most runs, most wickets & MVP (MoM awards, with impact score as
-                  fallback).
+                  Most runs, most wickets, most hat-tricks & MVP (MoM awards, with
+                  impact score as fallback).
                 </p>
               </div>
             </div>
@@ -674,6 +685,20 @@ const TopRankingsPage = () => {
                     : ''
                 }
                 accentClass="rk-spot-card--wkts"
+                icon={<FaBowlingBall aria-hidden />}
+              />
+              <SpotlightCard
+                title="Most hat-tricks"
+                subtitle="All players · cumulative"
+                player={mostHattricksPlayer}
+                statLine={
+                  mostHattricksPlayer
+                    ? `${formatMetricValue(mostHattricksPlayer.totalHattricks)} hat-trick${
+                        mostHattricksPlayer.totalHattricks === 1 ? '' : 's'
+                      }`
+                    : ''
+                }
+                accentClass="rk-spot-card--hattrick"
                 icon={<FaBowlingBall aria-hidden />}
               />
               <SpotlightCard

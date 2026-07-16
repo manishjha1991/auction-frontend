@@ -102,6 +102,7 @@ const createEmptyRow = (columns = []) => ({
   playerId: '',
   isMom: false,
   isNotOut: false,
+  isHattrick: false,
 });
 
 const buildInitialCardState = () =>
@@ -1224,6 +1225,7 @@ const OcrExtractor = () => {
             key !== 'playerId' &&
             key !== 'isMom' &&
             key !== 'isNotOut' &&
+            key !== 'isHattrick' &&
             value !== '' &&
             value !== null &&
             value !== undefined
@@ -1289,7 +1291,9 @@ const OcrExtractor = () => {
           economy: providedEconomy ?? computedEconomy ?? '',
           extras,
           ballsBowled: ballsBowledCandidate,
-          playerId: row.playerId || ''
+          playerId: row.playerId || '',
+          isMom: !!row.isMom,
+          isHattrick: !!row.isHattrick && wickets >= 3,
         };
       })
       .filter(
@@ -1318,7 +1322,8 @@ const OcrExtractor = () => {
             overs: null,
             economy: null,
             maidens: 0,
-            extras: 0
+            extras: 0,
+            isHattrick: false,
           },
           isMom: false
         });
@@ -1351,16 +1356,19 @@ const OcrExtractor = () => {
           : ballsBowled > 0
           ? Number((runsGiven / (ballsBowled / 6)).toFixed(2))
           : null;
+      const wickets = Number.isFinite(row.wickets) ? row.wickets : 0;
 
       entry.bowlingStats = {
         runsGiven,
         ballsBowled,
-        wickets: Number.isFinite(row.wickets) ? row.wickets : 0,
+        wickets,
         overs: ballsBowled ? Number((ballsBowled / 6).toFixed(2)) : null,
         economy,
         maidens: Number.isFinite(row.maidens) ? row.maidens : 0,
-        extras: Number.isFinite(row.extras) ? row.extras : 0
+        extras: Number.isFinite(row.extras) ? row.extras : 0,
+        isHattrick: !!row.isHattrick && wickets >= 3,
       };
+      entry.isMom = entry.isMom || row.isMom;
     });
 
     return Array.from(entryMap.values());
@@ -1382,7 +1390,8 @@ const OcrExtractor = () => {
             overs: null,
             economy: null,
             maidens: 0,
-            extras: 0
+            extras: 0,
+            isHattrick: false,
           },
           isMom: false
         });
@@ -1415,16 +1424,19 @@ const OcrExtractor = () => {
           : ballsBowled > 0
           ? Number((runsGiven / (ballsBowled / 6)).toFixed(2))
           : null;
+      const wickets = Number.isFinite(row.wickets) ? row.wickets : 0;
 
       entry.bowlingStats = {
         runsGiven,
         ballsBowled,
-        wickets: Number.isFinite(row.wickets) ? row.wickets : 0,
+        wickets,
         overs: ballsBowled ? Number((ballsBowled / 6).toFixed(2)) : null,
         economy,
         maidens: Number.isFinite(row.maidens) ? row.maidens : 0,
-        extras: Number.isFinite(row.extras) ? row.extras : 0
+        extras: Number.isFinite(row.extras) ? row.extras : 0,
+        isHattrick: !!row.isHattrick && wickets >= 3,
       };
+      entry.isMom = entry.isMom || row.isMom;
     });
 
     return Array.from(entryMap.values());
@@ -1447,6 +1459,7 @@ const OcrExtractor = () => {
             key !== 'playerId' &&
             key !== 'isMom' &&
             key !== 'isNotOut' &&
+            key !== 'isHattrick' &&
             value !== '' &&
             value !== null &&
             value !== undefined
@@ -1840,6 +1853,7 @@ const OcrExtractor = () => {
               <th className="col-overs">Ov</th>
               <th className="col-runs">Runs</th>
               <th className="col-wickets">Wkts</th>
+              <th className="col-hattrick" title="Hat-trick">HT</th>
               {allowMomColumn && <th className="col-mom">MoM</th>}
               <th className="col-delete" />
             </tr>
@@ -1929,8 +1943,20 @@ const OcrExtractor = () => {
                     const nextValue = val === '' ? 0 : clampWicketsValue(val);
                     updateManualRow(cardKey, rowIdx, {
                       wickets: nextValue,
+                      ...(nextValue < 3 ? { isHattrick: false } : {}),
                     });
                   }}
+                />
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  checked={!!row.isHattrick}
+                  disabled={(row.wickets ?? 0) < 3}
+                  onChange={(event) =>
+                    updateManualRow(cardKey, rowIdx, { isHattrick: event.target.checked })
+                  }
+                  title="Hat-trick (3 consecutive wickets)"
                 />
               </td>
               {allowMomColumn && (

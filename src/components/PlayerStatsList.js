@@ -65,6 +65,7 @@ const PlayerStatsList = () => {
     wicketsTaken: '',
     opponentUserId: '',
     isMom: false,
+    isHattrick: false,
     isPlayoffScore: false,
     wcStage: '',
     tournamentId: '',
@@ -220,6 +221,7 @@ const PlayerStatsList = () => {
       wicketsTaken: '',
       opponentUserId: '',
       isMom: false,
+      isHattrick: false,
       isPlayoffScore: false,
       wcStage: '',
       tournamentId: '',
@@ -281,10 +283,16 @@ const PlayerStatsList = () => {
     if (name === 'saveMode' && value === 'create') {
       setSelectedExistingEntryId('');
     }
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    setFormData((prev) => {
+      const next = {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value,
+      };
+      if (name === 'wicketsTaken' && !(Number(value) >= 3)) {
+        next.isHattrick = false;
+      }
+      return next;
+    });
   };
 
   const handleCheckboxChange = (e) => {
@@ -337,6 +345,7 @@ const PlayerStatsList = () => {
     setFormData((prev) => ({
       ...prev,
       opponentUserId: resolveOpponentUserId(entry) || prev.opponentUserId,
+      isHattrick: !!entry.bowlingStats?.isHattrick,
       isPlayoffScore: !!entry.metadata?.isPlayoffScore,
       wcStage: entry.metadata?.isWcScore ? entry.metadata?.wcStage || '' : prev.wcStage,
       tournamentId:
@@ -362,6 +371,7 @@ const PlayerStatsList = () => {
       wicketsTaken: entry.bowlingStats?.wickets ?? '',
       opponentUserId: resolveOpponentUserId(entry),
       isMom: !!entry.isMom,
+      isHattrick: !!entry.bowlingStats?.isHattrick,
       isPlayoffScore: !!entry.metadata?.isPlayoffScore,
       wcStage: entry.metadata?.isWcScore ? entry.metadata?.wcStage || '' : '',
       tournamentId: entry.metadata?.isWcScore ? (entry.tournamentId ? String(entry.tournamentId) : '') : '',
@@ -448,6 +458,7 @@ const PlayerStatsList = () => {
         bowlingStats: {
           runsGiven: runsGivenToSave,
           ballsBowled: ballsBowledToSave,
+          isHattrick: !!formData.isHattrick && wicketsToSave >= 3,
         },
         wicketsTaken: wicketsToSave,
         isMom: formData.isMom,
@@ -740,6 +751,30 @@ const PlayerStatsList = () => {
                         required
                       />
                     </div>
+                  </div>
+                  <div className="checkbox-card-grid" style={{ marginTop: '0.75rem' }}>
+                    <label
+                      className={`playoff-checkbox-wrapper lite ${formData.isHattrick ? 'checked' : ''}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        className="playoff-checkbox"
+                        name="isHattrick"
+                        checked={formData.isHattrick}
+                        onChange={handleCheckboxChange}
+                        disabled={!(Number(formData.wicketsTaken) >= 3)}
+                      />
+                      <span className="playoff-checkbox-label">
+                        <span className="playoff-icon">🎩</span>
+                        <span className="checkbox-text">
+                          <span className="checkbox-title">Hat-trick</span>
+                          <span className="checkbox-subtitle">
+                            Three consecutive wickets (needs 3+ wickets)
+                          </span>
+                        </span>
+                      </span>
+                    </label>
                   </div>
                 </div>
 

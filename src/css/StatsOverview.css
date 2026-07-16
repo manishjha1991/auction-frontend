@@ -669,6 +669,14 @@ margin-bottom: 1rem;
   font-weight: 800;
 }
 
+/* Hat-trick badge - Amber theme */
+.achievement-badge.achievement-ht {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #1f2937;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-weight: 800;
+}
+
 @media (max-width: 640px) {
   .achievement-badge {
     font-size: 0.625rem;

@@ -130,6 +130,7 @@ const StatsOverview = () => {
     lowestTeamTotal = {},
     highestFiveWicketHauls = [],
     highestFourWicketHauls = [],
+    hattricks = [],
     centuries = [],
     halfCenturies = [],
 
@@ -469,8 +470,13 @@ const StatsOverview = () => {
                     </div>
                     <div className="top-performer-stat">
                       <div>{player.wickets} Wkts</div>
-                      {(player.fourWicketHauls > 0 || player.fiveWicketHauls > 0) && (
+                      {(player.fourWicketHauls > 0 || player.fiveWicketHauls > 0 || player.hattricks > 0) && (
                         <div className="achievement-badges">
+                          {player.hattricks > 0 && (
+                            <span className="achievement-badge achievement-ht">
+                              HT: {player.hattricks}
+                            </span>
+                          )}
                           {player.fourWicketHauls > 0 && (
                             <span className="achievement-badge achievement-4w">
                               4W: {player.fourWicketHauls}
@@ -691,6 +697,45 @@ const StatsOverview = () => {
             </ul>
           </div>
 
+          {/* Hat-tricks */}
+          <div className="top-performer-card">
+            <div className="top-performer-header">
+              <div className="top-performer-title">
+                <FaBowlingBall className="icon" />
+                <span>Hat-tricks</span>
+              </div>
+            </div>
+            <ul className="top-performer-list">
+              {hattricks.length > 0 ? (
+                hattricks.map((haul, i) => {
+                  const figure =
+                    haul.bowlingFigure ||
+                    `${haul.wickets || 0}/${haul.runsGiven ?? 0}`;
+                  return (
+                    <li key={i} className="top-performer-item">
+                      <span className={`rank-badge ${getPlayerTypeClass(haul.playerType)}`}>{i + 1}</span>
+                      <PlayerAvatar profilePicture={haul.profilePicture} name={haul.playerName} size={28} className="stats-overview-list-avatar" />
+                      <div className="top-performer-item-info">
+                        <div className="top-performer-item-name">{haul.playerName}</div>
+                        <div className="top-performer-item-teams-inline">
+                          <span className="team-abbr-badge">{getTeamAbbreviation(haul.teamName)}</span>
+                          <span className="vs-text">vs</span>
+                          <span className="team-abbr-badge opponent">{getTeamAbbreviation(haul.opponentTeam)}</span>
+                        </div>
+                      </div>
+                      <div className="top-performer-stat">
+                        <div>{figure}</div>
+                        <div className="stat-detail">Hat-trick</div>
+                      </div>
+                    </li>
+                  );
+                })
+              ) : (
+                <li style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</li>
+              )}
+            </ul>
+          </div>
+
           {/* Centuries */}
           <div className="top-performer-card">
             <div className="top-performer-header">
@@ -850,11 +895,16 @@ const StatsOverview = () => {
                             <span className="stat-label">Bowling S/R</span>
                             <span className="stat-value">{modalData.bowlingStrikeRate != null ? modalData.bowlingStrikeRate.toFixed(1) : 0}</span>
                           </div>
-                          {(modalData.fourWicketHauls > 0 || modalData.fiveWicketHauls > 0) && (
+                          {(modalData.fourWicketHauls > 0 || modalData.fiveWicketHauls > 0 || modalData.hattricks > 0) && (
                             <div className="stat-item">
                               <FaTrophy className="stat-icon" />
                               <span className="stat-label">Wicket Hauls</span>
                               <div className="achievement-badges" style={{ justifyContent: 'flex-start', marginTop: '0.5rem' }}>
+                                {modalData.hattricks > 0 && (
+                                  <span className="achievement-badge achievement-ht">
+                                    HT: {modalData.hattricks}
+                                  </span>
+                                )}
                                 {modalData.fourWicketHauls > 0 && (
                                   <span className="achievement-badge achievement-4w">
                                     4W: {modalData.fourWicketHauls}
@@ -926,6 +976,17 @@ const StatsOverview = () => {
                                         <span className="label">Runs Given:</span>
                                         <span className="value">{match.runsGiven || 0}</span>
                                       </div>
+                                      {match.bowlingFigure && (
+                                        <div className="stat">
+                                          <span className="label">Figures:</span>
+                                          <span className="value">{match.bowlingFigure}</span>
+                                        </div>
+                                      )}
+                                      {match.isHattrick && (
+                                        <div className="mom-badge" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                                          Hat-trick
+                                        </div>
+                                      )}
                                       {match.economy != null && (
                                         <div className="stat">
                                           <span className="label">Economy:</span>

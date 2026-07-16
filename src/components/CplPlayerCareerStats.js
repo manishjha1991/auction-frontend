@@ -206,6 +206,10 @@ export default function CplPlayerCareerStats() {
                     <strong>{p.totalWickets}</strong>
                   </div>
                   <div>
+                    <span>Hat-tricks</span>
+                    <strong>{p.totalHattricks || 0}</strong>
+                  </div>
+                  <div>
                     <span>Best bowling</span>
                     <strong>{p.bestBowling}</strong>
                   </div>
@@ -323,6 +327,7 @@ export default function CplPlayerCareerStats() {
                                   </span>
                                   <span className="career-milestone-meta">
                                     {b.ballsBowled != null ? `${b.ballsBowled} balls` : '—'}
+                                    {b.isHattrick ? ' · Hat-trick' : ''}
                                   </span>
                                 </div>
                                 <div className="career-milestone-right">
@@ -337,6 +342,43 @@ export default function CplPlayerCareerStats() {
                         <p className="career-detail-empty">No bowling spells recorded yet.</p>
                       )}
                     </section>
+
+                    {(p.totalHattricks > 0 || p.hattrickSpells?.length > 0) && (
+                      <section className="career-detail-block career-detail-block--bowl">
+                        <div className="career-detail-head">
+                          <FaBowlingBall aria-hidden />
+                          <h4>Hat-tricks</h4>
+                          <span className="career-detail-tag">{p.totalHattricks || p.hattrickSpells?.length || 0}</span>
+                        </div>
+                        {p.hattrickSpells?.length ? (
+                          <div className="career-milestone-list">
+                            {dedupeIdenticalInnings(p.hattrickSpells, bowlingInningsKey).map((b, i) => {
+                              const dateStr = formatDetailDate(b.date);
+                              return (
+                                <div key={`ht-${i}`} className="career-milestone-row career-milestone-row--bowl">
+                                  <div className="career-bowl-figures">
+                                    <span className="career-bowl-wk">
+                                      {b.wickets}
+                                      <span className="career-bowl-sep">/</span>
+                                      {b.runsGiven}
+                                    </span>
+                                    <span className="career-milestone-meta">
+                                      {b.ballsBowled != null ? `${b.ballsBowled} balls` : '—'}
+                                    </span>
+                                  </div>
+                                  <div className="career-milestone-right">
+                                    <span className="career-opp-pill career-opp-pill--bowl">{b.opponentTeam || 'Unknown'}</span>
+                                    {dateStr && <span className="career-milestone-date">{dateStr}</span>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="career-detail-empty">No hat-trick details listed yet.</p>
+                        )}
+                      </section>
+                    )}
                   </div>
                 )}
               </article>
