@@ -37,6 +37,7 @@ import TeamSquadsShowcase from './components/TeamSquadsShowcase';
 import AdminUserManagement from './components/AdminUserManagement';
 import AdminRetainedPlayers from './components/AdminRetainedPlayers';
 import AdminTeamLocks from './components/AdminTeamLocks';
+import AdminTeamForfeit from './components/AdminTeamForfeit';
 import AdminFairnessManagement from './components/AdminFairnessManagement';
 import AdminQueueMonitor from './components/AdminQueueMonitor';
 import AdminPurseAudit from './components/AdminPurseAudit';
@@ -567,9 +568,9 @@ function App() {
                       )}
                       <li>
                         <Link
-                          to="/profile#team-forfeit"
+                          to="/admin/team-forfeit"
                           onClick={closeSidebar}
-                          className={`menu-item ${isActive('/profile') ? 'active' : ''}`}
+                          className={`menu-item ${isActive('/admin/team-forfeit') ? 'active' : ''}`}
                         >
                           <FaFlag className="menu-icon" />
                           <span>Team Forfeit / Restore</span>
@@ -860,6 +861,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <AdminTeamLocks />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/team-forfeit"
+              element={
+                <PrivateRoute>
+                  <AdminTeamForfeit />
                 </PrivateRoute>
               }
             />
