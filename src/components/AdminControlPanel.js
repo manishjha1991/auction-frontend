@@ -109,6 +109,11 @@ const AdminControlPanel = ({ adminUser }) => {
   const [participatingTeamsSaving, setParticipatingTeamsSaving] = useState(false);
   const [showParticipationConfirm, setShowParticipationConfirm] = useState(false);
   const [participationConfirmData, setParticipationConfirmData] = useState(null);
+  const [forfeitBusyTeamId, setForfeitBusyTeamId] = useState(null);
+  const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
+  const [forfeitConfirmData, setForfeitConfirmData] = useState(null);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [restoreConfirmTeam, setRestoreConfirmTeam] = useState(null);
 
   const handleToast = (message) => {
     setToast(message);
@@ -991,6 +996,100 @@ const AdminControlPanel = ({ adminUser }) => {
     }
   };
 
+  const openForfeitConfirm = async (team) => {
+    if (!adminUserId) {
+      handleToast('Admin user id missing — reload and try again');
+      return;
+    }
+    setForfeitBusyTeamId(team.id);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/fixtures/forfeit-preview/${team.id}`, {
+        headers: { 'user-id': adminUserId },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Failed to preview forfeit');
+      }
+      if (data.forfeitActive) {
+        throw new Error('This team already has an active forfeit. Use Restore first.');
+      }
+      if (!data.totalAffected) {
+        throw new Error('Nothing to forfeit — no wins to reverse and no remaining fixtures.');
+      }
+      setForfeitConfirmData({ team, preview: data });
+      setShowForfeitConfirm(true);
+    } catch (err) {
+      handleToast(err.message || 'Failed to load forfeit preview');
+    } finally {
+      setForfeitBusyTeamId(null);
+    }
+  };
+
+  const executeForfeit = async () => {
+    if (!forfeitConfirmData?.team?.id || !adminUserId) return;
+    const teamId = forfeitConfirmData.team.id;
+    const teamName = forfeitConfirmData.team.teamName || forfeitConfirmData.team.name;
+    setShowForfeitConfirm(false);
+    setForfeitBusyTeamId(teamId);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/fixtures/forfeit/${teamId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': adminUserId,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Forfeit failed');
+      }
+      handleToast(
+        `✅ Forfeit applied for ${teamName}: ${data.winsReversed || 0} win(s) reversed, ${data.walkovers || 0} walkover(s)`
+      );
+      setForfeitConfirmData(null);
+      await loadParticipatingTeams();
+    } catch (err) {
+      handleToast(err.message || 'Forfeit failed');
+      await loadParticipatingTeams();
+    } finally {
+      setForfeitBusyTeamId(null);
+    }
+  };
+
+  const openRestoreConfirm = (team) => {
+    setRestoreConfirmTeam(team);
+    setShowRestoreConfirm(true);
+  };
+
+  const executeRestore = async () => {
+    if (!restoreConfirmTeam?.id || !adminUserId) return;
+    const teamId = restoreConfirmTeam.id;
+    const teamName = restoreConfirmTeam.teamName || restoreConfirmTeam.name;
+    setShowRestoreConfirm(false);
+    setForfeitBusyTeamId(teamId);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/fixtures/restore/${teamId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': adminUserId,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Restore failed');
+      }
+      handleToast(`✅ Forfeit restored for ${teamName}: ${data.restored?.length || 0} fixture(s) reverted`);
+      setRestoreConfirmTeam(null);
+      await loadParticipatingTeams();
+    } catch (err) {
+      handleToast(err.message || 'Restore failed');
+      await loadParticipatingTeams();
+    } finally {
+      setForfeitBusyTeamId(null);
+    }
+  };
+
   // CPL Report Configuration Functions
   const loadCplReportConfig = async () => {
     setCplReportLoading(true);
@@ -1147,6 +1246,7 @@ const AdminControlPanel = ({ adminUser }) => {
             <h2 style={{ fontSize: isCompact ? '18px' : '20px' }}>Team Participation Management</h2>
             <p style={{ fontSize: isCompact ? '13px' : '14px' }}>
               Mark teams as participating or not participating in the current season. Non-participating teams will be hidden from point tables, fixtures, and playoffs. They also cannot make trades.
+              Use <strong>Forfeit</strong> to give remaining (and previously won) fixtures to opponents in one click; <strong>Restore</strong> undoes that.
             </p>
           </div>
           <div className="section-actions" style={{ 
@@ -1182,48 +1282,105 @@ const AdminControlPanel = ({ adminUser }) => {
               marginBottom: 16
             }}>
               {participatingTeams.map(team => (
-                <label 
+                <div
                   key={team.id}
                   style={{
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
+                    flexDirection: 'column',
+                    gap: 10,
                     padding: '12px',
-                    background: team.isParticipating 
-                      ? 'rgba(46, 204, 113, 0.1)' 
+                    background: team.forfeitActive
+                      ? 'rgba(241, 196, 15, 0.12)'
+                      : team.isParticipating
+                      ? 'rgba(46, 204, 113, 0.1)'
                       : 'rgba(231, 76, 60, 0.1)',
-                    border: team.isParticipating 
-                      ? '1px solid rgba(46, 204, 113, 0.3)' 
+                    border: team.forfeitActive
+                      ? '1px solid rgba(241, 196, 15, 0.45)'
+                      : team.isParticipating
+                      ? '1px solid rgba(46, 204, 113, 0.3)'
                       : '1px solid rgba(231, 76, 60, 0.3)',
                     borderRadius: '6px',
-                    cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={team.isParticipating}
-                    onChange={() => toggleTeamParticipation(team.id)}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '14px', fontWeight: 600 }}>
-                      {team.teamName || team.name}
-                    </div>
-                    {team.abbreviation && (
-                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>
-                        {team.abbreviation}
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      cursor: 'pointer',
+                      margin: 0,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={team.isParticipating}
+                      onChange={() => toggleTeamParticipation(team.id)}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 600 }}>
+                        {team.teamName || team.name}
                       </div>
+                      {team.abbreviation && (
+                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>
+                          {team.abbreviation}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: team.isParticipating ? '#2ecc71' : '#e74c3c'
+                    }}>
+                      {team.isParticipating ? '✓ Participating' : '✗ Not Participating'}
+                    </div>
+                  </label>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {team.forfeitActive ? (
+                      <>
+                        <span style={{ fontSize: 11, color: '#f1c40f', fontWeight: 600 }}>
+                          Forfeit active
+                        </span>
+                        <button
+                          type="button"
+                          className="btn"
+                          disabled={!!forfeitBusyTeamId || !adminUserId}
+                          onClick={() => openRestoreConfirm(team)}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: 12,
+                            background: 'rgba(52, 152, 219, 0.25)',
+                            border: '1px solid rgba(52, 152, 219, 0.5)',
+                            color: '#fff',
+                            borderRadius: 4,
+                            cursor: forfeitBusyTeamId ? 'wait' : 'pointer',
+                          }}
+                        >
+                          {forfeitBusyTeamId === team.id ? 'Working…' : 'Restore fixtures'}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={!!forfeitBusyTeamId || !adminUserId}
+                        onClick={() => openForfeitConfirm(team)}
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: 12,
+                          background: 'rgba(231, 76, 60, 0.2)',
+                          border: '1px solid rgba(231, 76, 60, 0.45)',
+                          color: '#fff',
+                          borderRadius: 4,
+                          cursor: forfeitBusyTeamId ? 'wait' : 'pointer',
+                        }}
+                      >
+                        {forfeitBusyTeamId === team.id ? 'Loading…' : 'Forfeit season'}
+                      </button>
                     )}
                   </div>
-                  <div style={{ 
-                    fontSize: '11px', 
-                    fontWeight: 600,
-                    color: team.isParticipating ? '#2ecc71' : '#e74c3c'
-                  }}>
-                    {team.isParticipating ? '✓ Participating' : '✗ Not Participating'}
-                  </div>
-                </label>
+                </div>
               ))}
             </div>
 
@@ -1241,6 +1398,7 @@ const AdminControlPanel = ({ adminUser }) => {
                 <li>Playoff calculations will be adjusted based on participating teams only</li>
                 <li>Non-participating teams cannot make trades</li>
                 <li>Required games per team will be calculated based on participating teams</li>
+                <li><strong>Forfeit</strong> reverses that team&apos;s wins and awards remaining fixtures to opponents (with Restore)</li>
               </ul>
             </div>
 
@@ -2383,6 +2541,127 @@ const AdminControlPanel = ({ adminUser }) => {
           </div>
         )}
       </section>
+
+      {/* League Forfeit Confirmation Modal */}
+      {showForfeitConfirm && forfeitConfirmData && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: isCompact ? '16px' : '20px',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+            borderRadius: '16px',
+            padding: isCompact ? '20px' : '28px',
+            maxWidth: isCompact ? '95%' : '520px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          }}>
+            <h2 style={{ margin: '0 0 8px', fontSize: isCompact ? 18 : 22 }}>Confirm season forfeit</h2>
+            <p style={{ margin: '0 0 16px', color: 'rgba(255,255,255,0.7)', fontSize: 14 }}>
+              <strong>{forfeitConfirmData.team.teamName || forfeitConfirmData.team.name}</strong>
+              {' '}— this will update league fixtures and the points table. You can Restore later.
+            </p>
+            <ul style={{ margin: '0 0 20px', paddingLeft: 20, lineHeight: 1.7, fontSize: 14 }}>
+              <li>
+                <strong>{forfeitConfirmData.preview.winsToReverseCount}</strong> previous win(s) → given to opponent
+              </li>
+              <li>
+                <strong>{forfeitConfirmData.preview.remainingWalkoversCount}</strong> remaining fixture(s) → walkover to opponent
+              </li>
+              <li>
+                <strong>{forfeitConfirmData.preview.alreadyLostCount}</strong> already-lost game(s) left unchanged
+              </li>
+            </ul>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setShowForfeitConfirm(false);
+                  setForfeitConfirmData(null);
+                }}
+                style={{ padding: '10px 16px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn danger"
+                onClick={executeForfeit}
+                style={{ padding: '10px 16px' }}
+              >
+                Confirm forfeit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* League Forfeit Restore Confirmation Modal */}
+      {showRestoreConfirm && restoreConfirmTeam && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: isCompact ? '16px' : '20px',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+            borderRadius: '16px',
+            padding: isCompact ? '20px' : '28px',
+            maxWidth: isCompact ? '95%' : '480px',
+            width: '100%',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          }}>
+            <h2 style={{ margin: '0 0 8px', fontSize: isCompact ? 18 : 22 }}>Restore forfeited fixtures?</h2>
+            <p style={{ margin: '0 0 20px', color: 'rgba(255,255,255,0.7)', fontSize: 14 }}>
+              Restore <strong>{restoreConfirmTeam.teamName || restoreConfirmTeam.name}</strong> to the
+              pre-forfeit results (unplayed games cleared; prior wins put back).
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setShowRestoreConfirm(false);
+                  setRestoreConfirmTeam(null);
+                }}
+                style={{ padding: '10px 16px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={executeRestore}
+                style={{ padding: '10px 16px' }}
+              >
+                Confirm restore
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Team Participation Confirmation Modal */}
       {showParticipationConfirm && participationConfirmData && (
