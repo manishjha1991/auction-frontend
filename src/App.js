@@ -27,7 +27,7 @@ import {
   FaCalendarAlt, FaImage, FaUsersCog, FaCrown, FaBalanceScale, FaGem, FaLock,
   FaCog, FaSignOutAlt, FaFire, FaHome, FaSearch, FaTimes, FaBook, FaUserShield,
   FaCalculator, FaCloudRain, FaHistory, FaWrench, FaChartLine, FaAddressCard, FaBullseye,
-  FaMapMarkedAlt, FaCheckCircle
+  FaMapMarkedAlt, FaCheckCircle, FaFlag
 } from 'react-icons/fa';
 import AdminTrades from './components/AdminTrades';
 import MatchScheduler from './components/MatchScheduler';
@@ -565,6 +565,16 @@ function App() {
                           </Link>
                         </li>
                       )}
+                      <li>
+                        <Link
+                          to="/profile#team-forfeit"
+                          onClick={closeSidebar}
+                          className={`menu-item ${isActive('/profile') ? 'active' : ''}`}
+                        >
+                          <FaFlag className="menu-icon" />
+                          <span>Team Forfeit / Restore</span>
+                        </Link>
+                      </li>
                       <li>
                         <Link to="/admin/trades" onClick={closeSidebar} className={`menu-item ${isActive('/admin/trades') ? 'active' : ''}`}>
                           <FaExchangeAlt className="menu-icon" />

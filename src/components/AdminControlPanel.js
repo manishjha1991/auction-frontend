@@ -923,6 +923,18 @@ const AdminControlPanel = ({ adminUser }) => {
     setDatabases((prev) => [...prev, { name: cplReportStartDb }]);
   }, [cplReportStartDb, databases]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash !== '#team-forfeit') return;
+    const scrollToForfeit = () => {
+      const el = document.getElementById('team-forfeit');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    // Wait for participating teams section to render
+    const t = setTimeout(scrollToForfeit, 300);
+    return () => clearTimeout(t);
+  }, [participatingTeamsLoading, participatingTeams.length]);
+
   // Team Participation Management Functions
   const loadParticipatingTeams = async () => {
     setParticipatingTeamsLoading(true);
@@ -1240,10 +1252,10 @@ const AdminControlPanel = ({ adminUser }) => {
         )}
       </section>
 
-      <section className="admin-section">
+      <section className="admin-section" id="team-forfeit">
         <div className="section-header" style={{ flexDirection: isCompact ? 'column' : 'row', gap: isCompact ? '12px' : '0' }}>
           <div style={{ flex: 1 }}>
-            <h2 style={{ fontSize: isCompact ? '18px' : '20px' }}>Team Participation Management</h2>
+            <h2 style={{ fontSize: isCompact ? '18px' : '20px' }}>Team Participation &amp; Forfeit</h2>
             <p style={{ fontSize: isCompact ? '13px' : '14px' }}>
               Mark teams as participating or not participating in the current season. Non-participating teams will be hidden from point tables, fixtures, and playoffs. They also cannot make trades.
               Use <strong>Forfeit</strong> to give remaining (and previously won) fixtures to opponents in one click; <strong>Restore</strong> undoes that.
