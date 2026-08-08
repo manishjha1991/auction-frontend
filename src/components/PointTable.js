@@ -1145,18 +1145,39 @@ const PointsTable = () => {
   const pointsTableShareRef = useRef(null);
 
   const [worldCupMode, setWorldCupMode] = useState(false);
+  const [wcTournament, setWcTournament] = useState(null);
+  const [wcTeams, setWcTeams] = useState([]);
   // Qualifiers for playoffs / World Cup are always top 6 (or top 3 per group).
   // World Cup is seeded from those qualifiers — not a separate top-8 points cut.
   const NUM_QUALIFIERS = 6;
   const GROUP_MATCHES = 6; // matches per team in group stage
   const GROUP_QUALIFIERS = 3; // top-3 qualify from each group
+  const WC_KNOCKOUT_QUALIFIERS = 4; // top 4 from WC RR go to semis
 
   useEffect(() => {
     fetchModeAndData();
   }, []);
 
-  const fetchTeamFixtures = async (teamName) => {
+  const fetchTeamFixtures = async (teamName, options = {}) => {
     try {
+      if (options.worldCup) {
+        const playoffRes = await axios.get(`${API_ENDPOINTS}/api/playoff-fixtures`);
+        const allFixtures = Array.isArray(playoffRes.data) ? playoffRes.data : [];
+        const teamMatches = allFixtures.filter(
+          (fixture) => fixture.team1 === teamName || fixture.team2 === teamName
+        );
+        teamMatches.sort((a, b) => {
+          const aHasResult = !!a.winner;
+          const bHasResult = !!b.winner;
+          if (aHasResult && !bHasResult) return -1;
+          if (!aHasResult && bHasResult) return 1;
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        });
+        setTeamFixtures(teamMatches);
+        setPendingSubmissions([]);
+        return;
+      }
+
       const [fixturesRes, pendingRes] = await Promise.all([
         axios.get(`${API_ENDPOINTS}/api/fixtures`),
         axios.get(`${API_ENDPOINTS}/api/fixture-submissions/pending-by-team`, {
@@ -1196,7 +1217,7 @@ const PointsTable = () => {
     // Use the original team name for fixture matching (not the abbreviation)
     const teamNameForFixtures = team.originalTeamName || team.teamName;
     
-    await fetchTeamFixtures(teamNameForFixtures);
+    await fetchTeamFixtures(teamNameForFixtures, { worldCup: worldCupMode && !!wcTournament });
     setShowTeamDetails(true);
   };
 
@@ -1269,11 +1290,99 @@ const PointsTable = () => {
   const fetchModeAndData = async () => {
     try {
       setLoading(true);
+      const cachedUser = localStorage.getItem('user');
+      let userId = null;
+      try {
+        userId = cachedUser ? JSON.parse(cachedUser).id || JSON.parse(cachedUser)._id : null;
+      } catch (_) {
+        userId = null;
+      }
+      const headers = userId ? { 'user-id': String(userId) } : {};
+
       const settings = await axios.get(`${API_ENDPOINTS}/api/settings`);
       const pmode = settings?.data?.pointsMode || 'overall';
-      const wcMode = settings?.data?.worldCupMode === true;
+      const wcMode = settings?.data?.worldCupMode === true || settings?.data?.worldCupMode === 'true';
       setMode(pmode);
       setWorldCupMode(wcMode);
+
+      if (wcMode) {
+        setActiveTab('overall');
+        // Still load league teams for PlayoffFixtures props / fallback
+        try {
+          const response = await axios.get(`${API_ENDPOINTS}/api/users/points-table`);
+          setTeams(Array.isArray(response.data) ? response.data : []);
+        } catch (_) {
+          setTeams([]);
+        }
+
+        try {
+          const tournamentsRes = await axios.get(`${API_ENDPOINTS}/api/tournaments?limit=100`, { headers });
+          const list = Array.isArray(tournamentsRes.data)
+            ? tournamentsRes.data
+            : Array.isArray(tournamentsRes.data?.tournaments)
+              ? tournamentsRes.data.tournaments
+              : [];
+          const isWcName = (name) => /world\s*cup|\bwc\b/i.test(String(name || ''));
+          const running =
+            list.find((t) => t.status === 'running' && isWcName(t.name)) ||
+            list.find((t) => t.status === 'running' && (t.tournamentFixtures || []).length > 0) ||
+            null;
+
+          if (!running?._id) {
+            setWcTournament(null);
+            setWcTeams([]);
+          } else {
+            setWcTournament(running);
+            const [ptRes, teamsRes] = await Promise.all([
+              axios.get(`${API_ENDPOINTS}/api/tournaments/${running._id}/point-table`, { headers }),
+              axios.get(`${API_ENDPOINTS}/api/users/teams`, { headers }).catch(() => ({ data: {} })),
+            ]);
+            const allTeams = teamsRes.data?.teams || teamsRes.data || [];
+            const byName = new Map();
+            const byAbbrev = new Map();
+            (Array.isArray(allTeams) ? allTeams : []).forEach((t) => {
+              const nameKey = String(t.teamName || '').trim().toLowerCase();
+              const abbrKey = String(t.abbreviation || '').trim().toLowerCase();
+              if (nameKey) byName.set(nameKey, t);
+              if (abbrKey) byAbbrev.set(abbrKey, t);
+            });
+
+            const rows = (ptRes.data?.pointTable || []).map((row, idx) => {
+              const fullName = row.teamName || '';
+              const user =
+                byName.get(String(fullName).trim().toLowerCase()) ||
+                byAbbrev.get(String(row.abbreviation || '').trim().toLowerCase()) ||
+                null;
+              const matchesPlayed = Number(row.matches ?? row.matchesPlayed ?? 0);
+              const wins = Number(row.won ?? row.wins ?? 0);
+              const losses = Number(row.lost ?? row.losses ?? Math.max(0, matchesPlayed - wins));
+              return {
+                _id: user?._id || `wc-${idx}-${fullName}`,
+                teamName: row.abbreviation || user?.abbreviation || fullName,
+                originalTeamName: fullName,
+                teamImage: user?.teamImage || null,
+                themePrimary: user?.themePrimary,
+                themeSecondary: user?.themeSecondary,
+                matchesPlayed,
+                wins,
+                losses,
+                points: Number(row.points || 0),
+                fairness: Number(row.fairness || 0),
+                nrr: row.nrr != null ? Number(row.nrr) : 0,
+              };
+            });
+            setWcTeams(rows);
+          }
+        } catch (wcErr) {
+          console.error('Error fetching World Cup points table:', wcErr);
+          setWcTournament(null);
+          setWcTeams([]);
+        }
+        return;
+      }
+
+      setWcTournament(null);
+      setWcTeams([]);
       
       // Set default tab based on mode
       if (pmode === 'groups') {
@@ -1420,8 +1529,13 @@ const PointsTable = () => {
     return ids;
   }, [allCompleted, filteredTeams, NUM_QUALIFIERS]);
 
-  const renderTableBody = (list) => {
-    const qualifiers = mode === 'groups' ? GROUP_QUALIFIERS : NUM_QUALIFIERS;
+  const renderTableBody = (list, options = {}) => {
+    const isWcTable = !!options.isWcTable;
+    const qualifiers = isWcTable
+      ? WC_KNOCKOUT_QUALIFIERS
+      : mode === 'groups'
+        ? GROUP_QUALIFIERS
+        : NUM_QUALIFIERS;
     const totalTeams = list.length;
     const remaining = Math.max(0, totalTeams - qualifiers);
     // Upper half of the remaining rows get yellow, lower half get red.
@@ -1447,7 +1561,15 @@ const PointsTable = () => {
         let qTitle = "";
         let eTitle = "";
 
-        if (mode === 'groups') {
+        if (isWcTable) {
+          const rrGames = Math.max(list.length - 1, 0);
+          const rrDone =
+            list.length > 0 && list.every((t) => Number(t.matchesPlayed) >= rrGames);
+          showQ = rrDone && index < WC_KNOCKOUT_QUALIFIERS;
+          showE = rrDone && index >= WC_KNOCKOUT_QUALIFIERS;
+          qTitle = "Qualified for knockout (Top 4)";
+          eTitle = "Out of knockout race";
+        } else if (mode === 'groups') {
           // Group mode logic
           if (groupsCompleted) {
             // All teams completed 6 matches - show Q for top 3, E for others
@@ -1471,10 +1593,10 @@ const PointsTable = () => {
         } else {
           // Overall mode logic
           if (allCompleted) {
-            // All participating teams completed their round-robin matches - show Q for top 6/8, E for rest.
+            // All participating teams completed their round-robin matches - show Q for top 6, E for rest.
             showQ = index < NUM_QUALIFIERS;
             showE = index >= NUM_QUALIFIERS;
-            qTitle = worldCupMode ? "Qualified (Top 8)" : "Qualified (Top 6)";
+            qTitle = "Qualified (Top 6)";
             eTitle = "Eliminated";
           } else {
             // During season: progressive Q/E based on participating team count.
@@ -1493,7 +1615,12 @@ const PointsTable = () => {
 
         // Variant logic: different for groups vs overall
         let variant;
-        if (mode === 'groups') {
+        if (isWcTable) {
+          if (showE) variant = "eliminated";
+          else if (showQ) variant = "top";
+          else if (index < qualifiers) variant = "top";
+          else variant = "middle";
+        } else if (mode === 'groups') {
           // Group mode: Top 3 green, E teams red, others yellow
           if (showE) {
             variant = "eliminated"; // Red
@@ -1637,7 +1764,93 @@ const PointsTable = () => {
 
   return (
     <>
-      {mode === 'groups' ? (
+      {worldCupMode ? (
+        <TabContainer>
+          <TabHeader>
+            <TabButton
+              active={activeTab === 'overall'}
+              onClick={() => setActiveTab('overall')}
+            >
+              WC Points Table
+            </TabButton>
+            <TabButton
+              active={activeTab === 'playoffs'}
+              onClick={() => setActiveTab('playoffs')}
+            >
+              WC Fixtures
+            </TabButton>
+          </TabHeader>
+
+          <TableWrapper>
+            {activeTab === 'overall' && (
+              <TableCaptureArea ref={pointsTableShareRef}>
+                <TableTitleBar>
+                  <h2 style={{ textAlign: "center", color: "#343a40", marginBottom: "0.5rem", fontSize: "1.2rem", marginTop: "0.5rem" }}>
+                    {wcTournament?.name || 'World Cup'} — Points Table
+                  </h2>
+                  {wcTeams.length > 0 && (
+                    <WhatsAppShareButton
+                      type="button"
+                      data-html2canvas-ignore="true"
+                      disabled={isSharing}
+                      onClick={() =>
+                        handleSharePointsTable(
+                          `${wcTournament?.name || 'World Cup'} Points Table`,
+                          wcTeams,
+                          WC_KNOCKOUT_QUALIFIERS
+                        )
+                      }
+                    >
+                      <FaWhatsapp /> <span>{isSharing ? 'Sharing' : 'Share'}</span>
+                    </WhatsAppShareButton>
+                  )}
+                </TableTitleBar>
+                {!wcTournament ? (
+                  <p style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem 1rem' }}>
+                    No running World Cup tournament found. Initialize one from Playoffs / Tournaments.
+                  </p>
+                ) : wcTeams.length === 0 ? (
+                  <p style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem 1rem' }}>
+                    Point table is empty for {wcTournament.name}. Add teams or enter match results.
+                  </p>
+                ) : (
+                  <>
+                    <Table>
+                      <TableHead>
+                        <tr>
+                          <TableCell>POS</TableCell>
+                          <TableCell>TEAM</TableCell>
+                          <TableCell>P</TableCell>
+                          <TableCell>W</TableCell>
+                          <TableCell>L</TableCell>
+                          <TableCell className="pts-cell">PTS</TableCell>
+                          <TableCell className="nrr-cell">NRR</TableCell>
+                        </tr>
+                      </TableHead>
+                      {renderTableBody(wcTeams, { isWcTable: true })}
+                    </Table>
+                    <TableFooterNote>
+                      Top {WC_KNOCKOUT_QUALIFIERS} qualify for World Cup knockout · Live from {wcTournament.name}
+                    </TableFooterNote>
+                  </>
+                )}
+              </TableCaptureArea>
+            )}
+
+            {activeTab === 'playoffs' && (
+              <PlayoffFixtures
+                top6Teams={
+                  wcTeams.length >= 6
+                    ? wcTeams.slice(0, 6)
+                    : sortedTeams.slice(0, NUM_QUALIFIERS)
+                }
+                mode={mode}
+                groups={groups}
+              />
+            )}
+          </TableWrapper>
+        </TabContainer>
+      ) : mode === 'groups' ? (
         // Group mode - show tabs for Group A, Group B, and Playoffs
         <TabContainer>
           <TabHeader>

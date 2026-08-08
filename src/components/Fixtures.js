@@ -631,6 +631,7 @@ const Fixtures = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [mode, setMode] = useState('overall');
   const [top6Teams, setTop6Teams] = useState([]);
+  const [worldCupMode, setWorldCupMode] = useState(false);
 
   // Using empty strings here so placeholder shows up until user enters something
   const [winner, setWinner] = useState("");
@@ -692,7 +693,9 @@ const Fixtures = () => {
       try {
         const settings = await axios.get(`${API_ENDPOINTS}/api/settings`);
         const pmode = settings?.data?.pointsMode || 'overall';
+        const wcMode = settings?.data?.worldCupMode === true || settings?.data?.worldCupMode === 'true';
         setMode(pmode);
+        setWorldCupMode(wcMode);
         
         // Set default active tab based on mode
         if (pmode === 'groups') {
@@ -982,7 +985,7 @@ const Fixtures = () => {
           active={activeTab === 'playoffs'} 
           onClick={() => setActiveTab('playoffs')}
         >
-          Playoffs
+          {worldCupMode ? 'WC Fixtures' : 'Playoffs'}
         </TabButton>
       </TabHeader>
       
