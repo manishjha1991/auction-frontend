@@ -914,7 +914,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
           <>
             <PlayoffHeader>🏆 WORLD CUP</PlayoffHeader>
             <PlayoffSubtitle>
-              ( TOP 6 FROM QUALIFICATION MIX GO TO WORLD CUP )
+              Top 6 qualify directly from the qualification mix · remaining 2 come from the qualification tournament
             </PlayoffSubtitle>
           </>
         ) : (
@@ -942,7 +942,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
           <>
             <PlayoffHeader>🏆 WORLD CUP</PlayoffHeader>
             <PlayoffSubtitle>
-              ( TOP 6 FROM QUALIFICATION MIX GO TO WORLD CUP )
+              Top 6 qualify directly from the qualification mix · remaining 2 come from the qualification tournament
             </PlayoffSubtitle>
           </>
         ) : (
@@ -957,7 +957,16 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
           </>
         )}
         <div style={{ padding: '2rem', textAlign: 'center', color: '#6c757d' }}>
-          {top6Teams && top6Teams.length >= 6 ? (
+          {worldCupMode && !hasWorldCupTournament ? (
+            <div>
+              <p style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: '#64748b' }}>
+                No running tournament
+              </p>
+              <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
+                Start or set a World Cup tournament to <strong>running</strong> to see fixtures here.
+              </p>
+            </div>
+          ) : top6Teams && top6Teams.length >= 6 ? (
             <div>
               {areAllTeamsEligible() ? (
                 <div>
@@ -981,33 +990,6 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
                           Initialize Playoff
                         </button>
                       )}
-                      {worldCupMode && top6Teams && top6Teams.length >= 6 && areTop6QualifiersEligible() && (
-                        <button 
-                          onClick={initializeWorldCup}
-                          style={{
-                            background: '#28a745',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '5px',
-                            padding: '0.5rem 1.5rem',
-                            cursor: 'pointer',
-                            fontSize: '1rem',
-                            fontWeight: '600'
-                          }}
-                        >
-                          Initialize World Cup
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {worldCupMode && top6Teams && top6Teams.length >= 6 && !areTop6QualifiersEligible() && isAdmin && (
-                    <div style={{ marginTop: '1rem', padding: '0.5rem', background: '#fff3cd', borderRadius: '5px', color: '#856404' }}>
-                      <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                        ⏳ World Cup uses top 6 from /cpl-composite-report (Who's in the qualification mix?)
-                      </p>
-                      <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem' }}>
-                        {(top6Teams || []).filter(team => (team.matchesPlayed || 0) < (mode === 'groups' ? 6 : requiredGames)).length} teams still need to complete their games
-                      </p>
                     </div>
                   )}
                 </div>
@@ -1022,7 +1004,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
               )}
             </div>
           ) : (
-            <p>Need at least 6 teams to show playoff fixtures</p>
+            <p>{worldCupMode ? 'No running tournament' : 'Need at least 6 teams to show playoff fixtures'}</p>
           )}
         </div>
       </PlayoffContainer>
@@ -1043,7 +1025,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
         <>
           <PlayoffHeader>🏆 WORLD CUP</PlayoffHeader>
           <PlayoffSubtitle>
-            ( TOP 6 FROM QUALIFICATION MIX GO TO WORLD CUP )
+            Top 6 qualify directly from the qualification mix · remaining 2 come from the qualification tournament
           </PlayoffSubtitle>
         </>
       ) : (
@@ -1058,8 +1040,8 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
         </>
       )}
       
-      {/* World Cup Initialize Button - Show even when playoff fixtures exist */}
-      {isAdmin && worldCupMode && top6Teams && top6Teams.length >= 6 && (
+      {/* World Cup: only offer "Initialize New" when a tournament is already running */}
+      {isAdmin && worldCupMode && hasWorldCupTournament && top6Teams && top6Teams.length >= 6 && (
         <div style={{ 
           display: 'flex', 
           gap: '1rem', 
@@ -1067,22 +1049,20 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
           flexWrap: 'wrap', 
           marginBottom: '1.5rem',
           padding: '1rem',
-          background: hasWorldCupTournament ? '#d1ecf1' : '#f8f9fa',
+          background: '#d1ecf1',
           borderRadius: '8px',
-          border: hasWorldCupTournament ? '2px solid #0c5460' : 'none'
+          border: '2px solid #0c5460'
         }}>
-          {hasWorldCupTournament && (
-            <div style={{ 
-              width: '100%', 
-              textAlign: 'center', 
-              marginBottom: '0.5rem',
-              color: '#0c5460',
-              fontWeight: '600',
-              fontSize: '0.9rem'
-            }}>
-              ℹ️ A World Cup tournament is already running. You can initialize a new one.
-            </div>
-          )}
+          <div style={{ 
+            width: '100%', 
+            textAlign: 'center', 
+            marginBottom: '0.5rem',
+            color: '#0c5460',
+            fontWeight: '600',
+            fontSize: '0.9rem'
+          }}>
+            ℹ️ A World Cup tournament is already running. You can initialize a new one.
+          </div>
           {areTop6QualifiersEligible() ? (
             <button 
               onClick={initializeWorldCup}
@@ -1098,7 +1078,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
               }}
             >
-              🏆 {hasWorldCupTournament ? 'Initialize New World Cup' : 'Initialize World Cup'}
+              🏆 Initialize New World Cup
             </button>
           ) : (
             <div style={{ 
@@ -1109,10 +1089,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
               fontSize: '0.9rem'
             }}>
               <p style={{ margin: 0, fontWeight: '600' }}>
-                ⏳ World Cup uses top 6 from /cpl-composite-report (Who's in the qualification mix?)
-              </p>
-              <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem' }}>
-                {(top6Teams || []).filter(team => (team.matchesPlayed || 0) < (mode === 'groups' ? 6 : requiredGames)).length} teams still need to complete their games
+                ⏳ World Cup uses top 6 from /cpl-composite-report (Who&apos;s in the qualification mix?)
               </p>
             </div>
           )}

@@ -1807,7 +1807,7 @@ const PointsTable = () => {
                 </TableTitleBar>
                 {!wcTournament ? (
                   <p style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem 1rem' }}>
-                    No running World Cup tournament found. Initialize one from Playoffs / Tournaments.
+                    No running tournament
                   </p>
                 ) : wcTeams.length === 0 ? (
                   <p style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem 1rem' }}>
