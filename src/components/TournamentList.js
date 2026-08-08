@@ -823,13 +823,16 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
           const teams = data.teams || data || [];
           
           // Filter out teams that are already subscribed
-          const subscribedTeamIds = subscribedTeams.map(team => team.userId?._id || team.userId || team.userId?.toString());
-          const available = teams.filter(team => 
-            team._id && 
-            !subscribedTeamIds.includes(team._id.toString()) &&
-            team.isActive !== false &&
-            team.teamName && 
-            team.teamName !== 'NA'
+          const subscribedTeamIds = subscribedTeams.map((team) =>
+            String(team.userId?._id || team.userId || '')
+          );
+          const available = teams.filter(
+            (team) =>
+              team._id &&
+              !subscribedTeamIds.includes(String(team._id)) &&
+              team.isActive !== false &&
+              team.teamName &&
+              team.teamName !== 'NA'
           );
           
           setAvailableTeams(available);
@@ -847,7 +850,7 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
   }, [showTeamManagement, subscribedTeams]);
 
   // Add team to tournament
-  const handleAddTeam = async (teamUserId) => {
+  const handleAddTeam = async (teamUserId, teamMeta = null) => {
     try {
       const cachedUser = localStorage.getItem('user');
       const userId = cachedUser ? JSON.parse(cachedUser).id : null;
@@ -866,11 +869,32 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to add team');
       }
 
-      // Refresh tournament data to get updated subscribed teams
+      const teamName = teamMeta?.teamName || 'Team';
+      // Optimistic UI update immediately
+      setSubscribedTeams((prev) => {
+        const already = prev.some(
+          (t) => String(t.userId?._id || t.userId) === String(teamUserId)
+        );
+        if (already) return prev;
+        return [
+          ...prev,
+          {
+            userId: teamUserId,
+            teamName: teamMeta?.teamName || teamName,
+            teamImage: teamMeta?.teamImage || null,
+          },
+        ];
+      });
+      setAvailableTeams((prev) =>
+        prev.filter((t) => String(t._id) !== String(teamUserId))
+      );
+      showToast(`${teamName} added to tournament`, 'success');
+
+      // Refresh from server (best effort)
       const tournamentResponse = await fetch(`${API_ENDPOINTS}/api/tournaments/${tournament._id}`, {
         headers: {
           'user-id': userId
@@ -880,7 +904,6 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
       if (tournamentResponse.ok) {
         const updatedTournament = await tournamentResponse.json();
         setSubscribedTeams(updatedTournament.subscribedTeams || []);
-        // Refresh available teams
         const teamsResponse = await fetch(`${API_ENDPOINTS}/api/users/teams`, {
           headers: {
             'user-id': userId
@@ -889,13 +912,16 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
         if (teamsResponse.ok) {
           const teamsData = await teamsResponse.json();
           const teams = teamsData.teams || teamsData || [];
-          const subscribedTeamIds = (updatedTournament.subscribedTeams || []).map(team => team.userId?._id || team.userId || team.userId?.toString());
-          const available = teams.filter(team => 
-            team._id && 
-            !subscribedTeamIds.includes(team._id.toString()) &&
-            team.isActive !== false &&
-            team.teamName && 
-            team.teamName !== 'NA'
+          const subscribedTeamIds = (updatedTournament.subscribedTeams || []).map((team) =>
+            String(team.userId?._id || team.userId || '')
+          );
+          const available = teams.filter(
+            (team) =>
+              team._id &&
+              !subscribedTeamIds.includes(String(team._id)) &&
+              team.isActive !== false &&
+              team.teamName &&
+              team.teamName !== 'NA'
           );
           setAvailableTeams(available);
         }
@@ -906,8 +932,8 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
   };
 
   // Remove team from tournament
-  const handleRemoveTeam = async (teamUserId) => {
-    if (!window.confirm('Are you sure you want to remove this team from the tournament?')) {
+  const handleRemoveTeam = async (teamUserId, teamName = 'Team') => {
+    if (!window.confirm(`Remove ${teamName} from this tournament?`)) {
       return;
     }
 
@@ -927,11 +953,36 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to remove team');
       }
 
-      // Refresh tournament data to get updated subscribed teams
+      // Optimistic UI update
+      const removed = subscribedTeams.find(
+        (t) => String(t.userId?._id || t.userId) === String(teamUserId)
+      );
+      setSubscribedTeams((prev) =>
+        prev.filter((t) => String(t.userId?._id || t.userId) !== String(teamUserId))
+      );
+      if (removed) {
+        setAvailableTeams((prev) => {
+          const exists = prev.some((t) => String(t._id) === String(teamUserId));
+          if (exists) return prev;
+          return [
+            ...prev,
+            {
+              _id: teamUserId,
+              teamName: removed.teamName,
+              teamImage: removed.teamImage,
+              isActive: true,
+            },
+          ].sort((a, b) =>
+            String(a.teamName || '').localeCompare(String(b.teamName || ''))
+          );
+        });
+      }
+      showToast(`${teamName} removed from tournament`, 'success');
+
       const tournamentResponse = await fetch(`${API_ENDPOINTS}/api/tournaments/${tournament._id}`, {
         headers: {
           'user-id': userId
@@ -941,7 +992,6 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
       if (tournamentResponse.ok) {
         const updatedTournament = await tournamentResponse.json();
         setSubscribedTeams(updatedTournament.subscribedTeams || []);
-        // Refresh available teams
         const teamsResponse = await fetch(`${API_ENDPOINTS}/api/users/teams`, {
           headers: {
             'user-id': userId
@@ -950,13 +1000,16 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
         if (teamsResponse.ok) {
           const teamsData = await teamsResponse.json();
           const teams = teamsData.teams || teamsData || [];
-          const subscribedTeamIds = (updatedTournament.subscribedTeams || []).map(team => team.userId?._id || team.userId || team.userId?.toString());
-          const available = teams.filter(team => 
-            team._id && 
-            !subscribedTeamIds.includes(team._id.toString()) &&
-            team.isActive !== false &&
-            team.teamName && 
-            team.teamName !== 'NA'
+          const subscribedTeamIds = (updatedTournament.subscribedTeams || []).map((team) =>
+            String(team.userId?._id || team.userId || '')
+          );
+          const available = teams.filter(
+            (team) =>
+              team._id &&
+              !subscribedTeamIds.includes(String(team._id)) &&
+              team.isActive !== false &&
+              team.teamName &&
+              team.teamName !== 'NA'
           );
           setAvailableTeams(available);
         }
@@ -1184,7 +1237,12 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleRemoveTeam(team.userId?._id || team.userId)}
+                            onClick={() =>
+                              handleRemoveTeam(
+                                team.userId?._id || team.userId,
+                                team.teamName || 'Team'
+                              )
+                            }
                             style={{
                               background: '#ef4444',
                               color: 'white',
@@ -1263,7 +1321,12 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleAddTeam(team._id)}
+                            onClick={() =>
+                              handleAddTeam(team._id, {
+                                teamName: team.teamName,
+                                teamImage: team.teamImage,
+                              })
+                            }
                             disabled={subscribedTeams.length >= formData.maxSlots}
                             style={{
                               background: subscribedTeams.length >= formData.maxSlots ? '#d1d5db' : '#10b981',

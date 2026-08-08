@@ -1145,7 +1145,9 @@ const PointsTable = () => {
   const pointsTableShareRef = useRef(null);
 
   const [worldCupMode, setWorldCupMode] = useState(false);
-  const NUM_QUALIFIERS = worldCupMode ? 8 : 6; // top-8 if World Cup enabled, top-6 otherwise
+  // Qualifiers for playoffs / World Cup are always top 6 (or top 3 per group).
+  // World Cup is seeded from those qualifiers — not a separate top-8 points cut.
+  const NUM_QUALIFIERS = 6;
   const GROUP_MATCHES = 6; // matches per team in group stage
   const GROUP_QUALIFIERS = 3; // top-3 qualify from each group
 

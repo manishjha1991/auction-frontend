@@ -47,6 +47,31 @@
   border: 1px solid rgba(74, 222, 128, 0.35);
 }
 
+.fixture-ocr-wc-lock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #bae6fd;
+}
+
+.fixture-ocr-wc-lock strong {
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+}
+
+.fixture-ocr-wc-lock span {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #e0f2fe;
+}
+
 .fixture-ocr-admin-link {
   display: inline-block;
   margin-top: 0.5rem;

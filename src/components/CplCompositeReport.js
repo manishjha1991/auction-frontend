@@ -155,8 +155,9 @@ export default function CplCompositeReport() {
               <p className="cpl-report-qual-intro">
                 <strong>Qualification index</strong> is the average of each team&apos;s per-season index (see each CPL
                 table below for that season&apos;s index). It blends points, NRR, and fairness — a guide for narratives
-                like <strong>World Cup</strong> spots, not official rules. The top six use{' '}
-                <strong className="cpl-report-top6-text">green text</strong>.
+                like <strong>World Cup</strong> spots. The top six (green) are used when you{' '}
+                <strong>Initialize World Cup</strong>
+                — not the current points-table cut.
               </p>
               {data?.milestones && (
                 <div className="cpl-report-milestones" title={`Across ${data.milestones.dbNames?.join(', ') || ''}`}>

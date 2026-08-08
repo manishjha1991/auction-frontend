@@ -576,6 +576,17 @@ const OcrExtractor = () => {
     fetchTournaments();
   }, [currentUserId]);
 
+  // When league World Cup mode is on and a running tournament exists, lock it in.
+  // User can still pick Super 8 / Semi / Final, but cannot clear the tournament.
+  useEffect(() => {
+    if (!worldCupMode || !hasActiveWorldCup) return;
+    const preferred =
+      wcTournaments.find((tn) => /world\s*cup|\bwc\b/i.test(tn?.name || '')) || wcTournaments[0];
+    if (preferred?._id && String(tournamentId) !== String(preferred._id)) {
+      setTournamentId(String(preferred._id));
+    }
+  }, [worldCupMode, hasActiveWorldCup, wcTournaments, tournamentId]);
+
   // If no active World Cup tournament exists, force-clear any WC selection so
   // the user can't accidentally submit WC-tagged entries.
   useEffect(() => {
@@ -585,12 +596,12 @@ const OcrExtractor = () => {
     }
   }, [hasActiveWorldCup, wcStage, tournamentId]);
 
-  // Reset tournament selection if WC is unticked
+  // Reset tournament selection if WC is unticked (unless WC mode locks it)
   useEffect(() => {
-    if (!isWc) {
+    if (!isWc && !(worldCupMode && hasActiveWorldCup)) {
       setTournamentId('');
     }
-  }, [isWc]);
+  }, [isWc, worldCupMode, hasActiveWorldCup]);
 
   useEffect(() => {
     const fetchFixtures = async () => {
@@ -2362,7 +2373,7 @@ const OcrExtractor = () => {
                   <span>World Cup stage</span>
                   <span className="wc-stage-card__live-dot" aria-hidden />
                 </div>
-                {isWc && (
+                {isWc && !(worldCupMode && hasActiveWorldCup) && (
                   <button
                     type="button"
                     className="wc-stage-card__clear"
@@ -2378,7 +2389,9 @@ const OcrExtractor = () => {
               </div>
 
               <div className="wc-stage-card__hint">
-                Pick one stage at a time (Super 8, Semi, or Final). Use Clear to untag this match.
+                {worldCupMode && hasActiveWorldCup
+                  ? 'World Cup mode is on — tournament is locked. Pick Super 8, Semi, or Final for this scorecard.'
+                  : 'Pick one stage at a time (Super 8, Semi, or Final). Use Clear to untag this match.'}
               </div>
 
               <div className="wc-stage-card__pills" role="radiogroup" aria-label="World Cup stage">
@@ -2421,9 +2434,12 @@ const OcrExtractor = () => {
                       id="wc-tournament-id"
                       className="wc-stage-card__select"
                       value={tournamentId}
+                      disabled={worldCupMode && hasActiveWorldCup}
                       onChange={(event) => setTournamentId(event.target.value)}
                     >
-                      <option value="">Select tournament</option>
+                      {!(worldCupMode && hasActiveWorldCup) && (
+                        <option value="">Select tournament</option>
+                      )}
                       {wcTournaments.map((tn) => (
                         <option key={tn._id} value={tn._id}>
                           {tn.name}
@@ -2432,7 +2448,9 @@ const OcrExtractor = () => {
                     </select>
                   )}
                   <div className="wc-stage-card__field-help">
-                    Required so the same opponent in different tournaments stays as separate entries.
+                    {worldCupMode && hasActiveWorldCup
+                      ? 'Locked to the running World Cup tournament while World Cup mode is on.'
+                      : 'Required so the same opponent in different tournaments stays as separate entries.'}
                   </div>
                 </div>
               )}

@@ -34,8 +34,13 @@ const isPlaceholderTeam = (name = '') =>
 const isPlayoffReady = (fx) =>
   fx && !fx.winner && !isPlaceholderTeam(fx.team1) && !isPlaceholderTeam(fx.team2);
 
-const getFixtureKey = (fx, type) =>
-  type === 'playoff' ? String(fx.matchId) : String(fx._id);
+const getFixtureKey = (fx, type) => {
+  if (type === 'playoff') {
+    if (fx?.isWorldCupTournament && fx.fixtureIndex != null) return `wc-${fx.fixtureIndex}`;
+    return String(fx.matchId);
+  }
+  return String(fx._id);
+};
 
 const pairKeyForFixture = (fx) => {
   if (!fx?.team1 || !fx?.team2) return '';
@@ -65,6 +70,8 @@ const FixtureOcr = () => {
   const [toast, setToast] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [lastParsed, setLastParsed] = useState(null);
+  const [worldCupMode, setWorldCupMode] = useState(false);
+  const [wcTournamentName, setWcTournamentName] = useState('');
 
   const user = useMemo(() => {
     try {
@@ -139,10 +146,13 @@ const FixtureOcr = () => {
 
   const pendingPlayoffFixtures = useMemo(
     () =>
-      playoffFixtures.filter(
-        (fx) => isPlayoffReady(fx) && fixtureBelongsToUser(fx)
-      ),
-    [playoffFixtures, fixtureBelongsToUser]
+      playoffFixtures.filter((fx) => {
+        if (!isPlayoffReady(fx)) return false;
+        // Admins can submit/update any pending World Cup / playoff fixture.
+        if (isAdmin) return true;
+        return fixtureBelongsToUser(fx);
+      }),
+    [playoffFixtures, fixtureBelongsToUser, isAdmin]
   );
 
   const pendingFixtures =
@@ -152,7 +162,9 @@ const FixtureOcr = () => {
 
   const selectedFixture = useMemo(() => {
     if (fixtureType === 'playoff') {
-      return playoffFixtures.find((fx) => String(fx.matchId) === String(selectedFixtureId));
+      return playoffFixtures.find(
+        (fx) => getFixtureKey(fx, 'playoff') === String(selectedFixtureId)
+      );
     }
     return fixtures.find((fx) => String(fx._id) === String(selectedFixtureId));
   }, [fixtures, playoffFixtures, selectedFixtureId, fixtureType]);
@@ -160,12 +172,27 @@ const FixtureOcr = () => {
   const loadFixtures = useCallback(async () => {
     setFixturesLoading(true);
     try {
-      const [leagueRes, playoffRes] = await Promise.all([
+      const [leagueRes, playoffRes, settingsRes] = await Promise.all([
         axios.get(`${API_ENDPOINTS}/api/fixtures`),
         axios.get(`${API_ENDPOINTS}/api/playoff-fixtures`),
+        axios.get(`${API_ENDPOINTS}/api/settings`).catch(() => ({ data: {} })),
       ]);
-      setFixtures(Array.isArray(leagueRes.data) ? leagueRes.data : []);
-      setPlayoffFixtures(Array.isArray(playoffRes.data) ? playoffRes.data : []);
+      const league = Array.isArray(leagueRes.data) ? leagueRes.data : [];
+      const playoffs = Array.isArray(playoffRes.data) ? playoffRes.data : [];
+      const wcOn =
+        settingsRes?.data?.worldCupMode === true || settingsRes?.data?.worldCupMode === 'true';
+      const hasWcFixtures = playoffs.some((fx) => fx.isWorldCupTournament);
+      const wcName =
+        playoffs.find((fx) => fx.isWorldCupTournament && fx.tournamentName)?.tournamentName ||
+        (wcOn && hasWcFixtures ? 'World Cup' : '');
+
+      setFixtures(league);
+      setPlayoffFixtures(playoffs);
+      setWorldCupMode(wcOn && hasWcFixtures);
+      setWcTournamentName(wcName);
+      if (wcOn && hasWcFixtures) {
+        setFixtureType('playoff');
+      }
     } catch (err) {
       console.error('Fixture OCR: load fixtures failed', err);
     } finally {
@@ -179,6 +206,10 @@ const FixtureOcr = () => {
 
   useEffect(() => {
     if (fixturesLoading) return;
+    if (worldCupMode) {
+      setFixtureType('playoff');
+      return;
+    }
     const urlType = searchParams.get('type');
     if (urlType === 'playoff' || urlType === 'league') {
       setFixtureType(urlType);
@@ -192,6 +223,7 @@ const FixtureOcr = () => {
   }, [
     fixturesLoading,
     searchParams,
+    worldCupMode,
     userInPlayoffBracket,
     pendingPlayoffFixtures.length,
     pendingLeagueForOcr.length,
@@ -270,11 +302,9 @@ const FixtureOcr = () => {
       const parsed = parseMatchSummaryOcr(text);
       setLastParsed(parsed);
 
-      const leagueMatch = findMatchingFixture(
-        pendingLeagueForOcr,
-        parsed.team1Name,
-        parsed.team2Name
-      );
+      const leagueMatch = worldCupMode
+        ? null
+        : findMatchingFixture(pendingLeagueForOcr, parsed.team1Name, parsed.team2Name);
       const playoffMatch = findMatchingFixture(
         pendingPlayoffFixtures,
         parsed.team1Name,
@@ -282,8 +312,11 @@ const FixtureOcr = () => {
       );
 
       let matched = null;
-      let nextType = fixtureType;
-      if (playoffMatch && leagueMatch) {
+      let nextType = worldCupMode ? 'playoff' : fixtureType;
+      if (worldCupMode) {
+        matched = playoffMatch;
+        nextType = 'playoff';
+      } else if (playoffMatch && leagueMatch) {
         matched = playoffMatch;
         nextType = 'playoff';
       } else if (playoffMatch) {
@@ -314,7 +347,14 @@ const FixtureOcr = () => {
       setOcrError(err.message || 'Could not read screenshot. Try again.');
       setOcrStatus('error');
     }
-  }, [file, pendingLeagueForOcr, pendingPlayoffFixtures, preprocessImage, fixtureType]);
+  }, [
+    file,
+    pendingLeagueForOcr,
+    pendingPlayoffFixtures,
+    preprocessImage,
+    fixtureType,
+    worldCupMode,
+  ]);
 
   const updateForm = (key, value) => {
     setForm((prev) => {
@@ -338,7 +378,7 @@ const FixtureOcr = () => {
     else if (!SCORE_REGEX.test(form.team1Score.trim())) errors.team1Score = 'Use e.g. 265/10';
     if (!form.team2Score?.trim()) errors.team2Score = 'Required';
     else if (!SCORE_REGEX.test(form.team2Score.trim())) errors.team2Score = 'Use e.g. 134/10';
-    if (fixtureType === 'league') {
+    if (fixtureType === 'league' || worldCupMode || selectedFixture?.isWorldCupTournament) {
       if (!form.team1Overs?.trim()) errors.team1Overs = 'Required';
       if (!form.team2Overs?.trim()) errors.team2Overs = 'Required';
     }
@@ -371,6 +411,13 @@ const FixtureOcr = () => {
         payload.matchId = selectedFixture.matchId;
         if (form.team1Overs?.trim()) payload.team1Overs = form.team1Overs.trim();
         if (form.team2Overs?.trim()) payload.team2Overs = form.team2Overs.trim();
+        if (selectedFixture.isWorldCupTournament || worldCupMode) {
+          payload.isWorldCupTournament = true;
+          if (selectedFixture.tournamentId) payload.tournamentId = selectedFixture.tournamentId;
+          if (selectedFixture.fixtureIndex != null) {
+            payload.fixtureIndex = selectedFixture.fixtureIndex;
+          }
+        }
         await axios.post(`${API_ENDPOINTS}/api/playoff-submissions/submit`, payload, {
           headers: { 'user-id': userId },
         });
@@ -386,9 +433,11 @@ const FixtureOcr = () => {
       setToast({
         type: 'success',
         message:
-          fixtureType === 'playoff'
-            ? 'Playoff result submitted! Opponent or admin will confirm before the bracket updates.'
-            : 'Submitted! Your opponent or admin will confirm before points update.',
+          selectedFixture?.isWorldCupTournament || worldCupMode
+            ? `World Cup result submitted for ${wcTournamentName || 'the running tournament'}! Opponent or admin must confirm — then the tournament fixture updates.`
+            : fixtureType === 'playoff'
+              ? 'Playoff result submitted! Opponent or admin will confirm before the bracket updates.'
+              : 'Submitted! Your opponent or admin will confirm before points update.',
       });
       setShowModal(false);
       setFile(null);
@@ -462,7 +511,16 @@ const FixtureOcr = () => {
         <header className="fixture-ocr-header">
           <h1>Submit match result</h1>
           <p>Upload your Cricket 22/24 end-of-match screen. We fill in scores — you check and send.</p>
-          {pendingPlayoffFixtures.length > 0 && (
+          {worldCupMode ? (
+            <div className="fixture-ocr-wc-lock" role="status">
+              <strong>World Cup locked</strong>
+              <span>
+                {wcTournamentName || 'Running World Cup'} is preselected. League submit is off while
+                World Cup mode is on — results update that tournament’s fixtures after confirmation.
+              </span>
+            </div>
+          ) : null}
+          {!worldCupMode && pendingPlayoffFixtures.length > 0 && (
             <div className="fixture-ocr-type-toggle" role="tablist" aria-label="Match type">
               <button
                 type="button"
@@ -500,13 +558,15 @@ const FixtureOcr = () => {
               </button>
             </div>
           )}
-          {fixtureType === 'playoff' && pendingPlayoffFixtures.length > 0 && (
+          {(worldCupMode || fixtureType === 'playoff') && pendingPlayoffFixtures.length > 0 && (
             <p className="fixture-ocr-playoff-note">
-              You have {pendingPlayoffFixtures.length} playoff match
+              You have {pendingPlayoffFixtures.length}{' '}
+              {worldCupMode ? 'World Cup' : 'playoff'} match
               {pendingPlayoffFixtures.length === 1 ? '' : 'es'} ready to submit.
             </p>
           )}
-          {fixtureType === 'playoff' &&
+          {!worldCupMode &&
+            fixtureType === 'playoff' &&
             userInPlayoffBracket &&
             pendingPlayoffFixtures.length === 0 && (
               <p className="fixture-ocr-playoff-note">
@@ -514,6 +574,11 @@ const FixtureOcr = () => {
                 earlier playoff result is in (no league OCR for the same opponent).
               </p>
             )}
+          {worldCupMode && pendingPlayoffFixtures.length === 0 && (
+            <p className="fixture-ocr-playoff-note">
+              No pending {wcTournamentName || 'World Cup'} matches for your team right now.
+            </p>
+          )}
           <Link to="/fixture-confirmations" className="fixture-ocr-admin-link">
             {isAdmin ? 'Pending approvals →' : 'Opponent submitted? Confirm here →'}
           </Link>
@@ -741,7 +806,9 @@ const FixtureOcr = () => {
                           value={form.team1Score}
                           onChange={(e) => updateForm('team1Score', e.target.value)}
                         />
-                        {fixtureType === 'league' && (
+                        {(fixtureType === 'league' ||
+                          worldCupMode ||
+                          selectedFixture?.isWorldCupTournament) && (
                           <input
                             className={fieldErrors.team1Overs ? 'has-error' : ''}
                             placeholder="Overs 19.5"
@@ -758,7 +825,9 @@ const FixtureOcr = () => {
                           value={form.team2Score}
                           onChange={(e) => updateForm('team2Score', e.target.value)}
                         />
-                        {fixtureType === 'league' && (
+                        {(fixtureType === 'league' ||
+                          worldCupMode ||
+                          selectedFixture?.isWorldCupTournament) && (
                           <input
                             className={fieldErrors.team2Overs ? 'has-error' : ''}
                             placeholder="Overs 16.0"
@@ -773,7 +842,9 @@ const FixtureOcr = () => {
                       fieldErrors.team1Overs ||
                       fieldErrors.team2Overs) && (
                       <p className="fixture-ocr-field-error">
-                        {fixtureType === 'playoff'
+                        {fixtureType === 'playoff' &&
+                        !worldCupMode &&
+                        !selectedFixture?.isWorldCupTournament
                           ? 'Check score format'
                           : 'Check score and overs format'}
                       </p>

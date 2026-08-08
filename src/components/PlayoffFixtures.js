@@ -616,7 +616,6 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const [requiredGames, setRequiredGames] = useState(13);
   const [standingsTeams, setStandingsTeams] = useState([]);
   const [worldCupMode, setWorldCupMode] = useState(false);
-  const [top8Teams, setTop8Teams] = useState([]);
   const [hasWorldCupTournament, setHasWorldCupTournament] = useState(false);
   
   // Check if fixtures are World Cup fixtures by examining matchIds and stages
@@ -668,11 +667,6 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
           const participatingTeams = pointsRes.data.filter(team => team.teamName !== 'NA');
           setRequiredGames(calculateRequiredGames(participatingTeams.length, configuredGames));
           setStandingsTeams(participatingTeams);
-          const sorted = [...participatingTeams].sort((a, b) => {
-            if (b.points !== a.points) return b.points - a.points;
-            return b.fairness - a.fairness;
-          });
-          setTop8Teams(sorted.slice(0, 8));
         } else {
           setRequiredGames(configuredGames);
           setStandingsTeams([]);
@@ -736,24 +730,6 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
     }
   };
 
-  const fetchTop8Teams = async () => {
-    try {
-      const response = await axios.get(`${API_ENDPOINTS}/api/users/points-table`);
-      if (Array.isArray(response.data)) {
-        const participatingTeams = response.data.filter(team => team.teamName !== 'NA');
-        setStandingsTeams(participatingTeams);
-        const sorted = [...participatingTeams].sort((a, b) => {
-          if (b.points !== a.points) return b.points - a.points;
-          return b.fairness - a.fairness;
-        });
-        setTop8Teams(sorted.slice(0, 8));
-      }
-    } catch (error) {
-      console.error("Error fetching top 8 teams:", error);
-      setTop8Teams([]);
-    }
-  };
-
   const fetchTeams = async () => {
     try {
       const response = await axios.get(`${API_ENDPOINTS}/api/users/teams`);
@@ -809,7 +785,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
 
       const response = await axios.post(
         `${API_ENDPOINTS}/api/tournaments/world-cup/initialize`,
-        {},
+        { mode: mode || 'overall' },
         {
           headers: {
             'user-id': userId.toString()
@@ -827,8 +803,9 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
     }
   };
 
-  const areTop8TeamsEligible = () => {
-    return top8Teams.length >= 8 && top8Teams.every(team => (team.matchesPlayed || 0) >= requiredGames);
+  const areTop6QualifiersEligible = () => {
+    // WC seeds from CPL composite report — eligibility is validated on the server.
+    return !!(top6Teams && top6Teams.length >= 6);
   };
 
   const handleEditFixture = (fixture) => {
@@ -937,7 +914,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
           <>
             <PlayoffHeader>🏆 WORLD CUP</PlayoffHeader>
             <PlayoffSubtitle>
-              ( TOP 8 TEAMS GOES TO WORLD CUP )
+              ( TOP 6 FROM QUALIFICATION MIX GO TO WORLD CUP )
             </PlayoffSubtitle>
           </>
         ) : (
@@ -965,7 +942,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
           <>
             <PlayoffHeader>🏆 WORLD CUP</PlayoffHeader>
             <PlayoffSubtitle>
-              ( TOP 8 TEAMS GOES TO WORLD CUP )
+              ( TOP 6 FROM QUALIFICATION MIX GO TO WORLD CUP )
             </PlayoffSubtitle>
           </>
         ) : (
@@ -1004,7 +981,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
                           Initialize Playoff
                         </button>
                       )}
-                      {worldCupMode && top8Teams.length >= 8 && areTop8TeamsEligible() && (
+                      {worldCupMode && top6Teams && top6Teams.length >= 6 && areTop6QualifiersEligible() && (
                         <button 
                           onClick={initializeWorldCup}
                           style={{
@@ -1023,13 +1000,13 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
                       )}
                     </div>
                   )}
-                  {worldCupMode && top8Teams.length >= 8 && !areTop8TeamsEligible() && isAdmin && (
+                  {worldCupMode && top6Teams && top6Teams.length >= 6 && !areTop6QualifiersEligible() && isAdmin && (
                     <div style={{ marginTop: '1rem', padding: '0.5rem', background: '#fff3cd', borderRadius: '5px', color: '#856404' }}>
                       <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                        ⏳ World Cup requires top 8 teams to complete {requiredGames} games
+                        ⏳ World Cup uses top 6 from /cpl-composite-report (Who's in the qualification mix?)
                       </p>
                       <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem' }}>
-                        {top8Teams.filter(team => (team.matchesPlayed || 0) < requiredGames).length} teams still need to complete their games
+                        {(top6Teams || []).filter(team => (team.matchesPlayed || 0) < (mode === 'groups' ? 6 : requiredGames)).length} teams still need to complete their games
                       </p>
                     </div>
                   )}
@@ -1066,7 +1043,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
         <>
           <PlayoffHeader>🏆 WORLD CUP</PlayoffHeader>
           <PlayoffSubtitle>
-            ( TOP 8 TEAMS GOES TO WORLD CUP )
+            ( TOP 6 FROM QUALIFICATION MIX GO TO WORLD CUP )
           </PlayoffSubtitle>
         </>
       ) : (
@@ -1082,7 +1059,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
       )}
       
       {/* World Cup Initialize Button - Show even when playoff fixtures exist */}
-      {isAdmin && worldCupMode && top8Teams.length >= 8 && (
+      {isAdmin && worldCupMode && top6Teams && top6Teams.length >= 6 && (
         <div style={{ 
           display: 'flex', 
           gap: '1rem', 
@@ -1106,7 +1083,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
               ℹ️ A World Cup tournament is already running. You can initialize a new one.
             </div>
           )}
-          {areTop8TeamsEligible() ? (
+          {areTop6QualifiersEligible() ? (
             <button 
               onClick={initializeWorldCup}
               style={{
@@ -1132,10 +1109,10 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
               fontSize: '0.9rem'
             }}>
               <p style={{ margin: 0, fontWeight: '600' }}>
-                ⏳ World Cup requires top 8 teams to complete {requiredGames} games
+                ⏳ World Cup uses top 6 from /cpl-composite-report (Who's in the qualification mix?)
               </p>
               <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem' }}>
-                {top8Teams.filter(team => (team.matchesPlayed || 0) < requiredGames).length} teams still need to complete their games
+                {(top6Teams || []).filter(team => (team.matchesPlayed || 0) < (mode === 'groups' ? 6 : requiredGames)).length} teams still need to complete their games
               </p>
             </div>
           )}
