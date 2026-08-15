@@ -127,7 +127,7 @@ export default function CplPlayerCareerStats() {
         </h1>
         <p>Runs, 50s, 100s, highest score, wickets, best bowling, strike rate, batting average, bowling average.</p>
         <p className="career-meta">
-          {data?.careerDataSourceLabel || 'Data from cpl_15 to the current CPL (historical + live).'}
+          {data?.careerDataSourceLabel || 'Same cumulative runs, wickets, and averages as Rankings.'}
           {data?.generatedAt ? ` · Updated: ${new Date(data.generatedAt).toLocaleString()}` : ''}
         </p>
         <div className="career-toolbar">
