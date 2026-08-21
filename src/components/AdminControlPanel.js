@@ -1043,26 +1043,23 @@ const AdminControlPanel = ({ adminUser }) => {
   const cronDefinitions = [
     {
       key: 'cronSingleBidEnabled',
-      title: '12:45 AM–4:00 AM: Sell after 2nd-highest exit',
-      description:
-        'At 12:45 AM: sell players where the other bid already exited (1 bidder left). Then every 5 min: if 2+ bidders → exit 2nd-highest only; if 1 bidder left AND that exit is at least 2 minutes old with no new bid → SELL. Never sells while 2 bidders are still fighting. Enabling this pauses bulk exit.',
+      title: '12:45 AM: Start selling',
+      description: 'Sells when only 1 bidder is left and the other bidder exited at least 2 minutes ago. Checks every 5 min until 4:00 AM.',
     },
     {
       key: 'cronSingleBidFinalizerEnabled',
-      title: '11:30 PM: Sell “no counter bid since start”',
-      description:
-        'At 11:30 PM IST sell players who have only ever received one bid (nobody ever counter-bid). Skips if a second bidder is still active.',
+      title: '11:30 PM: Sell uncontested bids',
+      description: 'Sells players who got only one bid all night (nobody else bid).',
     },
     {
       key: 'cronBulkExitEnabled',
-      title: '9:00–10:45 PM & 11:30 PM–12:30 AM: Bulk Exit (no sell)',
-      description:
-        'Window 1: 9:00–10:45 PM IST every 10 min. Window 2: 11:30 PM–12:30 AM every 10 min. Removes 2nd-highest only. NO selling. Enabling this pauses the 12:45 AM+ sell-after-exit job.',
+      title: '9:00 PM & 11:30 PM: Bulk exit',
+      description: 'Removes the 2nd-highest bidder every 10 min. Does not sell. Runs 9:00–10:45 PM and 11:30 PM–12:30 AM.',
     },
     {
       key: 'cronLockEnabled',
-      title: '11:00 PM: Lock Under Limit',
-      description: 'At 11:00 PM IST sharp, lock teams that violate roster rules. Choose which categories to check (only the ones running in auction).',
+      title: '11:00 PM: Lock teams',
+      description: 'Locks teams that are under the player-count rules. Pick categories below.',
     },
   ];
 
@@ -1095,6 +1092,7 @@ const AdminControlPanel = ({ adminUser }) => {
     <div className="admin-control-panel">
       {toast && <div className="admin-toast">{toast}</div>}
 
+      {false && (
       <section className="admin-section">
         <div className="section-header" style={{ flexDirection: isCompact ? 'column' : 'row', gap: isCompact ? '12px' : '0' }}>
           <div style={{ flex: 1 }}>
@@ -1170,6 +1168,7 @@ const AdminControlPanel = ({ adminUser }) => {
           </div>
         )}
       </section>
+      )}
 
       <section className="admin-section">
         <div className="section-header" style={{ flexDirection: isCompact ? 'column' : 'row', gap: isCompact ? '12px' : '0' }}>
@@ -1729,7 +1728,7 @@ const AdminControlPanel = ({ adminUser }) => {
         <div className="section-header">
           <div>
             <h2>Auction Auto Mode</h2>
-            <p>When enabled the system flips jobs itself: 9:00 PM categories + bulk; 10:45 bulk off; 11:00 lock; 11:30 sell never-counter-bid then bulk again; 12:30 bulk off; 12:45 sell-after-exit (2 min wait, every 5 min) until ~4:00 AM. When disabled, you control Cron Controls and Player Availability manually.</p>
+            <p>On: the night schedule runs by itself. Off: you turn jobs on/off below.</p>
           </div>
           {cronSaving && <span className="cron-saving-pill">Saving…</span>}
         </div>
@@ -1763,7 +1762,7 @@ const AdminControlPanel = ({ adminUser }) => {
             <div className="cron-toggle-card">
               <div className="cron-toggle-info">
                 <div className="data-card-title">Auto Mode</div>
-                <p>9:00 bulk on → 10:45 bulk off → 11:00 lock → 11:30 no-counter sell + bulk on → 12:30 bulk off → 12:45 sell-after-exit on (every 5 min, 2 min wait).</p>
+                <p>9:00 start → 10:45 stop exit → 11:00 lock → 11:30 sell uncontested + exit again → 12:45 start selling.</p>
               </div>
               <div className="cron-toggle-switch">
                 <span className={`cron-status ${cronSettings.auctionAutoModeEnabled ? 'on' : 'off'}`}>
@@ -1814,16 +1813,14 @@ const AdminControlPanel = ({ adminUser }) => {
         <div className="section-header">
           <div>
             <h2>Cron Controls</h2>
-            <p>
-              Manual mode: turn jobs on/off yourself. Bulk exit (9:00–10:45 PM & 11:30 PM–12:30 AM) and sell-after-exit (12:45 AM+) cannot run at the same time. Auto Mode flips these for you.
-            </p>
+            <p>Turn each night job on or off. Auto Mode does this for you.</p>
             {cronSettings.auctionAutoModeEnabled ? (
               <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(46, 204, 113, 0.9)' }}>
-                ✓ Auto Mode on – these toggles follow the night schedule. Current phase is shown above Auto Mode.
+                Auto Mode is on — these switches follow the schedule above.
               </p>
             ) : (
               <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
-                Auto Mode off – you must manually toggle Cron Controls and Player Availability. Turning Auto Mode off does not change Player Availability.
+                Auto Mode is off — you control these switches yourself.
               </p>
             )}
           </div>
