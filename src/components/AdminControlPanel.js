@@ -1042,24 +1042,24 @@ const AdminControlPanel = ({ adminUser }) => {
 
   const cronDefinitions = [
     {
-      key: 'cronSingleBidEnabled',
-      title: '12:45 AM: Start selling',
-      description: 'Sells when only 1 bidder is left and the other bidder exited at least 2 minutes ago. Checks every 5 min until 4:00 AM.',
-    },
-    {
-      key: 'cronSingleBidFinalizerEnabled',
-      title: '11:30 PM: Sell uncontested bids',
-      description: 'Sells players who got only one bid all night (nobody else bid).',
-    },
-    {
       key: 'cronBulkExitEnabled',
-      title: '9:00 PM & 11:30 PM: Bulk exit',
-      description: 'Removes the 2nd-highest bidder every 10 min. Does not sell. Runs 9:00–10:45 PM and 11:30 PM–12:30 AM.',
+      title: '1. 9:00 PM: Bulk exit',
+      description: 'Starts first. Removes the 2nd-highest bidder every 10 min. Does not sell. Runs 9:00–10:45 PM and again 11:30 PM–12:30 AM.',
     },
     {
       key: 'cronLockEnabled',
-      title: '11:00 PM: Lock teams',
+      title: '2. 11:00 PM: Lock teams',
       description: 'Locks teams that are under the player-count rules. Pick categories below.',
+    },
+    {
+      key: 'cronSingleBidFinalizerEnabled',
+      title: '3. 11:30 PM: Sell uncontested bids',
+      description: 'Sells players who got only one bid all night (nobody else bid). Then bulk exit continues until 12:30 AM.',
+    },
+    {
+      key: 'cronSingleBidEnabled',
+      title: '4. 12:45 AM: Start selling',
+      description: 'Sells when only 1 bidder is left and the other bidder exited at least 2 minutes ago. Checks every 5 min until 4:00 AM.',
     },
   ];
 
