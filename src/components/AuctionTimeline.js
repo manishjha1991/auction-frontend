@@ -51,44 +51,44 @@ function toDateOnlyMsFromParts(parts) {
 }
 
 const SCHEDULE = [
-  { key: 'bulkStart', label: 'Auction bulk exits start', hour: 20, minute: 0, note: 'Every 10 min: second-highest exit starts' },
-  { key: 'bulkStop', label: 'Bulk window 1 ends', hour: 21, minute: 40, note: 'First 10-min bulk window closes' },
-  { key: 'lock', label: 'Team lock check', hour: 22, minute: 30, note: 'Lock under-limit teams' },
-  { key: 'singleBidStart', label: 'Single-bid since start sell', hour: 23, minute: 0, note: 'One-time single-bid sell run' },
-  { key: 'exitOnlyStart', label: 'Exit-only cycle starts', hour: 23, minute: 0, note: '11:00-11:45 PM: remove second-highest only' },
-  { key: 'oneTimeSweep', label: 'One-time 11:45 sweep', hour: 23, minute: 45, note: 'Sell immediate where single bidder remains after second exit' },
-  { key: 'counterWindowStart', label: 'Sell/exit cycle starts', hour: 23, minute: 50, note: '11:50 PM-12:45 AM: 5-min sell/exit logic' },
-  { key: 'counterWindowEnd', label: '5-min cycle ends', hour: 0, minute: 45, note: 'End of 11:50 PM-12:45 AM block' },
-  { key: 'twoMinWindowStart', label: '2-min fast cycle starts', hour: 0, minute: 46, note: '12:46 AM-2:00 AM: every 2 min with 2-min exit check' },
-  { key: 'twoMinWindowEnd', label: 'Night cycle ends', hour: 2, minute: 0, note: 'End of automated post-12:45 flow' },
+  { key: 'bulkStart', label: 'Auction bulk exits start', hour: 22, minute: 30, note: 'Every 10 min: second-highest exit starts' },
+  { key: 'bulkStop', label: 'Bulk window 1 ends', hour: 0, minute: 10, note: 'First 10-min bulk window closes' },
+  { key: 'lock', label: 'Team lock check', hour: 1, minute: 0, note: 'Lock under-limit teams' },
+  { key: 'singleBidStart', label: 'Single-bid since start sell', hour: 1, minute: 30, note: 'One-time single-bid sell run' },
+  { key: 'exitOnlyStart', label: 'Exit-only cycle starts', hour: 1, minute: 30, note: '1:30-2:10 AM: remove second-highest only' },
+  { key: 'oneTimeSweep', label: 'One-time 2:18 sweep', hour: 2, minute: 18, note: 'Sell immediate where single bidder remains after second exit' },
+  { key: 'counterWindowStart', label: 'Sell/exit cycle starts', hour: 2, minute: 20, note: '2:20-3:15 AM: 5-min sell/exit logic' },
+  { key: 'counterWindowEnd', label: '5-min cycle ends', hour: 3, minute: 15, note: 'End of 2:20-3:15 AM block' },
+  { key: 'twoMinWindowStart', label: '2-min fast cycle starts', hour: 3, minute: 16, note: '3:16-4:30 AM: every 2 min with 2-min exit check' },
+  { key: 'twoMinWindowEnd', label: 'Night cycle ends', hour: 4, minute: 30, note: 'End of automated post-3:15 flow' },
 ];
 
 const WHATSAPP_MESSAGE = `🏏 Auction Night Schedule (IST) - Updated
 
-✅ 8:00 PM to 9:40 PM
+✅ 10:30 PM to 12:10 AM
 • Bulk cycle every 10 min:
   - Remove second-highest bidder (exit)
 
-✅ 10:30 PM
+✅ 1:00 AM
 • Team lock check (under-limit lock process)
 
-✅ 11:00 PM
+✅ 1:30 AM
 • Single-bid since-start sell run begins
-• Exit-only window starts (11:00 PM to 11:45 PM):
+• Exit-only window starts (1:30 AM to 2:10 AM):
   - Remove second-highest bidder only
 
-✅ 11:45 PM (ONE TIME ONLY)
+✅ 2:18 AM (ONE TIME ONLY)
 • Special sweep:
   - If player has only one active bidder and second-highest already exited, sell immediately
   - No 5-minute new-bid wait check in this one-time sweep
 
-✅ 11:50 PM to 12:45 AM
+✅ 2:20 AM to 3:15 AM
 • Every 5 min cycle:
   - Remove second-highest bidder
   - If second-highest exit is older than 5 min, sell to highest bidder
   - Else keep in exit flow and continue cycle
 
-✅ 12:46 AM to 2:00 AM
+✅ 3:16 AM to 4:30 AM
 • Every 2 min cycle (same logic, faster):
   - Remove second-highest bidder
   - If second-highest exit is older than 2 min, sell to highest bidder
@@ -105,16 +105,17 @@ const WHATSAPP_MESSAGE = `🏏 Auction Night Schedule (IST) - Updated
 • Sell is blocked if queue has waiting users (status: queued)
 • Sell is also blocked if 2+ active bidders still exist
 
-ℹ️ All timings are in India time (IST).`;
+ℹ️ All timings are in India time (IST).
+ℹ️ Schedule shifted +2h30m from previous 8:00 PM start.`;
 
 const WHATSAPP_MESSAGE_SHORT = `🏏 Auction Night Schedule (IST)
 
-• 8:00 PM-9:40 PM: Bulk exit every 10 min
-• 10:30 PM: Team lock check
-• 11:00 PM-11:45 PM: Exit-only every 5 min
-• 11:45 PM: One-time special sell sweep
-• 11:50 PM-12:45 AM: 5-min sell/exit cycle (5-min check)
-• 12:46 AM-2:00 AM: 2-min fast sell/exit cycle (2-min check)
+• 10:30 PM-12:10 AM: Bulk exit every 10 min
+• 1:00 AM: Team lock check
+• 1:30 AM-2:10 AM: Exit-only every 5 min
+• 2:18 AM: One-time special sell sweep
+• 2:20 AM-3:15 AM: 5-min sell/exit cycle (5-min check)
+• 3:16 AM-4:30 AM: 2-min fast sell/exit cycle (2-min check)
 
 Queue:
 • Promotion auto-triggers after second-highest exits

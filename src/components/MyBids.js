@@ -657,9 +657,9 @@ const MyBids = () => {
       {
         key: "bulk1",
         title: "Bulk Exit (Window 1)",
-        range: "6:00–9:40 PM",
-        start: buildIstDate(18, 0),
-        end: buildIstDate(21, 40),
+        range: "10:30 PM–12:10 AM",
+        start: buildIstDate(22, 30),
+        end: buildIstDate(0, 10, 0, 1),
         interval: 10,
         action: "Removes second-highest (no selling).",
         enabled: cronSettings.cronBulkExitEnabled,
@@ -667,9 +667,9 @@ const MyBids = () => {
       {
         key: "pause1",
         title: "System Pause",
-        range: "9:40–10:35 PM",
-        start: buildIstDate(21, 40),
-        end: buildIstDate(22, 35),
+        range: "12:10–1:05 AM",
+        start: buildIstDate(0, 10, 0, 1),
+        end: buildIstDate(1, 5, 0, 1),
         interval: null,
         action: "No auto exits.",
         enabled: true,
@@ -677,29 +677,19 @@ const MyBids = () => {
       {
         key: "bulk2",
         title: "Bulk Exit (Window 2)",
-        range: "10:35–11:05 PM",
-        start: buildIstDate(22, 35),
-        end: buildIstDate(23, 5),
+        range: "1:05–1:35 AM",
+        start: buildIstDate(1, 5, 0, 1),
+        end: buildIstDate(1, 35, 0, 1),
         interval: 10,
         action: "Removes second-highest (no selling).",
         enabled: cronSettings.cronBulkExitEnabled,
       },
       {
-        key: "pause2a",
-        title: "System Pause",
-        range: "11:05–11:30 PM",
-        start: buildIstDate(23, 5),
-        end: buildIstDate(23, 30),
-        interval: null,
-        action: "No auto exits.",
-        enabled: true,
-      },
-      {
         key: "exitOnly",
         title: "Exit-Only Window",
-        range: "10:30–11:20 PM",
-        start: buildIstDate(22, 30),
-        end: buildIstDate(23, 20),
+        range: "1:30–2:10 AM",
+        start: buildIstDate(1, 30, 0, 1),
+        end: buildIstDate(2, 10, 0, 1),
         interval: 5,
         action: "Removes second-highest only.",
         enabled: cronSettings.cronSingleBidEnabled,
@@ -707,9 +697,9 @@ const MyBids = () => {
       {
         key: "sellAfterExit5",
         title: "Sell-After-Exit (5-min)",
-        range: "11:30 PM–12:30 AM",
-        start: buildIstDate(23, 30),
-        end: buildIstDate(0, 30, 0, 1),
+        range: "2:20–3:15 AM",
+        start: buildIstDate(2, 20, 0, 1),
+        end: buildIstDate(3, 15, 0, 1),
         interval: 5,
         action: "Exit if counter bid; sell if no new bid after exit.",
         enabled: cronSettings.cronSingleBidEnabled,
@@ -717,20 +707,20 @@ const MyBids = () => {
       {
         key: "sellAfterExit2",
         title: "Sell-After-Exit (2-min)",
-        range: "12:30–2:00 AM",
-        start: buildIstDate(0, 30, 0, 1),
-        end: buildIstDate(2, 0, 0, 1),
+        range: "3:16–4:30 AM",
+        start: buildIstDate(3, 16, 0, 1),
+        end: buildIstDate(4, 30, 0, 1),
         interval: 2,
         action: "Faster sell-after-exit checks.",
         enabled: cronSettings.cronSingleBidEnabled,
       },
     ];
 
-    const singleBidFinalizer = buildIstDate(22, 30);
+    const singleBidFinalizer = buildIstDate(1, 30, 0, 1);
     const nextSingleBidFinalizer =
       nowIst <= singleBidFinalizer
         ? singleBidFinalizer
-        : buildIstDate(22, 30, 0, 1);
+        : buildIstDate(1, 30, 0, 2);
 
     const matchingWindows = windows.filter((w) => nowIst >= w.start && nowIst < w.end);
     const currentWindow = matchingWindows.find((w) => w.enabled) || matchingWindows[0];
@@ -747,11 +737,11 @@ const MyBids = () => {
     };
 
     const nextTick = getNextTick(currentWindow);
-    const lockTime = buildIstDate(22, 0);
+    const lockTime = buildIstDate(1, 0, 0, 1);
     const nextLockTime =
       nowIst <= lockTime
         ? lockTime
-        : buildIstDate(22, 0, 0, 1);
+        : buildIstDate(1, 0, 0, 2);
 
     return {
       nowIst,
@@ -795,7 +785,7 @@ const MyBids = () => {
               <TimingCard>
                 <TimingTitle>Single-Bid Finalizer</TimingTitle>
                 <TimingValue>{formatCountdown(timingInfo.nextSingleBidFinalizer - timingInfo.nowIst)}</TimingValue>
-                <TimingHint>Next run at 10:30 PM IST</TimingHint>
+                <TimingHint>Next run at 1:30 AM IST</TimingHint>
                 {!cronSettings.cronSingleBidFinalizerEnabled && (
                   <TimingBadge>OFF BY ADMIN</TimingBadge>
                 )}
@@ -827,7 +817,7 @@ const MyBids = () => {
               <TimingCard>
                 <TimingTitle>Lock Under Limit</TimingTitle>
                 <TimingValue>{formatCountdown(timingInfo.nextLockTime - timingInfo.nowIst)}</TimingValue>
-                <TimingHint>Next lock run at 10:00 PM IST</TimingHint>
+                <TimingHint>Next lock run at 1:00 AM IST</TimingHint>
                 {!cronSettings.cronLockEnabled && (
                   <TimingBadge>OFF BY ADMIN</TimingBadge>
                 )}
