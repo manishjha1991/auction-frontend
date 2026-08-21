@@ -1069,24 +1069,23 @@ const AdminControlPanel = ({ adminUser }) => {
     { key: 'silver', label: 'Silver', hint: 'min 6 total' },
   ];
 
+  const autoOn = !!cronSettings.auctionAutoModeEnabled;
   const nightPhase = getAuctionNightPhase(nightNow);
   const expectedCron = getExpectedCronFlags(nightPhase.id);
   const cronLabel = {
     cronBulkExitEnabled: 'Bulk Exit',
-    cronSingleBidEnabled: 'Sell-after-exit',
-    cronSingleBidFinalizerEnabled: 'No-counter-bid sell',
+    cronSingleBidEnabled: 'Start selling',
+    cronSingleBidFinalizerEnabled: 'Uncontested sell',
+    cronLockEnabled: 'Lock teams',
   };
   const flagMatchLine = Object.keys(cronLabel)
     .map((key) => {
-      const actual = !!cronSettings[key];
-      const expected = !!expectedCron[key];
-      if (!expected && !actual) return null;
-      if (expected && actual) return `${cronLabel[key]}: ON (correct)`;
-      if (expected && !actual) return `${cronLabel[key]}: OFF — should be ON for this phase`;
-      return `${cronLabel[key]}: ON — not needed in this phase`;
+      const shown = autoOn ? !!expectedCron[key] : !!cronSettings[key];
+      if (!shown) return null;
+      return `${cronLabel[key]}: ON`;
     })
     .filter(Boolean)
-    .join(' · ') || 'No exit/sell job should be running in this phase.';
+    .join(' · ') || 'No night job is running right now.';
 
   return (
     <div className="admin-control-panel">
@@ -1813,10 +1812,11 @@ const AdminControlPanel = ({ adminUser }) => {
         <div className="section-header">
           <div>
             <h2>Cron Controls</h2>
-            <p>Turn each night job on or off. Auto Mode does this for you.</p>
+            <p>Turn each night job on or off. Auto Mode does this for you from the live clock.</p>
             {cronSettings.auctionAutoModeEnabled ? (
               <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(46, 204, 113, 0.9)' }}>
-                Auto Mode is on — these switches follow the schedule above.
+                Auto Mode is on — switches follow <strong>{nightPhase.title}</strong>
+                {nightPhase.range ? ` (${nightPhase.range})` : ''}. Right now: {flagMatchLine}
               </p>
             ) : (
               <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
@@ -1831,7 +1831,8 @@ const AdminControlPanel = ({ adminUser }) => {
         ) : (
           <div className="cron-toggle-grid">
             {cronDefinitions.map((job) => {
-              const expectedOn = !!expectedCron[job.key] || (job.key === 'cronLockEnabled' && nightPhase.id === 'lock');
+              const expectedOn = !!expectedCron[job.key];
+              const shownOn = autoOn ? expectedOn : !!cronSettings[job.key];
               return (
               <div
                 className="cron-toggle-card"
@@ -1843,22 +1844,22 @@ const AdminControlPanel = ({ adminUser }) => {
                     {job.title}
                     {expectedOn ? (
                       <span style={{ marginLeft: 8, fontSize: 11, color: '#2ecc71', fontWeight: 700 }}>
-                        THIS PHASE
+                        RUNNING NOW
                       </span>
                     ) : null}
                   </div>
                   <p>{job.description}</p>
                 </div>
                 <div className="cron-toggle-switch">
-                  <span className={`cron-status ${cronSettings[job.key] ? 'on' : 'off'}`}>
-                    {cronSettings[job.key] ? 'Enabled' : 'Disabled'}
+                  <span className={`cron-status ${shownOn ? 'on' : 'off'}`}>
+                    {shownOn ? 'Enabled' : 'Disabled'}
                   </span>
                   <label className="switch">
                     <input
                       type="checkbox"
-                      checked={!!cronSettings[job.key]}
+                      checked={shownOn}
                       onChange={(e) => updateCronToggle(job.key, e.target.checked)}
-                      disabled={cronSaving}
+                      disabled={cronSaving || autoOn}
                     />
                     <span className="slider" />
                   </label>
@@ -1868,7 +1869,7 @@ const AdminControlPanel = ({ adminUser }) => {
             })}
           </div>
         )}
-        {!cronLoading && cronSettings.cronLockEnabled && (
+        {!cronLoading && (cronSettings.cronLockEnabled || autoOn) && (
           <div className="lock-categories-wrap" style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(0,0,0,0.03)', borderRadius: 8 }}>
             <div style={{ fontWeight: 600, marginBottom: 8 }}>Lock checks only these categories:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>

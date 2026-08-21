@@ -160,11 +160,28 @@ export function getAuctionNightPhase(now = new Date()) {
 }
 
 export function getExpectedCronFlags(phaseId) {
-  if (phaseId === 'bulk1' || phaseId === 'bulk2') {
+  if (phaseId === 'bulk1') {
     return {
       cronBulkExitEnabled: true,
       cronSingleBidEnabled: false,
-      cronSingleBidFinalizerEnabled: phaseId === 'bulk2',
+      cronSingleBidFinalizerEnabled: false,
+      cronLockEnabled: false,
+    };
+  }
+  if (phaseId === 'lock') {
+    return {
+      cronBulkExitEnabled: false,
+      cronSingleBidEnabled: false,
+      cronSingleBidFinalizerEnabled: false,
+      cronLockEnabled: true,
+    };
+  }
+  if (phaseId === 'bulk2') {
+    return {
+      cronBulkExitEnabled: true,
+      cronSingleBidEnabled: false,
+      cronSingleBidFinalizerEnabled: true,
+      cronLockEnabled: false,
     };
   }
   if (phaseId === 'sellAfterExit') {
@@ -172,13 +189,27 @@ export function getExpectedCronFlags(phaseId) {
       cronBulkExitEnabled: false,
       cronSingleBidEnabled: true,
       cronSingleBidFinalizerEnabled: false,
+      cronLockEnabled: false,
     };
   }
   return {
     cronBulkExitEnabled: false,
     cronSingleBidEnabled: false,
     cronSingleBidFinalizerEnabled: false,
+    cronLockEnabled: false,
   };
+}
+
+/** Flags to persist so the 11:00 / 11:30 / 12:45 jobs are armed a couple of minutes early. */
+export function getArmedCronFlags(phaseId, minutesFromStart) {
+  const flags = getExpectedCronFlags(phaseId);
+  const m = minutesFromStart;
+  if (typeof m === 'number' && m >= 0) {
+    if (m >= 118 && m < 150) flags.cronLockEnabled = true;
+    if (m >= 148 && m < 155) flags.cronSingleBidFinalizerEnabled = true;
+    if (m >= 223 && m < 420) flags.cronSingleBidEnabled = true;
+  }
+  return flags;
 }
 
 export function formatIstClock(now = new Date()) {
