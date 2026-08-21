@@ -1,5 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { API_ENDPOINTS } from '../const';
+import {
+  WHATSAPP_MESSAGE,
+  WHATSAPP_MESSAGE_SHORT,
+  getAuctionNightPhase,
+} from '../utils/auctionNightSchedule';
 
 const IST_OFFSET_MINUTES = 330;
 
@@ -51,78 +56,14 @@ function toDateOnlyMsFromParts(parts) {
 }
 
 const SCHEDULE = [
-  { key: 'bulkStart', label: 'Auction bulk exits start', hour: 22, minute: 30, note: 'Every 10 min: second-highest exit starts' },
-  { key: 'bulkStop', label: 'Bulk window 1 ends', hour: 0, minute: 10, note: 'First 10-min bulk window closes' },
-  { key: 'lock', label: 'Team lock check', hour: 1, minute: 0, note: 'Lock under-limit teams' },
-  { key: 'singleBidStart', label: 'Single-bid since start sell', hour: 1, minute: 30, note: 'One-time single-bid sell run' },
-  { key: 'exitOnlyStart', label: 'Exit-only cycle starts', hour: 1, minute: 30, note: '1:30-2:10 AM: remove second-highest only' },
-  { key: 'oneTimeSweep', label: 'One-time 2:18 sweep', hour: 2, minute: 18, note: 'Sell immediate where single bidder remains after second exit' },
-  { key: 'counterWindowStart', label: 'Sell/exit cycle starts', hour: 2, minute: 20, note: '2:20-3:15 AM: 5-min sell/exit logic' },
-  { key: 'counterWindowEnd', label: '5-min cycle ends', hour: 3, minute: 15, note: 'End of 2:20-3:15 AM block' },
-  { key: 'twoMinWindowStart', label: '2-min fast cycle starts', hour: 3, minute: 16, note: '3:16-4:30 AM: every 2 min with 2-min exit check' },
-  { key: 'twoMinWindowEnd', label: 'Night cycle ends', hour: 4, minute: 30, note: 'End of automated post-3:15 flow' },
+  { key: 'bulkStart', label: 'Bulk exit starts (no selling)', hour: 21, minute: 0, note: 'Every 10 min: remove 2nd-highest only' },
+  { key: 'bulkStop', label: 'Bulk exit stops', hour: 22, minute: 45, note: 'No auto exit until 11:30 PM' },
+  { key: 'lock', label: 'Team lock check', hour: 23, minute: 0, note: 'Lock under-limit teams (Admin categories)' },
+  { key: 'singleBidSell', label: 'Sell no-counter-bid + bulk 2 starts', hour: 23, minute: 30, note: 'Sell players with only 1 bid since start, then bulk exit until 12:30 AM' },
+  { key: 'bulk2Stop', label: 'Bulk exit stops', hour: 0, minute: 30, note: 'Pause until 12:45 AM sell-after-exit' },
+  { key: 'sellAfterExit', label: 'Sell after 2nd-highest exit', hour: 0, minute: 45, note: 'Sell if other bid already gone; then every 5 min, sell if exited ≥ 2 min' },
+  { key: 'nightEnd', label: 'Night auto cycle ends', hour: 4, minute: 0, note: 'Automatic exit/sell stops' },
 ];
-
-const WHATSAPP_MESSAGE = `🏏 Auction Night Schedule (IST) - Updated
-
-✅ 10:30 PM to 12:10 AM
-• Bulk cycle every 10 min:
-  - Remove second-highest bidder (exit)
-
-✅ 1:00 AM
-• Team lock check (under-limit lock process)
-
-✅ 1:30 AM
-• Single-bid since-start sell run begins
-• Exit-only window starts (1:30 AM to 2:10 AM):
-  - Remove second-highest bidder only
-
-✅ 2:18 AM (ONE TIME ONLY)
-• Special sweep:
-  - If player has only one active bidder and second-highest already exited, sell immediately
-  - No 5-minute new-bid wait check in this one-time sweep
-
-✅ 2:20 AM to 3:15 AM
-• Every 5 min cycle:
-  - Remove second-highest bidder
-  - If second-highest exit is older than 5 min, sell to highest bidder
-  - Else keep in exit flow and continue cycle
-
-✅ 3:16 AM to 4:30 AM
-• Every 2 min cycle (same logic, faster):
-  - Remove second-highest bidder
-  - If second-highest exit is older than 2 min, sell to highest bidder
-  - Else keep in exit flow and continue cycle
-
-✅ Bid Queue Logic (Important)
-• Queue joins only when exactly 2 active bidders exist
-• Manual bidding is frozen for outside users while queue is waiting
-• After second-highest exit, queue promotion is auto-triggered
-• Promotion runs only if:
-  - player is unsold
-  - exactly 1 active bidder remains
-  - queue head entry is valid for next bid
-• Sell is blocked if queue has waiting users (status: queued)
-• Sell is also blocked if 2+ active bidders still exist
-
-ℹ️ All timings are in India time (IST).
-ℹ️ Schedule shifted +2h30m from previous 8:00 PM start.`;
-
-const WHATSAPP_MESSAGE_SHORT = `🏏 Auction Night Schedule (IST)
-
-• 10:30 PM-12:10 AM: Bulk exit every 10 min
-• 1:00 AM: Team lock check
-• 1:30 AM-2:10 AM: Exit-only every 5 min
-• 2:18 AM: One-time special sell sweep
-• 2:20 AM-3:15 AM: 5-min sell/exit cycle (5-min check)
-• 3:16 AM-4:30 AM: 2-min fast sell/exit cycle (2-min check)
-
-Queue:
-• Promotion auto-triggers after second-highest exits
-• Sell blocked if queue has waiting users
-• Sell blocked if 2+ active bidders remain
-
-ℹ️ All timings are IST.`;
 
 const QUEUE_RULES_EXAMPLE = `📢 Queue + Manual Bid Rules (Examples)
 
@@ -172,7 +113,7 @@ const QUEUE_MAX_RULE_UPDATE = `Queue Max Bid Rule (Latest Update)
 
 function getCycleEvents(now = new Date(), auctionStartAt = null) {
   const nowIst = getIstParts(now);
-  let anchor = nowIst.hour < 6 ? addDaysIst(nowIst, -1) : nowIst; // 00:xx belongs to previous evening cycle
+  let anchor = nowIst.hour < 9 ? addDaysIst(nowIst, -1) : nowIst; // after midnight belongs to previous evening
 
   if (auctionStartAt) {
     const startDate = new Date(auctionStartAt);
@@ -187,7 +128,7 @@ function getCycleEvents(now = new Date(), auctionStartAt = null) {
   }
 
   return SCHEDULE.map((item) => {
-    const useNextDay = item.hour < 6;
+    const useNextDay = item.hour < 9;
     const dateParts = useNextDay ? addDaysIst(anchor, 1) : anchor;
     const at = makeIstDate(dateParts.year, dateParts.month, dateParts.day, item.hour, item.minute);
     return { ...item, at };
@@ -278,6 +219,11 @@ export default function AuctionTimeline() {
       break;
     }
   }
+  if (currentIdx === -1 && events.length && now >= events[events.length - 1].at) {
+    currentIdx = events.length - 1;
+  }
+
+  const livePhase = getAuctionNightPhase(now);
 
   return (
     <div style={{ maxWidth: 980, margin: '0 auto', padding: isMobile ? 10 : 16 }}>
@@ -288,6 +234,28 @@ export default function AuctionTimeline() {
       <p style={{ marginTop: 0, color: '#4b5563', fontSize: 13 }}>
         Base date source: admin setting <strong>Auction Start Time</strong> ({auctionStartLabel === 'Not set' ? 'fallback to current day' : auctionStartLabel + ' IST'}).
       </p>
+      <div
+        style={{
+          marginBottom: 14,
+          border: '2px solid #0f766e',
+          borderRadius: 10,
+          padding: isMobile ? 10 : 14,
+          background: '#ecfeff',
+        }}
+      >
+        <div style={{ fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', color: '#0f766e', fontWeight: 700 }}>
+          Running right now
+        </div>
+        <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, marginTop: 4 }}>
+          {livePhase.liveMoment || livePhase.title}
+        </div>
+        {livePhase.range ? (
+          <div style={{ color: '#0f766e', fontSize: 13, marginTop: 2 }}>{livePhase.range}</div>
+        ) : null}
+        <div style={{ color: '#134e4a', fontSize: isMobile ? 13 : 14, marginTop: 8, lineHeight: 1.45 }}>
+          {livePhase.meaning}
+        </div>
+      </div>
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
           <button

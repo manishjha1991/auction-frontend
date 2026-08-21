@@ -432,9 +432,9 @@ const PlayerList = () => {
 
   const auctionCountdown = useMemo(() => formatCountdown(auctionCountdownMs), [auctionCountdownMs, formatCountdown]);
   const auctionStartLabel = useMemo(() => {
-    if (!auctionStartAt) return '10:30 PM IST';
+    if (!auctionStartAt) return '9:00 PM IST';
     const target = new Date(auctionStartAt);
-    if (Number.isNaN(target.getTime())) return '10:30 PM IST';
+    if (Number.isNaN(target.getTime())) return '9:00 PM IST';
     const ist = new Date(target.getTime() + IST_OFFSET_MS);
     return ist.toLocaleString('en-US', {
       year: 'numeric',
@@ -482,7 +482,7 @@ const PlayerList = () => {
             </div>
             {auctionAutoModeEnabled && auctionAutoModeCategories?.length > 0 && (
               <div className="auction-countdown-categories">
-                Categories enabled at 10:30 PM: {auctionAutoModeCategories.join(', ')}
+                Categories enabled at 9:00 PM: {auctionAutoModeCategories.join(', ')}
               </div>
             )}
             <div className="auction-countdown-timer">
@@ -514,7 +514,7 @@ const PlayerList = () => {
         </span>
         {auctionAutoModeEnabled && auctionAutoModeCategories?.length > 0 && (
           <span className="player-section-categories">
-            Categories enabled at 10:30 PM: {auctionAutoModeCategories.join(', ')}
+            Categories enabled at 9:00 PM: {auctionAutoModeCategories.join(', ')}
           </span>
         )}
       </div>

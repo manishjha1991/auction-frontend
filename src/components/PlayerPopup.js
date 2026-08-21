@@ -4,6 +4,7 @@ import "../css/PlayerPopup.css";
 import { FaBolt, FaClock, FaEye, FaHourglassHalf, FaListOl } from "react-icons/fa";
 import { API_ENDPOINTS } from "../const";
 import { resolvePlayerImageUrl } from "../utils/resolvePlayerImageUrl";
+import { getAuctionNightWindows } from "../utils/auctionNightSchedule";
 import winnerBannerImage from "../assets/winner-banner.png";
 
 const getPopupTypeStyles = (type) => {
@@ -346,53 +347,9 @@ const PlayerPopup = ({
     const month = Number(bag.month);
     const day = Number(bag.day);
 
-    const buildIstDate = (h, m, s = 0, addDays = 0) =>
-      new Date(`${year}-${String(month).padStart(2, "0")}-${String(day + addDays).padStart(2, "0")}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}+05:30`);
-
     const nowIst = new Date(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${bag.hour}:${bag.minute}:${bag.second}+05:30`);
 
-    const windows = [
-      {
-        key: "bulk1",
-        title: "Bulk Exit (10:30 PM–12:10 AM)",
-        start: buildIstDate(22, 30),
-        end: buildIstDate(0, 10, 0, 1),
-        interval: 10,
-        enabled: cronSettings.cronBulkExitEnabled,
-      },
-      {
-        key: "bulk2",
-        title: "Bulk Exit (1:05–1:35 AM)",
-        start: buildIstDate(1, 5, 0, 1),
-        end: buildIstDate(1, 35, 0, 1),
-        interval: 10,
-        enabled: cronSettings.cronBulkExitEnabled,
-      },
-      {
-        key: "exitOnly",
-        title: "Exit-Only",
-        start: buildIstDate(1, 30, 0, 1),
-        end: buildIstDate(2, 10, 0, 1),
-        interval: 5,
-        enabled: cronSettings.cronSingleBidEnabled,
-      },
-      {
-        key: "sellAfterExit5",
-        title: "Sell-After-Exit (5m)",
-        start: buildIstDate(2, 20, 0, 1),
-        end: buildIstDate(3, 15, 0, 1),
-        interval: 5,
-        enabled: cronSettings.cronSingleBidEnabled,
-      },
-      {
-        key: "sellAfterExit2",
-        title: "Sell-After-Exit (2m)",
-        start: buildIstDate(3, 16, 0, 1),
-        end: buildIstDate(4, 30, 0, 1),
-        interval: 2,
-        enabled: cronSettings.cronSingleBidEnabled,
-      },
-    ];
+    const windows = getAuctionNightWindows(now, cronSettings).filter((w) => w.interval);
 
     const enabledWindows = windows.filter((w) => w.enabled);
     if (enabledWindows.length === 0) {

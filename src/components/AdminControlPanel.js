@@ -3,6 +3,11 @@ import '../css/AdminProfile.css';
 import { API_ENDPOINTS } from '../const';
 import PlayerTypeControls from './PlayerTypeControls';
 import CommissionerTradeMonitor from './CommissionerTradeMonitor';
+import {
+  formatIstClock,
+  getAuctionNightPhase,
+  getExpectedCronFlags,
+} from '../utils/auctionNightSchedule';
 
 const formatCr = (value) => `${value.toFixed(2)} Cr`;
 const CONSISTENCY_BADGE_KEY = 'adminConsistencyBadgeCount';
@@ -109,6 +114,7 @@ const AdminControlPanel = ({ adminUser }) => {
   const [participatingTeamsSaving, setParticipatingTeamsSaving] = useState(false);
   const [showParticipationConfirm, setShowParticipationConfirm] = useState(false);
   const [participationConfirmData, setParticipationConfirmData] = useState(null);
+  const [nightNow, setNightNow] = useState(() => new Date());
 
   const handleToast = (message) => {
     setToast(message);
@@ -124,6 +130,11 @@ const AdminControlPanel = ({ adminUser }) => {
     updateCompact();
     window.addEventListener('resize', updateCompact);
     return () => window.removeEventListener('resize', updateCompact);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setNightNow(new Date()), 1000);
+    return () => clearInterval(id);
   }, []);
 
   const fetchCronSettings = React.useCallback(async (silent = false) => {
@@ -310,12 +321,12 @@ const AdminControlPanel = ({ adminUser }) => {
     }
   };
 
-  // When Auto Mode is on, poll every 60s so Cron Controls + Player Availability reflect cron-driven changes (10:30 PM, etc.)
+  // When Auto Mode is on, poll every 60s so Cron Controls + Player Availability reflect cron-driven changes (9:00 PM, etc.)
   useEffect(() => {
     if (!cronSettings.auctionAutoModeEnabled) return;
     const interval = setInterval(() => {
       fetchCronSettings(true);
-      setPlayerTypeRefreshTrigger((t) => t + 1); // refresh Player Availability (10:30 PM enables categories)
+      setPlayerTypeRefreshTrigger((t) => t + 1); // refresh Player Availability (9:00 PM enables categories)
     }, 60000);
     return () => clearInterval(interval);
   }, [cronSettings.auctionAutoModeEnabled, fetchCronSettings]);
@@ -1032,26 +1043,26 @@ const AdminControlPanel = ({ adminUser }) => {
   const cronDefinitions = [
     {
       key: 'cronSingleBidEnabled',
-      title: '1:30 AM–4:30 AM: Exit/Sell Windows (5 min / 2 min cycle)',
+      title: '12:45 AM–4:00 AM: Sell after 2nd-highest exit',
       description:
-        '1:30–2:10 AM: exit-only every 5 min (no selling). 2:18 AM: one-time immediate sell sweep (second already exited). 2:20–3:15 AM: every 5 min – if 2 bidders → exit only; if 1 bidder + 5 min since exit → sell. 3:16–4:30 AM: same logic every 2 min (2-min check). Never sells when 2 bidders are active. Enabling this pauses bulk cleanup.',
+        'At 12:45 AM: sell players where the other bid already exited (1 bidder left). Then every 5 min: if 2+ bidders → exit 2nd-highest only; if 1 bidder left AND that exit is at least 2 minutes old with no new bid → SELL. Never sells while 2 bidders are still fighting. Enabling this pauses bulk exit.',
     },
     {
       key: 'cronSingleBidFinalizerEnabled',
-      title: '1:30 AM: Sell Single-Bid-Only Players',
+      title: '11:30 PM: Sell “no counter bid since start”',
       description:
-        'At 1:30 AM IST sell players who have only ever received one bid (no counter bid since auction start). Skips if second bidder is still active.',
+        'At 11:30 PM IST sell players who have only ever received one bid (nobody ever counter-bid). Skips if a second bidder is still active.',
     },
     {
       key: 'cronBulkExitEnabled',
-      title: '10:30 PM–12:10 AM & 1:05–1:35 AM: Bulk Exit Second-Highest',
+      title: '9:00–10:45 PM & 11:30 PM–12:30 AM: Bulk Exit (no sell)',
       description:
-        'Window 1: 10:30 PM–12:10 AM IST every 10 min. Window 2: 1:05–1:35 AM every 10 min. Then stops. No selling. Enabling this pauses the 1:30 AM–4:30 AM timed windows.',
+        'Window 1: 9:00–10:45 PM IST every 10 min. Window 2: 11:30 PM–12:30 AM every 10 min. Removes 2nd-highest only. NO selling. Enabling this pauses the 12:45 AM+ sell-after-exit job.',
     },
     {
       key: 'cronLockEnabled',
-      title: 'Lock Under Limit',
-      description: 'Nightly at 1:00 AM IST lock teams that violate roster rules. Choose which categories to check (only active auction categories).',
+      title: '11:00 PM: Lock Under Limit',
+      description: 'At 11:00 PM IST sharp, lock teams that violate roster rules. Choose which categories to check (only the ones running in auction).',
     },
   ];
 
@@ -1060,6 +1071,25 @@ const AdminControlPanel = ({ adminUser }) => {
     { key: 'gold', label: 'Gold', hint: 'min 8 total' },
     { key: 'silver', label: 'Silver', hint: 'min 6 total' },
   ];
+
+  const nightPhase = getAuctionNightPhase(nightNow);
+  const expectedCron = getExpectedCronFlags(nightPhase.id);
+  const cronLabel = {
+    cronBulkExitEnabled: 'Bulk Exit',
+    cronSingleBidEnabled: 'Sell-after-exit',
+    cronSingleBidFinalizerEnabled: 'No-counter-bid sell',
+  };
+  const flagMatchLine = Object.keys(cronLabel)
+    .map((key) => {
+      const actual = !!cronSettings[key];
+      const expected = !!expectedCron[key];
+      if (!expected && !actual) return null;
+      if (expected && actual) return `${cronLabel[key]}: ON (correct)`;
+      if (expected && !actual) return `${cronLabel[key]}: OFF — should be ON for this phase`;
+      return `${cronLabel[key]}: ON — not needed in this phase`;
+    })
+    .filter(Boolean)
+    .join(' · ') || 'No exit/sell job should be running in this phase.';
 
   return (
     <div className="admin-control-panel">
@@ -1262,7 +1292,7 @@ const AdminControlPanel = ({ adminUser }) => {
             <p>Toggle unsold players for each tier to quickly gate auction pools.</p>
             {cronSettings.auctionAutoModeEnabled ? (
               <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(46, 204, 113, 0.9)' }}>
-                ✓ Auto Mode on – toggles update every 60s to match cron schedule (10:30 PM, 12:10 AM, etc.)
+                ✓ Auto Mode on – categories turn on at 9:00 PM IST (the ones checked below in Auto Mode)
               </p>
             ) : (
               <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
@@ -1699,16 +1729,41 @@ const AdminControlPanel = ({ adminUser }) => {
         <div className="section-header">
           <div>
             <h2>Auction Auto Mode</h2>
-            <p>When enabled: 10:30 PM start categories + bulk; 12:10 AM bulk off / single-bid on; 1:04 AM bulk on; 1:25 AM single-bid finalizer on; 1:50 AM bulk off; 2:20 AM sell-after-exit on. No manual toggling. When disabled, manually control Cron Controls and Player Availability. Turning Auto Mode OFF does not change Player Availability—it stays as is.</p>
+            <p>When enabled the system flips jobs itself: 9:00 PM categories + bulk; 10:45 bulk off; 11:00 lock; 11:30 sell never-counter-bid then bulk again; 12:30 bulk off; 12:45 sell-after-exit (2 min wait, every 5 min) until ~4:00 AM. When disabled, you control Cron Controls and Player Availability manually.</p>
           </div>
           {cronSaving && <span className="cron-saving-pill">Saving…</span>}
+        </div>
+        <div
+          style={{
+            marginBottom: 16,
+            padding: isCompact ? 12 : 16,
+            borderRadius: 10,
+            border: '2px solid #2ecc71',
+            background: 'rgba(46, 204, 113, 0.12)',
+          }}
+        >
+          <div style={{ fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase', opacity: 0.85, marginBottom: 4 }}>
+            Running right now · IST {formatIstClock(nightNow)}
+          </div>
+          <div style={{ fontSize: isCompact ? 18 : 22, fontWeight: 700, marginBottom: 6 }}>
+            {nightPhase.liveMoment || nightPhase.title}
+          </div>
+          {nightPhase.range ? (
+            <div style={{ fontSize: 13, marginBottom: 8, opacity: 0.9 }}>{nightPhase.range}</div>
+          ) : null}
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>{nightPhase.meaning}</p>
+          <p style={{ margin: '10px 0 0', fontSize: 13 }}>
+            Auto Mode: <strong>{cronSettings.auctionAutoModeEnabled ? 'ON' : 'OFF (manual)'}</strong>
+            {' · '}
+            {flagMatchLine}
+          </p>
         </div>
         {!cronLoading && (
           <div className="cron-toggle-grid">
             <div className="cron-toggle-card">
               <div className="cron-toggle-info">
                 <div className="data-card-title">Auto Mode</div>
-                <p>10:30 PM: categories + bulk. 12:10 AM: bulk off, exit-only on. 1:25 AM: finalizer on. 1:05 AM: bulk on. 1:50 AM: bulk off. 2:20 AM: sell-after-exit on.</p>
+                <p>9:00 bulk on → 10:45 bulk off → 11:00 lock → 11:30 no-counter sell + bulk on → 12:30 bulk off → 12:45 sell-after-exit on (every 5 min, 2 min wait).</p>
               </div>
               <div className="cron-toggle-switch">
                 <span className={`cron-status ${cronSettings.auctionAutoModeEnabled ? 'on' : 'off'}`}>
@@ -1729,8 +1784,8 @@ const AdminControlPanel = ({ adminUser }) => {
         )}
         {!cronLoading && cronSettings.auctionAutoModeEnabled && (
           <div className="auto-mode-categories">
-            <div className="auto-mode-categories-title">Categories to enable at 10:30 PM</div>
-            <p className="auto-mode-categories-hint">Tap to toggle. Checked = enabled now and at 10:30 PM.</p>
+            <div className="auto-mode-categories-title">Categories to enable at 9:00 PM</div>
+            <p className="auto-mode-categories-hint">Tap to toggle. Checked = enabled now and at 9:00 PM.</p>
             <div className="auto-mode-chips">
               {['Gold', 'Silver', 'Sapphire', 'Emerald'].map((cat) => {
                 const checked = (cronSettings.auctionAutoModeCategories || []).includes(cat);
@@ -1759,10 +1814,12 @@ const AdminControlPanel = ({ adminUser }) => {
         <div className="section-header">
           <div>
             <h2>Cron Controls</h2>
-            <p>Toggle background jobs on or off. The 1:30 AM–4:30 AM exit/sell windows and the bulk exit (10:30 PM–12:10 AM & 1:05–1:35 AM) cannot run at the same time.</p>
+            <p>
+              Manual mode: turn jobs on/off yourself. Bulk exit (9:00–10:45 PM & 11:30 PM–12:30 AM) and sell-after-exit (12:45 AM+) cannot run at the same time. Auto Mode flips these for you.
+            </p>
             {cronSettings.auctionAutoModeEnabled ? (
               <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(46, 204, 113, 0.9)' }}>
-                ✓ Auto Mode on – toggles update every 60s to match cron schedule (10:30 PM, 12:10 AM, etc.)
+                ✓ Auto Mode on – these toggles follow the night schedule. Current phase is shown above Auto Mode.
               </p>
             ) : (
               <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
@@ -1776,10 +1833,23 @@ const AdminControlPanel = ({ adminUser }) => {
           <div className="loading">Loading cron settings…</div>
         ) : (
           <div className="cron-toggle-grid">
-            {cronDefinitions.map((job) => (
-              <div className="cron-toggle-card" key={job.key}>
+            {cronDefinitions.map((job) => {
+              const expectedOn = !!expectedCron[job.key] || (job.key === 'cronLockEnabled' && nightPhase.id === 'lock');
+              return (
+              <div
+                className="cron-toggle-card"
+                key={job.key}
+                style={expectedOn ? { outline: '2px solid #2ecc71', outlineOffset: 2 } : undefined}
+              >
                 <div className="cron-toggle-info">
-                  <div className="data-card-title">{job.title}</div>
+                  <div className="data-card-title">
+                    {job.title}
+                    {expectedOn ? (
+                      <span style={{ marginLeft: 8, fontSize: 11, color: '#2ecc71', fontWeight: 700 }}>
+                        THIS PHASE
+                      </span>
+                    ) : null}
+                  </div>
                   <p>{job.description}</p>
                 </div>
                 <div className="cron-toggle-switch">
@@ -1797,7 +1867,8 @@ const AdminControlPanel = ({ adminUser }) => {
                   </label>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
         {!cronLoading && cronSettings.cronLockEnabled && (
