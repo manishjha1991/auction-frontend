@@ -583,19 +583,24 @@ const AdminUserManagement = () => {
       setMessage({ type: 'error', text: 'Missing admin credentials' });
       return;
     }
+    // Currently inactive → activate; otherwise deactivate
+    const nextIsActive = user.isActive === false;
     try {
       await axios.post(`${API_ENDPOINTS}/api/admin-tools/users/${user._id}/active`, {
         adminUserId,
-        isActive: !(user.isActive === false),
+        isActive: nextIsActive,
       });
       setMessage({
         type: 'success',
-        text: `${user.teamName || user.name} is now ${user.isActive === false ? 'active' : 'inactive'}.`,
+        text: `${user.teamName || user.name} is now ${nextIsActive ? 'active' : 'inactive'}.`,
       });
       fetchUsers();
     } catch (error) {
       console.error('Error toggling user active state:', error);
-      setMessage({ type: 'error', text: 'Failed to update user status' });
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to update user status',
+      });
     }
   };
 
@@ -648,6 +653,14 @@ const AdminUserManagement = () => {
         />
       </SearchBar>
 
+      {message.text && (
+        message.type === 'success' ? (
+          <SuccessMessage style={{ maxWidth: 600, margin: '0 auto 1.5rem' }}>{message.text}</SuccessMessage>
+        ) : (
+          <ErrorMessage style={{ maxWidth: 600, margin: '0 auto 1.5rem' }}>{message.text}</ErrorMessage>
+        )
+      )}
+
       <UsersGrid>
         {filteredUsers.map((user, index) => (
           <UserCard key={user._id} style={{ animationDelay: `${index * 0.1}s` }}>
@@ -681,14 +694,6 @@ const AdminUserManagement = () => {
 
             {editingUser === user._id ? (
               <FormSection>
-                {message.text && (
-                  message.type === 'success' ? (
-                    <SuccessMessage>{message.text}</SuccessMessage>
-                  ) : (
-                    <ErrorMessage>{message.text}</ErrorMessage>
-                  )
-                )}
-
                 <FormGroup>
                   <Label>Timezone</Label>
                   <Select
