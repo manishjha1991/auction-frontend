@@ -110,7 +110,7 @@ export const AUCTION_PHASES = [
     until: 225, // 12:45 AM
     title: 'Pause',
     range: '12:30 AM – 12:45 AM',
-    meaning: 'Bulk exit stopped. No auto exit. Waiting for 12:45 AM sell-after-exit.',
+    meaning: 'Bulk exit stopped. No auto exit. Last minute (12:44–12:45): bid freeze on lots with only 1 bidder left. Then 12:45 solo sell.',
     sells: false,
     exits: false,
   },
@@ -119,7 +119,7 @@ export const AUCTION_PHASES = [
     until: 420, // 4:00 AM
     title: 'Sell after 2nd-highest exit',
     range: '12:45 AM – 4:00 AM',
-    meaning: 'At 12:45 AM: sell anyone left with only 1 bidder (2nd already exited) — no new exits. From 12:50 AM every 5 min: exit 2nd-highest if 2+ bidders; if 1 bidder left AND 2nd-highest exited at least 2 minutes ago with no new bid → SELL. Continues until players are sold.',
+    meaning: 'Last minute before solo sell: no new bids on lots where the 2nd bidder already exited (pre-sell freeze). At 12:45 AM: sell anyone left with only 1 bidder — no new exits. From 12:50 AM every 5 min: exit 2nd-highest if 2+ bidders; if 1 bidder left AND 2nd-highest exited at least 2 minutes ago with no new bid → SELL. Continues until players are sold.',
     sells: true,
     exits: true,
   },
@@ -291,7 +291,7 @@ export function getAuctionNightWindows(now = new Date(), cronSettings = {}) {
       start: dMorn(0, 45),
       end: dMorn(4, 0),
       interval: 5,
-      action: '12:45: sell if 2nd already gone (no exit). From 12:50 every 5 min: exit 2nd / sell if exited ≥ 2 min.',
+      action: '12:44: freeze bids on solo lots. 12:45: sell if 2nd already gone (no exit). From 12:50 every 5 min: exit 2nd / sell if exited ≥ 2 min.',
       enabled: cronSettings.cronSingleBidEnabled,
     },
   ];
@@ -390,6 +390,7 @@ export const WHATSAPP_MESSAGE_SHORT = `🏏 CPL Auction Night (IST)
 • 11:30 PM: Sell players with no counter bid since start
 • 11:30 PM–12:30 AM: Bulk exit only (no sell)
 • 12:45 AM: Sell if 2nd bidder already gone (no exit)
+• 12:44–12:45: freeze bids on solo lots (2nd already exited)
 • 12:50 AM onwards: every 5 min exit + sell if 2nd gone ≥ 2 min
 
 ❌ No sell-after-exit before 12:45 AM
