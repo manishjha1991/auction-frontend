@@ -119,7 +119,7 @@ export const AUCTION_PHASES = [
     until: 420, // 4:00 AM
     title: 'Sell after 2nd-highest exit',
     range: '12:45 AM – 4:00 AM',
-    meaning: 'At 12:45 AM: sell anyone left with only 1 bidder (2nd already exited). Then every 5 min: exit 2nd-highest if 2+ bidders; if 1 bidder left AND 2nd-highest exited at least 2 minutes ago with no new bid → SELL. Continues until players are sold.',
+    meaning: 'At 12:45 AM: sell anyone left with only 1 bidder (2nd already exited) — no new exits. From 12:50 AM every 5 min: exit 2nd-highest if 2+ bidders; if 1 bidder left AND 2nd-highest exited at least 2 minutes ago with no new bid → SELL. Continues until players are sold.',
     sells: true,
     exits: true,
   },
@@ -291,7 +291,7 @@ export function getAuctionNightWindows(now = new Date(), cronSettings = {}) {
       start: dMorn(0, 45),
       end: dMorn(4, 0),
       interval: 5,
-      action: '12:45: sell if 2nd already gone. Then every 5 min: exit 2nd / sell if exited ≥ 2 min.',
+      action: '12:45: sell if 2nd already gone (no exit). From 12:50 every 5 min: exit 2nd / sell if exited ≥ 2 min.',
       enabled: cronSettings.cronSingleBidEnabled,
     },
   ];
@@ -360,9 +360,10 @@ export const WHATSAPP_MESSAGE = `🏏 CPL Auction Night (IST)
 ────────────────────
 • Sell players where the other bid already exited
   (only 1 bidder left → SOLD)
+• ❌ No new exits this minute
 
 ────────────────────
-🕧 12:45 AM onwards
+🕧 12:50 AM onwards
 ────────────────────
 • Every 5 minutes:
   - If 2+ bidders → exit 2nd highest only
@@ -377,7 +378,7 @@ export const WHATSAPP_MESSAGE = `🏏 CPL Auction Night (IST)
 1️⃣ 9:00–10:45 & 11:30–12:30 → exit only (no sell)
 2️⃣ 11:00 → lock under-limit teams
 3️⃣ 11:30 → sell “never got a counter bid”
-4️⃣ 12:45 onwards → sell after 2nd highest has been out ≥ 2 min
+4️⃣ 12:45 → sell already-solo lots only; 12:50+ exit then sell after ≥ 2 min
 
 ℹ️ Queue waiting users can block a sell for that player`;
 
@@ -388,8 +389,8 @@ export const WHATSAPP_MESSAGE_SHORT = `🏏 CPL Auction Night (IST)
 • 11:00 PM: Lock check
 • 11:30 PM: Sell players with no counter bid since start
 • 11:30 PM–12:30 AM: Bulk exit only (no sell)
-• 12:45 AM: Sell if 2nd bidder already gone
-• 12:45 AM onwards: every 5 min exit + sell if 2nd gone ≥ 2 min
+• 12:45 AM: Sell if 2nd bidder already gone (no exit)
+• 12:50 AM onwards: every 5 min exit + sell if 2nd gone ≥ 2 min
 
 ❌ No sell-after-exit before 12:45 AM
 ℹ️ All times IST`;

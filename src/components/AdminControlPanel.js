@@ -1059,7 +1059,7 @@ const AdminControlPanel = ({ adminUser }) => {
     {
       key: 'cronSingleBidEnabled',
       title: '4. 12:45 AM: Start selling',
-      description: 'Sells when only 1 bidder is left and the other bidder exited at least 2 minutes ago. Checks every 5 min until 4:00 AM.',
+      description: 'At 12:45: sell only lots where the 2nd bidder already exited. From 12:50: every 5 min exit 2nd-highest; sell if that exit was ≥ 2 minutes ago with no new bid (until 4:00 AM).',
     },
   ];
 

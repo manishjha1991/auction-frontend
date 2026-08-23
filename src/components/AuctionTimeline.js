@@ -61,7 +61,7 @@ const SCHEDULE = [
   { key: 'lock', label: 'Team lock check', hour: 23, minute: 0, note: 'Lock under-limit teams (Admin categories)' },
   { key: 'singleBidSell', label: 'Sell no-counter-bid + bulk 2 starts', hour: 23, minute: 30, note: 'Sell players with only 1 bid since start, then bulk exit until 12:30 AM' },
   { key: 'bulk2Stop', label: 'Bulk exit stops', hour: 0, minute: 30, note: 'Pause until 12:45 AM sell-after-exit' },
-  { key: 'sellAfterExit', label: 'Sell after 2nd-highest exit', hour: 0, minute: 45, note: 'Sell if other bid already gone; then every 5 min, sell if exited ≥ 2 min' },
+  { key: 'sellAfterExit', label: 'Sell after 2nd-highest exit', hour: 0, minute: 45, note: '12:45 sell if other bid already gone (no exit); from 12:50 every 5 min exit / sell if exited ≥ 2 min' },
   { key: 'nightEnd', label: 'Night auto cycle ends', hour: 4, minute: 0, note: 'Automatic exit/sell stops' },
 ];
 
