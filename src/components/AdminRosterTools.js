@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FaExchangeAlt, FaHandPaper, FaPlusCircle, FaShieldAlt } from 'react-icons/fa';
+import { FaExchangeAlt, FaHandPaper, FaPlusCircle, FaShieldAlt, FaPeopleArrows } from 'react-icons/fa';
 import { API_ENDPOINTS } from '../const';
 import '../css/AdminRosterTools.css';
 
@@ -50,6 +50,13 @@ export default function AdminRosterTools() {
   const [rPlayer, setRPlayer] = useState('');
   const [releasePreview, setReleasePreview] = useState(null);
   const [releaseBusy, setReleaseBusy] = useState(false);
+
+  /* Squad swap */
+  const [sTeamA, setSTeamA] = useState('');
+  const [sTeamB, setSTeamB] = useState('');
+  const [swapPreview, setSwapPreview] = useState(null);
+  const [swapBusy, setSwapBusy] = useState(false);
+  const [swapConfirm, setSwapConfirm] = useState('');
 
   const [resultModal, setResultModal] = useState(null);
   const [activeTab, setActiveTab] = useState('trade');
@@ -276,6 +283,64 @@ export default function AdminRosterTools() {
     }
   };
 
+  const teamLabel = (t) => {
+    const name = t.teamName || t.abbreviation || t.name || 'Team';
+    const owner = t.name && t.teamName ? ` · ${t.name}` : '';
+    const left = t.participating === false || t.isParticipating === false ? ' · not participating' : '';
+    const purse = t.purseCr != null ? ` (₹${t.purseCr} Cr)` : '';
+    return `${name}${owner}${left}${purse}`;
+  };
+
+  const runSwapPreview = async () => {
+    if (!sTeamA || !sTeamB) {
+      setResultModal({ title: 'Select teams', message: 'Choose two different teams.', type: 'warning' });
+      return;
+    }
+    if (sTeamA === sTeamB) {
+      setResultModal({ title: 'Select teams', message: 'Team A and Team B must be different.', type: 'warning' });
+      return;
+    }
+    setSwapBusy(true);
+    try {
+      const j = await postJson('/api/admin/roster/squad-swap/preview', {
+        teamAUserId: sTeamA,
+        teamBUserId: sTeamB,
+      });
+      setSwapPreview(j);
+      setSwapConfirm('');
+    } catch (e) {
+      setResultModal({ title: 'Preview failed', message: e.message, type: 'error' });
+    } finally {
+      setSwapBusy(false);
+    }
+  };
+
+  const runSwapExecute = async () => {
+    if (swapConfirm.trim().toUpperCase() !== 'SWAP') {
+      setResultModal({ title: 'Type SWAP', message: 'Type SWAP in the confirm box first.', type: 'warning' });
+      return;
+    }
+    setSwapBusy(true);
+    try {
+      const j = await postJson('/api/admin/roster/squad-swap/execute', {
+        teamAUserId: sTeamA,
+        teamBUserId: sTeamB,
+      });
+      setSwapPreview(null);
+      setSwapConfirm('');
+      setResultModal({
+        title: 'Squads swapped',
+        message: `${j.teamA?.name}: ${j.teamA?.playerCount} players, purse ₹${j.teamA?.purseAfterCr} Cr\n${j.teamB?.name}: ${j.teamB?.playerCount} players, purse ₹${j.teamB?.purseAfterCr} Cr\nPending trades rejected: ${j.pendingTradesRejected ?? 0}`,
+        type: 'success',
+      });
+      loadTeams();
+    } catch (e) {
+      setResultModal({ title: 'Swap failed', message: e.message, type: 'error' });
+    } finally {
+      setSwapBusy(false);
+    }
+  };
+
   if (!user) return <div className="admin-roster-page">Loading…</div>;
   if (!user.isAdmin) {
     return (
@@ -320,6 +385,13 @@ export default function AdminRosterTools() {
           onClick={() => setActiveTab('release')}
         >
           <FaHandPaper /> Release
+        </button>
+        <button
+          type="button"
+          className={activeTab === 'swap' ? 'active' : ''}
+          onClick={() => setActiveTab('swap')}
+        >
+          <FaPeopleArrows /> Squad swap
         </button>
       </div>
 
@@ -423,7 +495,7 @@ export default function AdminRosterTools() {
             <option value="">— Select —</option>
             {teams.map((t) => (
               <option key={t._id} value={t._id}>
-                {t.teamName || t.abbreviation}
+                {teamLabel(t)}
               </option>
             ))}
           </select>
@@ -438,6 +510,55 @@ export default function AdminRosterTools() {
           </select>
           <button type="button" className="admin-roster-btn primary" onClick={runReleasePreview} disabled={releaseBusy}>
             Preview release
+          </button>
+        </section>
+      )}
+
+      {activeTab === 'swap' && (
+        <section className="admin-roster-card">
+          <h2>Swap entire squads</h2>
+          <p className="admin-roster-hint">
+            All sold players, retentions, and purse follow the squad. Team name, points, and fixtures stay on the
+            login. Use this when one owner leaves and another takes over the roster (or a full two-way transfer).
+          </p>
+          <div className="admin-roster-grid2">
+            <div>
+              <label>Team A</label>
+              <select
+                value={sTeamA}
+                onChange={(e) => {
+                  setSTeamA(e.target.value);
+                  setSwapPreview(null);
+                }}
+              >
+                <option value="">— Select —</option>
+                {teams.map((t) => (
+                  <option key={t._id} value={t._id}>
+                    {teamLabel(t)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Team B</label>
+              <select
+                value={sTeamB}
+                onChange={(e) => {
+                  setSTeamB(e.target.value);
+                  setSwapPreview(null);
+                }}
+              >
+                <option value="">— Select —</option>
+                {teams.map((t) => (
+                  <option key={t._id} value={t._id}>
+                    {teamLabel(t)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <button type="button" className="admin-roster-btn primary" onClick={runSwapPreview} disabled={swapBusy}>
+            Preview squad swap
           </button>
         </section>
       )}
@@ -570,6 +691,99 @@ export default function AdminRosterTools() {
               ))}
             </div>
           )}
+        </Modal>
+      )}
+
+      {swapPreview && (
+        <Modal
+          title="Confirm squad swap"
+          onClose={() => setSwapPreview(null)}
+          footer={
+            <>
+              <button type="button" className="admin-roster-btn ghost" onClick={() => setSwapPreview(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-roster-btn danger"
+                onClick={runSwapExecute}
+                disabled={!swapPreview.ok || swapBusy || swapConfirm.trim().toUpperCase() !== 'SWAP'}
+              >
+                Confirm swap
+              </button>
+            </>
+          }
+        >
+          {!swapPreview.ok && (
+            <div className="admin-roster-errors">
+              {swapPreview.errors?.map((err, i) => (
+                <p key={i}>{err}</p>
+              ))}
+            </div>
+          )}
+          <div className="admin-roster-summary">
+            <div>
+              <strong>
+                {swapPreview.teamA?.name} ({swapPreview.teamA?.abbreviation})
+              </strong>
+              <p>
+                {swapPreview.teamA?.playerCount} players → {swapPreview.teamAAfter?.playerCount} players
+              </p>
+              <p>
+                Purse: ₹{swapPreview.teamA?.purseBeforeCr} Cr → ₹{swapPreview.teamA?.purseAfterCr} Cr
+              </p>
+              <p className="admin-roster-small">
+                Types now: S {swapPreview.teamA?.byType?.Sapphire} · G {swapPreview.teamA?.byType?.Gold} · E{' '}
+                {swapPreview.teamA?.byType?.Emerald} · Si {swapPreview.teamA?.byType?.Silver}
+              </p>
+              {swapPreview.teamA?.retained?.length > 0 && (
+                <p>Retained leaving: {swapPreview.teamA.retained.join(', ')}</p>
+              )}
+              {swapPreview.teamAAfter?.retained?.length > 0 && (
+                <p>Retained incoming: {swapPreview.teamAAfter.retained.join(', ')}</p>
+              )}
+            </div>
+            <div>
+              <strong>
+                {swapPreview.teamB?.name} ({swapPreview.teamB?.abbreviation})
+              </strong>
+              <p>
+                {swapPreview.teamB?.playerCount} players → {swapPreview.teamBAfter?.playerCount} players
+              </p>
+              <p>
+                Purse: ₹{swapPreview.teamB?.purseBeforeCr} Cr → ₹{swapPreview.teamB?.purseAfterCr} Cr
+              </p>
+              <p className="admin-roster-small">
+                Types now: S {swapPreview.teamB?.byType?.Sapphire} · G {swapPreview.teamB?.byType?.Gold} · E{' '}
+                {swapPreview.teamB?.byType?.Emerald} · Si {swapPreview.teamB?.byType?.Silver}
+              </p>
+              {swapPreview.teamB?.retained?.length > 0 && (
+                <p>Retained leaving: {swapPreview.teamB.retained.join(', ')}</p>
+              )}
+              {swapPreview.teamBAfter?.retained?.length > 0 && (
+                <p>Retained incoming: {swapPreview.teamBAfter.retained.join(', ')}</p>
+              )}
+            </div>
+          </div>
+          {swapPreview.warnings?.length > 0 && (
+            <div className="admin-roster-warn">
+              {swapPreview.warnings.map((w, i) => (
+                <p key={i}>{w}</p>
+              ))}
+            </div>
+          )}
+          <p className="admin-roster-small">
+            Does not move team name, points, or fixtures. Type SWAP below to enable confirm.
+          </p>
+          <label htmlFor="squad-swap-confirm">Type SWAP to confirm</label>
+          <input
+            id="squad-swap-confirm"
+            type="text"
+            value={swapConfirm}
+            onChange={(e) => setSwapConfirm(e.target.value)}
+            placeholder="SWAP"
+            autoComplete="off"
+          />
         </Modal>
       )}
 
