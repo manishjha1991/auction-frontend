@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import '../css/Auth.css';
@@ -18,6 +18,29 @@ const formatWhen = (dateValue) => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
+const normalizeHex = (value) =>
+  /^#[0-9a-f]{6}$/i.test(String(value || '').trim()) ? String(value).trim() : null;
+
+const hexToRgba = (hex, alpha) => {
+  const h = normalizeHex(hex);
+  if (!h) return `rgba(45, 212, 191, ${alpha})`;
+  const r = parseInt(h.slice(1, 3), 16);
+  const g = parseInt(h.slice(3, 5), 16);
+  const b = parseInt(h.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+/** Soft relative label when no kickoff time exists on fixtures. */
+const upcomingLabel = (createdAt) => {
+  if (!createdAt) return 'Kickoff TBD';
+  const ageMs = Date.now() - new Date(createdAt).getTime();
+  if (!Number.isFinite(ageMs) || ageMs < 0) return 'Kickoff TBD';
+  const days = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+  if (days <= 1) return 'Queued · soon';
+  if (days <= 7) return 'This week';
+  return 'On the board';
+};
+
 const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -29,8 +52,21 @@ const Login = ({ onLogin }) => {
   const [matchesError, setMatchesError] = useState('');
   const [matchesLoaded, setMatchesLoaded] = useState(false);
   const [loginHint, setLoginHint] = useState('');
+  const [fixtureFilter, setFixtureFilter] = useState('all'); // all | played | upcoming | myteam
+  const [fixtureSearch, setFixtureSearch] = useState('');
   const navigate = useNavigate();
   const emailInputRef = useRef(null);
+
+  const cachedUser = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, [activeTab]);
+
+  const myTeamName = String(cachedUser?.teamName || '').trim().toLowerCase();
 
   useEffect(() => {
     if (activeTab !== 'results' || matchesLoaded) return undefined;
@@ -40,7 +76,7 @@ const Login = ({ onLogin }) => {
       setMatchesError('');
       try {
         const res = await axios.get(`${API_ENDPOINTS}/api/fixtures/recent-results`, {
-          params: { limit: 12, upcomingLimit: 12 },
+          params: { limit: 20, upcomingLimit: 20 },
         });
         if (!cancelled) {
           const played = Array.isArray(res.data?.played)
@@ -107,6 +143,49 @@ const Login = ({ onLogin }) => {
     );
   };
 
+  const matchesTeam = (match, query) => {
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return true;
+    return (
+      String(match.team1 || '').toLowerCase().includes(q) ||
+      String(match.team2 || '').toLowerCase().includes(q) ||
+      String(match.winner || '').toLowerCase().includes(q)
+    );
+  };
+
+  const isMyTeamMatch = (match) => {
+    if (!myTeamName) return false;
+    const t1 = String(match.team1 || '').toLowerCase();
+    const t2 = String(match.team2 || '').toLowerCase();
+    return t1.includes(myTeamName) || myTeamName.includes(t1) || t2.includes(myTeamName) || myTeamName.includes(t2);
+  };
+
+  const filteredPlayed = useMemo(() => {
+    if (fixtureFilter === 'upcoming') return [];
+    return playedMatches.filter((m) => {
+      if (!matchesTeam(m, fixtureSearch)) return false;
+      if (fixtureFilter === 'myteam') return isMyTeamMatch(m);
+      return true;
+    });
+  }, [playedMatches, fixtureFilter, fixtureSearch, myTeamName]);
+
+  const filteredUpcoming = useMemo(() => {
+    if (fixtureFilter === 'played') return [];
+    return upcomingMatches.filter((m) => {
+      if (!matchesTeam(m, fixtureSearch)) return false;
+      if (fixtureFilter === 'myteam') return isMyTeamMatch(m);
+      return true;
+    });
+  }, [upcomingMatches, fixtureFilter, fixtureSearch, myTeamName]);
+
+  const handleFilterClick = (next) => {
+    if (next === 'myteam' && !myTeamName) {
+      goSignIn('Sign in to filter fixtures for your team.');
+      return;
+    }
+    setFixtureFilter(next);
+  };
+
   const renderScoreRow = (match, index) => {
     const when = formatWhen(match.createdAt);
     const isUpcoming = match.kind === 'upcoming' || !match.winner;
@@ -114,17 +193,41 @@ const Login = ({ onLogin }) => {
       !isUpcoming && match.winner && String(match.winner).trim() === String(match.team1).trim();
     const team2Won =
       !isUpcoming && match.winner && String(match.winner).trim() === String(match.team2).trim();
+
+    const winnerPrimary =
+      normalizeHex(match.winnerMeta?.themePrimary) ||
+      (team1Won ? normalizeHex(match.team1Meta?.themePrimary) : null) ||
+      (team2Won ? normalizeHex(match.team2Meta?.themePrimary) : null) ||
+      '#eab308';
+    const winnerSecondary =
+      normalizeHex(match.winnerMeta?.themeSecondary) ||
+      normalizeHex(match.team1Meta?.themeSecondary) ||
+      winnerPrimary;
+
     const resultLine = isUpcoming
-      ? 'Sign in to follow this fixture'
+      ? upcomingLabel(match.createdAt)
       : match.margin
         ? `${String(match.winner).trim()} won by ${match.margin}`
         : `${String(match.winner || '').trim()} won`;
+
+    const cardStyle = isUpcoming
+      ? {
+          '--fx-accent': normalizeHex(match.team1Meta?.themePrimary) || '#38bdf8',
+          '--fx-accent-2': normalizeHex(match.team2Meta?.themePrimary) || '#818cf8',
+          '--fx-glow': hexToRgba(normalizeHex(match.team1Meta?.themePrimary) || '#38bdf8', 0.28),
+        }
+      : {
+          '--fx-accent': winnerPrimary,
+          '--fx-accent-2': winnerSecondary,
+          '--fx-glow': hexToRgba(winnerPrimary, 0.35),
+        };
 
     return (
       <li key={match.id || index}>
         <button
           type="button"
           className={`fx-card ${isUpcoming ? 'fx-card--upcoming' : 'fx-card--played'}`}
+          style={cardStyle}
           onClick={() => handleMatchClick(match)}
         >
           <div className="fx-card__top">
@@ -135,7 +238,9 @@ const Login = ({ onLogin }) => {
           </div>
 
           <div className={`fx-card__team ${team1Won ? 'is-winner' : ''}`}>
-            <img src={teamImg(match.team1Meta)} alt="" />
+            <span className="fx-crest">
+              <img src={teamImg(match.team1Meta)} alt="" />
+            </span>
             <span className="fx-card__name">{match.team1}</span>
             <span className={`fx-card__score ${isUpcoming ? 'is-muted' : ''}`}>
               {isUpcoming ? '—' : match.team1Score || '—'}
@@ -143,16 +248,26 @@ const Login = ({ onLogin }) => {
           </div>
 
           <div className={`fx-card__team ${team2Won ? 'is-winner' : ''}`}>
-            <img src={teamImg(match.team2Meta)} alt="" />
+            <span className="fx-crest">
+              <img src={teamImg(match.team2Meta)} alt="" />
+            </span>
             <span className="fx-card__name">{match.team2}</span>
             <span className={`fx-card__score ${isUpcoming ? 'is-muted' : ''}`}>
               {isUpcoming ? '—' : match.team2Score || '—'}
             </span>
           </div>
 
-          <div className="fx-card__bottom">
+          <div className={`fx-card__bottom ${isUpcoming ? '' : 'fx-card__bottom--ticker'}`}>
             <span className="fx-card__result">{resultLine}</span>
-            <span className="fx-card__action">Details</span>
+            {isUpcoming ? (
+              <span className="fx-countdown" aria-label="Kickoff pending">
+                <span className="fx-countdown__dot" />
+                <span className="fx-countdown__dot" />
+                <span className="fx-countdown__dot" />
+              </span>
+            ) : (
+              <span className="fx-card__action">Details</span>
+            )}
           </div>
         </button>
       </li>
@@ -160,6 +275,8 @@ const Login = ({ onLogin }) => {
   };
 
   const hasAnyMatches = playedMatches.length > 0 || upcomingMatches.length > 0;
+  const hasFiltered =
+    filteredPlayed.length > 0 || filteredUpcoming.length > 0;
 
   return (
     <div className="auth-page auth-login">
@@ -191,7 +308,7 @@ const Login = ({ onLogin }) => {
           </ul>
         </div>
 
-        <div className="auth-card login-tab-card">
+        <div className="auth-card login-tab-card login-tab-card--glass">
           <div className="login-tabs" role="tablist" aria-label="Login options">
             <button
               type="button"
@@ -274,12 +391,43 @@ const Login = ({ onLogin }) => {
                   <p className="eyebrow">Public board</p>
                   <h2>Fixtures</h2>
                 </div>
-                <span className="results-live-dot">Live</span>
+                <span className="results-live-dot results-live-dot--pulse">Live</span>
               </div>
               <p className="results-board-note">
                 Latest league results and upcoming fixtures — free to browse.
                 Tap a match to sign in and unlock full details.
               </p>
+
+              {hasAnyMatches && (
+                <div className="fx-toolbar">
+                  <div className="fx-filters" role="group" aria-label="Fixture filters">
+                    {[
+                      { id: 'all', label: 'All' },
+                      { id: 'played', label: 'Completed' },
+                      { id: 'upcoming', label: 'Upcoming' },
+                      { id: 'myteam', label: 'My Team' },
+                    ].map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        className={`fx-filter ${fixtureFilter === f.id ? 'is-active' : ''}`}
+                        onClick={() => handleFilterClick(f.id)}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="fx-search">
+                    <span className="sr-only">Search teams</span>
+                    <input
+                      type="search"
+                      placeholder="Search team…"
+                      value={fixtureSearch}
+                      onChange={(e) => setFixtureSearch(e.target.value)}
+                    />
+                  </label>
+                </div>
+              )}
 
               {matchesLoading && <div className="results-empty">Loading fixtures…</div>}
               {!matchesLoading && matchesError && (
@@ -288,19 +436,22 @@ const Login = ({ onLogin }) => {
               {!matchesLoading && !matchesError && !hasAnyMatches && (
                 <div className="results-empty">No current played or upcoming fixtures yet.</div>
               )}
+              {!matchesLoading && hasAnyMatches && !hasFiltered && (
+                <div className="results-empty">No fixtures match this filter.</div>
+              )}
 
-              {!matchesLoading && hasAnyMatches && (
+              {!matchesLoading && hasFiltered && (
                 <div className="score-tape-sections">
-                  {playedMatches.length > 0 && (
+                  {filteredPlayed.length > 0 && (
                     <section>
                       <h3 className="score-tape-section-title">Played</h3>
-                      <ul className="fx-list">{playedMatches.map(renderScoreRow)}</ul>
+                      <ul className="fx-list">{filteredPlayed.map(renderScoreRow)}</ul>
                     </section>
                   )}
-                  {upcomingMatches.length > 0 && (
+                  {filteredUpcoming.length > 0 && (
                     <section>
                       <h3 className="score-tape-section-title">Upcoming</h3>
-                      <ul className="fx-list">{upcomingMatches.map(renderScoreRow)}</ul>
+                      <ul className="fx-list">{filteredUpcoming.map(renderScoreRow)}</ul>
                     </section>
                   )}
                 </div>
