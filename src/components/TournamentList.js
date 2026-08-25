@@ -18,6 +18,81 @@ const knockoutTeamDisplayName = (name) => {
   return s;
 };
 
+const normalizeThemeHex = (value) =>
+  /^#[0-9a-f]{6}$/i.test(String(value || '').trim()) ? String(value).trim() : null;
+
+const hexToRgba = (hex, alpha = 1) => {
+  const normalized = normalizeThemeHex(hex);
+  if (!normalized) return `rgba(255, 215, 0, ${alpha})`;
+  const r = parseInt(normalized.slice(1, 3), 16);
+  const g = parseInt(normalized.slice(3, 5), 16);
+  const b = parseInt(normalized.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const getReadableOnTheme = (primary, secondary) => {
+  const pick = normalizeThemeHex(primary) || normalizeThemeHex(secondary);
+  if (!pick) return '#000000';
+  const r = parseInt(pick.slice(1, 3), 16);
+  const g = parseInt(pick.slice(3, 5), 16);
+  const b = parseInt(pick.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.55 ? '#111827' : '#ffffff';
+};
+
+/** Winner accent from team theme; falls back to classic gold. */
+const getWinnerThemeColors = (team) => {
+  const primary = normalizeThemeHex(team?.themePrimary) || '#FFD700';
+  const secondary = normalizeThemeHex(team?.themeSecondary) || normalizeThemeHex(team?.themePrimary) || '#FFA500';
+  return {
+    primary,
+    secondary,
+    text: getReadableOnTheme(primary, secondary),
+    gradient: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`,
+    softGradient: `linear-gradient(135deg, ${hexToRgba(primary, 0.18)} 0%, ${hexToRgba(secondary, 0.18)} 100%)`,
+    headerGradient: `linear-gradient(135deg, ${hexToRgba(primary, 0.28)} 0%, ${hexToRgba(secondary, 0.28)} 100%)`,
+    shadow: `0 8px 24px ${hexToRgba(primary, 0.35)}`,
+    border: `4px solid ${primary}`,
+  };
+};
+
+const findSubscribedWinnerTeam = (tournament) => {
+  const want = String(tournament?.winner?.teamName || '').trim().toLowerCase();
+  if (!want) return null;
+  return (tournament.subscribedTeams || []).find((t) => {
+    const name = String(t.teamName || '').trim().toLowerCase();
+    return name === want || name.includes(want) || want.includes(name);
+  }) || null;
+};
+
+/** Prefer uploaded tournament poster; if missing and there is a winner, use that team's logo. */
+const resolveTournamentCover = (tournament) => {
+  if (tournament?.tournamentImage) {
+    return {
+      src: `${API_ENDPOINTS}${tournament.tournamentImage}`,
+      alt: tournament.name,
+      isWinnerLogo: false,
+      theme: null,
+    };
+  }
+
+  const winnerTeam = findSubscribedWinnerTeam(tournament);
+  const winnerLogo = winnerTeam?.teamImage || tournament?.winner?.teamImage || null;
+  if (winnerLogo) {
+    const src = String(winnerLogo).startsWith('http')
+      ? String(winnerLogo)
+      : `${API_ENDPOINTS}${winnerLogo}`;
+    return {
+      src,
+      alt: tournament.winner?.teamName || tournament.name,
+      isWinnerLogo: true,
+      theme: getWinnerThemeColors(winnerTeam),
+    };
+  }
+
+  return null;
+};
+
 const TournamentList = () => {
   const { showToast } = useToast();
   const [tournaments, setTournaments] = useState([]);
@@ -407,21 +482,39 @@ const TournamentList = () => {
         {orderedTournaments.map((tournament) => {
           const status = getTournamentStatus(tournament);
           const isSubscribed = tournament.isUserSubscribed;
+          const cover = resolveTournamentCover(tournament);
+          const winnerTeam = findSubscribedWinnerTeam(tournament);
+          const winnerTheme = tournament.winner?.teamName ? getWinnerThemeColors(winnerTeam) : null;
           
           return (
             <div key={tournament._id} className="tournament-card" onClick={() => handleTournamentClick(tournament)}>
-              <div className="tournament-image">
-                {tournament.tournamentImage ? (
+              <div
+                className={`tournament-image${cover?.isWinnerLogo ? ' tournament-image--winner-logo' : ''}`}
+                style={
+                  cover?.isWinnerLogo
+                    ? { background: cover.theme.gradient }
+                    : undefined
+                }
+              >
+                {cover ? (
                   <img 
-                    src={`${API_ENDPOINTS}${tournament.tournamentImage}`} 
-                    alt={tournament.name}
+                    src={cover.src} 
+                    alt={cover.alt}
+                    className={cover.isWinnerLogo ? 'tournament-cover-winner-logo' : undefined}
                     onError={(e) => {
                       e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
+                      const fallback = e.target.nextSibling;
+                      if (fallback) fallback.style.display = 'flex';
                     }}
                   />
                 ) : null}
-                <div className="default-image" style={{ display: tournament.tournamentImage ? 'none' : 'flex' }}>
+                <div
+                  className="default-image"
+                  style={{
+                    display: cover ? 'none' : 'flex',
+                    ...(winnerTheme ? { background: winnerTheme.gradient } : null),
+                  }}
+                >
                   <FaTrophy />
                 </div>
                 <div className="tournament-status" style={{ backgroundColor: getStatusColor(status) }}>
@@ -432,23 +525,23 @@ const TournamentList = () => {
                     🔒 Locked
                   </div>
                 )}
-                {tournament.winner?.teamName && (
+                {tournament.winner?.teamName && winnerTheme && (
                   <div className="tournament-winner-badge" style={{
                     position: 'absolute',
                     top: '10px',
                     right: '10px',
-                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                    color: '#000',
+                    background: winnerTheme.gradient,
+                    color: winnerTheme.text,
                     padding: '0.5rem 1rem',
                     borderRadius: '20px',
                     fontWeight: 'bold',
                     fontSize: '0.85rem',
-                    boxShadow: '0 4px 15px rgba(255, 215, 0, 0.5)',
+                    boxShadow: `0 4px 15px ${hexToRgba(winnerTheme.primary, 0.45)}`,
                     zIndex: 10,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    border: '2px solid #FF8C00'
+                    border: `2px solid ${winnerTheme.secondary}`
                   }}>
                     <span>🏆</span>
                     <span>Winner: {tournament.winner.teamName}</span>
@@ -2305,26 +2398,42 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                   isFinal && finalTeam1Disp !== KNOCKOUT_TBA ? getTeamData(fixture.team1) : null;
                                 const team2Data =
                                   isFinal && finalTeam2Disp !== KNOCKOUT_TBA ? getTeamData(fixture.team2) : null;
+                                const winnerTeamData = fixture.winner ? getTeamData(fixture.winner) : null;
+                                const winnerTheme = getWinnerThemeColors(winnerTeamData);
+                                const pendingGold = getWinnerThemeColors(null);
+                                const finalAccent = fixture.winner ? winnerTheme : pendingGold;
+                                const team1IsWinner = !!fixture.winner && fixture.winner === fixture.team1;
+                                const team2IsWinner = !!fixture.winner && fixture.winner === fixture.team2;
+                                const team1Border = team1IsWinner
+                                  ? `4px solid ${winnerTheme.primary}`
+                                  : fixture.winner
+                                    ? '4px solid #dc3545'
+                                    : '4px solid #FFD700';
+                                const team2Border = team2IsWinner
+                                  ? `4px solid ${winnerTheme.primary}`
+                                  : fixture.winner
+                                    ? '4px solid #dc3545'
+                                    : '4px solid #FFD700';
                                 
                                 return (
                                   <div key={finalActualIndex !== -1 ? finalActualIndex : index} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`} style={{ 
-                                    border: isFinal ? '4px solid #FFD700' : '3px solid #FFD700', 
+                                    border: isFinal ? finalAccent.border : '3px solid #FFD700', 
                                     background: isFinal 
-                                      ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 140, 0, 0.15) 100%)'
+                                      ? finalAccent.softGradient
                                       : 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%)',
                                     marginBottom: '1rem',
-                                    boxShadow: isFinal ? '0 8px 24px rgba(255, 215, 0, 0.3)' : 'none',
+                                    boxShadow: isFinal ? finalAccent.shadow : 'none',
                                     position: 'relative'
                                   }}>
                                     <div className="fixture-header" style={isFinal ? { 
-                                      background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(255, 140, 0, 0.25) 100%)',
+                                      background: finalAccent.headerGradient,
                                       padding: '1.5rem',
                                       borderRadius: '8px 8px 0 0',
-                                      borderBottom: '3px solid #FFD700',
+                                      borderBottom: `3px solid ${finalAccent.primary}`,
                                       textAlign: 'center'
                                     } : {}}>
                                       <span className="match-number" style={{ 
-                                        color: isFinal ? '#8B0000' : '#FF8C00', 
+                                        color: isFinal ? (fixture.winner ? finalAccent.primary : '#8B0000') : '#FF8C00', 
                                         fontWeight: '900', 
                                         fontSize: isFinal ? '2.5rem' : '1.1rem',
                                         textShadow: isFinal ? '0 2px 8px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.5), 2px 2px 4px rgba(0, 0, 0, 0.8)' : 'none',
@@ -2402,7 +2511,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                   height: '80px',
                                                   borderRadius: '50%',
                                                   objectFit: 'cover',
-                                                  border: fixture.winner === fixture.team1 ? '4px solid #28a745' : fixture.winner ? '4px solid #dc3545' : '4px solid #FFD700',
+                                                  border: team1Border,
                                                   boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                                                 }}
                                                 onError={(e) => {
@@ -2413,7 +2522,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                   if (parent && !parent.querySelector('.fallback-badge')) {
                                                     const fallback = document.createElement('div');
                                                     fallback.className = 'fallback-badge';
-                                                    fallback.style.cssText = 'width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: bold; border: 4px solid #FFD700; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
+                                                    fallback.style.cssText = `width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: bold; border: ${team1Border}; box-shadow: 0 4px 12px rgba(0,0,0,0.2);`;
                                                     fallback.textContent = (team1Data?.abbreviation || finalTeam1Disp || '?').substring(0, 2).toUpperCase();
                                                     parent.insertBefore(fallback, e.target);
                                                   }
@@ -2431,7 +2540,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                 color: 'white',
                                                 fontSize: '1.5rem',
                                                 fontWeight: 'bold',
-                                                border: '4px solid #FFD700',
+                                                border: team1Border,
                                                 boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                                               }}>
                                                 {(finalTeam1Disp === KNOCKOUT_TBA ? '—' : (team1Data?.abbreviation || finalTeam1Disp || '?').substring(0, 2).toUpperCase())}
@@ -2489,7 +2598,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                   height: '80px',
                                                   borderRadius: '50%',
                                                   objectFit: 'cover',
-                                                  border: fixture.winner === fixture.team2 ? '4px solid #28a745' : fixture.winner ? '4px solid #dc3545' : '4px solid #FFD700',
+                                                  border: team2Border,
                                                   boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                                                 }}
                                                 onError={(e) => {
@@ -2500,7 +2609,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                   if (parent && !parent.querySelector('.fallback-badge')) {
                                                     const fallback = document.createElement('div');
                                                     fallback.className = 'fallback-badge';
-                                                    fallback.style.cssText = 'width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: bold; border: 4px solid #FFD700; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
+                                                    fallback.style.cssText = `width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: bold; border: ${team2Border}; box-shadow: 0 4px 12px rgba(0,0,0,0.2);`;
                                                     fallback.textContent = (team2Data?.abbreviation || finalTeam2Disp || '?').substring(0, 2).toUpperCase();
                                                     parent.insertBefore(fallback, e.target);
                                                   }
@@ -2518,7 +2627,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                 color: 'white',
                                                 fontSize: '1.5rem',
                                                 fontWeight: 'bold',
-                                                border: '4px solid #FFD700',
+                                                border: team2Border,
                                                 boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                                               }}>
                                                 {(finalTeam2Disp === KNOCKOUT_TBA ? '—' : (team2Data?.abbreviation || finalTeam2Disp || '?').substring(0, 2).toUpperCase())}
@@ -2613,7 +2722,23 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                       </div>
                                     )}
                                     {fixture.winner && (
-                                      <div className={isFinal ? "fixture-champion-badge" : "fixture-winner-badge"}>
+                                      <div
+                                        className={isFinal ? "fixture-champion-badge" : "fixture-winner-badge"}
+                                        style={
+                                          isFinal
+                                            ? {
+                                                background: winnerTheme.gradient,
+                                                color: winnerTheme.text,
+                                                border: `3px solid ${winnerTheme.secondary}`,
+                                                boxShadow: `0 8px 25px ${hexToRgba(winnerTheme.primary, 0.55)}`,
+                                                animation: 'none',
+                                              }
+                                            : {
+                                                background: winnerTheme.gradient,
+                                                color: winnerTheme.text,
+                                              }
+                                        }
+                                      >
                                         {isFinal ? (
                                           <>
                                             <div className="champion-trophy">🏆</div>

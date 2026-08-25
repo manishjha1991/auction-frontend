@@ -107,6 +107,19 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
+}
+
+.tournament-image--winner-logo {
+  background: #111827;
+}
+
+.tournament-image--winner-logo img.tournament-cover-winner-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 
 .default-image {
