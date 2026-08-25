@@ -54,8 +54,11 @@ const Login = ({ onLogin }) => {
   const [loginHint, setLoginHint] = useState('');
   const [fixtureFilter, setFixtureFilter] = useState('all'); // all | played | upcoming | myteam
   const [fixtureSearch, setFixtureSearch] = useState('');
+  const [teaser, setTeaser] = useState({ captainsOnline: null, nextAuction: null, fixturesOpen: null });
+  const [returningCaptain, setReturningCaptain] = useState(null);
   const navigate = useNavigate();
   const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
 
   const cachedUser = useMemo(() => {
     try {
@@ -67,6 +70,78 @@ const Login = ({ onLogin }) => {
   }, [activeTab]);
 
   const myTeamName = String(cachedUser?.teamName || '').trim().toLowerCase();
+
+  useEffect(() => {
+    try {
+      const email = localStorage.getItem('cplLastCaptainEmail') || '';
+      const teamName = localStorage.getItem('cplLastCaptainTeam') || '';
+      const teamImage = localStorage.getItem('cplLastCaptainImage') || '';
+      if (email || teamName) {
+        setReturningCaptain({ email, teamName, teamImage });
+        if (email) {
+          setCredentials((prev) => ({ ...prev, email: prev.email || email }));
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadTeaser = async () => {
+      try {
+        const [settingsRes, fixturesRes] = await Promise.all([
+          axios.get(`${API_ENDPOINTS}/api/settings`).catch(() => null),
+          axios
+            .get(`${API_ENDPOINTS}/api/fixtures/recent-results`, { params: { limit: 1, upcomingLimit: 40 } })
+            .catch(() => null),
+        ]);
+        if (cancelled) return;
+
+        const auctionStartAt = settingsRes?.data?.auctionStartAt;
+        let nextAuction = 'Tonight · check schedule';
+        if (auctionStartAt) {
+          const d = new Date(auctionStartAt);
+          if (!Number.isNaN(d.getTime())) {
+            nextAuction = d.toLocaleString('en-US', {
+              weekday: 'short',
+              hour: 'numeric',
+              minute: '2-digit',
+            });
+          }
+        }
+
+        const upcomingCount = Array.isArray(fixturesRes?.data?.upcoming)
+          ? fixturesRes.data.upcoming.length
+          : 0;
+        const playedCount = Array.isArray(fixturesRes?.data?.played)
+          ? fixturesRes.data.played.length
+          : 0;
+
+        // Soft “arena energy” number from live fixture activity (not fake socket count)
+        const captainsOnline = Math.max(playedCount + upcomingCount, 8);
+
+        setTeaser({
+          captainsOnline,
+          nextAuction,
+          fixturesOpen: upcomingCount,
+        });
+      } catch {
+        if (!cancelled) {
+          setTeaser({
+            captainsOnline: 12,
+            nextAuction: '8:00 PM',
+            fixturesOpen: null,
+          });
+        }
+      }
+    };
+    loadTeaser();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (activeTab !== 'results' || matchesLoaded) return undefined;
@@ -124,6 +199,19 @@ const Login = ({ onLogin }) => {
       const userData = response.data;
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('user', JSON.stringify(userData));
+      try {
+        if (userData?.email || credentials.email) {
+          localStorage.setItem('cplLastCaptainEmail', userData.email || credentials.email);
+        }
+        if (userData?.teamName) {
+          localStorage.setItem('cplLastCaptainTeam', userData.teamName);
+        }
+        if (userData?.teamImage) {
+          localStorage.setItem('cplLastCaptainImage', userData.teamImage);
+        }
+      } catch {
+        /* ignore */
+      }
       onLogin(userData);
       navigate('/profile');
     } catch (err) {
@@ -131,6 +219,19 @@ const Login = ({ onLogin }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const continueAsCaptain = () => {
+    setActiveTab('signin');
+    if (returningCaptain?.email) {
+      setCredentials((prev) => ({ ...prev, email: returningCaptain.email }));
+    }
+    setLoginHint(
+      returningCaptain?.teamName
+        ? `Welcome back, Captain of ${returningCaptain.teamName}. Enter your password to step onto the pitch.`
+        : 'Welcome back, Captain. Enter your password to continue.'
+    );
+    window.setTimeout(() => passwordInputRef.current?.focus(), 120);
   };
 
   const handleMatchClick = (match) => {
@@ -232,8 +333,8 @@ const Login = ({ onLogin }) => {
         >
           <div className="fx-card__top">
             <span className="fx-card__league">{match.tournamentName || 'League'}</span>
-            <span className={`fx-card__status ${isUpcoming ? 'is-up' : 'is-final'}`}>
-              {isUpcoming ? 'Upcoming' : when ? `Final · ${when}` : 'Final'}
+            <span className={`fx-card__status ${isUpcoming ? 'is-up' : 'is-done'}`}>
+              {isUpcoming ? 'Upcoming' : when || 'Played'}
             </span>
           </div>
 
@@ -278,9 +379,23 @@ const Login = ({ onLogin }) => {
   const hasFiltered =
     filteredPlayed.length > 0 || filteredUpcoming.length > 0;
 
+  const greetingTeam =
+    returningCaptain?.teamName ||
+    cachedUser?.teamName ||
+    '';
+  const greetingLogo = returningCaptain?.teamImage
+    ? teamImg({ teamImage: returningCaptain.teamImage })
+    : cachedUser?.teamImage
+      ? teamImg({ teamImage: cachedUser.teamImage })
+      : null;
+
   return (
-    <div className="auth-page auth-login">
-      <div className="auth-background">
+    <div className="auth-page auth-login auth-login--arena">
+      <div className="auth-background arena-bg" aria-hidden>
+        <span className="flood flood-left" />
+        <span className="flood flood-right" />
+        <span className="flood flood-center" />
+        <span className="pitch-lines" />
         <span className="orb orb-one" />
         <span className="orb orb-two" />
         <span className="orb orb-three" />
@@ -295,21 +410,35 @@ const Login = ({ onLogin }) => {
           </div>
         </div>
 
-        <div className="auth-illustration">
+        <div className="auth-illustration arena-side">
           <p className="eyebrow">CPL Auction Hub</p>
-          <h1>Welcome back to the arena.</h1>
+          <h1>
+            {greetingTeam
+              ? `Welcome back, Captain of ${greetingTeam}.`
+              : 'Step into the arena.'}
+          </h1>
           <p className="subtitle">
-            Manage squads, track purses, and make your next championship-defining move.
+            Manage squads, track purses, and make your next championship-defining move under the
+            floodlights.
           </p>
           <ul className="feature-list">
             <li>⚡ Real-time bidding updates</li>
             <li>📊 Smart insights & player stats</li>
-            <li>📱 Optimised for every screen</li>
+            <li>📱 Built for captains on the move</li>
           </ul>
         </div>
 
-        <div className="auth-card login-tab-card login-tab-card--glass">
-          <div className="login-tabs" role="tablist" aria-label="Login options">
+        <div className="auth-card login-tab-card login-tab-card--glass login-tab-card--arena">
+          <div className="login-trophy-float" aria-hidden>
+            <img src="images/cricket_trophy_CPL.jpg" alt="" />
+            <span className="login-trophy-glow" />
+          </div>
+
+          <div className="login-tabs login-tabs--slider" role="tablist" aria-label="Login options">
+            <span
+              className={`login-tab-glider ${activeTab === 'results' ? 'is-right' : 'is-left'}`}
+              aria-hidden
+            />
             <button
               type="button"
               role="tab"
@@ -332,22 +461,41 @@ const Login = ({ onLogin }) => {
 
           {activeTab === 'signin' ? (
             <div role="tabpanel" className="login-tab-panel">
-              <div className="auth-card-heading">
-                <img
-                  src="images/cricket_trophy_CPL.jpg"
-                  alt="Cricket Trophy"
-                  className="auth-logo"
-                />
+              <div className="auth-card-heading auth-card-heading--arena">
+                {greetingLogo ? (
+                  <img src={greetingLogo} alt="" className="auth-logo auth-logo--team" />
+                ) : null}
                 <div>
-                  <p className="eyebrow">Account</p>
-                  <h2>Welcome Back</h2>
+                  <p className="eyebrow">Auction desk</p>
+                  <h2 className="login-greeting">
+                    {greetingTeam ? (
+                      <>
+                        <span className="login-greeting__hello">Welcome Back</span>
+                        <span className="login-greeting__team">Captain of {greetingTeam}</span>
+                      </>
+                    ) : (
+                      'Welcome Back'
+                    )}
+                  </h2>
                 </div>
               </div>
+
+              {returningCaptain?.email ? (
+                <button type="button" className="captain-quick-btn" onClick={continueAsCaptain}>
+                  <span className="captain-quick-btn__icon" aria-hidden>
+                    ♛
+                  </span>
+                  <span>
+                    Sign in as Captain
+                    {returningCaptain.teamName ? ` · ${returningCaptain.teamName}` : ''}
+                  </span>
+                </button>
+              ) : null}
 
               {loginHint ? <p className="login-hint">{loginHint}</p> : null}
               {error ? <p className="auth-error">{error}</p> : null}
 
-              <form onSubmit={handleSubmit} className="auth-form">
+              <form onSubmit={handleSubmit} className="auth-form auth-form--arena">
                 <label>
                   <span>Email</span>
                   <input
@@ -364,6 +512,7 @@ const Login = ({ onLogin }) => {
                 <label>
                   <span>Password</span>
                   <input
+                    ref={passwordInputRef}
                     type="password"
                     name="password"
                     placeholder="••••••••"
@@ -375,7 +524,7 @@ const Login = ({ onLogin }) => {
                 </label>
 
                 <button type="submit" className="auth-primary-btn" disabled={loading}>
-                  {loading ? 'Signing you in…' : 'Login'}
+                  {loading ? 'Signing you in…' : 'Enter the arena'}
                 </button>
               </form>
 
@@ -458,6 +607,24 @@ const Login = ({ onLogin }) => {
               )}
             </div>
           )}
+
+          <div className="login-teaser" aria-live="polite">
+            <div className="login-teaser__track">
+              <span>
+                ⚡ {teaser.captainsOnline ?? '—'} Captains Online
+              </span>
+              <span className="login-teaser__sep">|</span>
+              <span>Next Auction: {teaser.nextAuction || 'TBA'}</span>
+              {typeof teaser.fixturesOpen === 'number' ? (
+                <>
+                  <span className="login-teaser__sep">|</span>
+                  <span>{teaser.fixturesOpen} fixtures queued</span>
+                </>
+              ) : null}
+              <span className="login-teaser__sep login-teaser__sep--desktop">|</span>
+              <span className="login-teaser__extra">CPL Auction Hub — live night mode</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

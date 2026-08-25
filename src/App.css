@@ -433,6 +433,10 @@
 
 .content.no-sidebar {
   margin-left: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Ground atlas — light scorebook page */
@@ -471,6 +475,10 @@
 
   .content.sidebar-open {
     margin-left: 0;
+  }
+
+  .content.no-sidebar {
+    padding: 0;
   }
 
   .sidebar-overlay.active {
