@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../const';
+import CountryFlag from './CountryFlag';
 import '../css/UnsoldPlayers.css';
 
 function UnsoldPlayers() {
@@ -203,8 +204,14 @@ function UnsoldPlayers() {
             {items.map(p => (
               <div className={`card ${p.hasPendingRequest ? 'card-disabled' : ''}`} key={p._id}>
                 <div className="card-top">
-                  <div className="name">{p.name}</div>
+                  <div className="name-row">
+                    <CountryFlag country={p.country} size={20} />
+                    <div className="name">{p.name}</div>
+                  </div>
                   <div className="badges">
+                    {Number.isFinite(Number(p.overallScore)) && Number(p.overallScore) > 0 && (
+                      <span className="overall-chip" title="Overall rating">{p.overallScore}</span>
+                    )}
                     {p.hasPendingRequest && <span className="request-icon" title="Request already raised">📋</span>}
                     {p.type && <span className={`type-badge ${String(p.type).toLowerCase()}`}>{p.type}</span>}
                   </div>

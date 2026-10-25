@@ -169,9 +169,30 @@
   box-shadow: 0 20px 50px rgba(0,0,0,0.04);
   opacity: 0.7;
 }
-.card-top { display: flex; align-items: center; justify-content: space-between; }
-.name { font-weight: 700; }
-.badges { display: flex; align-items: center; gap: 6px; }
+.card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.name-row { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badges { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.overall-chip {
+  min-width: 28px;
+  text-align: center;
+  background: linear-gradient(135deg, #111827, #374151);
+  color: #ffecb3;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+.country-flag-fallback {
+  font-size: 11px;
+  font-weight: 700;
+  color: #4b5563;
+  max-width: 42px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .request-icon { 
   font-size: 16px; 
   color: #6b7280; 
