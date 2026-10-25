@@ -308,6 +308,7 @@ const SoldPlayersList = () => {
                     <PlayerAvatar
                       profilePicture={player.profilePicture}
                       name={player.name}
+                      country={player.country}
                       size={isCompactGrid ? 36 : 56}
                     />
                   </div>

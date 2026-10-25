@@ -8,6 +8,8 @@ const AddPlayer = () => {
     lastName: '',
     role: '',
     style: '',
+    bowlingStyle: '',
+    country: '',
     basePrice: '',
     playerType: '',
     score: '',
@@ -50,8 +52,10 @@ const AddPlayer = () => {
     form.append('role', role); // Ensure the role matches backend
     form.append('basePrice', formData.basePrice);
     form.append('overallScore', formData.score);
-    form.append('style', formData.style); // Include batting style
-    form.append('profilePicture', image); // Match Postman field name
+    form.append('style', formData.style);
+    form.append('bowlingStyle', formData.bowlingStyle);
+    form.append('country', formData.country);
+    form.append('profilePicture', image);
   
     try {
       const response = await axios.post(`${API_ENDPOINTS}/api/player`, form, {
@@ -63,6 +67,8 @@ const AddPlayer = () => {
         lastName: '',
         role: '',
         style: '',
+        bowlingStyle: '',
+        country: '',
         basePrice: '',
         playerType: '',
         score: '',
@@ -174,6 +180,29 @@ const AddPlayer = () => {
                   <option value="LHB">Left-Handed Bat (LHB)</option>
                   <option value="RHB">Right-Handed Bat (RHB)</option>
                 </select>
+              </label>
+            </div>
+
+            <div className="input-row">
+              <label>
+                <span>Bowling Style</span>
+                <input
+                  type="text"
+                  name="bowlingStyle"
+                  placeholder="RF, OS, SLO, RFM"
+                  value={formData.bowlingStyle}
+                  onChange={handleInputChange}
+                />
+              </label>
+              <label>
+                <span>Country</span>
+                <input
+                  type="text"
+                  name="country"
+                  placeholder="India"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                />
               </label>
             </div>
 

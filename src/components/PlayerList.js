@@ -615,8 +615,13 @@ const PlayerList = () => {
               <div className="player-cell player-icon">{getRoleIcon(player.role)}</div>
               <div className="player-cell player-name-with-avatar">
                 <div className="player-name-row-inner">
-                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={28} />
-                  <span className="player-name-text">{player.name}</span>
+                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} country={player.country} size={28} />
+                  <div className="player-name-stack">
+                    <span className="player-name-text">{player.name}</span>
+                    {player.bowlingStyle && (
+                      <span className="player-extra-meta">{player.bowlingStyle}</span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="player-cell player-price">

@@ -1835,7 +1835,7 @@ const UserPursePage = () => {
                       onClick={() => handlePlayerClick(player)}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={26} />
+                      <PlayerAvatar profilePicture={player.profilePicture} name={player.name} country={player.country} size={26} />
                       <PlayerName>{player.name}</PlayerName>
                     </div>
                     <PlayerPriceCircle>
@@ -1875,7 +1875,7 @@ const UserPursePage = () => {
                         onClick={() => handlePlayerClick(player)}
                     >
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={26} />
+                                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} country={player.country} size={26} />
                                   <PlayerName>{player.name}</PlayerName>
                                 </div>
                                 <PlayerPriceCircle>

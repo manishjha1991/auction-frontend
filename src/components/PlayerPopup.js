@@ -4,6 +4,7 @@ import "../css/PlayerPopup.css";
 import { FaBolt, FaClock, FaEye, FaHourglassHalf, FaListOl } from "react-icons/fa";
 import { API_ENDPOINTS } from "../const";
 import { resolvePlayerImageUrl } from "../utils/resolvePlayerImageUrl";
+import CountryFlag from "./CountryFlag";
 import { getAuctionNightWindows } from "../utils/auctionNightSchedule";
 import winnerBannerImage from "../assets/winner-banner.png";
 
@@ -1205,26 +1206,31 @@ const PlayerPopup = ({
               {(() => {
                 const portraitUrl = resolvePlayerImageUrl(playerDetails.profilePicture);
                 const showImg = portraitUrl && !portraitBroken;
-                return showImg ? (
-                  <img
-                    key={portraitUrl}
-                    src={portraitUrl}
-                    alt=""
-                    className="player-image player-image-clickable"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setPortraitLightboxOpen(true)}
-                    onKeyDown={(ev) => {
-                      if (ev.key === "Enter" || ev.key === " ") {
-                        ev.preventDefault();
-                        setPortraitLightboxOpen(true);
-                      }
-                    }}
-                    onError={() => setPortraitBroken(true)}
-                  />
-                ) : (
-                  <div className="player-image player-image-placeholder" aria-hidden>
-                    {(playerDetails.name || "?").trim().charAt(0).toUpperCase()}
+                return (
+                  <div className="player-image-frame">
+                    {showImg ? (
+                      <img
+                        key={portraitUrl}
+                        src={portraitUrl}
+                        alt=""
+                        className="player-image player-image-clickable"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setPortraitLightboxOpen(true)}
+                        onKeyDown={(ev) => {
+                          if (ev.key === "Enter" || ev.key === " ") {
+                            ev.preventDefault();
+                            setPortraitLightboxOpen(true);
+                          }
+                        }}
+                        onError={() => setPortraitBroken(true)}
+                      />
+                    ) : (
+                      <div className="player-image player-image-placeholder" aria-hidden>
+                        {(playerDetails.name || "?").trim().charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <CountryFlag country={playerDetails.country} size={28} className="player-image-flag" />
                   </div>
                 );
               })()}
@@ -1282,6 +1288,21 @@ const PlayerPopup = ({
               <p>
                 <span className="player-detail-icon">✋</span>
                 <b>Batting Style:</b> <span>{playerDetails.battingStyle || "N/A"}</span>
+              </p>
+              <p>
+                <span className="player-detail-icon">🎯</span>
+                <b>Bowling Style:</b> <span>{playerDetails.bowlingStyle || "N/A"}</span>
+              </p>
+              <p>
+                <span className="player-detail-icon">🌍</span>
+                <b>Country:</b>{" "}
+                <span>
+                  {playerDetails.country ? (
+                    <CountryFlag country={playerDetails.country} size={22} />
+                  ) : (
+                    "N/A"
+                  )}
+                </span>
               </p>
               <p>
                 <span className="player-detail-icon">📊</span>

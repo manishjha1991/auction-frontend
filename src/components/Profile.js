@@ -872,9 +872,11 @@ const Profile = () => {
         {isRetained && <span className="up-card-ribbon up-card-ribbon--retained">✅ Retained</span>}
 
         <div className="up-card-head">
-          <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={48} />
+          <PlayerAvatar profilePicture={player.profilePicture} name={player.name} country={player.country} size={48} />
           <div className="up-card-id">
-            <p className="up-card-name">{player.name}</p>
+            <p className="up-card-name">
+              {player.name}
+            </p>
             <span className={`up-tier-pill up-tier-pill--${player.type.toLowerCase()}`}>
               {player.type} · {player.role}
             </span>
@@ -916,7 +918,7 @@ const Profile = () => {
   const renderActiveBidCard = ({ player, bidAmount }, idx) => (
     <div className={`up-card up-card--bid player-card ${player.type.toLowerCase()}`} key={idx}>
       <div className="up-card-head">
-        <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={44} />
+        <PlayerAvatar profilePicture={player.profilePicture} name={player.name} country={player.country} size={44} />
         <div className="up-card-id">
           <p className="up-card-name">{player.name}</p>
           <span className={`up-tier-pill up-tier-pill--${player.type?.toLowerCase?.() || 'default'}`}>
@@ -941,7 +943,7 @@ const Profile = () => {
         key={idx}
       >
         <div className="up-card-head">
-          <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={40} />
+          <PlayerAvatar profilePicture={player.profilePicture} name={player.name} country={player.country} size={40} />
           <div className="up-card-id">
             <p className="up-card-name">{player.name}</p>
             <span className={`up-status-pill up-status-pill--${status.toLowerCase()}`}>
@@ -1654,7 +1656,7 @@ const Profile = () => {
                 textAlign: 'center'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, margin: '0 0 10px 0' }}>
-                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} size={48} />
+                  <PlayerAvatar profilePicture={player.profilePicture} name={player.name} country={player.country} size={48} />
                   <h3 style={{ margin: 0, fontSize: '1.5rem' }}>
                     {player.name}
                   </h3>

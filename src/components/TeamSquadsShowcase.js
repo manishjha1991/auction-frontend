@@ -721,6 +721,7 @@ function RosterSection({
               <PlayerAvatar
                 profilePicture={p.profilePicture}
                 name={p.name}
+                country={p.country}
                 size={72}
                 className="tss-player-avatar"
               />
