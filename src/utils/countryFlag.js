@@ -1,3 +1,5 @@
+import westIndiesFlag from '../assets/west-indies-flag.svg';
+
 const COUNTRY_CODES = {
   india: 'in',
   australia: 'au',
@@ -7,26 +9,33 @@ const COUNTRY_CODES = {
   pakistan: 'pk',
   'south africa': 'za',
   'west indies': 'wi',
+  westindies: 'wi',
+  windies: 'wi',
+  wi: 'wi',
   'sri lanka': 'lk',
+  srilanka: 'lk',
   bangladesh: 'bd',
   afghanistan: 'af',
   ireland: 'ie',
   zimbabwe: 'zw',
 };
 
-export const countryToCode = (country) => {
-  const key = String(country || '')
+const normalizeCountryKey = (country) =>
+  String(country || '')
     .trim()
     .toLowerCase()
+    .replace(/[_-]+/g, ' ')
     .replace(/\s+/g, ' ');
-  return COUNTRY_CODES[key] || null;
+
+export const countryToCode = (country) => {
+  const spaced = normalizeCountryKey(country);
+  if (!spaced) return null;
+  return COUNTRY_CODES[spaced] || COUNTRY_CODES[spaced.replace(/\s+/g, '')] || null;
 };
 
 export const countryFlagUrl = (country) => {
   const code = countryToCode(country);
   if (!code) return null;
-  if (code === 'wi') {
-    return 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Flag_of_the_West_Indies_Cricket_Board.svg/80px-Flag_of_the_West_Indies_Cricket_Board.svg.png';
-  }
+  if (code === 'wi') return westIndiesFlag;
   return `https://flagcdn.com/w80/${code}.png`;
 };

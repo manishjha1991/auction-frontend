@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { countryFlagUrl } from '../utils/countryFlag';
 
 const CountryFlag = ({ country, size = 18, className = '' }) => {
   const url = countryFlagUrl(country);
+  const [broken, setBroken] = useState(false);
   if (!country) return null;
-  if (!url) {
+  if (!url || broken) {
     return (
       <span className={`country-flag-fallback ${className}`} title={country}>
         {country}
@@ -19,6 +20,7 @@ const CountryFlag = ({ country, size = 18, className = '' }) => {
       title={country}
       width={size}
       height={Math.round(size * 0.75)}
+      onError={() => setBroken(true)}
       style={{
         width: size,
         height: Math.round(size * 0.75),
@@ -28,6 +30,7 @@ const CountryFlag = ({ country, size = 18, className = '' }) => {
         flexShrink: 0,
         display: 'inline-block',
         verticalAlign: 'middle',
+        background: '#7A1420',
       }}
     />
   );
