@@ -1662,7 +1662,7 @@ const UserPursePage = () => {
                         fontSize: '0.9rem', 
                         fontWeight: '700', 
                         color: '#ffd700' 
-                      }}>CPL: {user.trophyCount}</span>
+                      }}>GPL: {user.trophyCount}</span>
                     </div>
                   )}
                   {user.worldCupCount > 0 && (
@@ -1717,7 +1717,7 @@ const UserPursePage = () => {
                         fontSize: '0.9rem', 
                         fontWeight: '700', 
                         color: '#c0c0c0' 
-                      }}>CPL Runner-up: {user.runnerUpCount}</span>
+                      }}>GPL Runner-up: {user.runnerUpCount}</span>
                     </div>
                   )}
                 </div>

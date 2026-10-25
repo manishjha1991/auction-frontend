@@ -610,7 +610,7 @@ const TeamDirectory = () => {
     return (
       <Container>
         <Header>
-          <Title>🌐 CPL Team Grid</Title>
+          <Title>🌐 GPL Team Grid</Title>
           <Subtitle>Syncing live squads...</Subtitle>
         </Header>
         <Loader>Fetching franchise data…</Loader>
@@ -621,14 +621,14 @@ const TeamDirectory = () => {
   return (
     <Container>
       <Header>
-        <Title>🌐 CPL Team Grid</Title>
+        <Title>🌐 GPL Team Grid</Title>
         <Subtitle>Tap a franchise to open its command card</Subtitle>
       </Header>
 
       <CircleWrapper>
         <Ring>
           <TrophyColumn>
-            <TrophyImage src={trophyImage} alt="CPL Trophy" />
+            <TrophyImage src={trophyImage} alt="GPL Trophy" />
           </TrophyColumn>
 
           {ringTeams.length === 0 ? (

@@ -434,7 +434,7 @@ const TournamentList = () => {
   return (
     <div className="tournament-container">
       <div className="tournament-header">
-        <h1>CPL Tournaments</h1>
+        <h1>GPL Tournaments</h1>
         {user && user.isAdmin && (
           <button 
             className="create-tournament-btn"

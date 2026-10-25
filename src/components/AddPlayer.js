@@ -88,7 +88,7 @@ const AddPlayer = () => {
       <div className="add-player-hero">
         <div>
           <p className="eyebrow">Admin Console</p>
-          <h1>Onboard new CPL talent with confidence.</h1>
+          <h1>Onboard new GPL talent with confidence.</h1>
           <p className="hero-subtitle">
             Capture every detail—role, skillset, valuation, and profile imagery—in one seamless flow.
             The roster updates everywhere instantly.

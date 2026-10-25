@@ -85,13 +85,14 @@ const TrophyHall = () => {
       // Handle response format: { matchResults: [...] } or direct array
       const matchResultsData = matchResponseData.matchResults || matchResponseData || [];
       setMatchResultsData(matchResultsData);
+      const seasonHasStarted = matchResultsData.length > 0;
       
       // Fetch World Cup tournament winners separately
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const userId = user?.id || user?._id;
       let fetchedWorldCupWinners = [];
       
-      if (userId) {
+      if (userId && seasonHasStarted) {
         try {
           // Fetch all tournaments and then include only World Cups that have a recorded winner.
           const tournamentsResponse = await fetch(`${API_ENDPOINTS}/api/tournaments?limit=100`, {
@@ -249,26 +250,20 @@ const TrophyHall = () => {
         };
       });
       
-      // Show all teams if no match results exist, otherwise filter teams with trophies or runner-ups
-      if (matchResultsData.length === 0 && fetchedWorldCupWinners.length === 0) {
-        // No match results yet, show all teams with 0 trophies and 0 runner-ups
-        setTeams(teamsWithData.sort((a, b) => a.teamName.localeCompare(b.teamName)));
-      } else {
-        // Filter out teams with 0 trophies, 0 runner-ups, 0 World Cup wins, and 0 World Cup runner-ups
-        const teamsWithTrophiesOrRunnerUps = teamsWithData.filter(team => 
-          team.trophyCount > 0 || 
-          team.runnerUpCount > 0 || 
-          team.worldCupCount > 0 || 
-          team.worldCupRunnerUpCount > 0
-        );
-        setTeams(teamsWithTrophiesOrRunnerUps.sort((a, b) => {
-          // Sort by total achievements (CPL + World Cup)
+      const teamsWithHonours = teamsWithData.filter((team) =>
+        team.trophyCount > 0 ||
+        team.runnerUpCount > 0 ||
+        team.worldCupCount > 0 ||
+        team.worldCupRunnerUpCount > 0
+      );
+      setTeams(
+        teamsWithHonours.sort((a, b) => {
           const totalA = a.trophyCount + a.worldCupCount;
           const totalB = b.trophyCount + b.worldCupCount;
           if (totalB !== totalA) return totalB - totalA;
           return b.trophyCount - a.trophyCount;
-        }));
-      }
+        })
+      );
       
     } catch (error) {
       console.error('Error fetching trophy hall data:', error);
@@ -380,7 +375,7 @@ const TrophyHall = () => {
             margin: '0 0 5px 0',
             textShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}>
-            🏆 CPL Trophy Hall
+            🏆 GPL Trophy Hall
           </h1>
           <p style={{ 
             color: '#666', 
@@ -743,8 +738,8 @@ const TrophyHall = () => {
               fontSize: '1rem'
             }}>
               <div style={{ textAlign: 'left' }}>🏆</div>
-              <div style={{ textAlign: 'center' }}>🥇 CPL</div>
-              <div style={{ textAlign: 'center' }}>🥈 CPL</div>
+              <div style={{ textAlign: 'center' }}>🥇 GPL</div>
+              <div style={{ textAlign: 'center' }}>🥈 GPL</div>
               <div style={{ textAlign: 'center' }}>🌍 WC</div>
               <div style={{ textAlign: 'center' }}>🌍🥈 WC</div>
             </div>

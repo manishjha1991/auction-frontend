@@ -27,7 +27,7 @@ function UnsoldPlayers() {
       setLoading(true);
       setLoadingProgress(10);
       
-      const res = await fetch(`${API_ENDPOINTS}/api/picks/unsold?page=${page}&limit=10${type ? `&type=${encodeURIComponent(type)}` : ''}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`);
+      const res = await fetch(`${API_ENDPOINTS}/api/picks/unsold?page=${page}&limit=50${type ? `&type=${encodeURIComponent(type)}` : ''}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`);
       setLoadingProgress(50);
       
       if (!res.ok) {
@@ -221,6 +221,9 @@ function UnsoldPlayers() {
                     }
                     if (p.hasPendingRequest) {
                       return <span className="request-raised-badge" title="Request already raised">Request Raised</span>;
+                    }
+                    if (p.isActive) {
+                      return <span className="request-raised-badge" title="Player is still in the live auction">In auction</span>;
                     }
                     const sameTierCredit = canPickPlayerType(p.type);
                     return (

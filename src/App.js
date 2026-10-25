@@ -247,7 +247,7 @@ function App() {
                 <div className="sidebar-header-content">
                   <div className="sidebar-logo">
                     <FaTrophy className="logo-icon" />
-                    <span className="logo-text">{appSettings.worldCupMode ? 'World Cup' : 'CPL'}</span>
+                    <span className="logo-text">{appSettings.worldCupMode ? 'World Cup' : 'GPL'}</span>
                   </div>
                   <button className="close-btn logout-header-btn" onClick={handleLogout} aria-label="Logout">
                     <FaSignOutAlt />
@@ -382,7 +382,7 @@ function App() {
                     <li>
                       <Link to="/cpl-history" onClick={closeSidebar} className={`menu-item ${isActive('/cpl-history') ? 'active' : ''}`}>
                         <FaHistory className="menu-icon" />
-                        <span>CPL History</span>
+                        <span>GPL History</span>
                       </Link>
                     </li>
                     <li>
@@ -449,7 +449,7 @@ function App() {
                     <li>
                       <Link to="/cpl-player-career-stats" onClick={closeSidebar} className={`menu-item ${isActive('/cpl-player-career-stats') ? 'active' : ''}`}>
                         <FaChartBar className="menu-icon" />
-                        <span>CPL Player Career</span>
+                        <span>GPL Player Career</span>
                       </Link>
                     </li>
                     {user && user.isAdmin && (

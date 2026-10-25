@@ -1885,7 +1885,7 @@ const PointsTable = () => {
                     type="button"
                     data-html2canvas-ignore="true"
                     disabled={isSharing}
-                    onClick={() => handleSharePointsTable('CPL Group A Points Table', groups.A, GROUP_QUALIFIERS)}
+                    onClick={() => handleSharePointsTable('GPL Group A Points Table', groups.A, GROUP_QUALIFIERS)}
                   >
                     <FaWhatsapp /> <span>{isSharing ? 'Sharing' : 'Share'}</span>
                   </WhatsAppShareButton>
@@ -1918,7 +1918,7 @@ const PointsTable = () => {
                     type="button"
                     data-html2canvas-ignore="true"
                     disabled={isSharing}
-                    onClick={() => handleSharePointsTable('CPL Group B Points Table', groups.B, GROUP_QUALIFIERS)}
+                    onClick={() => handleSharePointsTable('GPL Group B Points Table', groups.B, GROUP_QUALIFIERS)}
                   >
                     <FaWhatsapp /> <span>{isSharing ? 'Sharing' : 'Share'}</span>
                   </WhatsAppShareButton>
@@ -1982,7 +1982,7 @@ const PointsTable = () => {
                     type="button"
                     data-html2canvas-ignore="true"
                     disabled={isSharing}
-                    onClick={() => handleSharePointsTable('CPL Points Table', sortedTeams, NUM_QUALIFIERS)}
+                    onClick={() => handleSharePointsTable('GPL Points Table', sortedTeams, NUM_QUALIFIERS)}
                   >
                     <FaWhatsapp /> <span>{isSharing ? 'Sharing' : 'Share'}</span>
                   </WhatsAppShareButton>

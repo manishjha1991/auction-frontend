@@ -405,13 +405,13 @@ const Login = ({ onLogin }) => {
         <div className="login-mobile-brand" aria-hidden="false">
           <img src="images/cricket_trophy_CPL.jpg" alt="" className="login-mobile-brand__logo" />
           <div>
-            <p className="eyebrow">CPL Auction Hub</p>
+            <p className="eyebrow">GPL Auction Hub</p>
             <strong>Captain login</strong>
           </div>
         </div>
 
         <div className="auth-illustration arena-side">
-          <p className="eyebrow">CPL Auction Hub</p>
+          <p className="eyebrow">GPL Auction Hub</p>
           <h1>
             {greetingTeam
               ? `Welcome back, Captain of ${greetingTeam}.`
@@ -529,7 +529,7 @@ const Login = ({ onLogin }) => {
               </form>
 
               <div className="auth-footer">
-                <p>New to CPL?</p>
+                <p>New to GPL?</p>
                 <Link to="/signup">Create an account</Link>
               </div>
             </div>
@@ -622,7 +622,7 @@ const Login = ({ onLogin }) => {
                 </>
               ) : null}
               <span className="login-teaser__sep login-teaser__sep--desktop">|</span>
-              <span className="login-teaser__extra">CPL Auction Hub — live night mode</span>
+              <span className="login-teaser__extra">GPL Auction Hub — live night mode</span>
             </div>
           </div>
         </div>

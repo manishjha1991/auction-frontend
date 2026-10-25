@@ -254,7 +254,7 @@ const RankingSection = ({
         <div className="rk-section-icon">{icon}</div>
         <div>
           <h2>{title}</h2>
-          <p>Live CPL rankings driven by cumulative stats</p>
+          <p>Live GPL rankings driven by cumulative stats</p>
         </div>
       </header>
 

@@ -359,7 +359,7 @@ export default function TeamSquadsShowcase() {
       <header className="tss-header">
         <h1 className="tss-title">Team squads</h1>
         <p className="tss-sub">
-          Cards show CPL &amp; World Cup honours. Tap a team to open its page — career and season
+          Cards show GPL &amp; World Cup honours. Tap a team to open its page — career and season
           MP / W / win % appear there with the full squad.
         </p>
       </header>
@@ -475,14 +475,14 @@ export default function TeamSquadsShowcase() {
                   <span className="tss-card-name">{team.teamName}</span>
                   <span className="tss-card-chips">
                     <span className="tss-card-chips-trophies">
-                      CPL {stats.cplWins} · WC {stats.wcWins}
+                      GPL {stats.cplWins} · WC {stats.wcWins}
                     </span>
                   </span>
                 </div>
                 <div className="tss-card-hover" aria-hidden>
                   <FaTrophy className="tss-card-trophy" />
                   <div className="tss-card-hover-stats">
-                    <span>CPL wins: {stats.cplWins}</span>
+                    <span>GPL wins: {stats.cplWins}</span>
                     <span>World Cup: {stats.wcWins}</span>
                     {stats.cplYears.length > 0 && (
                       <span className="tss-card-years">
@@ -571,7 +571,7 @@ export default function TeamSquadsShowcase() {
                       <div className="tss-modal-trophies">
                         <FaTrophy />
                         <span>
-                          CPL wins: {st?.cplWins ?? 0}
+                          GPL wins: {st?.cplWins ?? 0}
                           {st?.cplYears?.length > 0 && (
                             <span className="tss-modal-years">
                               {' '}

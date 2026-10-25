@@ -65,14 +65,20 @@ const SCHEDULE = [
   { key: 'nightEnd', label: 'Night auto cycle ends', hour: 4, minute: 0, note: 'Automatic exit/sell stops' },
 ];
 
-const QUEUE_RULES_EXAMPLE = `📢 Queue + Manual Bid Rules (Examples)
+function buildQueueRulesExample(caps) {
+  const goldMax = caps.goldMax;
+  const silverMax = caps.silverMax;
+  const sapphireMax = caps.sapphireMax;
+  const emeraldMax = caps.emeraldMax;
+  const esMax = caps.sapphireEmeraldMax;
+  return `📢 Queue + Manual Bid Rules (Examples)
 
 Core limits:
-- Gold max 8
-- Silver max 6
-- Sapphire max 2
-- Emerald max 4
-- Emerald + Sapphire combined max 5
+- Gold max ${goldMax}
+- Silver max ${silverMax}
+- Sapphire max ${sapphireMax}
+- Emerald max ${emeraldMax}
+- Emerald + Sapphire combined max ${esMax}
 - Retained players are counted in the above limits
 
 Queue join:
@@ -88,19 +94,19 @@ Manual bid + queue slot consumption:
 - If active bids + queue entries already fill your category/concurrent slots, manual bid is blocked
 
 Example A (Gold):
-- Retained 1 Gold + bought 1 Gold + active bids on 5 Gold = 7 used
-- Join queue on one more Gold => capacity reaches 8
+- Retained 1 Gold + bought 1 Gold + active bids fill remaining Gold slots
+- Join queue on one more Gold => capacity reaches ${goldMax}
 - Now another new Gold manual bid is blocked until one active/queue slot frees up
 
 Example B (Emerald + Sapphire):
-- Retained: 1 Sapphire + 1 Emerald (2 used)
-- Active bids: 2 Emerald (total 4 used)
-- Join queue on 1 Sapphire => total reaches 5
-- Now new Emerald/Sapphire manual bid is blocked until one ES slot is freed
+- Mixes allowed by combined max ${esMax} and Sapphire max ${sapphireMax} (for example 2+2, 1+3, or 0+4)
+- Retained count toward the combined pool
+- Once Emerald + Sapphire (owned + bidding + queued) hits ${esMax}, new ES bids are blocked until a slot frees up
 
 Max exceeded behavior:
 - If next legal bid becomes greater than your queue max, queue entry is removed and locked amount is refunded
 - If already promoted and max is crossed during auto-bid, proxy exits and refund is processed`;
+}
 
 const QUEUE_MAX_RULE_UPDATE = `Queue Max Bid Rule (Latest Update)
 
@@ -139,6 +145,13 @@ export default function AuctionTimeline() {
   const [now, setNow] = useState(() => new Date());
   const [copyStatus, setCopyStatus] = useState('');
   const [auctionStartAt, setAuctionStartAt] = useState(null);
+  const [rosterCaps, setRosterCaps] = useState({
+    goldMax: 8,
+    silverMax: 6,
+    sapphireMax: 2,
+    emeraldMax: 4,
+    sapphireEmeraldMax: 4,
+  });
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 640);
   const [whatsAppMode, setWhatsAppMode] = useState('detailed');
 
@@ -162,6 +175,9 @@ export default function AuctionTimeline() {
         const data = await res.json();
         if (!alive) return;
         setAuctionStartAt(data?.auctionStartAt || null);
+        if (data?.rosterCaps) {
+          setRosterCaps((prev) => ({ ...prev, ...data.rosterCaps }));
+        }
       } catch (_err) {
         // Keep timeline working with fallback cycle date when settings fetch fails.
       }
@@ -408,7 +424,7 @@ export default function AuctionTimeline() {
           lineHeight: 1.5,
         }}
       >
-        {QUEUE_RULES_EXAMPLE}
+        {buildQueueRulesExample(rosterCaps)}
       </div>
     </div>
   );

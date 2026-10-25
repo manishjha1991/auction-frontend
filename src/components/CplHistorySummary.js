@@ -64,7 +64,7 @@ function SeasonCard({ season }) {
         <div className="cpl-history-champion">
           <div className="cpl-history-champion-label">
             <FaTrophy style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            CPL winner — playoff final
+            GPL winner — playoff final
             {playoff.playoffMatchId && (
               <span className="cpl-history-subtle"> ({playoff.playoffMatchId})</span>
             )}
@@ -299,12 +299,10 @@ export default function CplHistorySummary() {
       <header className="cpl-history-header">
         <h1>
           <FaHistory style={{ marginRight: 10, verticalAlign: 'middle', opacity: 0.9 }} />
-          CPL history
+          GPL history
         </h1>
         <p>
-          Past seasons: CPL winner from playoff final when available (match F or WCF), full league tables (points, NRR,
-          fairness), and player highlights (leading wicket-taker, best all-rounder, strongest batting+bowling squad).
-          Current season DB is excluded.
+          GPL seasons with completed matches. History stays empty until GPL_1 results are entered.
         </p>
         {data?.currentSeasonDb && (
           <div className="cpl-history-meta">Live app DB: {data.currentSeasonDb}</div>
@@ -327,7 +325,7 @@ export default function CplHistorySummary() {
             <div className="cpl-history-loading-bar" aria-hidden />
             <div className="cpl-history-loading-overlay">
               <div className="cpl-history-spinner cpl-history-spinner--lg" />
-              <p className="cpl-history-loading-title">Loading CPL history</p>
+              <p className="cpl-history-loading-title">Loading GPL history</p>
               <p className="cpl-history-loading-hint" key={loadHint}>
                 {LOADING_HINTS[loadHint]}
               </p>
@@ -346,7 +344,7 @@ export default function CplHistorySummary() {
         )}
 
         {!loading && data?.seasons?.length === 0 && !err && (
-          <div className="cpl-history-empty">No historical seasons configured. Set CPL_HISTORY_DBS on the server.</div>
+          <div className="cpl-history-empty">No GPL seasons with completed matches yet. History will appear after GPL_1 results are saved.</div>
         )}
 
         {!loading &&

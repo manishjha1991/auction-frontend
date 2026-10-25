@@ -297,7 +297,7 @@ export function getAuctionNightWindows(now = new Date(), cronSettings = {}) {
   ];
 }
 
-export const WHATSAPP_MESSAGE = `🏏 CPL Auction Night (IST)
+export const WHATSAPP_MESSAGE = `🏏 GPL Auction Night (IST)
 
 📌 All times India time
 📌 Auto Mode ON = system switches itself
@@ -382,7 +382,7 @@ export const WHATSAPP_MESSAGE = `🏏 CPL Auction Night (IST)
 
 ℹ️ Queue waiting users can block a sell for that player`;
 
-export const WHATSAPP_MESSAGE_SHORT = `🏏 CPL Auction Night (IST)
+export const WHATSAPP_MESSAGE_SHORT = `🏏 GPL Auction Night (IST)
 
 • 9:00–10:45 PM: Bulk exit only (no sell)
 • 10:45 PM: Bulk stop

@@ -90,9 +90,9 @@ export default function CplCompositeReport() {
   return (
     <div className="cpl-report-page">
       <header className="cpl-report-hero">
-        <h1>Qualification overview</h1>
+        <h1>GPL qualification overview</h1>
         <p>
-          See how teams stack across the <strong>last three CPL seasons</strong> — a single picture that helps judge
+          See how teams stack across <strong>GPL seasons</strong> — starting from GPL_1.
           who&apos;s in the mix for <strong>World Cup</strong> and other qualification storylines. Per-season tables
           and methodology are below; numbers are live from your databases.
         </p>
@@ -149,11 +149,11 @@ export default function CplCompositeReport() {
                 <FaTrophy style={{ marginRight: 8, verticalAlign: 'middle' }} />
                 Who&apos;s in the qualification mix?
               </h2>
-              <span>Live · Higher qualification index = stronger run across recent CPLs</span>
+              <span>Live · Higher qualification index = stronger run across GPL seasons</span>
             </div>
             <div className="cpl-report-card-body">
               <p className="cpl-report-qual-intro">
-                <strong>Qualification index</strong> is the average of each team&apos;s per-season index (see each CPL
+                <strong>Qualification index</strong> is the average of each team&apos;s per-season index (see each GPL
                 table below for that season&apos;s index). It blends points, NRR, and fairness — a guide for narratives
                 like <strong>World Cup</strong> spots. The top six (green) are used when you{' '}
                 <strong>Initialize World Cup</strong>

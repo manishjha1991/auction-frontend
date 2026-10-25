@@ -12,6 +12,18 @@ import {
 const formatCr = (value) => `${value.toFixed(2)} Cr`;
 const CONSISTENCY_BADGE_KEY = 'adminConsistencyBadgeCount';
 const CONSISTENCY_BADGE_UPDATED_EVENT = 'consistency-check-updated';
+const DEFAULT_ROSTER_CAPS = {
+  sapphireMax: 2,
+  emeraldMax: 4,
+  goldMax: 8,
+  silverMax: 6,
+  sapphireEmeraldMax: 4,
+  sapphireMin: 0,
+  emeraldMin: 2,
+  sapphireEmeraldMin: 4,
+  goldMin: 8,
+  silverMin: 6,
+};
 
 const deriveAdminId = (adminUser) => {
   if (adminUser?.id) return adminUser.id;
@@ -86,6 +98,8 @@ const AdminControlPanel = ({ adminUser }) => {
   const [selectedCommissionerId, setSelectedCommissionerId] = useState('');
   const [tradeGovernanceSaving, setTradeGovernanceSaving] = useState(false);
   const [revokeTeamAdminsLoading, setRevokeTeamAdminsLoading] = useState(false);
+  const [rosterCaps, setRosterCaps] = useState(DEFAULT_ROSTER_CAPS);
+  const [rosterCapsSaving, setRosterCapsSaving] = useState(false);
   const [cronLoading, setCronLoading] = useState(false);
   const [cronSaving, setCronSaving] = useState(false);
   const [tradeRulesSaving, setTradeRulesSaving] = useState(false);
@@ -158,6 +172,9 @@ const AdminControlPanel = ({ adminUser }) => {
         bundleAutoApprove: data.bundleAutoApprove !== false,
       });
       setWorldCupMode(data.worldCupMode === true);
+      if (data.rosterCaps && typeof data.rosterCaps === 'object') {
+        setRosterCaps({ ...DEFAULT_ROSTER_CAPS, ...data.rosterCaps });
+      }
     } catch (err) {
       if (!silent) handleToast(err.message || 'Unable to load cron settings');
     } finally {
@@ -731,6 +748,26 @@ const AdminControlPanel = ({ adminUser }) => {
     }
   };
 
+  const saveRosterCaps = async () => {
+    if (!adminUserId || rosterCapsSaving) return;
+    setRosterCapsSaving(true);
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminUserId, rosterCaps }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to save roster caps');
+      if (data.rosterCaps) setRosterCaps({ ...DEFAULT_ROSTER_CAPS, ...data.rosterCaps });
+      handleToast('Roster and bid caps saved. Bidding, picks, trades, and lock use these numbers immediately.');
+    } catch (err) {
+      handleToast(err.message || 'Unable to save roster caps');
+    } finally {
+      setRosterCapsSaving(false);
+    }
+  };
+
   const updateLockCategories = async (category, checked) => {
     if (!adminUserId || cronSaving) return;
     const current = cronSettings.lockCheckCategories || [];
@@ -1064,9 +1101,13 @@ const AdminControlPanel = ({ adminUser }) => {
   ];
 
   const lockCategoryOptions = [
-    { key: 'sapphireEmerald', label: 'Sapphire + Emerald', hint: 'S≥1, E≥2, total≥4' },
-    { key: 'gold', label: 'Gold', hint: 'min 8 total' },
-    { key: 'silver', label: 'Silver', hint: 'min 6 total' },
+    {
+      key: 'sapphireEmerald',
+      label: 'Sapphire + Emerald',
+      hint: `S≥${rosterCaps.sapphireMin}, E≥${rosterCaps.emeraldMin}, total≥${rosterCaps.sapphireEmeraldMin}`,
+    },
+    { key: 'gold', label: 'Gold', hint: `min ${rosterCaps.goldMin} total` },
+    { key: 'silver', label: 'Silver', hint: `min ${rosterCaps.silverMin} total` },
   ];
 
   const autoOn = !!cronSettings.auctionAutoModeEnabled;
@@ -1891,6 +1932,79 @@ const AdminControlPanel = ({ adminUser }) => {
             </p>
           </div>
         )}
+      </section>
+
+      <section className="admin-section">
+        <div className="section-header">
+          <div>
+            <h2>Roster & bid caps</h2>
+            <p>
+              How many of each type a team can own and bid. Retained players count toward the max,
+              so remaining slots are max minus retained. Sapphire and Emerald share a combined pool.
+            </p>
+          </div>
+          {rosterCapsSaving && <span className="cron-saving-pill">Saving…</span>}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+          {[
+            { key: 'sapphireMax', label: 'Sapphire max' },
+            { key: 'emeraldMax', label: 'Emerald max' },
+            { key: 'goldMax', label: 'Gold max' },
+            { key: 'silverMax', label: 'Silver max' },
+            { key: 'sapphireEmeraldMax', label: 'S + E combined max' },
+          ].map((field) => (
+            <label key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
+              {field.label}
+              <input
+                type="number"
+                min="0"
+                max="20"
+                value={rosterCaps[field.key]}
+                onChange={(e) =>
+                  setRosterCaps((prev) => ({ ...prev, [field.key]: Number(e.target.value) }))
+                }
+                style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+              />
+            </label>
+          ))}
+        </div>
+        <div style={{ fontWeight: 600, margin: '16px 0 8px' }}>Lock / must-have mins (bought + bidding)</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+          {[
+            { key: 'sapphireMin', label: 'Sapphire min' },
+            { key: 'emeraldMin', label: 'Emerald min' },
+            { key: 'sapphireEmeraldMin', label: 'S + E combined min' },
+            { key: 'goldMin', label: 'Gold min' },
+            { key: 'silverMin', label: 'Silver min' },
+          ].map((field) => (
+            <label key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
+              {field.label}
+              <input
+                type="number"
+                min="0"
+                max="20"
+                value={rosterCaps[field.key]}
+                onChange={(e) =>
+                  setRosterCaps((prev) => ({ ...prev, [field.key]: Number(e.target.value) }))
+                }
+                style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+              />
+            </label>
+          ))}
+        </div>
+        <p style={{ marginTop: 12, fontSize: 13, color: '#555' }}>
+          Example with combined max 4 and Sapphire max 2: 2 Sapphire + 2 Emerald, 1 Sapphire + 3 Emerald,
+          or 0 Sapphire + 4 Emerald. A team that retained 1 Sapphire can bid/buy at most 1 more Sapphire.
+        </p>
+        <button
+          type="button"
+          className="btn primary"
+          onClick={saveRosterCaps}
+          disabled={rosterCapsSaving || !adminUserId}
+          style={{ marginTop: 8 }}
+        >
+          {rosterCapsSaving ? 'Saving…' : 'Save roster caps'}
+        </button>
       </section>
 
       <section className="admin-section">
