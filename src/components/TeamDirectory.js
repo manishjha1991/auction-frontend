@@ -536,7 +536,7 @@ const TeamDirectory = () => {
   const fetchTeams = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_ENDPOINTS}/api/users/teams`);
+      const response = await axios.get(`${API_ENDPOINTS}/api/users/teams?includeNotReady=true`);
       const data = Array.isArray(response.data) ? response.data : response.data?.teams || [];
       setTeams(data);
     } catch (error) {

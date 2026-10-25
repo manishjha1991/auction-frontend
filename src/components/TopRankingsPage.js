@@ -26,7 +26,8 @@ const isBattingRole = (role = '') => {
 
 const isBowlingRole = (role = '') => {
   const text = String(role || '').toLowerCase();
-  return text.includes('bowl') || text.includes('allrounder') || text.includes('keeper');
+  if (text.includes('keeper') && !text.includes('bowl')) return false;
+  return text.includes('bowl') || text.includes('allrounder');
 };
 
 /** Fantasy-style tie-break: runs + 22 × wickets (same order of magnitude as CPL helpers). */
@@ -428,7 +429,8 @@ const TopRankingsPage = () => {
     return players
       .filter((p) => {
         const role = (p.role || '').toLowerCase();
-        return role.includes('bowl') && !role.includes('all');
+        const isPureBowler = role.includes('bowl') && !role.includes('all');
+        return isPureBowler && (p.totalWickets || 0) > 0;
       })
       .sort((a, b) => b.totalWickets - a.totalWickets);
   }, [players]);

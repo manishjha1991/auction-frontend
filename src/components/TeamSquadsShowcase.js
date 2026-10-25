@@ -132,7 +132,7 @@ export default function TeamSquadsShowcase() {
     setError(null);
     try {
       const [teamsRes, matchRes] = await Promise.all([
-        fetch(`${API_ENDPOINTS}/api/users/teams`),
+        fetch(`${API_ENDPOINTS}/api/users/teams?includeNotReady=true`),
         fetch(`${API_ENDPOINTS}/api/match-results/public`),
       ]);
       if (!teamsRes.ok) throw new Error('Failed to load teams');
