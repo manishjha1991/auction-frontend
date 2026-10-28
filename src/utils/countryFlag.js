@@ -18,6 +18,18 @@ const COUNTRY_CODES = {
   afghanistan: 'af',
   ireland: 'ie',
   zimbabwe: 'zw',
+  netherland: 'nl',
+  netherlands: 'nl',
+  holland: 'nl',
+  nl: 'nl',
+  scotland: 'gb-sct',
+  italy: 'it',
+  canada: 'ca',
+  namibia: 'na',
+  usa: 'us',
+  us: 'us',
+  'united states': 'us',
+  'united states of america': 'us',
 };
 
 const normalizeCountryKey = (country) =>

@@ -23,6 +23,7 @@ const DEFAULT_ROSTER_CAPS = {
   sapphireEmeraldMin: 4,
   goldMin: 8,
   silverMin: 6,
+  indiaMax: 3,
 };
 
 const deriveAdminId = (adminUser) => {
@@ -1952,6 +1953,7 @@ const AdminControlPanel = ({ adminUser }) => {
             { key: 'goldMax', label: 'Gold max' },
             { key: 'silverMax', label: 'Silver max' },
             { key: 'sapphireEmeraldMax', label: 'S + E combined max' },
+            { key: 'indiaMax', label: 'Indian players max (all types)' },
           ].map((field) => (
             <label key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
               {field.label}
@@ -1995,6 +1997,7 @@ const AdminControlPanel = ({ adminUser }) => {
         <p style={{ marginTop: 12, fontSize: 13, color: '#555' }}>
           Example with combined max 4 and Sapphire max 2: 2 Sapphire + 2 Emerald, 1 Sapphire + 3 Emerald,
           or 0 Sapphire + 4 Emerald. A team that retained 1 Sapphire can bid/buy at most 1 more Sapphire.
+          Indian max counts bought + active bids + queue across every category. Default 3.
         </p>
         <button
           type="button"
