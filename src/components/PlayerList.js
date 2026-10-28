@@ -336,6 +336,8 @@ const PlayerList = () => {
     [players]
   );
   
+  const overallOf = (player) => Number(player.overallScore ?? player.score ?? 0) || 0;
+
   const sortedPlayers = useMemo(() => [...players]
     .filter((player) =>
       player.name.toLowerCase().includes(search.toLowerCase())
@@ -357,10 +359,17 @@ const PlayerList = () => {
           if (!a.currentBidder && b.currentBidder) return 1;
           return 0;
 
-        default:
+        case "Price": {
           const maxA = Math.max(a.biddingPrice || 0, a.basePrice || 0);
           const maxB = Math.max(b.biddingPrice || 0, b.basePrice || 0);
           return maxB - maxA;
+        }
+
+        default: {
+          const scoreDiff = overallOf(b) - overallOf(a);
+          if (scoreDiff !== 0) return scoreDiff;
+          return String(a.name || '').localeCompare(String(b.name || ''));
+        }
       }
     }), [players, search, roleFilter, sortOption]);
 
@@ -618,9 +627,12 @@ const PlayerList = () => {
                   <PlayerAvatar profilePicture={player.profilePicture} name={player.name} country={player.country} size={28} />
                   <div className="player-name-stack">
                     <span className="player-name-text">{player.name}</span>
-                    {player.bowlingStyle && (
-                      <span className="player-extra-meta">{player.bowlingStyle}</span>
-                    )}
+                    <span className="player-extra-meta">
+                      {overallOf(player) > 0 ? (
+                        <span className="player-overall-chip" title="Overall rating">{overallOf(player)}</span>
+                      ) : null}
+                      {player.bowlingStyle || ''}
+                    </span>
                   </div>
                 </div>
               </div>
