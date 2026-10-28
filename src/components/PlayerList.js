@@ -337,6 +337,8 @@ const PlayerList = () => {
   );
   
   const overallOf = (player) => Number(player.overallScore ?? player.score ?? 0) || 0;
+  const bidValueOf = (player) =>
+    Number(player.biddingPrice || player.basePrice || 0) || 0;
 
   const sortedPlayers = useMemo(() => [...players]
     .filter((player) =>
@@ -359,13 +361,15 @@ const PlayerList = () => {
           if (!a.currentBidder && b.currentBidder) return 1;
           return 0;
 
-        case "Price": {
-          const maxA = Math.max(a.biddingPrice || 0, a.basePrice || 0);
-          const maxB = Math.max(b.biddingPrice || 0, b.basePrice || 0);
-          return maxB - maxA;
+        case "Overall": {
+          const scoreDiff = overallOf(b) - overallOf(a);
+          if (scoreDiff !== 0) return scoreDiff;
+          return String(a.name || '').localeCompare(String(b.name || ''));
         }
 
         default: {
+          const bidDiff = bidValueOf(b) - bidValueOf(a);
+          if (bidDiff !== 0) return bidDiff;
           const scoreDiff = overallOf(b) - overallOf(a);
           if (scoreDiff !== 0) return scoreDiff;
           return String(a.name || '').localeCompare(String(b.name || ''));
