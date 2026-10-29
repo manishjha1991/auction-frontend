@@ -58,10 +58,10 @@ function toDateOnlyMsFromParts(parts) {
 const SCHEDULE = [
   { key: 'bulkStart', label: 'Bulk exit starts (no selling)', hour: 21, minute: 0, note: 'Every 10 min: remove 2nd-highest only' },
   { key: 'bulkStop', label: 'Bulk exit stops', hour: 22, minute: 45, note: 'No auto exit until 11:30 PM' },
-  { key: 'lock', label: 'Team lock check', hour: 23, minute: 0, note: 'Lock under-limit teams (Admin categories)' },
   { key: 'singleBidSell', label: 'Sell no-counter-bid + bulk 2 starts', hour: 23, minute: 30, note: 'Sell players with only 1 bid since start, then bulk exit until 12:30 AM' },
-  { key: 'bulk2Stop', label: 'Bulk exit stops', hour: 0, minute: 30, note: 'Pause until 12:45 AM sell-after-exit' },
-  { key: 'sellAfterExit', label: 'Sell after 2nd-highest exit', hour: 0, minute: 45, note: '12:44 freeze solo lots; 12:45 sell if other bid already gone (no exit); from 12:50 every 5 min exit / sell if exited ≥ 2 min' },
+  { key: 'bulk2Stop', label: 'Bulk exit stops', hour: 0, minute: 30, note: 'Pause until 1:30 AM lock, then 2:00 AM sell-after-exit' },
+  { key: 'lock', label: 'Team lock check', hour: 1, minute: 30, note: 'Lock under-limit teams (Admin categories)' },
+  { key: 'sellAfterExit', label: 'Sell after 2nd-highest exit', hour: 2, minute: 0, note: '1:59 freeze solo lots; 2:00 sell if other bid already gone (no exit); from 2:05 every 5 min exit / sell if exited ≥ 2 min' },
   { key: 'nightEnd', label: 'Night auto cycle ends', hour: 4, minute: 0, note: 'Automatic exit/sell stops' },
 ];
 
