@@ -340,8 +340,31 @@ const PlayerList = () => {
   );
   
   const overallOf = (player) => Number(player.overallScore ?? player.score ?? 0) || 0;
-  const bidValueOf = (player) =>
-    Number(player.biddingPrice || player.basePrice || 0) || 0;
+  const hasLiveBid = (player) => {
+    const bidder = player?.currentBidder;
+    if (bidder && bidder !== 'N/A') return true;
+    return player?.isBidOn === true;
+  };
+  const liveBidAmount = (player) => {
+    const n = Number(player?.currentBid ?? player?.biddingPrice ?? player?.basePrice ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const byOverallThenName = (a, b) => {
+    const scoreDiff = overallOf(b) - overallOf(a);
+    if (scoreDiff !== 0) return scoreDiff;
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  };
+  const byHighestBidThenOverall = (a, b) => {
+    const aLive = hasLiveBid(a);
+    const bLive = hasLiveBid(b);
+    if (aLive && !bLive) return -1;
+    if (!aLive && bLive) return 1;
+    if (aLive && bLive) {
+      const bidDiff = liveBidAmount(b) - liveBidAmount(a);
+      if (bidDiff !== 0) return bidDiff;
+    }
+    return byOverallThenName(a, b);
+  };
 
   const sortedPlayers = useMemo(() => [...players]
     .filter((player) =>
@@ -361,31 +384,13 @@ const PlayerList = () => {
           return a.type.localeCompare(b.type);
 
         case "Bidding":
-          if (a.currentBidder && !b.currentBidder) return -1;
-          if (!a.currentBidder && b.currentBidder) return 1;
-          return 0;
+          return byHighestBidThenOverall(a, b);
 
-        case "Overall": {
-          const scoreDiff = overallOf(b) - overallOf(a);
-          if (scoreDiff !== 0) return scoreDiff;
-          return String(a.name || '').localeCompare(String(b.name || ''));
-        }
+        case "Overall":
+          return byOverallThenName(a, b);
 
-        default: {
-          const auctionRunning = players.some(
-            (p) =>
-              !isSoldPlayer(p) &&
-              p.currentBidder &&
-              p.currentBidder !== 'N/A'
-          );
-          if (auctionRunning) {
-            const bidDiff = bidValueOf(b) - bidValueOf(a);
-            if (bidDiff !== 0) return bidDiff;
-          }
-          const scoreDiff = overallOf(b) - overallOf(a);
-          if (scoreDiff !== 0) return scoreDiff;
-          return String(a.name || '').localeCompare(String(b.name || ''));
-        }
+        default:
+          return byHighestBidThenOverall(a, b);
       }
     }), [players, search, roleFilter, sortOption]);
 
