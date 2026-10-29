@@ -75,10 +75,11 @@ const PlayerList = () => {
     fetchPlayersInFlightRef.current = true;
     try {
       setLoading(true);
-      const response = await fetch(`${API_ENDPOINTS}/api/players/data`, {
+      const response = await fetch(`${API_ENDPOINTS}/api/players/data?nocache=1`, {
         headers: {
           "Content-Type": "application/json",
         },
+        cache: "no-store",
       });
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -229,10 +230,13 @@ const PlayerList = () => {
   useEffect(() => {
     if (!on) return;
     
+    const samePlayer = (player, playerId) =>
+      String(player.id || player._id || "") === String(playerId || "");
+
     const cleanup1 = on('player_bid_update', (update) => {
       setPlayers(prevPlayers => {
         return prevPlayers.map(player => {
-          if (player.id === update.playerId || player._id === update.playerId) {
+          if (samePlayer(player, update.playerId)) {
             return {
               ...player,
               biddingPrice: update.bidAmount || update.currentBid || player.biddingPrice,
@@ -267,17 +271,13 @@ const PlayerList = () => {
     });
     
     const cleanup2 = on('player_sold_update', (update) => {
-      setPlayers(prevPlayers => {
-        return prevPlayers.map(player => {
-          if (player.id === update.playerId || player._id === update.playerId) {
-            return {
-              ...player,
-              status: 'Sold'
-            };
-          }
-          return player;
-        });
-      });
+      setPlayers(prevPlayers =>
+        prevPlayers.filter((player) => !samePlayer(player, update.playerId))
+      );
+      setMyActiveBidPlayerIds((prev) =>
+        prev.filter((id) => String(id) !== String(update.playerId || ""))
+      );
+      fetchPlayers();
     });
     
     const cleanup3 = on('bid_exit_notification', (update) => {
@@ -331,8 +331,11 @@ const PlayerList = () => {
     setSelectedPlayer(null);
   }, []);
 
+  const isSoldPlayer = (player) =>
+    player?.status === "Sold" || player?.status === true || player?.isSold === true;
+
   const unsoldPlayers = useMemo(() => 
-    players.filter((player) => player.status !== "Sold"), 
+    players.filter((player) => !isSoldPlayer(player)), 
     [players]
   );
   
@@ -344,6 +347,7 @@ const PlayerList = () => {
     .filter((player) =>
       player.name.toLowerCase().includes(search.toLowerCase())
     )
+    .filter((player) => !isSoldPlayer(player))
     .filter((player) => (roleFilter ? player.role.toLowerCase() === roleFilter.toLowerCase() : true))
     .sort((a, b) => {
       switch (sortOption) {
@@ -368,8 +372,16 @@ const PlayerList = () => {
         }
 
         default: {
-          const bidDiff = bidValueOf(b) - bidValueOf(a);
-          if (bidDiff !== 0) return bidDiff;
+          const auctionRunning = players.some(
+            (p) =>
+              !isSoldPlayer(p) &&
+              p.currentBidder &&
+              p.currentBidder !== 'N/A'
+          );
+          if (auctionRunning) {
+            const bidDiff = bidValueOf(b) - bidValueOf(a);
+            if (bidDiff !== 0) return bidDiff;
+          }
           const scoreDiff = overallOf(b) - overallOf(a);
           if (scoreDiff !== 0) return scoreDiff;
           return String(a.name || '').localeCompare(String(b.name || ''));
@@ -615,7 +627,11 @@ const PlayerList = () => {
       </div>
       <div className="player-grid">
         {sortedPlayers.map((player) => {
-          if (player.status === "Sold") return null;
+          const isSold =
+            player.status === "Sold" ||
+            player.status === true ||
+            player.isSold === true;
+          if (isSold) return null;
           const pid = String(player.id || player._id);
           const queueWaiters = bidQueueCounts[pid] || 0;
 

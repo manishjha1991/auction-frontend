@@ -2,7 +2,7 @@
 .toast { background: linear-gradient(135deg, #0d6efd, #6610f2); color: #fff; padding: 10px 12px; border-radius: 12px; box-shadow: 0 8px 24px rgba(13,110,253,0.25); }
 .header { display: flex; align-items: center; justify-content: space-between; }
 .gradient-title { background: linear-gradient(90deg, #0d6efd, #20c997); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.toolbar { display: flex; gap: 12px; align-items: center; }
+.toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 
 /* Super Cool Sexy Search Bar */
 .search-container {
@@ -157,7 +157,7 @@
   40% { transform: translateY(-5px); }
   60% { transform: translateY(-3px); }
 }
-.select { padding: 10px 12px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.04); }
+.select { padding: 10px 12px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; background: #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.04); max-width: 180px; }
 .btn { padding: 10px 12px; border: none; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.06); }
 .btn-primary { background: linear-gradient(135deg, #0d6efd, #20c997); color: #fff; }
 .btn-ghost { background: #ffffff; color: #0d6efd; border: 1px solid rgba(13,110,253,0.25); }

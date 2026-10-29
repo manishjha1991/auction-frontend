@@ -1077,7 +1077,7 @@ const UserPursePage = () => {
       
       // Smooth progress updates
       if (!silent) setLoadingProgress(20);
-      const response = await fetch(`${API_ENDPOINTS}/api/users/purses`);
+      const response = await fetch(`${API_ENDPOINTS}/api/users/purses`, { cache: 'no-store' });
       if (!silent) setLoadingProgress(60);
       
       if (!response.ok) {
@@ -1548,8 +1548,13 @@ const UserPursePage = () => {
             }))
           });
           
-          const ownedPlayers = user.players.filter(p => !p.isBidOn);
-          const biddingPlayers = user.players.filter(p => p.isBidOn);
+          const ownedPlayers = user.players.filter((p) => !p.isBidOn || p.status === 'Sold' || p.isSold === true);
+          const ownedIds = new Set(ownedPlayers.map((p) => String(p.id || p._id || p.name)));
+          const biddingPlayers = user.players.filter((p) => {
+            if (!p.isBidOn) return false;
+            if (p.status === 'Sold' || p.isSold === true) return false;
+            return !ownedIds.has(String(p.id || p._id || p.name));
+          });
           
           console.log('Filtered players:', {
             owned: ownedPlayers.length,
@@ -1806,11 +1811,10 @@ const UserPursePage = () => {
                 <PlayersSection>
                   <SectionHeader>
                     <SectionTitle>Owned Players</SectionTitle>
-                    <SectionCount>{user.players.filter(p => !p.isBidOn).length}</SectionCount>
+                    <SectionCount>{ownedPlayers.length}</SectionCount>
                   </SectionHeader>
                   <PlayersGrid>
-              {user.players
-                .filter((player) => !player.isBidOn)
+              {ownedPlayers
                   .sort((a, b) => {
                     // Normalize type to handle any casing issues
                     const typeA = (a.type || '').toString().trim();
@@ -1846,15 +1850,14 @@ const UserPursePage = () => {
                 ))}
                   </PlayersGrid>
 
-              {user.players.some((player) => player.isBidOn) && (
+              {biddingPlayers.length > 0 && (
                     <>
                       <SectionHeader>
                         <SectionTitle>Bidding Players</SectionTitle>
-                        <SectionCount>{user.players.filter(p => p.isBidOn).length}</SectionCount>
+                        <SectionCount>{biddingPlayers.length}</SectionCount>
                       </SectionHeader>
                       <PlayersGrid>
-              {user.players
-                .filter((player) => player.isBidOn)
+              {biddingPlayers
                 .map((player, idx) => {
                   const isCurrentUser = user.id === currentUser?.id || user._id === currentUser?.id || user.userName === currentUser?.name;
                   

@@ -9,6 +9,10 @@ function UnsoldPlayers() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [type, setType] = useState('');
+  const [role, setRole] = useState('');
+  const [country, setCountry] = useState('');
+  const [countries, setCountries] = useState([]);
+  const [auctionRunning, setAuctionRunning] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -28,7 +32,12 @@ function UnsoldPlayers() {
       setLoading(true);
       setLoadingProgress(10);
       
-      const res = await fetch(`${API_ENDPOINTS}/api/picks/unsold?page=${page}&limit=50${type ? `&type=${encodeURIComponent(type)}` : ''}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`);
+      const params = new URLSearchParams({ page: String(page), limit: '50' });
+      if (type) params.set('type', type);
+      if (role) params.set('role', role);
+      if (country) params.set('country', country);
+      if (searchQuery) params.set('search', searchQuery);
+      const res = await fetch(`${API_ENDPOINTS}/api/picks/unsold?${params.toString()}`);
       setLoadingProgress(50);
       
       if (!res.ok) {
@@ -41,6 +50,8 @@ function UnsoldPlayers() {
       if (j && Array.isArray(j.items)) {
         setItems(j.items);
         setTotalPages(j.totalPages || 1);
+        setAuctionRunning(j.auctionRunning === true);
+        if (Array.isArray(j.countries)) setCountries(j.countries);
       } else {
         setItems([]);
         setTotalPages(1);
@@ -55,7 +66,7 @@ function UnsoldPlayers() {
     }
   }
 
-  useEffect(() => { loadUnsold(); }, [page, type, searchQuery]);
+  useEffect(() => { loadUnsold(); }, [page, type, role, country, searchQuery]);
 
   // Load app settings to check if pick button is enabled
   async function loadAppSettings() {
@@ -162,6 +173,19 @@ function UnsoldPlayers() {
             <option value="Emerald">Emerald</option>
             <option value="Silver">Silver</option>
           </select>
+          <select className="select" value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }}>
+            <option value="">All Roles</option>
+            <option value="Batsman">Batsman</option>
+            <option value="Bowler">Bowler</option>
+            <option value="Allrounder">Allrounder</option>
+            <option value="WicketKeeper">WicketKeeper</option>
+          </select>
+          <select className="select" value={country} onChange={(e) => { setCountry(e.target.value); setPage(1); }}>
+            <option value="">All Countries</option>
+            {countries.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
           <button className="btn btn-ghost" onClick={loadUnsold}>Refresh</button>
         </div>
       </div>
@@ -185,6 +209,13 @@ function UnsoldPlayers() {
               <span className="results-count">({items.length} players found)</span>
             </div>
           )}
+          <div className="search-results-info" style={{ marginBottom: 8 }}>
+            <span className="search-text">
+              {auctionRunning
+                ? 'Auction is live — list is ordered by highest bid, then overall rating.'
+                : 'No live auction — list is ordered by overall rating (highest first).'}
+            </span>
+          </div>
           {!pickButtonEnabled && (
             <div className="pick-disabled-info">
               <span className="warning-icon">⚠️</span>
@@ -216,7 +247,13 @@ function UnsoldPlayers() {
                     {p.type && <span className={`type-badge ${String(p.type).toLowerCase()}`}>{p.type}</span>}
                   </div>
                 </div>
-                <div className="meta">{p.role} • ₹{Number(p.basePrice || 0).toLocaleString('en-IN')}</div>
+                <div className="meta">
+                  {p.role}
+                  {p.country ? ` • ${p.country}` : ''}
+                  {Number(p.currentBidAmount) > 0
+                    ? ` • Bid ₹${Number(p.currentBidAmount).toLocaleString('en-IN')}`
+                    : ` • ₹${Number(p.basePrice || 0).toLocaleString('en-IN')}`}
+                </div>
                 <div className="actions">
                   {(() => {
                     const st = pickStatusByPlayer[p._id];
