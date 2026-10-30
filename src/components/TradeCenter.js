@@ -489,7 +489,7 @@ function TradeCenter({ user: userProp }) {
             ];
 
         const [teamsRes, playersRes, ...userSpecificResults] = await Promise.all([
-          fetch(`${API_ENDPOINTS}/api/users/teams`),
+          fetch(`${API_ENDPOINTS}/api/users/teams?includeNotReady=true`),
           fetch(`${API_ENDPOINTS}/api/players/data`),
           ...userSpecificPromises,
         ]);
@@ -644,7 +644,7 @@ function TradeCenter({ user: userProp }) {
       setDropdownLoading((prev) => ({ ...prev, ...loadingStart }));
       
       if (dataType === 'teams') {
-        const teamsRes = await fetch(`${API_ENDPOINTS}/api/users/teams`);
+        const teamsRes = await fetch(`${API_ENDPOINTS}/api/users/teams?includeNotReady=true`);
         if (!teamsRes.ok) throw new Error('Failed to fetch teams');
         const teamsJson = await teamsRes.json();
         const teamsData = teamsJson?.teams || teamsJson;

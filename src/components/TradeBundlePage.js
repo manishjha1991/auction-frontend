@@ -72,7 +72,7 @@ function BundleAddLegForm({
       setDataLoading(true);
       try {
         const [teamsRes, playersRes] = await Promise.all([
-          fetch(`${API_ENDPOINTS}/api/users/teams`),
+          fetch(`${API_ENDPOINTS}/api/users/teams?includeNotReady=true`),
           fetch(`${API_ENDPOINTS}/api/players/data`),
         ]);
         if (!teamsRes.ok || !playersRes.ok) throw new Error('Could not load teams or players');
