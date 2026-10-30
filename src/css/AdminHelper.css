@@ -1,0 +1,65 @@
+.admin-helper-page { max-width: 980px; margin: 0 auto; }
+.admin-helper-sub { color: #555; margin-top: -8px; }
+.admin-helper-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.admin-helper-tabs button {
+  border: 1px solid rgba(13,110,253,0.25);
+  background: #fff;
+  color: #0d6efd;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.admin-helper-tabs button.on {
+  background: linear-gradient(135deg, #0d6efd, #20c997);
+  color: #fff;
+  border: none;
+}
+.admin-helper-toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+.admin-helper-toolbar input,
+.admin-helper-toolbar select,
+.admin-helper-form input,
+.admin-helper-form select {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.12);
+  min-width: 180px;
+  flex: 1;
+}
+.admin-helper-meta { color: #555; font-size: 13px; }
+.admin-helper-list { display: grid; gap: 8px; }
+.admin-helper-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff, #fafafa);
+  flex-wrap: wrap;
+}
+.admin-helper-row.is-locked { border-color: rgba(220, 53, 69, 0.35); background: #fff7f7; }
+.admin-helper-muted { color: #666; font-size: 13px; margin-top: 2px; }
+.admin-helper-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.admin-helper-badge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+.admin-helper-badge.bad { background: #fde8e8; color: #b42318; }
+.admin-helper-badge.ok { background: #e7f8ef; color: #067647; }
+.admin-helper-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border: 1px dashed rgba(13,110,253,0.25);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+.admin-helper-form-title { grid-column: 1 / -1; font-weight: 800; }
+.admin-helper-form label { display: grid; gap: 6px; font-size: 12px; font-weight: 700; color: #444; }
+.admin-helper-form .admin-helper-actions { grid-column: 1 / -1; }

@@ -35,6 +35,7 @@ import GlobalNotification from './components/GlobalNotification';
 import TeamDirectory from './components/TeamDirectory';
 import TeamSquadsShowcase from './components/TeamSquadsShowcase';
 import AdminUserManagement from './components/AdminUserManagement';
+import AdminHelper from './components/AdminHelper';
 import AdminRetainedPlayers from './components/AdminRetainedPlayers';
 import AdminTeamLocks from './components/AdminTeamLocks';
 import AdminTeamForfeit from './components/AdminTeamForfeit';
@@ -605,6 +606,12 @@ function App() {
                         </Link>
                       </li>
                       <li>
+                        <Link to="/admin-helper" onClick={closeSidebar} className={`menu-item ${isActive('/admin-helper') ? 'active' : ''}`}>
+                          <FaWrench className="menu-icon" />
+                          <span>Admin Helper</span>
+                        </Link>
+                      </li>
+                      <li>
                         <Link to="/admin/user-management" onClick={closeSidebar} className={`menu-item ${isActive('/admin/user-management') ? 'active' : ''}`}>
                           <FaUsersCog className="menu-icon" />
                           <span>User Management</span>
@@ -829,6 +836,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <AdminTradeActivity />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin-helper"
+              element={
+                <PrivateRoute>
+                  <AdminHelper />
                 </PrivateRoute>
               }
             />

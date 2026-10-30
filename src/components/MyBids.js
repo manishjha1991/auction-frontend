@@ -761,7 +761,7 @@ const MyBids = () => {
               <TimingCard>
                 <TimingTitle>Lock Under Limit</TimingTitle>
                 <TimingValue>{formatCountdown(timingInfo.nextLockTime - timingInfo.nowIst)}</TimingValue>
-                <TimingHint>Next lock run at 1:30 AM IST</TimingHint>
+                <TimingHint>Next lock run at 11:00 PM IST</TimingHint>
                 {!cronSettings.cronLockEnabled && (
                   <TimingBadge>OFF BY ADMIN</TimingBadge>
                 )}

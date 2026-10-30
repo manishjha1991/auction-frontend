@@ -1086,7 +1086,7 @@ const AdminControlPanel = ({ adminUser }) => {
     },
     {
       key: 'cronLockEnabled',
-      title: '2. 1:30 AM: Lock teams',
+      title: '2. 11:00 PM: Lock teams',
       description: 'Locks teams that are under the player-count rules. Pick categories below.',
     },
     {
@@ -1096,8 +1096,8 @@ const AdminControlPanel = ({ adminUser }) => {
     },
     {
       key: 'cronSingleBidEnabled',
-      title: '4. 2:00 AM: Start selling',
-      description: 'At 2:00: sell only lots where the 2nd bidder already exited. From 2:05: every 5 min exit 2nd-highest; sell if that exit was ≥ 2 minutes ago with no new bid (until 4:00 AM).',
+      title: '4. 12:45 AM: Start selling',
+      description: 'At 12:45: sell only lots where the 2nd bidder already exited. From 12:50: every 5 min exit 2nd-highest; sell if that exit was ≥ 2 minutes ago with no new bid (until 4:00 AM).',
     },
   ];
 
@@ -1803,7 +1803,7 @@ const AdminControlPanel = ({ adminUser }) => {
             <div className="cron-toggle-card">
               <div className="cron-toggle-info">
                 <div className="data-card-title">Auto Mode</div>
-                <p>9:00 start → 10:45 stop exit → 11:30 sell uncontested + exit again → 1:30 lock → 2:00 start selling.</p>
+                <p>9:00 start → 10:45 stop exit → 11:00 lock → 11:30 sell uncontested + exit again → 12:45 start selling.</p>
               </div>
               <div className="cron-toggle-switch">
                 <span className={`cron-status ${cronSettings.auctionAutoModeEnabled ? 'on' : 'off'}`}>

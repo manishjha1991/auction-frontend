@@ -80,10 +80,19 @@ export const AUCTION_PHASES = [
   },
   {
     id: 'pauseAfterBulk1',
-    until: 150, // 11:30 PM
+    until: 120, // 11:00 PM
     title: 'Pause',
-    range: '10:45 PM – 11:30 PM',
-    meaning: 'Bulk exit stopped. No auto exit. No auto sell. Waiting for 11:30 PM uncontested sell.',
+    range: '10:45 PM – 11:00 PM',
+    meaning: 'Bulk exit stopped. No auto exit. No auto sell. Waiting for lock check at 11:00 PM.',
+    sells: false,
+    exits: false,
+  },
+  {
+    id: 'lock',
+    until: 150, // 11:30 PM
+    title: 'Lock check + pause',
+    range: '11:00 PM – 11:30 PM',
+    meaning: 'At 11:00 PM sharp: lock teams that are under roster limits (categories from Admin). Then pause until 11:30. Still NO sell-after-exit.',
     sells: false,
     exits: false,
   },
@@ -97,20 +106,11 @@ export const AUCTION_PHASES = [
     exits: true,
   },
   {
-    id: 'pauseBeforeLock',
-    until: 270, // 1:30 AM
+    id: 'pauseBeforeSell',
+    until: 225, // 12:45 AM
     title: 'Pause',
-    range: '12:30 AM – 1:30 AM',
-    meaning: 'Bulk exit stopped. No auto exit. Waiting for account lock at 1:30 AM.',
-    sells: false,
-    exits: false,
-  },
-  {
-    id: 'lock',
-    until: 300, // 2:00 AM
-    title: 'Lock check + pause',
-    range: '1:30 AM – 2:00 AM',
-    meaning: 'At 1:30 AM sharp: lock teams that are under roster limits (categories from Admin). Then pause until 2:00. Still NO sell-after-exit until 2:00.',
+    range: '12:30 AM – 12:45 AM',
+    meaning: 'Bulk exit stopped. No auto exit. Last minute (12:44–12:45): bid freeze on lots with only 1 bidder left. Then 12:45 solo sell.',
     sells: false,
     exits: false,
   },
@@ -118,8 +118,8 @@ export const AUCTION_PHASES = [
     id: 'sellAfterExit',
     until: 420, // 4:00 AM
     title: 'Sell after 2nd-highest exit',
-    range: '2:00 AM – 4:00 AM',
-    meaning: 'Last minute before solo sell: no new bids on lots where the 2nd bidder already exited (pre-sell freeze). At 2:00 AM: sell anyone left with only 1 bidder — no new exits. From 2:05 AM every 5 min: exit 2nd-highest if 2+ bidders; if 1 bidder left AND 2nd-highest exited at least 2 minutes ago with no new bid → SELL. Continues until players are sold.',
+    range: '12:45 AM – 4:00 AM',
+    meaning: 'Last minute before solo sell: no new bids on lots where the 2nd bidder already exited (pre-sell freeze). At 12:45 AM: sell anyone left with only 1 bidder — no new exits. From 12:50 AM every 5 min: exit 2nd-highest if 2+ bidders; if 1 bidder left AND 2nd-highest exited at least 2 minutes ago with no new bid → SELL. Continues until players are sold.',
     sells: true,
     exits: true,
   },
@@ -148,12 +148,12 @@ export function getAuctionNightPhase(now = new Date()) {
   }
 
   let liveMoment = null;
-  if (phase.id === 'lock' && m >= 270 && m < 272) {
-    liveMoment = 'LOCK CHECK IS RUNNING NOW (1:30 AM sharp)';
+  if (phase.id === 'lock' && m >= 120 && m < 122) {
+    liveMoment = 'LOCK CHECK IS RUNNING NOW (11:00 PM sharp)';
   } else if (phase.id === 'bulk2' && m >= 150 && m < 152) {
     liveMoment = 'SELLING PLAYERS WITH NO COUNTER BID SINCE START (11:30 PM)';
-  } else if (phase.id === 'sellAfterExit' && m >= 300 && m < 302) {
-    liveMoment = 'SELLING PLAYERS WHERE THE OTHER BID ALREADY EXITED (2:00 AM)';
+  } else if (phase.id === 'sellAfterExit' && m >= 225 && m < 227) {
+    liveMoment = 'SELLING PLAYERS WHERE THE OTHER BID ALREADY EXITED (12:45 AM)';
   }
 
   return { ...phase, minutesFromStart: m, liveMoment };
@@ -200,14 +200,14 @@ export function getExpectedCronFlags(phaseId) {
   };
 }
 
-/** Flags to persist so the 1:30 / 11:30 / 2:00 jobs are armed a couple of minutes early. */
+/** Flags to persist so the 11:00 / 11:30 / 12:45 jobs are armed a couple of minutes early. */
 export function getArmedCronFlags(phaseId, minutesFromStart) {
   const flags = getExpectedCronFlags(phaseId);
   const m = minutesFromStart;
   if (typeof m === 'number' && m >= 0) {
-    if (m >= 268 && m < 300) flags.cronLockEnabled = true;
+    if (m >= 118 && m < 150) flags.cronLockEnabled = true;
     if (m >= 148 && m < 155) flags.cronSingleBidFinalizerEnabled = true;
-    if (m >= 298 && m < 420) flags.cronSingleBidEnabled = true;
+    if (m >= 223 && m < 420) flags.cronSingleBidEnabled = true;
   }
   return flags;
 }
@@ -247,12 +247,22 @@ export function getAuctionNightWindows(now = new Date(), cronSettings = {}) {
     {
       key: 'pause1',
       title: 'Pause',
-      range: '10:45–11:30 PM',
+      range: '10:45–11:00 PM',
       start: dEve(22, 45),
+      end: dEve(23, 0),
+      interval: null,
+      action: 'Bulk stopped. Waiting for 11:00 lock check.',
+      enabled: true,
+    },
+    {
+      key: 'lock',
+      title: 'Lock check',
+      range: '11:00–11:30 PM',
+      start: dEve(23, 0),
       end: dEve(23, 30),
       interval: null,
-      action: 'Bulk stopped. Waiting for 11:30 uncontested sell.',
-      enabled: true,
+      action: '11:00 sharp: lock under-limit teams (Admin categories). Then pause.',
+      enabled: cronSettings.cronLockEnabled,
     },
     {
       key: 'bulk2',
@@ -267,31 +277,21 @@ export function getAuctionNightWindows(now = new Date(), cronSettings = {}) {
     {
       key: 'pause2',
       title: 'Pause',
-      range: '12:30–1:30 AM',
+      range: '12:30–12:45 AM',
       start: dMorn(0, 30),
-      end: dMorn(1, 30),
+      end: dMorn(0, 45),
       interval: null,
-      action: 'Bulk stopped. Waiting for 1:30 AM lock check.',
+      action: 'Bulk stopped. Waiting for 12:45 sell-after-exit.',
       enabled: true,
-    },
-    {
-      key: 'lock',
-      title: 'Lock check',
-      range: '1:30–2:00 AM',
-      start: dMorn(1, 30),
-      end: dMorn(2, 0),
-      interval: null,
-      action: '1:30 AM sharp: lock under-limit teams (Admin categories). Then pause until 2:00 sell.',
-      enabled: cronSettings.cronLockEnabled,
     },
     {
       key: 'sellAfterExit',
       title: 'Sell after 2nd-highest exit',
-      range: '2:00 AM–4:00 AM',
-      start: dMorn(2, 0),
+      range: '12:45 AM–4:00 AM',
+      start: dMorn(0, 45),
       end: dMorn(4, 0),
       interval: 5,
-      action: '1:59: freeze bids on solo lots. 2:00: sell if 2nd already gone (no exit). From 2:05 every 5 min: exit 2nd / sell if exited ≥ 2 min.',
+      action: '12:44: freeze bids on solo lots. 12:45: sell if 2nd already gone (no exit). From 12:50 every 5 min: exit 2nd / sell if exited ≥ 2 min.',
       enabled: cronSettings.cronSingleBidEnabled,
     },
   ];
@@ -301,7 +301,7 @@ export const WHATSAPP_MESSAGE = `🏏 GPL Auction Night (IST)
 
 📌 All times India time
 📌 Auto Mode ON = system switches itself
-📌 NO sell-after-exit before 2:00 AM
+📌 NO sell-after-exit before 12:45 AM
 
 ────────────────────
 🕘 9:00 PM
@@ -324,6 +324,20 @@ export const WHATSAPP_MESSAGE = `🏏 GPL Auction Night (IST)
 • ❌ No exit, ❌ no sell
 
 ────────────────────
+🕚 11:00 PM SHARP
+────────────────────
+• Account lock check (once)
+• Uses categories enabled in Admin
+• Teams under limit get LOCKED
+
+────────────────────
+🕚 11:00 – 11:30 PM
+────────────────────
+• Pause
+• ❌ No bulk exit
+• ❌ No sell
+
+────────────────────
 🕚 11:30 PM
 ────────────────────
 • Sell players with NO counter bid since start
@@ -342,28 +356,14 @@ export const WHATSAPP_MESSAGE = `🏏 GPL Auction Night (IST)
 • Bulk Exit STOPPED
 
 ────────────────────
-🕐 1:30 AM SHARP
-────────────────────
-• Account lock check (once)
-• Uses categories enabled in Admin
-• Teams under limit get LOCKED
-
-────────────────────
-🕐 1:30 – 2:00 AM
-────────────────────
-• Pause
-• ❌ No bulk exit
-• ❌ No sell
-
-────────────────────
-🕑 2:00 AM
+🕧 12:45 AM
 ────────────────────
 • Sell players where the other bid already exited
   (only 1 bidder left → SOLD)
 • ❌ No new exits this minute
 
 ────────────────────
-🕑 2:05 AM onwards
+🕧 12:50 AM onwards
 ────────────────────
 • Every 5 minutes:
   - If 2+ bidders → exit 2nd highest only
@@ -376,9 +376,9 @@ export const WHATSAPP_MESSAGE = `🏏 GPL Auction Night (IST)
 🧠 SIMPLE
 ────────────────────
 1️⃣ 9:00–10:45 & 11:30–12:30 → exit only (no sell)
-2️⃣ 11:30 → sell “never got a counter bid”
-3️⃣ 1:30 AM → lock under-limit teams
-4️⃣ 2:00 AM → sell already-solo lots only; 2:05+ exit then sell after ≥ 2 min
+2️⃣ 11:00 → lock under-limit teams
+3️⃣ 11:30 → sell “never got a counter bid”
+4️⃣ 12:45 → sell already-solo lots only; 12:50+ exit then sell after ≥ 2 min
 
 ℹ️ Queue waiting users can block a sell for that player`;
 
@@ -386,12 +386,12 @@ export const WHATSAPP_MESSAGE_SHORT = `🏏 GPL Auction Night (IST)
 
 • 9:00–10:45 PM: Bulk exit only (no sell)
 • 10:45 PM: Bulk stop
+• 11:00 PM: Lock check
 • 11:30 PM: Sell players with no counter bid since start
 • 11:30 PM–12:30 AM: Bulk exit only (no sell)
-• 1:30 AM: Lock check
-• 2:00 AM: Sell if 2nd bidder already gone (no exit)
-• 1:59–2:00: freeze bids on solo lots (2nd already exited)
-• 2:05 AM onwards: every 5 min exit + sell if 2nd gone ≥ 2 min
+• 12:45 AM: Sell if 2nd bidder already gone (no exit)
+• 12:44–12:45: freeze bids on solo lots (2nd already exited)
+• 12:50 AM onwards: every 5 min exit + sell if 2nd gone ≥ 2 min
 
-❌ No sell-after-exit before 2:00 AM
+❌ No sell-after-exit before 12:45 AM
 ℹ️ All times IST`;
