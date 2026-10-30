@@ -12,6 +12,7 @@ function UnsoldPlayers() {
   const [role, setRole] = useState('');
   const [country, setCountry] = useState('');
   const [countries, setCountries] = useState([]);
+  const [bowlingStyle, setBowlingStyle] = useState('');
   const [auctionRunning, setAuctionRunning] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,7 @@ function UnsoldPlayers() {
       if (type) params.set('type', type);
       if (role) params.set('role', role);
       if (country) params.set('country', country);
+      if (bowlingStyle) params.set('bowlingStyle', bowlingStyle);
       if (searchQuery) params.set('search', searchQuery);
       const res = await fetch(`${API_ENDPOINTS}/api/picks/unsold?${params.toString()}`);
       setLoadingProgress(50);
@@ -66,7 +68,7 @@ function UnsoldPlayers() {
     }
   }
 
-  useEffect(() => { loadUnsold(); }, [page, type, role, country, searchQuery]);
+  useEffect(() => { loadUnsold(); }, [page, type, role, country, bowlingStyle, searchQuery]);
 
   // Load app settings to check if pick button is enabled
   async function loadAppSettings() {
@@ -186,6 +188,16 @@ function UnsoldPlayers() {
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
+          <select className="select" value={bowlingStyle} onChange={(e) => { setBowlingStyle(e.target.value); setPage(1); }}>
+            <option value="">All Bowling</option>
+            <option value="RF">RF — Right-arm Fast</option>
+            <option value="LF">LF — Left-arm Fast</option>
+            <option value="RFM">RFM — Right-arm Fast Medium</option>
+            <option value="LFM">LFM — Left-arm Fast Medium</option>
+            <option value="OS">OS — Off Spin</option>
+            <option value="SLU">SLU — Slow Left-arm Unorthodox</option>
+            <option value="LS">LS — Leg Spin</option>
+          </select>
           <button className="btn btn-ghost" onClick={loadUnsold}>Refresh</button>
         </div>
       </div>
@@ -245,10 +257,14 @@ function UnsoldPlayers() {
                     )}
                     {p.hasPendingRequest && <span className="request-icon" title="Request already raised">📋</span>}
                     {p.type && <span className={`type-badge ${String(p.type).toLowerCase()}`}>{p.type}</span>}
+                    {p.bowlingStyle ? (
+                      <span className="bowl-chip" title={`Bowling: ${p.bowlingStyle}`}>{String(p.bowlingStyle).toUpperCase()}</span>
+                    ) : null}
                   </div>
                 </div>
                 <div className="meta">
                   {p.role}
+                  {p.bowlingStyle ? ` • ${String(p.bowlingStyle).toUpperCase()}` : ''}
                   {p.country ? ` • ${p.country}` : ''}
                   {Number(p.currentBidAmount) > 0
                     ? ` • Bid ₹${Number(p.currentBidAmount).toLocaleString('en-IN')}`
