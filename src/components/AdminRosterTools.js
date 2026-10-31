@@ -659,6 +659,13 @@ export default function AdminRosterTools() {
           <p>
             Cost: ₹{pickPreview.costCr} Cr · Purse ₹{pickPreview.purseBeforeCr} Cr → ₹{pickPreview.purseAfterCr} Cr
           </p>
+          {pickPreview.warnings?.length > 0 && (
+            <div className="admin-roster-warnings">
+              {pickPreview.warnings.map((w, i) => (
+                <p key={i}>{w}</p>
+              ))}
+            </div>
+          )}
         </Modal>
       )}
 
