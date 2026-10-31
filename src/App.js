@@ -60,6 +60,7 @@ import CplCompositeReport from './components/CplCompositeReport';
 import CplPlayerCareerStats from './components/CplPlayerCareerStats';
 import AdminRosterTools from './components/AdminRosterTools';
 import AuctionTimeline from './components/AuctionTimeline';
+import AdminControlPanel from './components/AdminControlPanel';
 
 // AdminDashboard removed - performance dashboard disabled
 
@@ -278,25 +279,9 @@ function App() {
                   <ul className="menu">
                     {filterItem('Home') && (
                       <li>
-                        <Link to="/profile" onClick={closeSidebar} className={`menu-item ${isActive('/profile') && !currentPath.startsWith('/profile/') ? 'active' : ''}`}>
+                        <Link to="/profile" onClick={closeSidebar} className={`menu-item ${isActive('/profile') ? 'active' : ''}`}>
                           <FaHome className="menu-icon" />
-                          <span>Team home</span>
-                        </Link>
-                      </li>
-                    )}
-                    {filterItem('Auction') && (
-                      <li>
-                        <Link to="/profile/auction" onClick={closeSidebar} className={`menu-item ${isActive('/profile/auction') ? 'active' : ''}`}>
-                          <FaFire className="menu-icon" />
-                          <span>Auction desk</span>
-                        </Link>
-                      </li>
-                    )}
-                    {user?.isAdmin && filterItem('Admin desk') && (
-                      <li>
-                        <Link to="/profile/admin" onClick={closeSidebar} className={`menu-item ${isActive('/profile/admin') ? 'active' : ''}`}>
-                          <FaCrown className="menu-icon" />
-                          <span>Admin desk</span>
+                          <span>Home</span>
                         </Link>
                       </li>
                     )}
@@ -576,9 +561,9 @@ function App() {
                     </h3>
                     <ul className="menu">
                       <li>
-                        <Link to="/admin-helper" onClick={closeSidebar} className={`menu-item ${isActive('/admin-helper') ? 'active' : ''}`}>
-                          <FaWrench className="menu-icon" />
-                          <span>Admin Helper</span>
+                        <Link to="/admin/auction-desk" onClick={closeSidebar} className={`menu-item ${isActive('/admin/auction-desk') ? 'active' : ''}`}>
+                          <FaFire className="menu-icon" />
+                          <span>Auction desk</span>
                         </Link>
                       </li>
                       <li>
@@ -622,18 +607,6 @@ function App() {
                         </Link>
                       </li>
                       <li>
-                        <Link to="/admin/retained-players" onClick={closeSidebar} className={`menu-item ${isActive('/admin/retained-players') ? 'active' : ''}`}>
-                          <FaGem className="menu-icon" />
-                          <span>Retained Players</span>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="/admin/team-locks" onClick={closeSidebar} className={`menu-item ${isActive('/admin/team-locks') ? 'active' : ''}`}>
-                          <FaLock className="menu-icon" />
-                          <span>Retention Locks</span>
-                        </Link>
-                      </li>
-                      <li>
                         <Link to="/admin/settings" onClick={closeSidebar} className={`menu-item ${isActive('/admin/settings') ? 'active' : ''}`}>
                           <FaCog className="menu-icon" />
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -667,9 +640,33 @@ function App() {
                   <div className="menu-section admin-section">
                     <h3 className="menu-section-title">
                       <FaCrown className="admin-crown" />
-                      Admin · League
+                      Admin · Players
                     </h3>
                     <ul className="menu">
+                      <li>
+                        <Link to="/admin/player-desk" onClick={closeSidebar} className={`menu-item ${isActive('/admin/player-desk') ? 'active' : ''}`}>
+                          <FaUsers className="menu-icon" />
+                          <span>Player desk</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin-helper" onClick={closeSidebar} className={`menu-item ${isActive('/admin-helper') ? 'active' : ''}`}>
+                          <FaWrench className="menu-icon" />
+                          <span>Admin Helper</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/retained-players" onClick={closeSidebar} className={`menu-item ${isActive('/admin/retained-players') ? 'active' : ''}`}>
+                          <FaGem className="menu-icon" />
+                          <span>Retained Players</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/team-locks" onClick={closeSidebar} className={`menu-item ${isActive('/admin/team-locks') ? 'active' : ''}`}>
+                          <FaLock className="menu-icon" />
+                          <span>Retention Locks</span>
+                        </Link>
+                      </li>
                       {filterItem('Fixture Approvals') && (
                         <li>
                           <Link to="/fixture-confirmations" onClick={closeSidebar} className={`menu-item ${isActive('/fixture-confirmations') || isActive('/admin/fixture-approvals') ? 'active' : ''}`}>
@@ -726,8 +723,22 @@ function App() {
             <Route path="/players" element={<PrivateRoute><PlayerList /></PrivateRoute>} />
             <Route path="/live-bidding" element={<PrivateRoute><LiveBiddingDashboard /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-            <Route path="/profile/auction" element={<PrivateRoute><Profile /></PrivateRoute>} />
-            <Route path="/profile/admin" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route
+              path="/admin/auction-desk"
+              element={
+                <PrivateRoute>
+                  <AdminControlPanel view="auction" />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/player-desk"
+              element={
+                <PrivateRoute>
+                  <AdminControlPanel view="players" />
+                </PrivateRoute>
+              }
+            />
             <Route path="/add-player" element={<PrivateRoute><AddPlayer /></PrivateRoute>} />
             <Route path="/user-purses" element={<PrivateRoute><UserPursePage /></PrivateRoute>} />
             <Route path="/points-table" element={<PrivateRoute><PointTable /></PrivateRoute>} />

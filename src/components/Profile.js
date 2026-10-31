@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import '../css/Profile.css';
 import { API_ENDPOINTS } from "../const";
 import LoadingCube from "./CricketAnimation";
 import NotificationBell from './NotificationBell';
 import TeamStrengthChart from './TeamStrengthChart';
 import PlayerAvatar from './PlayerAvatar';
-import AdminControlPanel from './AdminControlPanel';
 const Profile = () => {
-  const location = useLocation();
-  const isAuctionPage = location.pathname.startsWith('/profile/auction');
-  const isAdminPage = location.pathname.startsWith('/profile/admin');
   const [userData, setUserData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -148,10 +144,6 @@ const Profile = () => {
   useEffect(() => {
     fetchUserData(true);
   }, []);
-
-  useEffect(() => {
-    setActiveSection(isAuctionPage ? 'active' : 'squad');
-  }, [isAuctionPage]);
 
   // Lazy-load this user's venue stats when the Venues tab is opened.
   useEffect(() => {
@@ -576,18 +568,8 @@ const Profile = () => {
   };
 
 
-  if (isAdmin && isAdminPage) {
-    return (
-      <div className="admin-profile-container">
-        <NotificationBell />
-        <nav className="up-page-switch">
-          <Link to="/profile">Team home</Link>
-          <Link to="/profile/auction">Auction</Link>
-          <Link to="/profile/admin" className="is-on">Admin desk</Link>
-        </nav>
-        <AdminControlPanel adminUser={adminProfileUser || userData?.user} />
-      </div>
-    );
+  if (isAdmin) {
+    return <Navigate to="/admin/auction-desk" replace />;
   }
 
   if (loading) {
@@ -864,17 +846,14 @@ const Profile = () => {
   const pastCount = userData.pastBids?.length || 0;
   const retainedCount = retainedPlayers?.length || 0;
 
-  const sections = isAuctionPage
-    ? [
-        { id: 'active', label: 'Active bids', icon: '⚡', count: bidsCount },
-        { id: 'past', label: 'Past bids', icon: '📜', count: pastCount },
-      ]
-    : [
-        { id: 'squad', label: 'Squad', icon: '🏏', count: squadCount },
-        ...(retentionEnabled ? [{ id: 'retained', label: 'Retained', icon: '💎', count: retainedCount }] : []),
-        { id: 'form', label: 'Recent form', icon: '📈', count: playedMatches.length },
-        { id: 'venues', label: 'Venues', icon: '📍', count: venueStats.length },
-      ];
+  const sections = [
+    { id: 'squad', label: 'Squad', icon: '🏏', count: squadCount },
+    { id: 'active', label: 'Active bids', icon: '⚡', count: bidsCount },
+    { id: 'past', label: 'Past bids', icon: '📜', count: pastCount },
+    ...(retentionEnabled ? [{ id: 'retained', label: 'Retained', icon: '💎', count: retainedCount }] : []),
+    { id: 'form', label: 'Recent form', icon: '📈', count: playedMatches.length },
+    { id: 'venues', label: 'Venues', icon: '📍', count: venueStats.length },
+  ];
 
   const purseValue = parseFloat(userData.user.purse?.["$numberDecimal"] || userData.user.purse || 0);
   const userTimezone = userData.user.timezone || 'Asia/Kolkata';
@@ -891,11 +870,6 @@ const Profile = () => {
   return (
     <div className="up-page profile-container">
       <NotificationBell />
-      <nav className="up-page-switch">
-        <Link to="/profile" className={!isAuctionPage && !isAdminPage ? 'is-on' : ''}>Team home</Link>
-        <Link to="/profile/auction" className={isAuctionPage ? 'is-on' : ''}>Auction</Link>
-        {isAdmin ? <Link to="/profile/admin" className={isAdminPage ? 'is-on' : ''}>Admin desk</Link> : null}
-      </nav>
 
       {/* Error toast */}
       {error && (
@@ -985,17 +959,15 @@ const Profile = () => {
         </div>
       </header>
 
-      {isAuctionPage ? (
-        <div className="up-auction-strip">
-          <Link to="/my-auction" className="up-auction-chip">Auction HQ</Link>
-          <Link to="/live-bidding" className="up-auction-chip">Live bidding</Link>
-          <Link to="/players" className="up-auction-chip">Players</Link>
-          {unsoldPlayersEnabled ? <Link to="/unsold" className="up-auction-chip">Unsold</Link> : null}
-          {tradeCenterEnabled && userData?.user?.teamName ? (
-            <Link to="/trade" className="up-auction-chip">Trades</Link>
-          ) : null}
-        </div>
-      ) : null}
+      <div className="up-auction-strip">
+        <Link to="/my-auction" className="up-auction-chip">Auction HQ</Link>
+        <Link to="/live-bidding" className="up-auction-chip">Live bidding</Link>
+        <Link to="/players" className="up-auction-chip">Players</Link>
+        {unsoldPlayersEnabled ? <Link to="/unsold" className="up-auction-chip">Unsold</Link> : null}
+        {tradeCenterEnabled && userData?.user?.teamName ? (
+          <Link to="/trade" className="up-auction-chip">Trades</Link>
+        ) : null}
+      </div>
 
       {/* Edit popup (unchanged markup) */}
       {isEditing && (

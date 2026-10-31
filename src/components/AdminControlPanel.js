@@ -40,7 +40,8 @@ const deriveAdminId = (adminUser) => {
   return null;
 };
 
-const AdminControlPanel = ({ adminUser }) => {
+const AdminControlPanel = ({ adminUser, view = 'auction' }) => {
+  const isAuctionView = view !== 'players';
   const [adminUserId, setAdminUserId] = useState(() => deriveAdminId(adminUser));
   const [toast, setToast] = useState('');
   const [isCompact, setIsCompact] = useState(false);
@@ -1211,6 +1212,7 @@ const AdminControlPanel = ({ adminUser }) => {
       </section>
       )}
 
+      {!isAuctionView && (
       <section className="admin-section">
         <div className="section-header" style={{ flexDirection: isCompact ? 'column' : 'row', gap: isCompact ? '12px' : '0' }}>
           <div style={{ flex: 1 }}>
@@ -1324,7 +1326,10 @@ const AdminControlPanel = ({ adminUser }) => {
           </>
         )}
       </section>
+      )}
 
+      {isAuctionView && (
+      <>
       <section className="admin-section">
         <div className="section-header">
           <div>
@@ -2009,7 +2014,10 @@ const AdminControlPanel = ({ adminUser }) => {
           {rosterCapsSaving ? 'Saving…' : 'Save roster caps'}
         </button>
       </section>
+      </>
+      )}
 
+      {!isAuctionView && (
       <section className="admin-section">
         <div className="section-header">
           <div>
@@ -2041,7 +2049,10 @@ const AdminControlPanel = ({ adminUser }) => {
           </div>
         </div>
       </section>
+      )}
 
+      {isAuctionView && (
+      <>
       <section className="admin-section">
         <div className="section-header">
           <div>
@@ -2178,7 +2189,11 @@ const AdminControlPanel = ({ adminUser }) => {
           </div>
         )}
       </section>
+      </>
+      )}
 
+      {!isAuctionView && (
+      <>
       <section className="admin-section">
         <div className="section-header">
           <div>
@@ -2427,9 +2442,10 @@ const AdminControlPanel = ({ adminUser }) => {
           </div>
         )}
       </section>
+      </>
+      )}
 
-
-
+      {isAuctionView && (
       <section className="admin-section">
         <div className="section-header">
           <div>
@@ -2569,9 +2585,10 @@ const AdminControlPanel = ({ adminUser }) => {
           </div>
         )}
       </section>
+      )}
 
       {/* Team Participation Confirmation Modal */}
-      {showParticipationConfirm && participationConfirmData && (
+      {!isAuctionView && showParticipationConfirm && participationConfirmData && (
         <div style={{
           position: 'fixed',
           top: 0,
