@@ -280,7 +280,23 @@ function App() {
                       <li>
                         <Link to="/profile" onClick={closeSidebar} className={`menu-item ${isActive('/profile') && !currentPath.startsWith('/profile/') ? 'active' : ''}`}>
                           <FaHome className="menu-icon" />
-                          <span>Home</span>
+                          <span>Team home</span>
+                        </Link>
+                      </li>
+                    )}
+                    {filterItem('Auction') && (
+                      <li>
+                        <Link to="/profile/auction" onClick={closeSidebar} className={`menu-item ${isActive('/profile/auction') ? 'active' : ''}`}>
+                          <FaFire className="menu-icon" />
+                          <span>Auction desk</span>
+                        </Link>
+                      </li>
+                    )}
+                    {user?.isAdmin && filterItem('Admin desk') && (
+                      <li>
+                        <Link to="/profile/admin" onClick={closeSidebar} className={`menu-item ${isActive('/profile/admin') ? 'active' : ''}`}>
+                          <FaCrown className="menu-icon" />
+                          <span>Admin desk</span>
                         </Link>
                       </li>
                     )}
