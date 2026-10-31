@@ -278,7 +278,7 @@ function App() {
                   <ul className="menu">
                     {filterItem('Home') && (
                       <li>
-                        <Link to="/profile" onClick={closeSidebar} className={`menu-item ${isActive('/profile') ? 'active' : ''}`}>
+                        <Link to="/profile" onClick={closeSidebar} className={`menu-item ${isActive('/profile') && !currentPath.startsWith('/profile/') ? 'active' : ''}`}>
                           <FaHome className="menu-icon" />
                           <span>Home</span>
                         </Link>
@@ -710,6 +710,8 @@ function App() {
             <Route path="/players" element={<PrivateRoute><PlayerList /></PrivateRoute>} />
             <Route path="/live-bidding" element={<PrivateRoute><LiveBiddingDashboard /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/profile/auction" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/profile/admin" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="/add-player" element={<PrivateRoute><AddPlayer /></PrivateRoute>} />
             <Route path="/user-purses" element={<PrivateRoute><UserPursePage /></PrivateRoute>} />
             <Route path="/points-table" element={<PrivateRoute><PointTable /></PrivateRoute>} />

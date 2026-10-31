@@ -468,49 +468,52 @@ export default function AdminHelper() {
                   Cancel
                 </button>
               </div>
-              {editing.isSold || editing.owner ? (
-                <p className="admin-helper-muted">Delete is only allowed for unsold players who are not on a roster.</p>
-              ) : deleteAsk ? (
-                <div className="admin-helper-delete">
-                  <p>
-                    Permanently delete <strong>{editing.name}</strong> from the database? Bids, picks, and leftover
-                    refs will be cleaned up. This cannot be undone.
-                  </p>
-                  <label>
-                    Type the player name to confirm
-                    <input
-                      value={deleteConfirmName}
-                      onChange={(e) => setDeleteConfirmName(e.target.value)}
-                      placeholder={editing.name}
-                    />
-                  </label>
-                  <div className="admin-helper-actions">
-                    <button
-                      type="button"
-                      className="btn admin-helper-danger"
-                      disabled={!!savingId || deleteConfirmName.trim().toLowerCase() !== String(editing.name || '').trim().toLowerCase()}
-                      onClick={deletePlayer}
-                    >
-                      Yes, delete forever
-                    </button>
-                    <button
-                      type="button"
-                      className="btn"
-                      onClick={() => {
-                        setDeleteAsk(false);
-                        setDeleteConfirmName('');
-                      }}
-                    >
-                      Keep player
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button type="button" className="btn admin-helper-danger" onClick={() => setDeleteAsk(true)}>
-                  Delete from database
-                </button>
-              )}
             </form>
+          ) : null}
+          {editing && !(editing.isSold || editing.owner) && (
+            deleteAsk ? (
+              <div className="admin-helper-delete">
+                <p>
+                  Permanently delete <strong>{editing.name}</strong> from the database? This cannot be undone.
+                </p>
+                <label>
+                  Type DELETE to confirm
+                  <input
+                    value={deleteConfirmName}
+                    onChange={(e) => setDeleteConfirmName(e.target.value)}
+                    placeholder="DELETE"
+                    autoComplete="off"
+                  />
+                </label>
+                <div className="admin-helper-actions">
+                  <button
+                    type="button"
+                    className="btn admin-helper-danger"
+                    disabled={!!savingId || deleteConfirmName.trim().toUpperCase() !== 'DELETE'}
+                    onClick={deletePlayer}
+                  >
+                    Yes, delete forever
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setDeleteAsk(false);
+                      setDeleteConfirmName('');
+                    }}
+                  >
+                    Keep player
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="btn admin-helper-danger" onClick={() => setDeleteAsk(true)}>
+                Delete from database
+              </button>
+            )
+          )}
+          {editing && (editing.isSold || editing.owner) ? (
+            <p className="admin-helper-muted">Delete is only allowed for unsold players who are not on a roster.</p>
           ) : null}
           {loading ? <p>Loading…</p> : null}
           <div className="admin-helper-list">

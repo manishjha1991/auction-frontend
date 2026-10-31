@@ -382,6 +382,31 @@
   line-height: 1.2;
 }
 
+.up-page-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0.5rem 0 0.85rem;
+}
+.up-page-switch a {
+  text-decoration: none;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #334155;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+.up-page-switch a.is-on,
+.admin-profile-container .up-page-switch a.is-on {
+  color: #fff;
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+.admin-profile-container .up-page-switch {
+  padding: 12px 16px 0;
+}
 .up-auction-strip {
   display: flex;
   flex-wrap: wrap;
