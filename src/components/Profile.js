@@ -48,6 +48,7 @@ const Profile = () => {
   // Mobile-first section tabs
   const [activeSection, setActiveSection] = useState('squad');
   const [tradeCenterEnabled, setTradeCenterEnabled] = useState(true);
+  const [unsoldPlayersEnabled, setUnsoldPlayersEnabled] = useState(true);
 
   // Venue stats (this user's per-venue runs/wickets across all match types)
   const [venueStats, setVenueStats] = useState([]);
@@ -74,8 +75,14 @@ const Profile = () => {
   useEffect(() => {
     fetch(`${API_ENDPOINTS}/api/settings`)
       .then((res) => res.json())
-      .then((data) => setTradeCenterEnabled(data.enableTradeCenter !== false))
-      .catch(() => setTradeCenterEnabled(true));
+      .then((data) => {
+        setTradeCenterEnabled(data.enableTradeCenter !== false);
+        setUnsoldPlayersEnabled(data.enableUnsoldPlayers !== false);
+      })
+      .catch(() => {
+        setTradeCenterEnabled(true);
+        setUnsoldPlayersEnabled(true);
+      });
   }, []);
 
   // Check localStorage for user.isAdmin
@@ -1134,16 +1141,15 @@ const Profile = () => {
         </div>
       </header>
 
-      {tradeCenterEnabled && userData?.user?.teamName && (
-        <Link to="/trade" className="up-trade-center-banner">
-          <span className="up-trade-center-banner__icon" aria-hidden>🔄</span>
-          <span>
-            <strong>Trade Center</strong>
-            <small>Propose trades, releases, and multi-leg bundles</small>
-          </span>
-          <span className="up-trade-center-banner__arrow" aria-hidden>→</span>
-        </Link>
-      )}
+      <div className="up-auction-strip">
+        <Link to="/my-auction" className="up-auction-chip">Auction HQ</Link>
+        <Link to="/live-bidding" className="up-auction-chip">Live bidding</Link>
+        <Link to="/players" className="up-auction-chip">Players</Link>
+        {unsoldPlayersEnabled ? <Link to="/unsold" className="up-auction-chip">Unsold</Link> : null}
+        {tradeCenterEnabled && userData?.user?.teamName ? (
+          <Link to="/trade" className="up-auction-chip">Trades</Link>
+        ) : null}
+      </div>
 
       {/* Edit popup (unchanged markup) */}
       {isEditing && (

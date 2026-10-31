@@ -273,10 +273,9 @@ function App() {
               </div>
               
               <div className="menu-container">
-                {/* Quick Actions */}
                 <div className="menu-section">
-                  <h3 className="menu-section-title">Quick Actions</h3>
-              <ul className="menu">
+                  <h3 className="menu-section-title">Home</h3>
+                  <ul className="menu">
                     {filterItem('Home') && (
                       <li>
                         <Link to="/profile" onClick={closeSidebar} className={`menu-item ${isActive('/profile') ? 'active' : ''}`}>
@@ -285,6 +284,20 @@ function App() {
                         </Link>
                       </li>
                     )}
+                    {filterItem('News Alerts') && (
+                      <li>
+                        <Link to="/news" onClick={closeSidebar} className={`menu-item ${isActive('/news') ? 'active' : ''}`}>
+                          <FaBullhorn className="menu-icon" />
+                          <span>News Alerts</span>
+                        </Link>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
+                <div className="menu-section">
+                  <h3 className="menu-section-title">Auction</h3>
+                  <ul className="menu">
                     {filterItem('Live Bidding') && (
                       <li>
                         <Link to="/live-bidding" onClick={closeSidebar} className={`menu-item ${isActive('/live-bidding') ? 'active' : ''}`}>
@@ -309,6 +322,54 @@ function App() {
                         </Link>
                       </li>
                     )}
+                    {filterItem('My Bids') && (
+                      <li>
+                        <Link to="/my-bids" onClick={closeSidebar} className={`menu-item ${isActive('/my-bids') ? 'active' : ''}`}>
+                          <FaBook className="menu-icon" />
+                          <span>My Bids</span>
+                        </Link>
+                      </li>
+                    )}
+                    {appSettings.enableUnsoldPlayers && filterItem('Unsold Players') && (
+                      <li>
+                        <Link to="/unsold" onClick={closeSidebar} className={`menu-item ${isActive('/unsold') ? 'active' : ''}`}>
+                          <FaBoxOpen className="menu-icon" />
+                          <span>Unsold Players</span>
+                        </Link>
+                      </li>
+                    )}
+                    {filterItem('Sold Players') && (
+                      <li>
+                        <Link to="/sold-playerslist" onClick={closeSidebar} className={`menu-item ${isActive('/sold-playerslist') ? 'active' : ''}`}>
+                          <FaDollarSign className="menu-icon" />
+                          <span>Sold Players</span>
+                        </Link>
+                      </li>
+                    )}
+                    {appSettings.enableTradeCenter && filterItem('Trade Center') && (
+                      <li>
+                        <Link to="/trade" onClick={closeSidebar} className={`menu-item ${isActive('/trade') ? 'active' : ''}`}>
+                          <FaExchangeAlt className="menu-icon" />
+                          <span>Trade Center</span>
+                        </Link>
+                      </li>
+                    )}
+                    {filterItem('Team Purses') && (
+                      <li>
+                        <Link to="/user-purses" onClick={closeSidebar} className={`menu-item ${isActive('/user-purses') ? 'active' : ''}`}>
+                          <FaUsersCog className="menu-icon" />
+                          <span>Team Purses</span>
+                        </Link>
+                      </li>
+                    )}
+                    {filterItem('Auction Timeline') && (
+                      <li>
+                        <Link to="/auction-timeline" onClick={closeSidebar} className={`menu-item ${isActive('/auction-timeline') ? 'active' : ''}`}>
+                          <FaCalendarAlt className="menu-icon" />
+                          <span>Auction Timeline</span>
+                        </Link>
+                      </li>
+                    )}
                     {user?.isAdmin && filterItem('Add Player') && (
                       <li>
                         <Link to="/add-player" onClick={closeSidebar} className={`menu-item ${isActive('/add-player') ? 'active' : ''}`}>
@@ -324,12 +385,6 @@ function App() {
                 <div className="menu-section">
                   <h3 className="menu-section-title">Teams & Competition</h3>
                   <ul className="menu">
-                    <li>
-                      <Link to="/user-purses" onClick={closeSidebar} className={`menu-item ${isActive('/user-purses') ? 'active' : ''}`}>
-                        <FaUsersCog className="menu-icon" />
-                        <span>Teams</span>
-                      </Link>
-                    </li>
                     <li>
                       <Link to="/points-table" onClick={closeSidebar} className={`menu-item ${isActive('/points-table') ? 'active' : ''}`}>
                         <FaTable className="menu-icon" />
@@ -398,12 +453,6 @@ function App() {
                         <span>Team Squads</span>
                       </Link>
                     </li>
-                    <li>
-                      <Link to="/my-bids" onClick={closeSidebar} className={`menu-item ${isActive('/my-bids') ? 'active' : ''}`}>
-                        <FaBook className="menu-icon" />
-                        <span>My Bids</span>
-                      </Link>
-                    </li>
                   </ul>
                 </div>
 
@@ -464,48 +513,6 @@ function App() {
                   </ul>
                 </div>
 
-                {/* Market & Trading */}
-                <div className="menu-section">
-                  <h3 className="menu-section-title">Market & Trading</h3>
-                  <ul className="menu">
-                {appSettings.enableTradeCenter && filterItem('Trade Center') && (
-                  <li>
-                        <Link to="/trade" onClick={closeSidebar} className={`menu-item ${isActive('/trade') ? 'active' : ''}`}>
-                          <FaExchangeAlt className="menu-icon" />
-                          <span>Trade Center</span>
-                    </Link>
-                  </li>
-                )}
-                {appSettings.enableUnsoldPlayers && (
-                  <li>
-                        <Link to="/unsold" onClick={closeSidebar} className={`menu-item ${isActive('/unsold') ? 'active' : ''}`}>
-                          <FaBoxOpen className="menu-icon" />
-                          <span>Unsold Players</span>
-                    </Link>
-                  </li>
-                )}
-                    <li>
-                      <Link to="/sold-playerslist" onClick={closeSidebar} className={`menu-item ${isActive('/sold-playerslist') ? 'active' : ''}`}>
-                        <FaDollarSign className="menu-icon" />
-                        <span>Sold Players</span>
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-
-                {/* News & Updates */}
-                <div className="menu-section">
-                  <h3 className="menu-section-title">News & Updates</h3>
-                  <ul className="menu">
-                    <li>
-                      <Link to="/news" onClick={closeSidebar} className={`menu-item ${isActive('/news') ? 'active' : ''}`}>
-                        <FaBullhorn className="menu-icon" />
-                        <span>News Alerts</span>
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-
                 {/* Tools */}
                 <div className="menu-section">
                   <h3 className="menu-section-title">Tools</h3>
@@ -542,39 +549,38 @@ function App() {
                         <span>Rules Book</span>
                       </Link>
                     </li>
-                    <li>
-                      <Link to="/auction-timeline" onClick={closeSidebar} className={`menu-item ${isActive('/auction-timeline') ? 'active' : ''}`}>
-                        <FaCalendarAlt className="menu-icon" />
-                        <span>Auction Timeline</span>
-                      </Link>
-                    </li>
                   </ul>
                 </div>
 
-                {/* Admin Section */}
                 {user?.isAdmin && (
                   <div className="menu-section admin-section">
                     <h3 className="menu-section-title">
                       <FaCrown className="admin-crown" />
-                      Admin Panel
+                      Admin · Auction
                     </h3>
                     <ul className="menu">
-                      {filterItem('Fixture Approvals') && (
-                        <li>
-                          <Link to="/fixture-confirmations" onClick={closeSidebar} className={`menu-item ${isActive('/fixture-confirmations') || isActive('/admin/fixture-approvals') ? 'active' : ''}`}>
-                            <FaCheckCircle className="menu-icon" />
-                            <span>Fixture Approvals</span>
-                          </Link>
-                        </li>
-                      )}
                       <li>
-                        <Link
-                          to="/admin/team-forfeit"
-                          onClick={closeSidebar}
-                          className={`menu-item ${isActive('/admin/team-forfeit') ? 'active' : ''}`}
-                        >
-                          <FaFlag className="menu-icon" />
-                          <span>Team Forfeit / Restore</span>
+                        <Link to="/admin-helper" onClick={closeSidebar} className={`menu-item ${isActive('/admin-helper') ? 'active' : ''}`}>
+                          <FaWrench className="menu-icon" />
+                          <span>Admin Helper</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/roster-tools" onClick={closeSidebar} className={`menu-item ${isActive('/admin/roster-tools') ? 'active' : ''}`}>
+                          <FaWrench className="menu-icon" />
+                          <span>Roster tools</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/queue-monitor" onClick={closeSidebar} className={`menu-item ${isActive('/admin/queue-monitor') ? 'active' : ''}`}>
+                          <FaUsers className="menu-icon" />
+                          <span>Queue Monitor</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/purse-audit" onClick={closeSidebar} className={`menu-item ${isActive('/admin/purse-audit') ? 'active' : ''}`}>
+                          <FaDollarSign className="menu-icon" />
+                          <span>Purse Audit Ledger</span>
                         </Link>
                       </li>
                       <li>
@@ -594,33 +600,9 @@ function App() {
                         </Link>
                       </li>
                       <li>
-                        <Link to="/admin/roster-tools" onClick={closeSidebar} className={`menu-item ${isActive('/admin/roster-tools') ? 'active' : ''}`}>
-                          <FaWrench className="menu-icon" />
-                          <span>Roster tools</span>
-                        </Link>
-                      </li>
-                      <li>
                         <Link to="/admin/trade-activity" onClick={closeSidebar} className={`menu-item ${isActive('/admin/trade-activity') ? 'active' : ''}`}>
                           <FaChartBar className="menu-icon" />
                           <span>Team Trade Activity</span>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="/admin-helper" onClick={closeSidebar} className={`menu-item ${isActive('/admin-helper') ? 'active' : ''}`}>
-                          <FaWrench className="menu-icon" />
-                          <span>Admin Helper</span>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="/admin/user-management" onClick={closeSidebar} className={`menu-item ${isActive('/admin/user-management') ? 'active' : ''}`}>
-                          <FaUsersCog className="menu-icon" />
-                          <span>User Management</span>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="/admin/fairness-management" onClick={closeSidebar} className={`menu-item ${isActive('/admin/fairness-management') ? 'active' : ''}`}>
-                          <FaBalanceScale className="menu-icon" />
-                          <span>Fairness Management</span>
                         </Link>
                       </li>
                       <li>
@@ -633,18 +615,6 @@ function App() {
                         <Link to="/admin/team-locks" onClick={closeSidebar} className={`menu-item ${isActive('/admin/team-locks') ? 'active' : ''}`}>
                           <FaLock className="menu-icon" />
                           <span>Retention Locks</span>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="/admin/purse-audit" onClick={closeSidebar} className={`menu-item ${isActive('/admin/purse-audit') ? 'active' : ''}`}>
-                          <FaDollarSign className="menu-icon" />
-                          <span>Purse Audit Ledger</span>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="/admin/queue-monitor" onClick={closeSidebar} className={`menu-item ${isActive('/admin/queue-monitor') ? 'active' : ''}`}>
-                          <FaUsers className="menu-icon" />
-                          <span>Queue Monitor</span>
                         </Link>
                       </li>
                       <li>
@@ -671,6 +641,47 @@ function App() {
                               </span>
                             )}
                           </span>
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+
+                {user?.isAdmin && (
+                  <div className="menu-section admin-section">
+                    <h3 className="menu-section-title">
+                      <FaCrown className="admin-crown" />
+                      Admin · League
+                    </h3>
+                    <ul className="menu">
+                      {filterItem('Fixture Approvals') && (
+                        <li>
+                          <Link to="/fixture-confirmations" onClick={closeSidebar} className={`menu-item ${isActive('/fixture-confirmations') || isActive('/admin/fixture-approvals') ? 'active' : ''}`}>
+                            <FaCheckCircle className="menu-icon" />
+                            <span>Fixture Approvals</span>
+                          </Link>
+                        </li>
+                      )}
+                      <li>
+                        <Link
+                          to="/admin/team-forfeit"
+                          onClick={closeSidebar}
+                          className={`menu-item ${isActive('/admin/team-forfeit') ? 'active' : ''}`}
+                        >
+                          <FaFlag className="menu-icon" />
+                          <span>Team Forfeit / Restore</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/user-management" onClick={closeSidebar} className={`menu-item ${isActive('/admin/user-management') ? 'active' : ''}`}>
+                          <FaUsersCog className="menu-icon" />
+                          <span>User Management</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/admin/fairness-management" onClick={closeSidebar} className={`menu-item ${isActive('/admin/fairness-management') ? 'active' : ''}`}>
+                          <FaBalanceScale className="menu-icon" />
+                          <span>Fairness Management</span>
                         </Link>
                       </li>
                     </ul>

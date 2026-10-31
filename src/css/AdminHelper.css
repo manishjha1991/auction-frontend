@@ -51,6 +51,7 @@
 }
 .admin-helper-badge.bad { background: #fde8e8; color: #b42318; }
 .admin-helper-badge.ok { background: #e7f8ef; color: #067647; }
+.admin-helper-caps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .admin-helper-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -63,3 +64,17 @@
 .admin-helper-form-title { grid-column: 1 / -1; font-weight: 800; }
 .admin-helper-form label { display: grid; gap: 6px; font-size: 12px; font-weight: 700; color: #444; }
 .admin-helper-form .admin-helper-actions { grid-column: 1 / -1; }
+.admin-helper-delete {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #fff5f5;
+  border: 1px solid rgba(220, 53, 69, 0.25);
+}
+.admin-helper-danger {
+  background: #b42318 !important;
+  color: #fff !important;
+  border-color: #b42318 !important;
+}

@@ -382,6 +382,27 @@
   line-height: 1.2;
 }
 
+.up-auction-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0.85rem 0 0.25rem;
+}
+.up-auction-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  background: #e0e7ff;
+  border: 1px solid rgba(79, 70, 229, 0.22);
+}
+.up-auction-chip:hover {
+  background: #c7d2fe;
+}
 .up-trade-center-banner {
   display: flex;
   align-items: center;

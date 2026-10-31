@@ -38,6 +38,12 @@ export default function AdminHelper() {
   const [players, setPlayers] = useState([]);
   const [editing, setEditing] = useState(null);
 
+  const [minFilter, setMinFilter] = useState('short');
+  const [minSearch, setMinSearch] = useState('');
+  const [minReport, setMinReport] = useState({ caps: null, shortCount: 0, okCount: 0, teams: [] });
+  const [deleteAsk, setDeleteAsk] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
+
   useEffect(() => {
     const cached = localStorage.getItem('user');
     if (cached) {
@@ -71,6 +77,23 @@ export default function AdminHelper() {
     }
   }, [adminUserId]);
 
+  const loadRosterMins = useCallback(async () => {
+    if (!adminUserId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `${API_ENDPOINTS}/api/admin-tools/helper/roster-mins?adminUserId=${encodeURIComponent(adminUserId)}`
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load roster mins');
+      setMinReport(data);
+    } catch (err) {
+      showToast(err.message || 'Failed to load roster mins');
+    } finally {
+      setLoading(false);
+    }
+  }, [adminUserId]);
+
   const loadPlayers = useCallback(async (search) => {
     if (!adminUserId) return;
     setLoading(true);
@@ -91,7 +114,8 @@ export default function AdminHelper() {
     if (!adminUserId) return;
     if (tab === 'locks') loadAccounts();
     if (tab === 'players') loadPlayers(playerSearch);
-  }, [adminUserId, tab, loadAccounts, loadPlayers]);
+    if (tab === 'mins') loadRosterMins();
+  }, [adminUserId, tab, loadAccounts, loadPlayers, loadRosterMins]);
 
   useEffect(() => {
     if (tab !== 'players') return;
@@ -142,9 +166,37 @@ export default function AdminHelper() {
       if (!res.ok) throw new Error(data.message || 'Failed to save');
       showToast(data.message);
       setEditing(null);
+      setDeleteAsk(false);
+      setDeleteConfirmName('');
       await loadPlayers(playerSearch);
     } catch (err) {
       showToast(err.message || 'Failed to save player');
+    } finally {
+      setSavingId('');
+    }
+  };
+
+  const deletePlayer = async () => {
+    if (!editing?._id) return;
+    setSavingId(String(editing._id));
+    try {
+      const res = await fetch(`${API_ENDPOINTS}/api/admin-tools/helper/players/${editing._id}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminUserId,
+          confirmName: deleteConfirmName,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to delete');
+      showToast(data.message);
+      setEditing(null);
+      setDeleteAsk(false);
+      setDeleteConfirmName('');
+      await loadPlayers(playerSearch);
+    } catch (err) {
+      showToast(err.message || 'Failed to delete player');
     } finally {
       setSavingId('');
     }
@@ -161,6 +213,15 @@ export default function AdminHelper() {
     );
   }, [accounts, lockFilter, accountSearch]);
 
+  const visibleMinTeams = useMemo(() => {
+    const list = (minReport.teams || []).filter((t) => (minFilter === 'ok' ? t.ok : minFilter === 'all' ? true : !t.ok));
+    const q = minSearch.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((t) =>
+      `${t.teamName || ''} ${t.ownerName || ''} ${t.abbreviation || ''}`.toLowerCase().includes(q)
+    );
+  }, [minReport, minFilter, minSearch]);
+
   if (!user?.isAdmin) {
     return (
       <div className="admin-settings-page">
@@ -173,11 +234,14 @@ export default function AdminHelper() {
     <div className="admin-settings-page admin-helper-page">
       {toast ? <div className="toast">{toast}</div> : null}
       <h1 className="gradient-title">Admin Helper</h1>
-      <p className="admin-helper-sub">Unlock bidding accounts and fix player details (country, type, rating) without leaving this page.</p>
+      <p className="admin-helper-sub">Unlock bidding accounts, see who is short of category mins, and fix player details.</p>
 
       <div className="admin-helper-tabs">
         <button type="button" className={tab === 'locks' ? 'on' : ''} onClick={() => setTab('locks')}>
           Account locks ({accounts.lockedCount || 0} locked)
+        </button>
+        <button type="button" className={tab === 'mins' ? 'on' : ''} onClick={() => setTab('mins')}>
+          Category mins ({minReport.shortCount || 0} short)
         </button>
         <button type="button" className={tab === 'players' ? 'on' : ''} onClick={() => setTab('players')}>
           Edit players
@@ -243,6 +307,77 @@ export default function AdminHelper() {
               </div>
             ))}
             {!loading && visibleAccounts.length === 0 ? <p>No accounts in this view.</p> : null}
+          </div>
+        </div>
+      )}
+
+      {tab === 'mins' && (
+        <div className="panel">
+          <div className="admin-helper-toolbar">
+            <input
+              value={minSearch}
+              onChange={(e) => setMinSearch(e.target.value)}
+              placeholder="Search team"
+            />
+            <select value={minFilter} onChange={(e) => setMinFilter(e.target.value)}>
+              <option value="short">Short of min only</option>
+              <option value="ok">Meeting mins</option>
+              <option value="all">All teams</option>
+            </select>
+            <button type="button" className="btn" onClick={loadRosterMins} disabled={loading}>
+              Refresh
+            </button>
+          </div>
+          <p className="admin-helper-meta">
+            Short {minReport.shortCount || 0} · Meeting mins {minReport.okCount || 0}
+            {minReport.caps
+              ? ` · Gold ≥${minReport.caps.goldMin}, Silver ≥${minReport.caps.silverMin}, Emerald ≥${minReport.caps.emeraldMin}, S+E ≥${minReport.caps.sapphireEmeraldMin}`
+              : ''}
+          </p>
+          <p className="admin-helper-muted">Counts are owned roster + live bids/pending unsold picks. Same rules as the 11:00 PM lock check.</p>
+          {loading ? <p>Loading…</p> : null}
+          <div className="admin-helper-list">
+            {visibleMinTeams.map((team) => (
+              <div key={team.userId} className={`admin-helper-row ${team.ok ? '' : 'is-locked'}`}>
+                <div>
+                  <div className="team-name">
+                    {team.teamName}
+                    {team.abbreviation ? ` (${team.abbreviation})` : ''}
+                  </div>
+                  <div className="admin-helper-muted">
+                    {team.isLocked ? 'Locked · ' : ''}
+                    Indians {team.india?.total || 0}/{team.india?.max || 3}
+                    {team.missingLabels?.length ? ` · short: ${team.missingLabels.join(', ')}` : ''}
+                  </div>
+                  <div className="admin-helper-caps">
+                    {[
+                      { label: 'Gold', have: team.total?.Gold, min: minReport.caps?.goldMin },
+                      { label: 'Silver', have: team.total?.Silver, min: minReport.caps?.silverMin },
+                      { label: 'Emerald', have: team.total?.Emerald, min: minReport.caps?.emeraldMin },
+                      { label: 'Sapphire', have: team.total?.Sapphire, min: minReport.caps?.sapphireMin },
+                      {
+                        label: 'S+E',
+                        have: (team.total?.Sapphire || 0) + (team.total?.Emerald || 0),
+                        min: minReport.caps?.sapphireEmeraldMin,
+                      },
+                    ].map((row) => (
+                      <span
+                        key={row.label}
+                        className={`admin-helper-badge ${(row.have || 0) >= (row.min || 0) ? 'ok' : 'bad'}`}
+                      >
+                        {row.label} {row.have}/{row.min}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="admin-helper-actions">
+                  <span className={`admin-helper-badge ${team.ok ? 'ok' : 'bad'}`}>
+                    {team.ok ? 'OK' : 'SHORT'}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {!loading && visibleMinTeams.length === 0 ? <p>No teams in this view.</p> : null}
           </div>
         </div>
       )}
@@ -321,8 +456,60 @@ export default function AdminHelper() {
               </label>
               <div className="admin-helper-actions">
                 <button type="submit" className="btn btn-primary" disabled={!!savingId}>Save</button>
-                <button type="button" className="btn" onClick={() => setEditing(null)}>Cancel</button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setEditing(null);
+                    setDeleteAsk(false);
+                    setDeleteConfirmName('');
+                  }}
+                >
+                  Cancel
+                </button>
               </div>
+              {editing.isSold || editing.owner ? (
+                <p className="admin-helper-muted">Delete is only allowed for unsold players who are not on a roster.</p>
+              ) : deleteAsk ? (
+                <div className="admin-helper-delete">
+                  <p>
+                    Permanently delete <strong>{editing.name}</strong> from the database? Bids, picks, and leftover
+                    refs will be cleaned up. This cannot be undone.
+                  </p>
+                  <label>
+                    Type the player name to confirm
+                    <input
+                      value={deleteConfirmName}
+                      onChange={(e) => setDeleteConfirmName(e.target.value)}
+                      placeholder={editing.name}
+                    />
+                  </label>
+                  <div className="admin-helper-actions">
+                    <button
+                      type="button"
+                      className="btn admin-helper-danger"
+                      disabled={!!savingId || deleteConfirmName.trim().toLowerCase() !== String(editing.name || '').trim().toLowerCase()}
+                      onClick={deletePlayer}
+                    >
+                      Yes, delete forever
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => {
+                        setDeleteAsk(false);
+                        setDeleteConfirmName('');
+                      }}
+                    >
+                      Keep player
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" className="btn admin-helper-danger" onClick={() => setDeleteAsk(true)}>
+                  Delete from database
+                </button>
+              )}
             </form>
           ) : null}
           {loading ? <p>Loading…</p> : null}
