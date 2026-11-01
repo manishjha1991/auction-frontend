@@ -1,0 +1,27 @@
+.stadium-mark {
+  position: relative;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.stadium-mark-svg {
+  width: 78%;
+  height: 78%;
+  margin-top: -7px;
+}
+
+.stadium-mark-code {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  text-align: center;
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}

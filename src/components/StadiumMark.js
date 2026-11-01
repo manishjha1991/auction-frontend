@@ -1,4 +1,5 @@
 import React from 'react';
+import './StadiumMark.css';
 
 const MARKS = {
   'Adelaide Oval': { code: 'AO', a: '#9f1239', b: '#fde68a' },
