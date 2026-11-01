@@ -4,6 +4,7 @@ import { FaCalendarAlt, FaUsers, FaTrophy, FaEdit, FaTrash, FaPlus, FaImage, FaT
 import PlayerAvatar from './PlayerAvatar';
 import './TournamentList.css';
 import { useToast } from './ToastNotification';
+import MatchToss, { TossOverlay, useMatchToss } from './MatchToss';
 
 /** Knockout slots not yet decided — show this instead of "Winner of Semi-Final N" or legacy "Top n" seeds. */
 const KNOCKOUT_TBA = 'TBA';
@@ -1464,6 +1465,8 @@ const EditTournamentModal = ({ tournament, onClose, onSuccess }) => {
 // Tournament Detail Modal Component
 const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe, canSubscribe, isSubscribed }) => {
   const { showToast } = useToast();
+  const { overlay: tossOverlay, showToss, closeOverlay } = useMatchToss();
+  const [tossingId, setTossingId] = useState('');
   const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
   const isAdmin = currentUser?.isAdmin;
   const [activeTab, setActiveTab] = useState(isAdmin ? 'manage' : 'points');
@@ -1531,11 +1534,51 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     });
   };
 
+  const applyTossWinner = (fixtureIndex, tossWinner) => {
+    setFixtures((prev) =>
+      (prev || []).map((row, idx) =>
+        idx === fixtureIndex ? { ...row, tossWinner } : row
+      )
+    );
+  };
+
+  const handleTournamentToss = async (fixture, fixtureIndex) => {
+    const userId = currentUser?.id || currentUser?._id;
+    if (!userId || tossingId) return;
+    setTossingId(String(fixtureIndex));
+    try {
+      const response = await fetch(
+        `${API_ENDPOINTS}/api/tournaments/${tournament._id}/fixtures/${fixtureIndex}/toss`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'user-id': String(userId),
+          },
+          body: JSON.stringify({ userId }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        if (data.tossWinner) applyTossWinner(fixtureIndex, data.tossWinner);
+        showToast(data.message || data.error || 'Toss failed');
+        return;
+      }
+      showToss({ team1: fixture.team1, team2: fixture.team2, winner: data.tossWinner });
+      applyTossWinner(fixtureIndex, data.tossWinner);
+    } catch (error) {
+      showToast(error.message || 'Toss failed');
+    } finally {
+      setTossingId('');
+    }
+  };
+
   const fetchFixtures = async () => {
     setLoadingFixtures(true);
     try {
       const cachedUser = localStorage.getItem('user');
-      const userId = cachedUser ? JSON.parse(cachedUser).id : null;
+      const parsed = cachedUser ? JSON.parse(cachedUser) : null;
+      const userId = parsed?.id || parsed?._id || null;
       
       const response = await fetch(`${API_ENDPOINTS}/api/tournaments/${tournament._id}/fixtures`, {
         headers: {
@@ -2229,6 +2272,12 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                             🏆 Winner: {fixture.winner}
                           </div>
                         )}
+                        <MatchToss
+                          fixture={fixture}
+                          user={currentUser}
+                          tossing={tossingId === String(actualIndex !== -1 ? actualIndex : index)}
+                          onToss={() => handleTournamentToss(fixture, actualIndex !== -1 ? actualIndex : index)}
+                        />
                       </div>
                                 );
                               })}
@@ -2721,6 +2770,12 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                         </div>
                                       </div>
                                     )}
+                                    <MatchToss
+                                      fixture={fixture}
+                                      user={currentUser}
+                                      tossing={tossingId === String(finalActualIndex)}
+                                      onToss={() => handleTournamentToss(fixture, finalActualIndex)}
+                                    />
                                     {fixture.winner && (
                                       <div
                                         className={isFinal ? "fixture-champion-badge" : "fixture-winner-badge"}
@@ -3929,6 +3984,13 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
           </div>
         </div>
       )}
+      <TossOverlay
+        open={tossOverlay.open}
+        team1={tossOverlay.team1}
+        team2={tossOverlay.team2}
+        winner={tossOverlay.winner}
+        onClose={closeOverlay}
+      />
     </div>
   );
 };

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import axios from "axios";
 import { API_ENDPOINTS } from "../const";
+import { useToast } from "./ToastNotification";
+import MatchToss, { TossOverlay, useMatchToss } from "./MatchToss";
 
 const calculateRequiredGames = (teamCount, fallback = 13) => {
   const count = Number(teamCount) || 0;
@@ -600,6 +602,9 @@ const CloseButton = styled.button`
 `;
 
 const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
+  const { showToast } = useToast();
+  const { user: tossUser, overlay: tossOverlay, showToss, closeOverlay } = useMatchToss();
+  const [tossingId, setTossingId] = useState("");
   const [playoffFixtures, setPlayoffFixtures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -806,6 +811,37 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const areTop6QualifiersEligible = () => {
     // WC seeds from CPL composite report — eligibility is validated on the server.
     return !!(top6Teams && top6Teams.length >= 6);
+  };
+
+  const handleToss = async (fixture) => {
+    const userId = tossUser?.id || tossUser?._id;
+    const key = fixture.matchId || fixture._id;
+    if (!userId || tossingId) return;
+    setTossingId(String(key));
+    try {
+      const res = await axios.post(`${API_ENDPOINTS}/api/playoff-fixtures/${encodeURIComponent(fixture.matchId)}/toss`, { userId });
+      const winnerName = res.data?.tossWinner;
+      showToss({ team1: fixture.team1, team2: fixture.team2, winner: winnerName });
+      setPlayoffFixtures((prev) =>
+        (prev || []).map((row) =>
+          String(row.matchId) === String(fixture.matchId)
+            ? { ...row, tossWinner: winnerName, tossAt: res.data?.tossAt }
+            : row
+        )
+      );
+    } catch (err) {
+      const existing = err.response?.data?.tossWinner;
+      if (existing) {
+        setPlayoffFixtures((prev) =>
+          (prev || []).map((row) =>
+            String(row.matchId) === String(fixture.matchId) ? { ...row, tossWinner: existing } : row
+          )
+        );
+      }
+      showToast(err.response?.data?.message || 'Toss failed');
+    } finally {
+      setTossingId('');
+    }
   };
 
   const handleEditFixture = (fixture) => {
@@ -1199,6 +1235,12 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
                </MomSection>
              )}
 
+             <MatchToss
+               fixture={fixture}
+               user={tossUser}
+               tossing={tossingId === String(fixture.matchId || fixture._id)}
+               onToss={() => handleToss(fixture)}
+             />
              {isAdmin && !isDisabled && (
                <div style={{ textAlign: "right", marginTop: "1rem" }}>
                  <EditButton onClick={() => handleEditFixture(fixture)}>
@@ -1304,6 +1346,13 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
            </ModalContent>
          </ModalWrapper>
        )}
+      <TossOverlay
+        open={tossOverlay.open}
+        team1={tossOverlay.team1}
+        team2={tossOverlay.team2}
+        winner={tossOverlay.winner}
+        onClose={closeOverlay}
+      />
     </PlayoffContainer>
   );
 };

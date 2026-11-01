@@ -1,0 +1,510 @@
+.toss-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding: 0.55rem 1.05rem;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1e293b;
+  cursor: pointer;
+  background: linear-gradient(135deg, #fde68a, #f59e0b 55%, #ea580c);
+  box-shadow: 0 8px 18px rgba(234, 88, 12, 0.28);
+}
+
+.toss-btn-coin {
+  display: inline-block;
+  animation: toss-btn-wiggle 2.4s ease-in-out infinite;
+}
+
+.toss-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.toss-btn:disabled .toss-btn-coin {
+  animation: none;
+}
+
+.toss-result-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #fff7ed, #ffedd5);
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  font-size: 0.9rem;
+}
+
+.toss-result-coin {
+  font-size: 1.1rem;
+}
+
+.toss-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 18%, #1e3a5f 0%, #07111f 52%, #020617 100%);
+}
+
+.toss-ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.toss-flare {
+  position: absolute;
+  width: 42vw;
+  height: 42vw;
+  max-width: 420px;
+  max-height: 420px;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.45;
+  animation: toss-pulse 3.2s ease-in-out infinite;
+}
+
+.toss-flare--l {
+  top: -8%;
+  left: -6%;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.55), transparent 70%);
+}
+
+.toss-flare--r {
+  top: -10%;
+  right: -8%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.42), transparent 70%);
+  animation-delay: 0.6s;
+}
+
+.toss-haze {
+  position: absolute;
+  inset: auto 0 0;
+  height: 38%;
+  background: linear-gradient(to top, rgba(2, 6, 23, 0.95), transparent);
+}
+
+.toss-stage {
+  position: relative;
+  z-index: 1;
+  width: min(92vw, 520px);
+  text-align: center;
+  padding: 1.4rem 1rem 1.6rem;
+}
+
+.toss-kicker {
+  margin: 0 0 0.85rem;
+  color: #fcd34d;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.toss-matchup {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1.4rem;
+}
+
+.toss-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+  padding: 0.65rem 0.5rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(10px);
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.toss-chip.is-winner {
+  transform: translateY(-4px) scale(1.04);
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.35), 0 12px 28px rgba(251, 191, 36, 0.28);
+}
+
+.toss-chip-abbr {
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #fff7ed;
+}
+
+.toss-chip--away .toss-chip-abbr {
+  color: #e0f2fe;
+}
+
+.toss-chip-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  line-height: 1.25;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toss-vs {
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: #94a3b8;
+}
+
+.toss-sides {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #cbd5e1;
+}
+
+.toss-side {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toss-side--heads { color: #fcd34d; }
+.toss-side--tails { color: #7dd3fc; text-align: right; }
+
+.toss-arena {
+  position: relative;
+  height: 280px;
+  perspective: 1100px;
+  transform-style: preserve-3d;
+  margin: 0 auto 0.4rem;
+}
+
+.toss-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  width: 120px;
+  height: 22px;
+  margin-left: -60px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%);
+  filter: blur(2px);
+}
+
+.toss-shadow.is-air {
+  animation: toss-shadow 3.2s cubic-bezier(0.22, 0.8, 0.28, 1) forwards;
+}
+
+.toss-shadow.is-down {
+  transform: scale(1);
+  opacity: 0.5;
+}
+
+.toss-coin-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 48px;
+  width: 156px;
+  height: 156px;
+  margin-left: -78px;
+  transform-style: preserve-3d;
+}
+
+.toss-coin-wrap.is-tossing {
+  animation: toss-throw 3.2s cubic-bezier(0.18, 0.72, 0.22, 1) forwards;
+}
+
+.toss-coin {
+  width: 156px;
+  height: 156px;
+  position: relative;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+.toss-coin.is-spinning.lands-heads {
+  animation: toss-spin-heads 3.2s cubic-bezier(0.18, 0.55, 0.2, 1) forwards;
+}
+
+.toss-coin.is-spinning.lands-tails {
+  animation: toss-spin-tails 3.2s cubic-bezier(0.18, 0.55, 0.2, 1) forwards;
+}
+
+.toss-coin.lands-heads:not(.is-spinning) {
+  transform: rotateY(1800deg);
+}
+
+.toss-coin.lands-tails:not(.is-spinning) {
+  transform: rotateY(1980deg);
+}
+
+.toss-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow:
+    inset 0 0 0 10px rgba(255, 255, 255, 0.16),
+    inset 0 -18px 28px rgba(0, 0, 0, 0.28),
+    0 18px 28px rgba(0, 0, 0, 0.35),
+    0 0 0 3px rgba(255, 255, 255, 0.12);
+}
+
+.toss-face strong {
+  font-size: 2.05rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.25);
+}
+
+.toss-face em {
+  font-style: normal;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  opacity: 0.72;
+}
+
+.toss-face-ring {
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+}
+
+.toss-face-shine {
+  position: absolute;
+  top: -20%;
+  left: -10%;
+  width: 70%;
+  height: 55%;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.55), transparent);
+  pointer-events: none;
+}
+
+.toss-face--heads {
+  background:
+    radial-gradient(circle at 32% 28%, #fff7ed, #f59e0b 58%, #92400e);
+  color: #422006;
+  transform: rotateY(0deg) translateZ(1px);
+}
+
+.toss-face--tails {
+  background:
+    radial-gradient(circle at 32% 28%, #e0f2fe, #38bdf8 58%, #075985);
+  color: #082f49;
+  transform: rotateY(180deg) translateZ(1px);
+}
+
+.toss-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.toss-spark {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 2px;
+  animation: toss-spark 0.95s ease-out forwards;
+}
+
+.toss-spark--0 { background: #fbbf24; }
+.toss-spark--1 { background: #38bdf8; }
+.toss-spark--2 { background: #fb7185; }
+.toss-spark--3 { background: #a3e635; }
+.toss-spark--4 { background: #f8fafc; }
+.toss-spark--5 { background: #c084fc; }
+
+.toss-spark:nth-child(1) { --dx: -90px; --dy: -70px; }
+.toss-spark:nth-child(2) { --dx: 80px; --dy: -85px; }
+.toss-spark:nth-child(3) { --dx: -40px; --dy: -110px; }
+.toss-spark:nth-child(4) { --dx: 110px; --dy: -20px; }
+.toss-spark:nth-child(5) { --dx: -120px; --dy: 10px; }
+.toss-spark:nth-child(6) { --dx: 30px; --dy: -95px; }
+.toss-spark:nth-child(7) { --dx: -70px; --dy: 40px; }
+.toss-spark:nth-child(8) { --dx: 95px; --dy: 35px; }
+.toss-spark:nth-child(9) { --dx: 0px; --dy: -120px; }
+.toss-spark:nth-child(10) { --dx: -100px; --dy: -30px; }
+.toss-spark:nth-child(11) { --dx: 60px; --dy: 55px; }
+.toss-spark:nth-child(12) { --dx: -20px; --dy: 70px; }
+.toss-spark:nth-child(13) { --dx: 130px; --dy: -60px; }
+.toss-spark:nth-child(14) { --dx: -55px; --dy: -50px; }
+.toss-spark:nth-child(15) { --dx: 45px; --dy: -40px; }
+.toss-spark:nth-child(16) { --dx: -85px; --dy: 60px; }
+.toss-spark:nth-child(17) { --dx: 15px; --dy: -75px; }
+.toss-spark:nth-child(18) { --dx: 70px; --dy: -10px; }
+
+.toss-caption {
+  color: #e2e8f0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  min-height: 1.6rem;
+  margin: 0.2rem 0 0.7rem;
+  letter-spacing: 0.01em;
+}
+
+.toss-caption.is-win {
+  color: #fde68a;
+}
+
+.toss-winner-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0 auto 0.9rem;
+  padding: 0.7rem 1.1rem 0.85rem;
+  max-width: 360px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(15, 23, 42, 0.4));
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  animation: toss-pop 0.45s cubic-bezier(0.2, 1.2, 0.32, 1);
+}
+
+.toss-winner-banner span {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #fcd34d;
+}
+
+.toss-winner-banner strong {
+  font-size: 1.25rem;
+  color: #fffbeb;
+  line-height: 1.25;
+}
+
+.toss-done {
+  margin-top: 0.15rem;
+  padding: 0.62rem 1.4rem;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 800;
+  cursor: pointer;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  color: #0f172a;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+}
+
+@keyframes toss-throw {
+  0% { transform: translateY(70px) scale(0.86); }
+  18% { transform: translateY(-188px) scale(1.08); }
+  38% { transform: translateY(-36px) scale(1); }
+  58% { transform: translateY(-142px) scale(1.05); }
+  78% { transform: translateY(16px) scale(0.97); }
+  88% { transform: translateY(-18px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes toss-spin-heads {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(1800deg); }
+}
+
+@keyframes toss-spin-tails {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(1980deg); }
+}
+
+@keyframes toss-shadow {
+  0% { transform: scale(1.15); opacity: 0.55; }
+  18% { transform: scale(0.38); opacity: 0.16; }
+  38% { transform: scale(0.92); opacity: 0.42; }
+  58% { transform: scale(0.48); opacity: 0.2; }
+  78% { transform: scale(1.12); opacity: 0.5; }
+  88% { transform: scale(0.9); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 0.5; }
+}
+
+@keyframes toss-spark {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.2) rotate(160deg);
+  }
+}
+
+@keyframes toss-pop {
+  0% { opacity: 0; transform: translateY(12px) scale(0.92); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toss-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.08); }
+}
+
+@keyframes toss-btn-wiggle {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(10deg); }
+}
+
+@media (max-width: 600px) {
+  .toss-arena {
+    height: 240px;
+  }
+
+  .toss-coin,
+  .toss-coin-wrap {
+    width: 132px;
+    height: 132px;
+  }
+
+  .toss-coin-wrap {
+    margin-left: -66px;
+  }
+
+  .toss-face strong {
+    font-size: 1.7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toss-coin-wrap.is-tossing,
+  .toss-coin.is-spinning.lands-heads,
+  .toss-coin.is-spinning.lands-tails,
+  .toss-shadow.is-air,
+  .toss-spark,
+  .toss-btn-coin,
+  .toss-flare {
+    animation-duration: 0.01s;
+  }
+}

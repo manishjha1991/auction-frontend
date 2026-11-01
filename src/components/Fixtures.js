@@ -6,6 +6,7 @@ import ReactSelect from "react-select"; // <-- 1) Import react-select
 import { API_ENDPOINTS } from "../const";
 import PlayoffFixtures from "./PlayoffFixtures";
 import { useToast } from "./ToastNotification";
+import MatchToss, { TossOverlay, useMatchToss } from "./MatchToss";
 
 /* =========================================================
    Fixtures — mobile-first redesign
@@ -622,6 +623,8 @@ const getAbbreviation = (name) => {
 
 const Fixtures = () => {
   const { showToast } = useToast();
+  const { user: tossUser, overlay: tossOverlay, showToss, closeOverlay } = useMatchToss();
+  const [tossingId, setTossingId] = useState("");
   const [fixtures, setFixtures] = useState([]);
   const [filteredFixtures, setFilteredFixtures] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -651,7 +654,8 @@ const Fixtures = () => {
   // Define fetchFixtures function with useCallback to prevent infinite loops
   const fetchFixtures = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_ENDPOINTS}/api/fixtures?mode=${mode}`);
+      const fixtureMode = mode === 'groups' ? 'groups' : 'normal';
+      const response = await axios.get(`${API_ENDPOINTS}/api/fixtures?mode=${fixtureMode}`);
       const sortedFixtures = response.data.sort((a, b) => {
         if (a.winner && !b.winner) return -1;
         if (!a.winner && b.winner) return 1;
@@ -697,12 +701,7 @@ const Fixtures = () => {
         setMode(pmode);
         setWorldCupMode(wcMode);
         
-        // Set default active tab based on mode
-        if (pmode === 'groups') {
-          setActiveTab('groupA'); // Default to Group A when in group mode
-        } else {
-          setActiveTab('all'); // Default to All when in normal mode
-        }
+        setActiveTab('all');
       } catch (error) {
         console.error("Error fetching mode:", error);
       }
@@ -799,6 +798,38 @@ const Fixtures = () => {
         ? currentFixture?.team1Details?.players || []
         : currentFixture?.team2Details?.players || [];
     setPlayers(playersList.map((player) => player.name));
+  };
+
+  const handleToss = async (fixture) => {
+    const userId = tossUser?.id || tossUser?._id;
+    if (!userId || tossingId) return;
+    setTossingId(String(fixture._id));
+    try {
+      const res = await axios.post(`${API_ENDPOINTS}/api/fixtures/${fixture._id}/toss`, { userId });
+      const winner = res.data?.tossWinner;
+      showToss({ team1: fixture.team1, team2: fixture.team2, winner });
+      const apply = (list) =>
+        (list || []).map((row) =>
+          String(row._id) === String(fixture._id)
+            ? { ...row, tossWinner: winner, tossAt: res.data?.tossAt }
+            : row
+        );
+      setFixtures((prev) => apply(prev));
+      setFilteredFixtures((prev) => apply(prev));
+    } catch (err) {
+      const existing = err.response?.data?.tossWinner;
+      if (existing) {
+        const apply = (list) =>
+          (list || []).map((row) =>
+            String(row._id) === String(fixture._id) ? { ...row, tossWinner: existing } : row
+          );
+        setFixtures((prev) => apply(prev));
+        setFilteredFixtures((prev) => apply(prev));
+      }
+      showToast(err.response?.data?.message || 'Toss failed');
+    } finally {
+      setTossingId('');
+    }
   };
 
   const handleEditFixture = (fixture) => {
@@ -957,14 +988,12 @@ const Fixtures = () => {
   return (
     <TabContainer>
       <TabHeader>
-        {mode !== 'groups' && (
-          <TabButton 
-            active={activeTab === 'all'} 
-            onClick={() => setActiveTab('all')}
-          >
-            All Fixtures ({fixtures.length})
-          </TabButton>
-        )}
+        <TabButton
+          active={activeTab === 'all'}
+          onClick={() => setActiveTab('all')}
+        >
+          All Fixtures ({fixtures.length})
+        </TabButton>
         {mode === 'groups' && (
           <>
             <TabButton 
@@ -1411,6 +1440,12 @@ const Fixtures = () => {
               </div>
             </MomDetails>
           )}
+          <MatchToss
+            fixture={fixture}
+            user={tossUser}
+            tossing={tossingId === String(fixture._id)}
+            onToss={() => handleToss(fixture)}
+          />
           {isAdmin && (
             <div style={{ textAlign: "right", marginTop: "1rem" }}>
               <EditButton onClick={() => handleEditFixture(fixture)}>
@@ -1518,6 +1553,13 @@ const Fixtures = () => {
           </ModalContent>
         </ModalWrapper>
       )}
+      <TossOverlay
+        open={tossOverlay.open}
+        team1={tossOverlay.team1}
+        team2={tossOverlay.team2}
+        winner={tossOverlay.winner}
+        onClose={closeOverlay}
+      />
       </FixtureWrapper>
     </TabContainer>
   );
