@@ -45,9 +45,7 @@ export function fixtureVenueText(fixture, homeGround1, homeGround2) {
 
   if (toss) {
     const ground = groundFor(toss);
-    return ground
-      ? `Match will be played at ${ground} — ${toss}'s home ground`
-      : `${toss} won the toss — home ground not set yet`;
+    return ground || 'Home ground not set';
   }
 
   const left = homeGround1
