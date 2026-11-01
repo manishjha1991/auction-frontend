@@ -73,9 +73,14 @@ export function TossResultBadge({ tossWinner }) {
   if (!tossWinner) return null;
   return (
     <div className="toss-result-badge" role="status">
-      <span className="toss-result-coin" aria-hidden>🪙</span>
-      <span>
-        <strong>{tossWinner}</strong> won the toss
+      <span className="toss-result-coin" aria-hidden>
+        <span className="toss-result-coin-face">T</span>
+      </span>
+      <span className="toss-result-copy">
+        <span className="toss-result-kicker">Toss</span>
+        <span className="toss-result-line">
+          <strong>{tossWinner}</strong> won
+        </span>
       </span>
     </div>
   );

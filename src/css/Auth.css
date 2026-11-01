@@ -1046,6 +1046,20 @@
   color: #cbd5e1;
 }
 
+.fx-card__venue--mark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fx-card__venue--mark .stadium-mark {
+  border-radius: 8px;
+}
+
+.fx-card__venue--mark .stadium-mark-code {
+  font-size: 0.4rem;
+}
+
 .fx-card__bottom {
   display: flex;
   align-items: center;

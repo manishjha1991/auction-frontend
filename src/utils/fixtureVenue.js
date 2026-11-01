@@ -25,10 +25,11 @@ export function homeGroundForTeam(teams, teamName) {
  * Before a result: both home grounds.
  * After the toss: the toss winner's home ground.
  * After the fixture is updated: the ground the match was played on.
+ * @returns {null | { mode: 'played' | 'toss' | 'homes', items: { ground: string, team?: string, caption?: string, unset?: boolean }[] }}
  */
-export function fixtureVenueText(fixture, homeGround1, homeGround2) {
-  if (!fixture) return '';
-  if (isOpenSlot(fixture.team1) || isOpenSlot(fixture.team2)) return '';
+export function fixtureVenueParts(fixture, homeGround1, homeGround2) {
+  if (!fixture) return null;
+  if (isOpenSlot(fixture.team1) || isOpenSlot(fixture.team2)) return null;
 
   const played = Boolean(String(fixture.winner || '').trim());
   const toss = String(fixture.tossWinner || '').trim();
@@ -40,19 +41,31 @@ export function fixtureVenueText(fixture, homeGround1, homeGround2) {
 
   if (played) {
     const ground = groundFor(toss);
-    return ground ? `Match played at ${ground}` : '';
+    if (!ground) return null;
+    return { mode: 'played', items: [{ ground, caption: 'Played at' }] };
   }
 
   if (toss) {
     const ground = groundFor(toss);
-    return ground || 'Home ground not set';
+    if (!ground) return { mode: 'toss', items: [{ ground: 'Home ground not set', unset: true }] };
+    return { mode: 'toss', items: [{ ground }] };
   }
 
-  const left = homeGround1
-    ? `${fixture.team1}: ${homeGround1}`
-    : `${fixture.team1}: home ground not set`;
-  const right = homeGround2
-    ? `${fixture.team2}: ${homeGround2}`
-    : `${fixture.team2}: home ground not set`;
-  return `${left}  ·  ${right}`;
+  return {
+    mode: 'homes',
+    items: [
+      { team: fixture.team1, ground: homeGround1 || 'Not set', unset: !homeGround1 },
+      { team: fixture.team2, ground: homeGround2 || 'Not set', unset: !homeGround2 },
+    ],
+  };
+}
+
+export function fixtureVenueText(fixture, homeGround1, homeGround2) {
+  const view = fixtureVenueParts(fixture, homeGround1, homeGround2);
+  if (!view) return '';
+  if (view.mode === 'played') return `Match played at ${view.items[0].ground}`;
+  if (view.mode === 'toss') return view.items[0].ground;
+  return view.items
+    .map((item) => `${item.team}: ${item.unset ? 'home ground not set' : item.ground}`)
+    .join('  ·  ');
 }

@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import '../css/Auth.css';
 import { API_ENDPOINTS } from '../const';
-import { fixtureVenueText } from '../utils/fixtureVenue';
+import { fixtureVenueParts, fixtureVenueText } from '../utils/fixtureVenue';
+import StadiumMark from './StadiumMark';
 
 const teamImg = (meta) => {
   const src = meta?.teamImage || meta?.image;
@@ -311,6 +312,11 @@ const Login = ({ onLogin }) => {
       : match.margin
         ? `${String(match.winner).trim()} won by ${match.margin}`
         : `${String(match.winner || '').trim()} won`;
+    const venueView = fixtureVenueParts(
+      match,
+      match.team1Meta?.homeGround,
+      match.team2Meta?.homeGround
+    );
     const venueLine = fixtureVenueText(
       match,
       match.team1Meta?.homeGround,
@@ -364,7 +370,19 @@ const Login = ({ onLogin }) => {
             </span>
           </div>
 
-          {venueLine ? <span className="fx-card__venue">{venueLine}</span> : null}
+          {venueView && venueView.mode !== 'homes' ? (
+            <span className="fx-card__venue fx-card__venue--mark">
+              {venueView.items[0].unset ? null : (
+                <StadiumMark name={venueView.items[0].ground} size={28} />
+              )}
+              <span>
+                {venueView.items[0].caption ? `${venueView.items[0].caption} ` : ''}
+                {venueView.items[0].ground}
+              </span>
+            </span>
+          ) : venueLine ? (
+            <span className="fx-card__venue">{venueLine}</span>
+          ) : null}
 
           <div className={`fx-card__bottom ${isUpcoming ? '' : 'fx-card__bottom--ticker'}`}>
             <span className="fx-card__result">{resultLine}</span>
