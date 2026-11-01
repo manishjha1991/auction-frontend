@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import '../css/Auth.css';
 import { API_ENDPOINTS } from '../const';
+import { fixtureVenueText } from '../utils/fixtureVenue';
 
 const teamImg = (meta) => {
   const src = meta?.teamImage || meta?.image;
@@ -310,6 +311,11 @@ const Login = ({ onLogin }) => {
       : match.margin
         ? `${String(match.winner).trim()} won by ${match.margin}`
         : `${String(match.winner || '').trim()} won`;
+    const venueLine = fixtureVenueText(
+      match,
+      match.team1Meta?.homeGround,
+      match.team2Meta?.homeGround
+    );
 
     const cardStyle = isUpcoming
       ? {
@@ -357,6 +363,8 @@ const Login = ({ onLogin }) => {
               {isUpcoming ? '—' : match.team2Score || '—'}
             </span>
           </div>
+
+          {venueLine ? <span className="fx-card__venue">{venueLine}</span> : null}
 
           <div className={`fx-card__bottom ${isUpcoming ? '' : 'fx-card__bottom--ticker'}`}>
             <span className="fx-card__result">{resultLine}</span>

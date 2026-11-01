@@ -2251,8 +2251,8 @@ const OcrExtractor = () => {
             </select>
             {!isAllowedCplVenue(venue) ? (
               <span className="venue-hint">
-                Required — OCR only hints; you must select the official name so one ground never splits
-                into &ldquo;West ovel&rdquo; vs &ldquo;West Oval&rdquo;.
+                Required — OCR only hints; you must select the official stadium so one ground never splits
+                into &ldquo;MCG&rdquo; vs &ldquo;Melbourne Cricket Ground (MCG)&rdquo;.
               </span>
             ) : null}
           </label>

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaTrophy, FaCrown } from 'react-icons/fa';
 import { GiCricketBat, GiBowlingStrike, GiGloves } from 'react-icons/gi';
 import { API_ENDPOINTS } from '../const';
+import { CPL_VENUES_BY_REGION } from '../cplVenues';
 import PlayerAvatar from './PlayerAvatar';
 import PlayerPopup from './PlayerPopup';
 import '../css/TeamSquadsShowcase.css';
@@ -86,7 +87,9 @@ export default function TeamSquadsShowcase() {
   const [themeEditTeamId, setThemeEditTeamId] = useState(null);
   const [draftThemePrimary, setDraftThemePrimary] = useState('#0f2744');
   const [draftThemeSecondary, setDraftThemeSecondary] = useState('#eab308');
+  const [draftHomeGround, setDraftHomeGround] = useState('');
   const [savingTheme, setSavingTheme] = useState(false);
+  const [savingGround, setSavingGround] = useState(false);
 
   const myTeam = useMemo(
     () => (viewerId ? teams.find((t) => String(t._id) === String(viewerId)) : null),
@@ -233,6 +236,7 @@ export default function TeamSquadsShowcase() {
     const fb = hashTheme(themeEditTeam.teamName);
     setDraftThemePrimary(themeEditTeam.themePrimary || fb.top);
     setDraftThemeSecondary(themeEditTeam.themeSecondary || fb.bottom);
+    setDraftHomeGround(themeEditTeam.homeGround || '');
   }, [themeEditTeamId, themeEditTeam, canEditThemeSection]);
 
   useEffect(() => {
@@ -317,6 +321,42 @@ export default function TeamSquadsShowcase() {
       alert(e.message || 'Could not save colours');
     } finally {
       setSavingTheme(false);
+    }
+  };
+
+  const persistHomeGround = async () => {
+    if (!themeEditTeamId || !viewerId || !viewerIsAdmin || savingGround) return;
+    setSavingGround(true);
+    try {
+      const res = await fetch(
+        `${API_ENDPOINTS}/api/users/${themeEditTeamId}/home-ground`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requesterUserId: viewerId,
+            homeGround: draftHomeGround || null,
+          }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Could not save home ground');
+      const next = data.homeGround || null;
+      setTeams((prev) =>
+        prev.map((t) =>
+          String(t._id) === String(themeEditTeamId) ? { ...t, homeGround: next } : t
+        )
+      );
+      setSelectedTeam((prev) =>
+        prev && String(prev._id) === String(themeEditTeamId)
+          ? { ...prev, homeGround: next }
+          : prev
+      );
+      setDraftHomeGround(next || '');
+    } catch (e) {
+      alert(e.message || 'Could not save home ground');
+    } finally {
+      setSavingGround(false);
     }
   };
 
@@ -428,6 +468,45 @@ export default function TeamSquadsShowcase() {
               Reset to default
             </button>
           </div>
+          {viewerIsAdmin ? (
+            <div className="tss-ground-block">
+              <label className="tss-theme-field">
+                <span className="tss-theme-label">Home ground</span>
+                <select
+                  className="tss-theme-select"
+                  value={draftHomeGround}
+                  onChange={(e) => setDraftHomeGround(e.target.value)}
+                >
+                  <option value="">Not set</option>
+                  {Object.entries(CPL_VENUES_BY_REGION).map(([region, list]) => (
+                    <optgroup key={region} label={region}>
+                      {list.map((venue) => (
+                        <option key={venue} value={venue}>
+                          {venue}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
+              <p className="tss-theme-panel-desc">
+                Only an admin can assign this. Players cannot change their home ground.
+                Fixtures use it after the toss and after the result is saved.
+              </p>
+              <button
+                type="button"
+                className="tss-theme-save"
+                disabled={savingGround}
+                onClick={persistHomeGround}
+              >
+                {savingGround ? 'Saving…' : 'Save home ground'}
+              </button>
+            </div>
+          ) : (
+            <p className="tss-theme-panel-desc tss-ground-readonly">
+              Home ground: {themeEditTeam.homeGround || 'not assigned yet'}
+            </p>
+          )}
         </div>
       )}
 
@@ -478,6 +557,9 @@ export default function TeamSquadsShowcase() {
                       GPL {stats.cplWins} · WC {stats.wcWins}
                     </span>
                   </span>
+                  {team.homeGround ? (
+                    <span className="tss-card-ground">{team.homeGround}</span>
+                  ) : null}
                 </div>
                 <div className="tss-card-hover" aria-hidden>
                   <FaTrophy className="tss-card-trophy" />
@@ -553,6 +635,12 @@ export default function TeamSquadsShowcase() {
                     </div>
                     <div className="tss-modal-hero-copy">
                       <h2 id="tss-modal-title">{selectedTeam.teamName}</h2>
+                      <p className="tss-modal-league-line">
+                        <span className="tss-modal-league-label">Home</span>
+                        <span className="tss-modal-league-values">
+                          {selectedTeam.homeGround || 'Not assigned'}
+                        </span>
+                      </p>
                       <p
                         className="tss-modal-league-line"
                         title="Aggregated from cpl_12–cpl_20 (and live fixture updates on this server)"

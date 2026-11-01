@@ -1037,6 +1037,15 @@
   font-weight: 600;
 }
 
+.fx-card__venue {
+  display: block;
+  margin: 10px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  font-weight: 650;
+  color: #cbd5e1;
+}
+
 .fx-card__bottom {
   display: flex;
   align-items: center;

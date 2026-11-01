@@ -4,6 +4,8 @@ import axios from "axios";
 import { API_ENDPOINTS } from "../const";
 import { useToast } from "./ToastNotification";
 import MatchToss, { TossOverlay, useMatchToss } from "./MatchToss";
+import FixtureVenueLine from "./FixtureVenueLine";
+import { homeGroundForTeam } from "../utils/fixtureVenue";
 
 const calculateRequiredGames = (teamCount, fallback = 13) => {
   const count = Number(teamCount) || 0;
@@ -1235,6 +1237,11 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
                </MomSection>
              )}
 
+             <FixtureVenueLine
+               fixture={fixture}
+               homeGround1={homeGroundForTeam(teams, fixture.team1)}
+               homeGround2={homeGroundForTeam(teams, fixture.team2)}
+             />
              <MatchToss
                fixture={fixture}
                user={tossUser}

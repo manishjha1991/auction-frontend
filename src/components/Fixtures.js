@@ -7,6 +7,8 @@ import { API_ENDPOINTS } from "../const";
 import PlayoffFixtures from "./PlayoffFixtures";
 import { useToast } from "./ToastNotification";
 import MatchToss, { TossOverlay, useMatchToss } from "./MatchToss";
+import FixtureVenueLine from "./FixtureVenueLine";
+import { homeGroundForTeam } from "../utils/fixtureVenue";
 
 /* =========================================================
    Fixtures — mobile-first redesign
@@ -1440,6 +1442,11 @@ const Fixtures = () => {
               </div>
             </MomDetails>
           )}
+          <FixtureVenueLine
+            fixture={fixture}
+            homeGround1={homeGroundForTeam(teams, fixture.team1)}
+            homeGround2={homeGroundForTeam(teams, fixture.team2)}
+          />
           <MatchToss
             fixture={fixture}
             user={tossUser}

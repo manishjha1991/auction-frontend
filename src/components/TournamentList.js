@@ -5,6 +5,8 @@ import PlayerAvatar from './PlayerAvatar';
 import './TournamentList.css';
 import { useToast } from './ToastNotification';
 import MatchToss, { TossOverlay, useMatchToss } from './MatchToss';
+import FixtureVenueLine from './FixtureVenueLine';
+import { homeGroundForTeam } from '../utils/fixtureVenue';
 
 /** Knockout slots not yet decided — show this instead of "Winner of Semi-Final N" or legacy "Top n" seeds. */
 const KNOCKOUT_TBA = 'TBA';
@@ -2272,6 +2274,11 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                             🏆 Winner: {fixture.winner}
                           </div>
                         )}
+                        <FixtureVenueLine
+                          fixture={fixture}
+                          homeGround1={homeGroundForTeam(tournament.subscribedTeams, fixture.team1)}
+                          homeGround2={homeGroundForTeam(tournament.subscribedTeams, fixture.team2)}
+                        />
                         <MatchToss
                           fixture={fixture}
                           user={currentUser}
@@ -2770,6 +2777,11 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                         </div>
                                       </div>
                                     )}
+                                    <FixtureVenueLine
+                                      fixture={fixture}
+                                      homeGround1={homeGroundForTeam(tournament.subscribedTeams, fixture.team1)}
+                                      homeGround2={homeGroundForTeam(tournament.subscribedTeams, fixture.team2)}
+                                    />
                                     <MatchToss
                                       fixture={fixture}
                                       user={currentUser}
