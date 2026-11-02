@@ -303,7 +303,7 @@ const parseBowlingRows = (text = '') =>
       const [overs = '', maidens = '', runs = '', wickets = '', economy = '', extras = ''] = stats;
       return {
         name,
-        overs,
+        overs: clampOversInput(overs),
         maidens: Number(maidens ?? 0) || 0,
         runs: Number(runs ?? 0) || 0,
         wickets: Number(wickets ?? 0) || 0,
@@ -412,14 +412,27 @@ const MAX_BOWLING_OVERS = 4;
 const MAX_BOWLING_BALLS = MAX_BOWLING_OVERS * 6;
 const MAX_WICKETS = 10;
 
+/** OCR often drops the dot: 40 is 4.0, 35 is 3.5, 22 is 2.2. */
+const unpackOversDigits = (value) => {
+  const str = String(value ?? '').trim();
+  if (!str || str.includes('.') || str.includes(':')) return str;
+  if (!/^\d{2}$/.test(str)) return str;
+  const overs = Number(str[0]);
+  const balls = Number(str[1]);
+  if (overs > MAX_BOWLING_OVERS || balls > 5) return str;
+  if (overs === MAX_BOWLING_OVERS && balls > 0) return `${MAX_BOWLING_OVERS}.0`;
+  return `${overs}.${balls}`;
+};
+
 const clampOversInput = (value) => {
   if (value === undefined || value === null) return '';
   const sanitized = String(value).replace(/[^\d.:]/g, '');
   if (!sanitized) return '';
-  const balls = convertOversToBalls(sanitized);
-  if (balls === null) return sanitized;
+  const unpacked = unpackOversDigits(sanitized);
+  const balls = convertOversToBalls(unpacked);
+  if (balls === null) return unpacked;
   const clampedBalls = Math.min(balls, MAX_BOWLING_BALLS);
-  return clampedBalls === balls ? sanitized : convertBallsToOvers(clampedBalls);
+  return clampedBalls === balls ? unpacked : convertBallsToOvers(clampedBalls);
 };
 
 const clampWicketsValue = (rawValue) => {
