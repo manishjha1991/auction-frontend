@@ -195,16 +195,46 @@ const extractBalls = (text = '') => {
   return fallback ? BALL_TOKEN_MAP[fallback] : null;
 };
 
+const isDismissalToken = (token = '') => {
+  const t = String(token).replace(/\./g, '').toLowerCase();
+  return (
+    t === 'lbw' ||
+    t === 'b' ||
+    t === 'c' ||
+    t === 'st' ||
+    t === 'run' ||
+    t === 'not' ||
+    t === 'retired' ||
+    t === 'hit' ||
+    t === 'obstructing' ||
+    t === 'timed' ||
+    t.startsWith('c&')
+  );
+};
+
+/** Name is everything before the dismissal or the first number, so "MARCHANT DE LANGE" stays intact. */
+const battingNameTokens = (tokens = []) => {
+  const nameTokens = [];
+  for (const token of tokens) {
+    if (/\d/.test(token)) break;
+    if (isDismissalToken(token)) break;
+    nameTokens.push(token);
+  }
+  return nameTokens;
+};
+
 const parseBattingRows = (text = '') =>
   text
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line && !SCORECARD_EXCLUDE_PATTERN.test(line))
     .map((line) => {
-      const tokens = line.split(/\s+/);
-      if (tokens.length < 2) return null;
-      const name = normalizeName(`${tokens[0]} ${tokens[1]}`);
-      const detailTokens = tokens.slice(2);
+      const tokens = line.split(/\s+/).filter(Boolean);
+      const nameTokens = battingNameTokens(tokens);
+      if (!nameTokens.length) return null;
+      const name = normalizeName(nameTokens.join(' '));
+      if (!name || !/[a-z]/i.test(name)) return null;
+      const detailTokens = tokens.slice(nameTokens.length);
       const runs = extractRuns(detailTokens);
       const balls = extractBalls(line);
       const isNotOut = /\bnot\s*out\b/i.test(line);
@@ -310,12 +340,23 @@ const matchPlayerName = (extractedName = '', rosterName = '') => {
   if (normalizePlayerKey(extracted) === normalizePlayerKey(roster)) {
     return true;
   }
-  
+
   // Split into parts
   const extractedParts = extracted.split(/\s+/).filter(Boolean);
   const rosterParts = roster.split(/\s+/).filter(Boolean);
   
   if (extractedParts.length === 0 || rosterParts.length === 0) return false;
+
+  const extractedNormParts = extractedParts.map((part) => normalizePlayerKey(part)).filter(Boolean);
+  const rosterNormParts = rosterParts.map((part) => normalizePlayerKey(part)).filter(Boolean);
+  // "DE LANGE" still matches "Marchant DE Lange"
+  if (
+    extractedNormParts.length >= 2 &&
+    extractedNormParts.length <= rosterNormParts.length
+  ) {
+    const tail = rosterNormParts.slice(-extractedNormParts.length);
+    if (tail.every((part, index) => part === extractedNormParts[index])) return true;
+  }
   
   // Get last names (usually the last part)
   const extractedLastName = extractedParts[extractedParts.length - 1];
@@ -397,6 +438,33 @@ const parseCardByType = (config, text = '') => {
     default:
       return { rows: [], meta: {} };
   }
+};
+
+const mapSquadPlayers = (players = []) =>
+  (players || [])
+    .map((player) => ({
+      _id: player._id || player.id,
+      name: player.name,
+    }))
+    .filter((player) => player._id && player.name);
+
+/** Squad for scorecard matching. Does not depend on the team being tournament-ready. */
+const loadSquadPlayers = async (userId) => {
+  const rosterRes = await fetch(`${API_ENDPOINTS}/api/users/${userId}/roster`);
+  if (rosterRes.ok) {
+    const data = await rosterRes.json().catch(() => ({}));
+    const players = mapSquadPlayers(data.players);
+    if (players.length) return players;
+  }
+  const statsRes = await fetch(
+    `${API_ENDPOINTS}/api/player-stats/list?userId=${userId}&nocache=1`
+  );
+  if (!statsRes.ok) {
+    const err = await statsRes.json().catch(() => ({}));
+    throw new Error(err.message || 'Unable to load squad.');
+  }
+  const data = await statsRes.json();
+  return mapSquadPlayers(data.players);
 };
 
 const OcrExtractor = () => {
@@ -515,13 +583,8 @@ const OcrExtractor = () => {
       setRosterLoading(true);
       setRosterError('');
       try {
-        const res = await fetch(`${API_ENDPOINTS}/api/player-stats/list?userId=${currentUserId}`);
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || 'Unable to load roster.');
-        }
-        const data = await res.json();
-        setRoster(data.players || []);
+        const players = await loadSquadPlayers(currentUserId);
+        setRoster(players);
       } catch (err) {
         console.error('Failed to load roster', err);
         setRosterError(err.message || 'Failed to load roster.');
@@ -671,13 +734,8 @@ const OcrExtractor = () => {
       setOpponentRosterLoading(true);
       setOpponentRosterError('');
       try {
-        const res = await fetch(`${API_ENDPOINTS}/api/player-stats/list?userId=${resolvedOpponentUserId}`);
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || 'Unable to load opponent roster.');
-        }
-        const data = await res.json();
-        setOpponentRoster(data.players || []);
+        const players = await loadSquadPlayers(resolvedOpponentUserId);
+        setOpponentRoster(players);
       } catch (err) {
         console.error('Failed to load opponent roster', err);
         setOpponentRosterError(err.message || 'Failed to load opponent roster.');
