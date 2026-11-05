@@ -123,7 +123,7 @@ function AdminTradeActivity() {
           Team Trade Activity
         </h1>
         <p className="ata-subtitle">
-          While the trade window is open, each same category counts as the larger of releases or picks. 4 released and 4 picked is 4 trades. 5 released and 4 picked is 5. Sapphire and Emerald never replace each other. While the window is closed, only swaps count.
+          Used is the saved trade count. Left is the limit minus that number.
         </p>
         <button className="ata-refresh" onClick={load} disabled={loading}>
           <FaSyncAlt className={loading ? 'spin' : ''} /> {loading ? 'Loading...' : 'Refresh'}
@@ -193,22 +193,12 @@ function AdminTradeActivity() {
                   <span className="ata-stat-value">{t.trades}</span>
                 </div>
               </div>
-              <p className="ata-slot-math" title="Same category uses the larger of releases or picks. Sapphire does not cover Emerald.">
-                {t.tradeWindowOpen ? (
-                  <>
-                    Same category uses the larger number. 4 released and 4 picked = 4 trades. 5 released and 4 picked = 5.
-                    Swaps {t.trades}. Total <strong>{t.expectedTradesUsed ?? '—'}</strong>
-                  </>
-                ) : (
-                  <>
-                    Trade window is closed. Swaps count ({t.trades}). Releases and picks are not added.
-                  </>
-                )}
+              <p className="ata-slot-math">
+                Saved used {used}. Left {limit} − {used} = {left}. Swaps on record: {t.trades}. Releases {t.releases}. Picks {t.picks}.
               </p>
               {typeof t.usageDrift === 'number' && t.usageDrift !== 0 && (
                 <p className="ata-drift-warn">
-                  Stored {t.tradesUsed} differs from expected {t.expectedTradesUsed} by {t.usageDrift > 0 ? '+' : ''}
-                  {t.usageDrift}. Check manual DB edits or legacy approvals.
+                  Swap-only count is {t.expectedTradesUsed}. Saved used stays {used}.
                 </p>
               )}
               <p className="ata-card-hint">Click to view players involved</p>
