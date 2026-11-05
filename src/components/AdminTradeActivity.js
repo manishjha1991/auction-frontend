@@ -123,8 +123,7 @@ function AdminTradeActivity() {
           Team Trade Activity
         </h1>
         <p className="ata-subtitle">
-          Picks, releases & trades by team • <strong>Used</strong> should equal trades + releases + picks that were{' '}
-          <em>not</em> same-tier paired to a release (see slot math on each card).
+          While the trade window is open, each same category counts as the larger of releases or picks. 4 released and 4 picked is 4 trades. 5 released and 4 picked is 5. Sapphire and Emerald never replace each other. While the window is closed, only swaps count.
         </p>
         <button className="ata-refresh" onClick={load} disabled={loading}>
           <FaSyncAlt className={loading ? 'spin' : ''} /> {loading ? 'Loading...' : 'Refresh'}
@@ -166,7 +165,7 @@ function AdminTradeActivity() {
                 <h2 className="ata-team-name">{t.teamName}</h2>
                 <div className="ata-usage-badges">
                   <span className="ata-badge ata-used">
-                    Used: {t.tradesUsed}/{t.cap}
+                    Used: {t.expectedTradesUsed}/{t.cap}
                   </span>
                   <span className="ata-badge ata-remaining">
                     Left: {t.remaining}
@@ -190,14 +189,17 @@ function AdminTradeActivity() {
                   <span className="ata-stat-value">{t.trades}</span>
                 </div>
               </div>
-              <p className="ata-slot-math" title="Same-tier release + unsold pick uses one pick row but only one extra slot on top of the release.">
-                Slot math: {t.trades} trade{t.trades !== 1 ? 's' : ''} + {t.releases} release
-                {t.releases !== 1 ? 's' : ''} + {t.standalonePicks ?? 0} standalone pick
-                {(t.standalonePicks ?? 0) !== 1 ? 's' : ''}
-                {typeof t.pairedPicks === 'number' && t.pairedPicks > 0
-                  ? ` (${t.pairedPicks} pick${t.pairedPicks !== 1 ? 's' : ''} paired to a release)`
-                  : ''}{' '}
-                = <strong>{t.expectedTradesUsed ?? '—'}</strong> expected
+              <p className="ata-slot-math" title="Same category uses the larger of releases or picks. Sapphire does not cover Emerald.">
+                {t.tradeWindowOpen ? (
+                  <>
+                    Same category uses the larger number. 4 released and 4 picked = 4 trades. 5 released and 4 picked = 5.
+                    Swaps {t.trades}. Total <strong>{t.expectedTradesUsed ?? '—'}</strong>
+                  </>
+                ) : (
+                  <>
+                    Trade window is closed. Swaps count ({t.trades}). Releases and picks are not added.
+                  </>
+                )}
               </p>
               {typeof t.usageDrift === 'number' && t.usageDrift !== 0 && (
                 <p className="ata-drift-warn">
@@ -230,13 +232,17 @@ function AdminTradeActivity() {
             </div>
             {popupTeam && typeof popupTeam.expectedTradesUsed === 'number' && (
               <div className="ata-popup-reconcile">
-                <strong>Why “Used” is {popupTeam.tradesUsed}:</strong> each completed trade with this team +1; each
-                approved release +1; each approved unsold pick +1 except picks paired to a same-tier release (no extra slot beyond the release). Reconciles to{' '}
                 <strong>
-                  {popupTeam.trades} + {popupTeam.releases} + {popupTeam.standalonePicks ?? 0} ={' '}
-                  {popupTeam.expectedTradesUsed}
+                  Why “Used” is {popupTeam.expectedTradesUsed}:
                 </strong>{' '}
-                expected
+                {popupTeam.tradeWindowOpen
+                  ? 'the trade window is open. A swap is one trade. A release plus a same-category pick or admin sale is one trade. That is '
+                  : 'the trade window is closed, so only swaps count as trades. That is '}
+                <strong>
+                  {popupTeam.tradeWindowOpen
+                    ? `${popupTeam.trades} + ${popupTeam.releases} + ${popupTeam.standalonePicks ?? 0} = ${popupTeam.expectedTradesUsed}`
+                    : `${popupTeam.trades} swap${popupTeam.trades === 1 ? '' : 's'}`}
+                </strong>
                 {typeof popupTeam.usageDrift === 'number' && popupTeam.usageDrift !== 0 && (
                   <span className="ata-drift-inline">
                     {' '}

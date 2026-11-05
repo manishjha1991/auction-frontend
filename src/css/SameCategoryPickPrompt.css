@@ -1,0 +1,55 @@
+.pick-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(8, 12, 24, 0.62);
+}
+
+.pick-prompt {
+  width: min(440px, 100%);
+  padding: 22px 22px 18px;
+  border-radius: 16px;
+  background: #111827;
+  color: #f8fafc;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+}
+
+.pick-prompt h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+
+.pick-prompt p {
+  margin: 0 0 10px;
+  line-height: 1.45;
+  color: #e2e8f0;
+}
+
+.pick-prompt-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.pick-prompt-go,
+.pick-prompt-close {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pick-prompt-go {
+  background: #f59e0b;
+  color: #111827;
+}
+
+.pick-prompt-close {
+  background: #334155;
+  color: #f8fafc;
+}

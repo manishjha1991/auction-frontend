@@ -19,6 +19,7 @@ import NewsAlerts from './components/NewsAlerts';
 import TradeCenter from './components/TradeCenter';
 import TradeBundlePage from './components/TradeBundlePage';
 import UnsoldPlayers from './components/UnsoldPlayers';
+import SameCategoryPickPrompt from './components/SameCategoryPickPrompt';
 import AdminSettings from './components/AdminSettings';
 import { API_ENDPOINTS } from './const';
 import { 
@@ -235,6 +236,9 @@ function App() {
     <ToastProvider>
       <SocketProvider>
         <Router>
+        {isAuthenticated && appSettings.enableTradeCenter && (
+          <SameCategoryPickPrompt userId={user?.id || user?._id} />
+        )}
         <div className="dashboard-container">
         {isAuthenticated && (
           <>
