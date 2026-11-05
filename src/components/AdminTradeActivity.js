@@ -152,7 +152,11 @@ function AdminTradeActivity() {
         <div className="ata-loading">Loading teams...</div>
       ) : (
         <div className="ata-grid">
-          {filteredTeams.map((t) => (
+          {filteredTeams.map((t) => {
+            const used = Number(t.tradesUsed) || 0;
+            const limit = Number(t.cap) || 0;
+            const left = limit - used;
+            return (
             <div
               key={t.userId}
               className="ata-card ata-card-clickable"
@@ -165,10 +169,10 @@ function AdminTradeActivity() {
                 <h2 className="ata-team-name">{t.teamName}</h2>
                 <div className="ata-usage-badges">
                   <span className="ata-badge ata-used">
-                    Used: {t.expectedTradesUsed}/{t.cap}
+                    Used: {used}/{limit}
                   </span>
                   <span className="ata-badge ata-remaining">
-                    Left: {t.remaining}
+                    Left: {left}
                   </span>
                 </div>
               </div>
@@ -209,7 +213,8 @@ function AdminTradeActivity() {
               )}
               <p className="ata-card-hint">Click to view players involved</p>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -232,15 +237,13 @@ function AdminTradeActivity() {
             </div>
             {popupTeam && typeof popupTeam.expectedTradesUsed === 'number' && (
               <div className="ata-popup-reconcile">
-                <strong>
-                  Why “Used” is {popupTeam.expectedTradesUsed}:
-                </strong>{' '}
+                <strong>Stored used is {popupTeam.tradesUsed}.</strong> Left is {popupTeam.cap} − {popupTeam.tradesUsed}.{' '}
                 {popupTeam.tradeWindowOpen
-                  ? 'the trade window is open. A swap is one trade. A release plus a same-category pick or admin sale is one trade. That is '
-                  : 'the trade window is closed, so only swaps count as trades. That is '}
+                  ? 'With the trade window open, same-category moves add up to '
+                  : 'The trade window is closed, so the swap count on this card is '}
                 <strong>
                   {popupTeam.tradeWindowOpen
-                    ? `${popupTeam.trades} + ${popupTeam.releases} + ${popupTeam.standalonePicks ?? 0} = ${popupTeam.expectedTradesUsed}`
+                    ? popupTeam.expectedTradesUsed
                     : `${popupTeam.trades} swap${popupTeam.trades === 1 ? '' : 's'}`}
                 </strong>
                 {typeof popupTeam.usageDrift === 'number' && popupTeam.usageDrift !== 0 && (

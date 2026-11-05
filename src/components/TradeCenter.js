@@ -251,9 +251,10 @@ function TradeCenter({ user: userProp }) {
     const effective = Number.isFinite(tradeUsage.effectiveUsed)
       ? tradeUsage.effectiveUsed
       : parseNonNegativeTradesUsed(tradeUsage.tradesUsed) + (tradeUsage.reservedSlots || 0);
-    const rawRem = Math.max(0, cap - effective);
+    const usedShown = parseNonNegativeTradesUsed(tradeUsage.tradesUsed);
+    const rawRem = cap - usedShown;
     return {
-      seasonTradesRemaining: Math.min(cap, rawRem),
+      seasonTradesRemaining: rawRem,
       seasonTradeLimitReached: effective >= cap,
     };
   }, [tradeUsage.tradesUsed, tradeUsage.reservedSlots, tradeUsage.effectiveUsed, tradeUsage.cap]);
