@@ -21,7 +21,8 @@ const MIN_RANKING_MATCHES = 50;
 
 const isBattingRole = (role = '') => {
   const text = String(role || '').toLowerCase();
-  return text.includes('bat') || text.includes('keeper') || text.includes('allrounder');
+  if (text.includes('all')) return false;
+  return text.includes('bat') || text.includes('keeper');
 };
 
 const isBowlingRole = (role = '') => {
@@ -417,9 +418,8 @@ const TopRankingsPage = () => {
       .filter((p) => {
         const role = (p.role || '').toLowerCase();
         const isBatterRole =
-          role.includes('bat') ||
-          role.includes('keeper') ||
-          role.includes('allrounder');
+          !role.includes('all') &&
+          (role.includes('bat') || role.includes('keeper'));
         return p.totalRuns > 0 && isBatterRole;
       })
       .sort((a, b) => b.totalRuns - a.totalRuns);
