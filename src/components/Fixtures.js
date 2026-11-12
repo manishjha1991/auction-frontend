@@ -9,6 +9,7 @@ import { useToast } from "./ToastNotification";
 import MatchToss, { TossOverlay, useMatchToss } from "./MatchToss";
 import FixtureVenueLine from "./FixtureVenueLine";
 import { homeGroundForTeam } from "../utils/fixtureVenue";
+import { team1Won, team2Won, winnerSelectValue, idStr } from "../utils/teamIds";
 
 /* =========================================================
    Fixtures — mobile-first redesign
@@ -796,7 +797,7 @@ const Fixtures = () => {
     // If you still want to maintain "players" for any reason,
     // you can combine both teams' details or keep existing logic:
     const playersList =
-      selectedTeam === currentFixture?.team1
+      String(selectedTeam) === String(currentFixture?.team1UserId)
         ? currentFixture?.team1Details?.players || []
         : currentFixture?.team2Details?.players || [];
     setPlayers(playersList.map((player) => player.name));
@@ -838,7 +839,7 @@ const Fixtures = () => {
     setCurrentFixture(fixture);
 
     // Populate fields with existing values or empty strings
-    setWinner(fixture.winner || "");
+    setWinner(winnerSelectValue(fixture));
     setMargin(fixture.margin || "");
     setTeam1Score(fixture.team1Score || "");
     setTeam2Score(fixture.team2Score || "");
@@ -910,9 +911,15 @@ const Fixtures = () => {
         wickets: mom.wickets ? Number(mom.wickets) : null,
       };
 
+      const winnerUserId = winner;
+      const winnerName =
+        String(winnerUserId) === String(currentFixture?.team1UserId)
+          ? currentFixture.team1
+          : currentFixture.team2;
       const updatedFixture = {
         ...currentFixture,
-        winner,
+        winner: winnerName,
+        winnerUserId,
         margin,
         team1Score,
         team2Score,
@@ -945,7 +952,10 @@ const Fixtures = () => {
       showToast("Fixture updated successfully!", 'success');
     } catch (error) {
       console.error("Error saving fixture:", error);
-      showToast(error.response?.data?.error || "Failed to save fixture.", 'error');
+      showToast(
+        error.response?.data?.message || error.response?.data?.error || 'Failed to save fixture.',
+        'error'
+      );
     }
   };
 
@@ -1089,8 +1099,8 @@ const Fixtures = () => {
             {Number(fixture.team1Score || 0) >= Number(fixture.team2Score || 0) ? (
               <>
                 <TeamBox
-                  isWinner={fixture.winner === fixture.team1}
-                  isLoser={fixture.winner === fixture.team2}
+                  isWinner={team1Won(fixture)}
+                  isLoser={team2Won(fixture)}
                   hasMom={!!fixture.mom?.name}
                 >
                   <div className="team-name">
@@ -1100,15 +1110,15 @@ const Fixtures = () => {
                         G{getGroupForTeam(fixture.team1)}
                       </span>
                     ) : null}
-                    {fixture.winner === fixture.team1 && fixture.margin && (
+                    {team1Won(fixture) && fixture.margin && (
                       <MarginText>(Won by {fixture.margin})</MarginText>
                     )}
                   </div>
                   <div className="score">{fixture.team1Score || "TBD"}</div>
                 </TeamBox>
                 <TeamBox
-                  isWinner={fixture.winner === fixture.team2}
-                  isLoser={fixture.winner === fixture.team1}
+                  isWinner={team2Won(fixture)}
+                  isLoser={team1Won(fixture)}
                   hasMom={!!fixture.mom?.name}
                 >
                   <div className="team-name">
@@ -1118,7 +1128,7 @@ const Fixtures = () => {
                         G{getGroupForTeam(fixture.team2)}
                       </span>
                     ) : null}
-                    {fixture.winner === fixture.team2 && fixture.margin && (
+                    {team2Won(fixture) && fixture.margin && (
                       <MarginText>(Won by {fixture.margin})</MarginText>
                     )}
                   </div>
@@ -1128,8 +1138,8 @@ const Fixtures = () => {
             ) : (
               <>
                 <TeamBox
-                  isWinner={fixture.winner === fixture.team2}
-                  isLoser={fixture.winner === fixture.team1}
+                  isWinner={team2Won(fixture)}
+                  isLoser={team1Won(fixture)}
                   hasMom={!!fixture.mom?.name}
                 >
                   <div className="team-name">
@@ -1139,15 +1149,15 @@ const Fixtures = () => {
                         G{getGroupForTeam(fixture.team2)}
                       </span>
                     ) : null}
-                    {fixture.winner === fixture.team2 && fixture.margin && (
+                    {team2Won(fixture) && fixture.margin && (
                       <MarginText>(Won by {fixture.margin})</MarginText>
                     )}
                   </div>
                   <div className="score">{fixture.team2Score || "TBD"}</div>
                 </TeamBox>
                 <TeamBox
-                  isWinner={fixture.winner === fixture.team1}
-                  isLoser={fixture.winner === fixture.team2}
+                  isWinner={team1Won(fixture)}
+                  isLoser={team2Won(fixture)}
                   hasMom={!!fixture.mom?.name}
                 >
                   <div className="team-name">
@@ -1157,7 +1167,7 @@ const Fixtures = () => {
                         G{getGroupForTeam(fixture.team1)}
                       </span>
                     ) : null}
-                    {fixture.winner === fixture.team1 && fixture.margin && (
+                    {team1Won(fixture) && fixture.margin && (
                       <MarginText>(Won by {fixture.margin})</MarginText>
                     )}
                   </div>
@@ -1475,10 +1485,10 @@ const Fixtures = () => {
               onChange={(e) => handleWinnerChange(e.target.value)}
             >
               <option value="">Select Winner</option>
-              <option value={currentFixture?.team1}>
+              <option value={idStr(currentFixture?.team1UserId)}>
                 {currentFixture?.team1}
               </option>
-              <option value={currentFixture?.team2}>
+              <option value={idStr(currentFixture?.team2UserId)}>
                 {currentFixture?.team2}
               </option>
             </StyledSelect>

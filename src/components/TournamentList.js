@@ -7,6 +7,7 @@ import { useToast } from './ToastNotification';
 import MatchToss, { TossOverlay, useMatchToss } from './MatchToss';
 import FixtureVenueLine from './FixtureVenueLine';
 import { homeGroundForTeam } from '../utils/fixtureVenue';
+import { team1Won, team2Won, winnerSelectValue, idStr, idsEqual } from '../utils/teamIds';
 
 /** Knockout slots not yet decided — show this instead of "Winner of Semi-Final N" or legacy "Top n" seeds. */
 const KNOCKOUT_TBA = 'TBA';
@@ -1536,6 +1537,18 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     });
   };
 
+  const tournamentFixtureIndex = (fixture) => {
+    if (!fixture) return -1;
+    if (fixture._id != null) {
+      const byId = (fixtures || []).findIndex((f) => String(f._id) === String(fixture._id));
+      if (byId !== -1) return byId;
+    }
+    if (Number.isInteger(fixture.fixtureIndex) && fixture.fixtureIndex >= 0) {
+      return fixture.fixtureIndex;
+    }
+    return -1;
+  };
+
   const applyTossWinner = (fixtureIndex, tossWinner) => {
     setFixtures((prev) =>
       (prev || []).map((row, idx) =>
@@ -1688,14 +1701,19 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
     }
   };
 
-  const fetchTeamFixtures = async (teamName, fixturesToFilter = null) => {
+  const fetchTeamFixtures = async (teamOrName, fixturesToFilter = null) => {
     try {
       const fixturesToUse = fixturesToFilter || fixtures;
+      const teamName = teamOrName?.teamName || teamOrName;
+      const teamId = teamOrName?._id;
       
       // Filter fixtures where the team is either team1 or team2
-      const teamMatches = fixturesToUse.filter(fixture => 
-        fixture.team1 === teamName || fixture.team2 === teamName
-      );
+      const teamMatches = fixturesToUse.filter((fixture) => {
+        if (teamId && (idsEqual(fixture.team1UserId, teamId) || idsEqual(fixture.team2UserId, teamId))) {
+          return true;
+        }
+        return fixture.team1 === teamName || fixture.team2 === teamName;
+      });
       
       // Sort: completed matches first (by index), then pending matches
       teamMatches.sort((a, b) => {
@@ -1728,7 +1746,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
       // We'll use useEffect to handle this
     } else {
       // Fixtures already loaded, filter immediately
-      fetchTeamFixtures(team.teamName);
+      fetchTeamFixtures(team);
     }
   };
 
@@ -1878,7 +1896,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
   // Refetch team fixtures when fixtures change (if team details modal is open)
   useEffect(() => {
     if (showTeamDetails && selectedTeam && fixtures.length > 0) {
-      fetchTeamFixtures(selectedTeam.teamName, fixtures);
+      fetchTeamFixtures(selectedTeam, fixtures);
     }
   }, [fixtures, showTeamDetails, selectedTeam]);
 
@@ -2169,24 +2187,20 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                 Round-Robin Matches ({roundRobinFixtures.length})
                               </h4>
                               {roundRobinFixtures.map((fixture, index) => {
-                                // Find the actual index in the original fixtures array
-                                // Match by team names and other unique properties to find exact fixture
-                                const actualIndex = fixtures.findIndex(f => {
-                                  // Must match both teams
-                                  const teamsMatch = (f.team1 === fixture.team1 && f.team2 === fixture.team2) ||
-                                                    (f.team1 === fixture.team2 && f.team2 === fixture.team1);
-                                  if (!teamsMatch) return false;
-                                  
-                                  // Must be round-robin (not knockout)
-                                  const isRoundRobin = !f.team1?.includes('Winner of') && !f.team1?.includes('Top ');
-                                  if (!isRoundRobin) return false;
-                                  
-                                  // If scores exist, they should match
-                                  if (fixture.team1Score !== undefined && f.team1Score !== fixture.team1Score) return false;
-                                  if (fixture.team2Score !== undefined && f.team2Score !== fixture.team2Score) return false;
-                                  
-                                  return true;
-                                });
+                                // Prefer Mongo subdocument _id — search/sort used to send the wrong row
+                                let actualIndex = tournamentFixtureIndex(fixture);
+                                if (actualIndex === -1) {
+                                  actualIndex = fixtures.findIndex(f => {
+                                    const teamsMatch = (f.team1 === fixture.team1 && f.team2 === fixture.team2) ||
+                                                      (f.team1 === fixture.team2 && f.team2 === fixture.team1);
+                                    if (!teamsMatch) return false;
+                                    const isRoundRobin = !f.team1?.includes('Winner of') && !f.team1?.includes('Top ');
+                                    if (!isRoundRobin) return false;
+                                    if (fixture.team1Score !== undefined && f.team1Score !== fixture.team1Score) return false;
+                                    if (fixture.team2Score !== undefined && f.team2Score !== fixture.team2Score) return false;
+                                    return true;
+                                  });
+                                }
                                 
                                 return (
                                 <div key={index} className={`fixture-card ${fixture.winner ? 'completed' : 'pending'}`}>
@@ -2202,7 +2216,10 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                 <button 
                                   className="edit-fixture-btn"
                                   onClick={() => {
-                                    setEditingFixture({ ...fixture, fixtureIndex: actualIndex !== -1 ? actualIndex : index });
+                                    setEditingFixture({
+                                      ...fixture,
+                                      fixtureIndex: actualIndex !== -1 ? actualIndex : index,
+                                    });
                                     setShowEditFixtureModal(true);
                                   }}
                                 >
@@ -2214,7 +2231,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                           })()}
                         </div>
                         <div className="fixture-body">
-                          <div className={`team-section ${fixture.winner === fixture.team1 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
+                          <div className={`team-section ${team1Won(fixture) ? 'winner' : fixture.winner ? 'loser' : ''}`}>
                             <span className="team-name">{fixture.team1}</span>
                             {fixture.team1Score !== undefined && (
                               <span className="team-score">{fixture.team1Score}</span>
@@ -2225,8 +2242,8 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                 marginTop: '4px',
                                 padding: '2px 6px',
                                 borderRadius: '4px',
-                                background: fixture.winner === fixture.team1 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
-                                color: fixture.winner === fixture.team1 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                background: team1Won(fixture) ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                color: team1Won(fixture) ? '#155724' : fixture.winner ? '#721c24' : '#495057',
                                 fontWeight: '600'
                               }}>
                                 Fairness: {fixture.team1Fairness}
@@ -2234,7 +2251,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                             )}
                           </div>
                           <div className="vs-section">VS</div>
-                          <div className={`team-section ${fixture.winner === fixture.team2 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
+                          <div className={`team-section ${team2Won(fixture) ? 'winner' : fixture.winner ? 'loser' : ''}`}>
                             <span className="team-name">{fixture.team2}</span>
                             {fixture.team2Score !== undefined && (
                               <span className="team-score">{fixture.team2Score}</span>
@@ -2245,8 +2262,8 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                 marginTop: '4px',
                                 padding: '2px 6px',
                                 borderRadius: '4px',
-                                background: fixture.winner === fixture.team2 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
-                                color: fixture.winner === fixture.team2 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                background: team2Won(fixture) ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                color: team2Won(fixture) ? '#155724' : fixture.winner ? '#721c24' : '#495057',
                                 fontWeight: '600'
                               }}>
                                 Fairness: {fixture.team2Fairness}
@@ -2458,8 +2475,8 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                 const winnerTheme = getWinnerThemeColors(winnerTeamData);
                                 const pendingGold = getWinnerThemeColors(null);
                                 const finalAccent = fixture.winner ? winnerTheme : pendingGold;
-                                const team1IsWinner = !!fixture.winner && fixture.winner === fixture.team1;
-                                const team2IsWinner = !!fixture.winner && fixture.winner === fixture.team2;
+                                const team1IsWinner = !!fixture.winner && team1Won(fixture);
+                                const team2IsWinner = !!fixture.winner && team2Won(fixture);
                                 const team1Border = team1IsWinner
                                   ? `4px solid ${winnerTheme.primary}`
                                   : fixture.winner
@@ -2526,7 +2543,12 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                             <button 
                                               className="edit-fixture-btn"
                                               onClick={() => {
-                                                setEditingFixture({ ...fixture, fixtureIndex: actualIndex !== -1 ? actualIndex : fixtures.length + index });
+                                                setEditingFixture({
+                                                  ...fixture,
+                                                  fixtureIndex: tournamentFixtureIndex(fixture) !== -1
+                                                    ? tournamentFixtureIndex(fixture)
+                                                    : (foundIndex !== -1 ? foundIndex : actualIndex),
+                                                });
                                                 setShowEditFixtureModal(true);
                                               }}
                                             >
@@ -2549,7 +2571,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                         // FINAL - Special display with logos and abbreviations
                                         <>
                                           {/* Final - Special display with logos and abbreviations */}
-                                          <div className={`team-section ${fixture.winner === fixture.team1 ? 'winner' : fixture.winner ? 'loser' : ''}`} style={{
+                                          <div className={`team-section ${team1Won(fixture) ? 'winner' : fixture.winner ? 'loser' : ''}`} style={{
                                             display: 'flex',
                                             flexDirection: 'column',
                                             alignItems: 'center',
@@ -2621,8 +2643,8 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                 fontSize: '0.8rem',
                                                 padding: '4px 8px',
                                                 borderRadius: '6px',
-                                                background: fixture.winner === fixture.team1 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
-                                                color: fixture.winner === fixture.team1 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                                background: team1Won(fixture) ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                                color: team1Won(fixture) ? '#155724' : fixture.winner ? '#721c24' : '#495057',
                                                 fontWeight: '600'
                                               }}>
                                                 Fairness: {fixture.team1Fairness}
@@ -2637,7 +2659,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                           }}>
                                             VS
                                           </div>
-                                          <div className={`team-section final-team-section ${fixture.winner === fixture.team2 ? 'winner' : fixture.winner ? 'loser' : ''}`} style={{
+                                          <div className={`team-section final-team-section ${team2Won(fixture) ? 'winner' : fixture.winner ? 'loser' : ''}`} style={{
                                             display: 'flex',
                                             flexDirection: 'column',
                                             alignItems: 'center',
@@ -2708,8 +2730,8 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                                 fontSize: '0.8rem',
                                                 padding: '4px 8px',
                                                 borderRadius: '6px',
-                                                background: fixture.winner === fixture.team2 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
-                                                color: fixture.winner === fixture.team2 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                                background: team2Won(fixture) ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                                color: team2Won(fixture) ? '#155724' : fixture.winner ? '#721c24' : '#495057',
                                                 fontWeight: '600'
                                               }}>
                                                 Fairness: {fixture.team2Fairness}
@@ -2720,7 +2742,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                       ) : (
                                         <>
                                           {/* Semi-finals - Regular display */}
-                                      <div className={`team-section ${fixture.winner === fixture.team1 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
+                                      <div className={`team-section ${team1Won(fixture) ? 'winner' : fixture.winner ? 'loser' : ''}`}>
                                         <span className="team-name">{knockoutTeamDisplayName(fixture.team1)}</span>
                                         {fixture.team1Score !== undefined && (
                                           <span className="team-score">{fixture.team1Score}</span>
@@ -2731,8 +2753,8 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                             marginTop: '4px',
                                             padding: '2px 6px',
                                             borderRadius: '4px',
-                                            background: fixture.winner === fixture.team1 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
-                                            color: fixture.winner === fixture.team1 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                            background: team1Won(fixture) ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                            color: team1Won(fixture) ? '#155724' : fixture.winner ? '#721c24' : '#495057',
                                             fontWeight: '600'
                                           }}>
                                             Fairness: {fixture.team1Fairness}
@@ -2740,7 +2762,7 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                         )}
                                       </div>
                                       <div className="vs-section">VS</div>
-                                      <div className={`team-section ${fixture.winner === fixture.team2 ? 'winner' : fixture.winner ? 'loser' : ''}`}>
+                                      <div className={`team-section ${team2Won(fixture) ? 'winner' : fixture.winner ? 'loser' : ''}`}>
                                         <span className="team-name">{knockoutTeamDisplayName(fixture.team2)}</span>
                                         {fixture.team2Score !== undefined && (
                                           <span className="team-score">{fixture.team2Score}</span>
@@ -2751,8 +2773,8 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                                             marginTop: '4px',
                                             padding: '2px 6px',
                                             borderRadius: '4px',
-                                            background: fixture.winner === fixture.team2 ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
-                                            color: fixture.winner === fixture.team2 ? '#155724' : fixture.winner ? '#721c24' : '#495057',
+                                            background: team2Won(fixture) ? '#d4edda' : fixture.winner ? '#f8d7da' : '#e9ecef',
+                                            color: team2Won(fixture) ? '#155724' : fixture.winner ? '#721c24' : '#495057',
                                             fontWeight: '600'
                                           }}>
                                             Fairness: {fixture.team2Fairness}
@@ -3925,15 +3947,17 @@ const TournamentDetailModal = ({ tournament, onClose, onSubscribe, onUnsubscribe
                     </thead>
                     <tbody>
                       {teamFixtures.map((fixture, index) => {
-                        const isTeam1 = fixture.team1 === selectedTeam.teamName;
+                        const isTeam1 = idsEqual(fixture.team1UserId, selectedTeam._id)
+                          || fixture.team1 === selectedTeam.teamName;
                         const opponent = isTeam1 ? fixture.team2 : fixture.team1;
+                        const thisTeamWon = isTeam1 ? team1Won(fixture) : team2Won(fixture);
                         
                         let result = 'vs';
                         let resultText = 'vs';
                         let resultColor = '#6c757d';
                         
-                        if (fixture.winner) {
-                          if (fixture.winner === selectedTeam.teamName) {
+                        if (fixture.winner || fixture.winnerUserId) {
+                          if (thisTeamWon) {
                             result = 'win';
                             resultText = 'Won';
                             resultColor = '#28a745';
@@ -4013,7 +4037,7 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     team1: fixture.team1,
     team2: fixture.team2,
-    winner: fixture.winner || '',
+    winner: winnerSelectValue(fixture),
     margin: fixture.margin || '',
     team1Score: fixture.team1Score || '',
     team2Score: fixture.team2Score || '',
@@ -4148,6 +4172,7 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
       // Overs are mandatory - already validated in validateForm()
       const updateData = {
         winner: formData.winner,
+        winnerUserId: formData.winner,
         margin: formData.margin,
         team1Score: formData.team1Score,
         team2Score: formData.team2Score,
@@ -4221,8 +4246,8 @@ const EditFixtureModal = ({ fixture, tournamentId, onClose, onSuccess }) => {
               style={{ borderColor: errors.winner ? '#dc3545' : '' }}
             >
               <option value="">-- Select Winner --</option>
-              <option value={formData.team1}>{formData.team1}</option>
-              <option value={formData.team2}>{formData.team2}</option>
+              <option value={idStr(fixture.team1UserId)}>{formData.team1}</option>
+              <option value={idStr(fixture.team2UserId)}>{formData.team2}</option>
             </select>
             {errors.winner && <span style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '5px', display: 'block' }}>{errors.winner}</span>}
           </div>

@@ -13,6 +13,7 @@ import {
   parseMatchSummaryOcr,
 } from '../utils/fixtureOcrParser';
 import '../css/FixtureOcr.css';
+import { idStr } from '../utils/teamIds';
 
 const SCORE_REGEX = /^\d+\/\d+$/;
 
@@ -30,6 +31,16 @@ const EMPTY_FORM = {
 
 const isPlaceholderTeam = (name = '') =>
   String(name).includes('Winner of') || String(name).includes('Loser of');
+
+const winnerIdForFixture = (winner, fx) => {
+  if (!winner || !fx) return '';
+  if (String(winner) === String(fx.team1UserId) || String(winner) === String(fx.team2UserId)) {
+    return String(winner);
+  }
+  if (winner === fx.team1 || matchTeamName(winner, fx.team1)) return idStr(fx.team1UserId);
+  if (winner === fx.team2 || matchTeamName(winner, fx.team2)) return idStr(fx.team2UserId);
+  return '';
+};
 
 const isPlayoffReady = (fx) =>
   fx && !fx.winner && !isPlaceholderTeam(fx.team1) && !isPlaceholderTeam(fx.team2);
@@ -395,6 +406,7 @@ const FixtureOcr = () => {
     try {
       const payload = {
         winner: form.winner,
+        winnerUserId: winnerIdForFixture(form.winner, selectedFixture),
         margin: form.margin.trim(),
         team1Score: form.team1Score.trim(),
         team2Score: form.team2Score.trim(),
@@ -773,12 +785,12 @@ const FixtureOcr = () => {
                     <div className="fixture-ocr-field-row">
                       <select
                         className={fieldErrors.winner ? 'has-error' : ''}
-                        value={form.winner}
+                        value={winnerIdForFixture(form.winner, selectedFixture)}
                         onChange={(e) => updateForm('winner', e.target.value)}
                       >
                         <option value="">Select winner</option>
-                        <option value={selectedFixture.team1}>{selectedFixture.team1}</option>
-                        <option value={selectedFixture.team2}>{selectedFixture.team2}</option>
+                        <option value={idStr(selectedFixture.team1UserId)}>{selectedFixture.team1}</option>
+                        <option value={idStr(selectedFixture.team2UserId)}>{selectedFixture.team2}</option>
                       </select>
                       <input
                         className={fieldErrors.margin ? 'has-error' : ''}

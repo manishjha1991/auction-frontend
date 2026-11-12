@@ -6,6 +6,7 @@ import { useToast } from "./ToastNotification";
 import MatchToss, { TossOverlay, useMatchToss } from "./MatchToss";
 import FixtureVenueLine from "./FixtureVenueLine";
 import { homeGroundForTeam } from "../utils/fixtureVenue";
+import { team1Won, team2Won, winnerSelectValue, idStr } from "../utils/teamIds";
 
 const calculateRequiredGames = (teamCount, fallback = 13) => {
   const count = Number(teamCount) || 0;
@@ -849,7 +850,7 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
   const handleEditFixture = (fixture) => {
     console.log('Opening edit modal for fixture:', fixture);
     setCurrentFixture(fixture);
-    setWinner(fixture.winner || "");
+    setWinner(winnerSelectValue(fixture));
     setMargin(fixture.margin || "");
     setTeam1Score(fixture.team1Score || "");
     setTeam2Score(fixture.team2Score || "");
@@ -865,8 +866,14 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
 
   const handleSaveFixture = async () => {
     try {
+      const winnerUserId = winner;
+      const winnerName =
+        String(winnerUserId) === String(currentFixture?.team1UserId)
+          ? currentFixture.team1
+          : currentFixture.team2;
       const updatedFixture = {
-        winner,
+        winner: winnerName,
+        winnerUserId,
         margin,
         team1Score,
         team2Score,
@@ -1162,8 +1169,8 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
 
              <MatchDetails>
                <TeamBox 
-                 isWinner={fixture.winner === fixture.team1}
-                 isLoser={fixture.winner === fixture.team2}
+                 isWinner={team1Won(fixture)}
+                 isLoser={team2Won(fixture)}
                >
                  <img 
                    src={team1Data.image} 
@@ -1180,8 +1187,8 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
                <VS>VS</VS>
                
                <TeamBox
-                 isWinner={fixture.winner === fixture.team2}
-                 isLoser={fixture.winner === fixture.team1}
+                 isWinner={team2Won(fixture)}
+                 isLoser={team1Won(fixture)}
                >
                  <img 
                    src={team2Data.image} 
@@ -1198,11 +1205,11 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
 
              <MatchDescription>
                {fixture.matchId === 'A' || fixture.matchId === 'B' ? 
-                 (fixture.winner ? `${fixture.winner === fixture.team1 ? fixture.team2 : fixture.team1} ELIMINATED` : 'LOOSER IS ELIMINATED') :
+                 (fixture.winner ? `${team1Won(fixture) ? fixture.team2 : fixture.team1} ELIMINATED` : 'LOOSER IS ELIMINATED') :
                 fixture.matchId === 'C' ? 
-                 (fixture.winner ? `${fixture.winner} GOES TO FINAL, ${fixture.winner === fixture.team1 ? fixture.team2 : fixture.team1} GETS A CHANCE` : 'WINNER GOES TO FINAL, LOOSER GETS A CHANCE') :
+                 (fixture.winner ? `${fixture.winner} GOES TO FINAL, ${team1Won(fixture) ? fixture.team2 : fixture.team1} GETS A CHANCE` : 'WINNER GOES TO FINAL, LOOSER GETS A CHANCE') :
                 fixture.matchId === 'D' ? 
-                 (fixture.winner ? `${fixture.winner === fixture.team1 ? fixture.team2 : fixture.team1} ELIMINATED` : 'LOOSER ELIMINATED') :
+                 (fixture.winner ? `${team1Won(fixture) ? fixture.team2 : fixture.team1} ELIMINATED` : 'LOOSER ELIMINATED') :
                 fixture.matchId === 'E' ? 
                  (fixture.winner ? `${fixture.winner} GOES FINAL` : 'WINNER GOES FINAL') :
                 // Group mode descriptions
@@ -1293,8 +1300,8 @@ const PlayoffFixtures = ({ top6Teams, mode, groups }) => {
                }}
              >
                <option value="">Select Winner</option>
-               <option value={currentFixture?.team1}>{currentFixture?.team1}</option>
-               <option value={currentFixture?.team2}>{currentFixture?.team2}</option>
+               <option value={idStr(currentFixture?.team1UserId)}>{currentFixture?.team1}</option>
+               <option value={idStr(currentFixture?.team2UserId)}>{currentFixture?.team2}</option>
              </select>
 
              <Input

@@ -94,18 +94,24 @@ export default function FixtureMatchCard({
 }) {
   const team1 = fixture?.team1 || 'TBA';
   const team2 = fixture?.team2 || 'TBA';
-  const hasWinner = Boolean(fixture?.winner);
-  const team1Won = hasWinner && fixture.winner === team1;
-  const team2Won = hasWinner && fixture.winner === team2;
+  const hasWinner = Boolean(fixture?.winner || fixture?.winnerUserId);
+  const team1WonFlag = hasWinner && (
+    (fixture.winnerUserId && String(fixture.winnerUserId) === String(fixture.team1UserId)) ||
+    (!fixture.winnerUserId && fixture.winner === team1)
+  );
+  const team2WonFlag = hasWinner && (
+    (fixture.winnerUserId && String(fixture.winnerUserId) === String(fixture.team2UserId)) ||
+    (!fixture.winnerUserId && fixture.winner === team2)
+  );
 
-  const topIsTeam1 = !hasWinner || team1Won || (!team1Won && !team2Won);
+  const topIsTeam1 = !hasWinner || team1WonFlag || (!team1WonFlag && !team2WonFlag);
   const top = topIsTeam1
     ? {
         name: team1,
         image: absUrl(apiBase, team1Meta.image || team1Meta.teamImage),
         score: fixture?.team1Score,
         overs: fixture?.team1Overs,
-        isWinner: team1Won,
+        isWinner: team1WonFlag,
         themePrimary: team1Meta.themePrimary,
         themeSecondary: team1Meta.themeSecondary,
       }
@@ -114,7 +120,7 @@ export default function FixtureMatchCard({
         image: absUrl(apiBase, team2Meta.image || team2Meta.teamImage),
         score: fixture?.team2Score,
         overs: fixture?.team2Overs,
-        isWinner: team2Won,
+        isWinner: team2WonFlag,
         themePrimary: team2Meta.themePrimary,
         themeSecondary: team2Meta.themeSecondary,
       };
@@ -124,7 +130,7 @@ export default function FixtureMatchCard({
         image: absUrl(apiBase, team2Meta.image || team2Meta.teamImage),
         score: fixture?.team2Score,
         overs: fixture?.team2Overs,
-        isWinner: team2Won,
+        isWinner: team2WonFlag,
         themePrimary: team2Meta.themePrimary,
         themeSecondary: team2Meta.themeSecondary,
       }
@@ -133,7 +139,7 @@ export default function FixtureMatchCard({
         image: absUrl(apiBase, team1Meta.image || team1Meta.teamImage),
         score: fixture?.team1Score,
         overs: fixture?.team1Overs,
-        isWinner: team1Won,
+        isWinner: team1WonFlag,
         themePrimary: team1Meta.themePrimary,
         themeSecondary: team1Meta.themeSecondary,
       };
