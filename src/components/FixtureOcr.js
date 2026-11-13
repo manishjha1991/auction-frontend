@@ -172,12 +172,23 @@ const FixtureOcr = () => {
   const activeFixtures = fixtureType === 'playoff' ? playoffFixtures : fixtures;
 
   const selectedFixture = useMemo(() => {
-    if (fixtureType === 'playoff') {
-      return playoffFixtures.find(
-        (fx) => getFixtureKey(fx, 'playoff') === String(selectedFixtureId)
+    const id = String(selectedFixtureId || '');
+    if (!id) return null;
+    const pools = [
+      {
+        type: fixtureType,
+        list: fixtureType === 'playoff' ? playoffFixtures : fixtures,
+      },
+      { type: 'playoff', list: playoffFixtures },
+      { type: 'league', list: fixtures },
+    ];
+    for (const pool of pools) {
+      const hit = (pool.list || []).find(
+        (fx) => getFixtureKey(fx, pool.type) === id || String(fx?._id || '') === id
       );
+      if (hit) return hit;
     }
-    return fixtures.find((fx) => String(fx._id) === String(selectedFixtureId));
+    return null;
   }, [fixtures, playoffFixtures, selectedFixtureId, fixtureType]);
 
   const loadFixtures = useCallback(async () => {
@@ -369,7 +380,7 @@ const FixtureOcr = () => {
 
   const updateForm = (key, value) => {
     setForm((prev) => {
-      if (key === 'mom') return { ...prev, mom: { ...prev.mom, ...value } };
+      if (key === 'mom') return { ...prev, mom: { ...(prev.mom || {}), ...value } };
       return { ...prev, [key]: value };
     });
     setFieldErrors((prev) => {
@@ -411,9 +422,9 @@ const FixtureOcr = () => {
         team1Score: form.team1Score.trim(),
         team2Score: form.team2Score.trim(),
         mom: {
-          name: form.mom.name?.trim() || null,
-          score: form.mom.score !== '' ? Number(form.mom.score) : null,
-          wickets: form.mom.wickets !== '' ? Number(form.mom.wickets) : null,
+          name: form.mom?.name?.trim() || null,
+          score: form.mom?.score !== '' && form.mom?.score != null ? Number(form.mom.score) : null,
+          wickets: form.mom?.wickets !== '' && form.mom?.wickets != null ? Number(form.mom.wickets) : null,
         },
         team1Fairness: Number(form.team1Fairness),
         team2Fairness: Number(form.team2Fairness),
@@ -499,8 +510,9 @@ const FixtureOcr = () => {
   };
 
   const goToReview = () => {
-    if (!selectedFixtureId) {
+    if (!selectedFixture) {
       setFieldErrors({ fixture: 'Pick your match first' });
+      setModalStep('match');
       return;
     }
     setModalStep('review');
@@ -756,6 +768,12 @@ const FixtureOcr = () => {
                 </>
               )}
 
+              {modalStep === 'review' && !selectedFixture && (
+                <p className="fixture-ocr-simple-muted">
+                  That match could not be opened. Go back and pick it again.
+                </p>
+              )}
+
               {modalStep === 'review' && selectedFixture && (
                 <>
                   <div className="fixture-ocr-simple-note fixture-ocr-simple-note--match">
@@ -899,20 +917,20 @@ const FixtureOcr = () => {
                     <input
                       type="text"
                       placeholder="Player name"
-                      value={form.mom.name}
+                      value={form.mom?.name || ''}
                       onChange={(e) => updateForm('mom', { name: e.target.value })}
                     />
                     <div className="fixture-ocr-field-row">
                       <input
                         type="number"
                         placeholder="Runs"
-                        value={form.mom.score}
+                        value={form.mom?.score || ''}
                         onChange={(e) => updateForm('mom', { score: e.target.value })}
                       />
                       <input
                         type="number"
                         placeholder="Wickets"
-                        value={form.mom.wickets}
+                        value={form.mom?.wickets || ''}
                         onChange={(e) => updateForm('mom', { wickets: e.target.value })}
                       />
                     </div>
@@ -922,7 +940,7 @@ const FixtureOcr = () => {
             </div>
 
             <div className="fixture-ocr-modal-foot">
-              {modalStep === 'match' ? (
+              {modalStep === 'match' || !selectedFixture ? (
                 <button
                   type="button"
                   className="fixture-ocr-btn fixture-ocr-btn--primary"

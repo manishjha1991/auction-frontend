@@ -11,14 +11,15 @@ const titleCase = (value = '') =>
     .trim();
 
 export const getTeamAbbreviation = (teamName = '') => {
-  if (!teamName) return '';
-  const words = teamName.trim().split(/\s+/).filter(Boolean);
+  const name = String(teamName ?? '').trim();
+  if (!name) return '';
+  const words = name.split(/\s+/).filter(Boolean);
   if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
   return words.map((w) => w[0]).join('').toUpperCase();
 };
 
 export const normalizeTeamKey = (value = '') =>
-  value.replace(/[^a-z0-9]/gi, '').toLowerCase();
+  String(value ?? '').replace(/[^a-z0-9]/gi, '').toLowerCase();
 
 const teamMatchScore = (raw = '', candidate = '') => {
   if (!raw || !candidate) return 0;
@@ -370,10 +371,11 @@ export const parseMatchSummaryOcr = (text = '') => {
 };
 
 const mapInningsToFixtureSlots = (parsed, fixture) => {
-  let team1Innings = parsed.innings[0] || null;
-  let team2Innings = parsed.innings[1] || null;
+  const innings = Array.isArray(parsed?.innings) ? parsed.innings : [];
+  let team1Innings = innings[0] || null;
+  let team2Innings = innings[1] || null;
 
-  if (!fixture || parsed.innings.length < 2) {
+  if (!fixture || innings.length < 2) {
     return { team1Innings, team2Innings };
   }
 
@@ -435,8 +437,10 @@ export const buildFormFromParse = (parsed, fixture) => {
     const raw = parsed.winnerRaw.toUpperCase();
     if (raw === getTeamAbbreviation(fixture.team1).toUpperCase()) winner = fixture.team1;
     if (raw === getTeamAbbreviation(fixture.team2).toUpperCase()) winner = fixture.team2;
-    parsed.innings.forEach((inn) => {
-      if (raw === inn.label.toUpperCase() || raw === getTeamAbbreviation(inn.label).toUpperCase()) {
+    (parsed.innings || []).forEach((inn) => {
+      const label = inn?.label || '';
+      if (!label) return;
+      if (raw === label.toUpperCase() || raw === getTeamAbbreviation(label).toUpperCase()) {
         winner = matchTeamName(inn.label, winnerCandidates) || winner;
       }
     });
