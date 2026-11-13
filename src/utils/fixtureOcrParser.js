@@ -40,12 +40,13 @@ const teamMatchScore = (raw = '', candidate = '') => {
   return 0;
 };
 
-/** Fuzzy-match OCR team text to a fixture team name. */
+/** Fuzzy-match OCR team text to a fixture team name. A single name is accepted as well as a list. */
 export const matchTeamName = (raw = '', candidates = []) => {
-  if (!raw || !candidates.length) return '';
+  const list = Array.isArray(candidates) ? candidates : candidates ? [candidates] : [];
+  if (!raw || !list.length) return '';
   let best = '';
   let bestScore = 0;
-  candidates.forEach((c) => {
+  list.forEach((c) => {
     const s = teamMatchScore(raw, c);
     if (s > bestScore) {
       bestScore = s;

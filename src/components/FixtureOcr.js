@@ -37,8 +37,8 @@ const winnerIdForFixture = (winner, fx) => {
   if (String(winner) === String(fx.team1UserId) || String(winner) === String(fx.team2UserId)) {
     return String(winner);
   }
-  if (winner === fx.team1 || matchTeamName(winner, fx.team1)) return idStr(fx.team1UserId);
-  if (winner === fx.team2 || matchTeamName(winner, fx.team2)) return idStr(fx.team2UserId);
+  if (winner === fx.team1 || matchTeamName(winner, [fx.team1])) return idStr(fx.team1UserId);
+  if (winner === fx.team2 || matchTeamName(winner, [fx.team2])) return idStr(fx.team2UserId);
   return '';
 };
 
